@@ -1,5 +1,42 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 0ae783e: feat(anthropic): add the new tool search tools
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 3.0.0-beta.70
 
 ### Patch Changes

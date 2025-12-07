@@ -11,11 +11,9 @@ import {
 export function prepareChatTools({
   tools,
   toolChoice,
-  strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
-  strictJsonSchema: boolean;
 }): {
   tools?: OpenAIChatFunctionTool[];
   toolChoice?: OpenAIChatToolChoice;
@@ -41,7 +39,7 @@ export function prepareChatTools({
             name: tool.name,
             description: tool.description,
             parameters: tool.inputSchema,
-            strict: strictJsonSchema,
+            ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
         break;

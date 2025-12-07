@@ -41,6 +41,23 @@ export interface DeepSeekToolMessage {
   tool_call_id: string;
 }
 
+export interface DeepSeekFunctionTool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string | undefined;
+    parameters: unknown;
+    strict?: boolean;
+  };
+}
+
+export type DeepSeekToolChoice =
+  | { type: 'function'; function: { name: string } }
+  | 'auto'
+  | 'none'
+  | 'required'
+  | undefined;
+
 const tokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),

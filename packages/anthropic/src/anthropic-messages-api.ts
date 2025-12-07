@@ -35,6 +35,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicToolSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
@@ -114,7 +115,10 @@ export interface AnthropicServerToolUseContent {
     | 'code_execution'
     // code execution 20250825:
     | 'bash_code_execution'
-    | 'text_editor_code_execution';
+    | 'text_editor_code_execution'
+    // tool search:
+    | 'tool_search_tool_regex'
+    | 'tool_search_tool_bm25';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -166,6 +170,24 @@ export interface AnthropicWebSearchToolResultContent {
     encrypted_content: string;
     type: string;
   }>;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicToolSearchToolResultContent {
+  type: 'tool_search_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'tool_search_tool_search_result';
+        tool_references: Array<{
+          type: 'tool_reference';
+          tool_name: string;
+        }>;
+      }
+    | {
+        type: 'tool_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -278,6 +300,12 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      strict?: boolean;
+      /**
+       * When true, this tool is deferred and will only be loaded when
+       * discovered via the tool search tool.
+       */
+      defer_loading?: boolean;
     }
   | {
       type: 'code_execution_20250522';
@@ -343,6 +371,14 @@ export type AnthropicTool =
         timezone?: string;
       };
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'tool_search_tool_regex_20251119';
+      name: string;
+    }
+  | {
+      type: 'tool_search_tool_bm25_20251119';
+      name: string;
     };
 
 export type AnthropicToolChoice =
@@ -619,6 +655,26 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -842,6 +898,26 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 new_start: z.number().nullable(),
                 old_lines: z.number().nullable(),
                 old_start: z.number().nullable(),
+              }),
+            ]),
+          }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
               }),
             ]),
           }),

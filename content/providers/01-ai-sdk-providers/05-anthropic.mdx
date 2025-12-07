@@ -457,10 +457,7 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-<Note>
-  The bash tool must have the name `bash`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Memory Tool
 
@@ -476,10 +473,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 ```
 
-<Note>
-  The memory tool must have the name `memory`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Text Editor Tool
 
@@ -487,7 +481,6 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 ```ts
 const tools = {
-  // tool name must be str_replace_based_edit_tool
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
     async execute({ command, path, old_str, new_str }) {
@@ -499,7 +492,7 @@ const tools = {
 
 <Note>
   Different models support different versions of the tool. For Claude Sonnet 3.5
-  and 3.7 you need to use older tool versions and tool names.
+  and 3.7 you need to use older tool versions.
 </Note>
 
 Parameters:
@@ -653,6 +646,64 @@ const result = await generateText({
   },
 });
 ```
+
+### Tool Search
+
+Anthropic provides provider-defined tool search tools that enable Claude to work with hundreds or thousands of tools by dynamically discovering and loading them on-demand. Instead of loading all tool definitions into the context window upfront, Claude searches your tool catalog and loads only the tools it needs.
+
+There are two variants:
+
+- **BM25 Search** - Uses natural language queries to find tools
+- **Regex Search** - Uses regex patterns (Python `re.search()` syntax) to find tools
+
+#### Basic Usage
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    toolSearch: anthropic.tools.toolSearchBm25_20251119(),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({
+        location: z.string().describe('The city and state'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+        condition: 'Sunny',
+      }),
+      // Defer tool here - Claude discovers these via the tool search tool
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+#### Using Regex Search
+
+For more precise tool matching, you can use the regex variant:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Get the weather data',
+  tools: {
+    toolSearch: anthropic.tools.toolSearchRegex_20251119(),
+    // ... deferred tools
+  },
+});
+```
+
+Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
 
 ### MCP Connectors
 
@@ -966,16 +1017,16 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

@@ -48,4 +48,35 @@ describe('standardizePrompt', () => {
       }
     `);
   });
+
+  it('should support array of SystemModelMessage system messages', async () => {
+    const result = await standardizePrompt({
+      system: [
+        { role: 'system', content: 'INSTRUCTIONS' },
+        { role: 'system', content: 'INSTRUCTIONS 2' },
+      ],
+      prompt: 'Hello, world!',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello, world!",
+            "role": "user",
+          },
+        ],
+        "system": [
+          {
+            "content": "INSTRUCTIONS",
+            "role": "system",
+          },
+          {
+            "content": "INSTRUCTIONS 2",
+            "role": "system",
+          },
+        ],
+      }
+    `);
+  });
 });

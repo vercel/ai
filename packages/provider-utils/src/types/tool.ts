@@ -7,8 +7,7 @@ import { ProviderOptions } from './provider-options';
 /**
  * Additional options that are sent into each tool call.
  */
-// TODO AI SDK 6: rename to ToolExecutionOptions
-export interface ToolCallOptions {
+export interface ToolExecutionOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -61,7 +60,7 @@ export type ToolNeedsApprovalFunction<INPUT> = (
 
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
   input: INPUT,
-  options: ToolCallOptions,
+  options: ToolExecutionOptions,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
@@ -123,30 +122,48 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 
   /**
-The schema of the input that the tool expects. The language model will use this to generate the input.
-It is also used to validate the output of the language model.
-Use descriptions to make the input understandable for the language model.
+   * The schema of the input that the tool expects.
+   * The language model will use this to generate the input.
+   * It is also used to validate the output of the language model.
+   *
+   * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-Whether the tool needs approval before it can be executed.
+   * An optional list of input examples that show the language
+   * model what the input should look like.
+   */
+  inputExamples?: Array<{ input: INPUT }>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
    */
   needsApproval?:
     | boolean
     | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
+
   /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
-  onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+  onInputStart?: (options: ToolExecutionOptions) => void | PromiseLike<void>;
 
   /**
    * Optional function that is called when an argument streaming delta is available.
    * Only called when the tool is used in a streaming context.
    */
   onInputDelta?: (
-    options: { inputTextDelta: string } & ToolCallOptions,
+    options: { inputTextDelta: string } & ToolExecutionOptions,
   ) => void | PromiseLike<void>;
 
   /**
@@ -156,7 +173,7 @@ Whether the tool needs approval before it can be executed.
   onInputAvailable?: (
     options: {
       input: [INPUT] extends [never] ? unknown : INPUT;
-    } & ToolCallOptions,
+    } & ToolExecutionOptions,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**

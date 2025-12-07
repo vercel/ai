@@ -279,7 +279,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = prepareChatTools({
       tools,
       toolChoice,
-      strictJsonSchema,
     });
 
     return {
