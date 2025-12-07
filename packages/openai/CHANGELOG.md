@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.78
+
+### Patch Changes
+
+- e245b61: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
 ## 2.0.77
 
 ### Patch Changes
