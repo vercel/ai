@@ -23,7 +23,7 @@
     "@ai-sdk/openai": "3.0.0-beta.84",
     "@ai-sdk/perplexity": "3.0.0-beta.45",
     "@ai-sdk/provider-utils": "4.0.0-beta.43",
-    "@ai-sdk/react": "3.0.0-beta.138",
+    "@ai-sdk/react": "3.0.0-beta.139",
     "@ai-sdk/rsc": "2.0.0-beta.139",
     "@ai-sdk/xai": "3.0.0-beta.51",
     "@modelcontextprotocol/sdk": "^1.10.2",
