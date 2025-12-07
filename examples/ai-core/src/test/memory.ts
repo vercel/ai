@@ -247,6 +247,8 @@ Configuration:
   // Preload the test image once before all runs
   await preloadTestImage();
 
+  logMemory('AFTER preload');
+
   for (let run = 1; run <= RUN_COUNT; run++) {
     await runTest(run, IMAGE_COUNT);
 
