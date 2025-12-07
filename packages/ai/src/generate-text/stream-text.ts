@@ -669,6 +669,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     const metrics_start_time = Date.now();
     let metrics_first_token_time: number | undefined;
     let metrics_has_error = false;
+    let metrics_recorded = false;
 
     // Track active requests
     incrementActiveRequests(ai_metrics, metrics_attributes);
@@ -924,6 +925,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             self._totalUsage.reject(error);
             self._steps.reject(error);
 
+            // Record error metrics for early failure (no steps generated)
+            recordStreamMetrics(ai_metrics, metrics_attributes, {
+              duration_ms: Date.now() - metrics_start_time,
+              prompt_tokens: 0,
+              completion_tokens: 0,
+              success: false,
+            });
+            decrementActiveRequests(ai_metrics, metrics_attributes);
+            metrics_recorded = true;
+            rootSpan.end();
+
             return; // no steps recorded (e.g. in error scenario)
           }
 
@@ -1017,9 +1029,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           controller.error(error);
         } finally {
-          // Always decrement active requests
-          decrementActiveRequests(ai_metrics, metrics_attributes);
-          rootSpan.end();
+          // Only decrement if not already recorded (e.g., early return case)
+          if (!metrics_recorded) {
+            decrementActiveRequests(ai_metrics, metrics_attributes);
+            rootSpan.end();
+          }
         }
       },
     });
