@@ -271,9 +271,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     };
 
     if (
-      modelCapabilities.isReasoningModel ||
-      (openaiOptions?.reasoningEffort === 'none' &&
-        modelCapabilities.supportsNonReasoningParameters)
+      modelCapabilities.isReasoningModel &&
+      !(
+        openaiOptions?.reasoningEffort === 'none' &&
+        modelCapabilities.supportsNonReasoningParameters
+      )
     ) {
       // remove unsupported settings for reasoning models
       // see https://platform.openai.com/docs/guides/reasoning#limitations
