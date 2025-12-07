@@ -21,6 +21,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -88,6 +89,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       })) ?? {};
 
     const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     if (topK != null) {
       warnings.push({
@@ -112,7 +114,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: getSystemMessageMode(this.modelId),
+        systemMessageMode: modelCapabilities.systemMessageMode,
       },
     );
 
@@ -182,25 +184,41 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       messages,
     };
 
-    if (isReasoningModel(this.modelId)) {
+    if (modelCapabilities.isReasoningModel) {
       // remove unsupported settings for reasoning models
       // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
+
+      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        openaiOptions.reasoningEffort !== 'none' ||
+        !modelCapabilities.supportsNonReasoningParameters
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.logprobs != null) {
+          baseArgs.logprobs = undefined;
+          warnings.push({
+            type: 'other',
+            message: 'logprobs is not supported for reasoning models',
+          });
+        }
       }
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.frequency_penalty != null) {
         baseArgs.frequency_penalty = undefined;
         warnings.push({
@@ -224,13 +242,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.top_logprobs != null) {
         baseArgs.top_logprobs = undefined;
         warnings.push({
@@ -264,7 +276,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -278,7 +290,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // Validate priority processing support
     if (
       openaiOptions.serviceTier === 'priority' &&
-      !supportsPriorityProcessing(this.modelId)
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -703,62 +715,3 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     };
   }
 }
-
-function isReasoningModel(modelId: string) {
-  return (
-    (modelId.startsWith('o') || modelId.startsWith('gpt-5')) &&
-    !modelId.startsWith('gpt-5-chat')
-  );
-}
-
-function supportsFlexProcessing(modelId: string) {
-  return (
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
-  );
-}
-
-function supportsPriorityProcessing(modelId: string) {
-  return (
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini')
-  );
-}
-
-function getSystemMessageMode(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return 'system';
-  }
-
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.systemMessageMode ?? 'developer'
-  );
-}
-
-const reasoningModels = {
-  o3: {
-    systemMessageMode: 'developer',
-  },
-  'o3-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o3-mini-2025-01-31': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
-} as const;
