@@ -73,6 +73,110 @@ const result = await generateText({
 });
 ```
 
+## Metrics
+
+The AI SDK supports OpenTelemetry metrics for monitoring and alerting on AI operations.
+Metrics are automatically recorded when telemetry is enabled, providing aggregated statistics
+like request counts, token usage, and latency distributions.
+
+### Enabling Metrics
+
+Metrics are enabled by default when telemetry is enabled. You can explicitly control metrics recording:
+
+```ts highlight="6"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    recordMetrics: true, // enabled by default when telemetry is enabled
+  },
+});
+```
+
+To disable metrics while keeping traces enabled:
+
+```ts highlight="6"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    recordMetrics: false,
+  },
+});
+```
+
+### Custom Meter
+
+You may provide a custom `meter` to use a `MeterProvider` other than the global one:
+
+```ts highlight="7"
+const meterProvider = new MeterProvider();
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+    meter: meterProvider.getMeter('ai'),
+  },
+});
+```
+
+### Available Metrics
+
+The following metrics are recorded for AI operations:
+
+| Metric Name | Type | Unit | Description |
+|-------------|------|------|-------------|
+| `ai.requests.total` | Counter | `{request}` | Total number of AI requests |
+| `ai.tokens.total` | Counter | `{token}` | Total number of tokens used (with `ai.token.type` attribute: `prompt` or `completion`) |
+| `ai.errors.total` | Counter | `{error}` | Total number of errors |
+| `ai.tool_calls.total` | Counter | `{call}` | Total number of tool calls |
+| `ai.request.duration` | Histogram | `ms` | Request duration in milliseconds |
+| `ai.time_to_first_token` | Histogram | `ms` | Time to first token in milliseconds (streaming only) |
+| `ai.requests.active` | UpDownCounter | `{request}` | Number of currently active requests |
+
+### Metric Attributes
+
+All metrics include the following attributes:
+
+- `ai.model.provider`: The provider of the model (e.g., `openai`)
+- `ai.model.id`: The ID of the model (e.g., `gpt-4`)
+- `ai.telemetry.functionId`: The function ID if set via `telemetry.functionId`
+- `ai.operationId`: The operation type (`ai.generateText` or `ai.streamText`)
+- `ai.request.success`: Whether the request was successful (`true` or `false`)
+- `ai.response.finish_reason`: The finish reason from the model (when available)
+
+Token metrics additionally include:
+- `ai.token.type`: The type of token (`prompt` or `completion`)
+
+Tool call metrics additionally include:
+- `ai.tool_call.name`: The name of the tool
+- `ai.tool_call.success`: Whether the tool call was successful
+
+### Example: Monitoring with Prometheus
+
+```ts
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { MeterProvider } from '@opentelemetry/sdk-metrics';
+
+const exporter = new PrometheusExporter({ port: 9464 });
+const meterProvider = new MeterProvider();
+meterProvider.addMetricReader(exporter);
+
+const result = await generateText({
+  model: openai('gpt-4'),
+  prompt: 'Hello, world!',
+  experimental_telemetry: {
+    isEnabled: true,
+    meter: meterProvider.getMeter('ai'),
+  },
+});
+
+// Metrics available at http://localhost:9464/metrics
+```
+
 ## Collected Data
 
 ### generateText function
