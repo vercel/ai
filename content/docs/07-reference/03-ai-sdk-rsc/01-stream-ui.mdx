@@ -47,12 +47,12 @@ To see `streamUI` in action, check out [these examples](#examples).
     },
     {
       name: 'messages',
-      type: 'Array<CoreSystemMessage | CoreUserMessage | CoreAssistantMessage | CoreToolMessage> | Array<UIMessage>',
+      type: 'Array<SystemModelMessage | UserModelMessage | AssistantModelMessage | ToolModelMessage> | Array<UIMessage>',
       description:
         'A list of messages that represent a conversation. Automatically converts UI messages from the useChat hook.',
       properties: [
         {
-          type: 'CoreSystemMessage',
+          type: 'SystemModelMessage',
           parameters: [
             {
               name: 'role',
@@ -67,7 +67,7 @@ To see `streamUI` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreUserMessage',
+          type: 'UserModelMessage',
           parameters: [
             {
               name: 'role',
@@ -143,7 +143,7 @@ To see `streamUI` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreAssistantMessage',
+          type: 'AssistantModelMessage',
           parameters: [
             {
               name: 'role',
@@ -202,7 +202,7 @@ To see `streamUI` in action, check out [these examples](#examples).
           ],
         },
         {
-          type: 'CoreToolMessage',
+          type: 'ToolModelMessage',
           parameters: [
             {
               name: 'role',
