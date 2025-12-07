@@ -255,31 +255,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }),
     };
 
-<<<<<<< HEAD
-    if (
-      modelCapabilities.isReasoningModel ||
-      (openaiOptions?.reasoningEffort === 'none' &&
-        modelCapabilities.supportsNonReasoningParameters)
-    ) {
-      // remove unsupported settings for reasoning models
-      // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
-      }
-
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
-=======
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
     if (modelCapabilities.isReasoningModel) {
@@ -294,8 +269,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         if (baseArgs.temperature != null) {
           baseArgs.temperature = undefined;
           warnings.push({
-            type: 'unsupported',
-            feature: 'temperature',
+            type: 'unsupported-setting',
+            setting: 'temperature',
             details: 'temperature is not supported for reasoning models',
           });
         }
@@ -303,12 +278,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         if (baseArgs.top_p != null) {
           baseArgs.top_p = undefined;
           warnings.push({
-            type: 'unsupported',
-            feature: 'topP',
+            type: 'unsupported-setting',
+            setting: 'topP',
             details: 'topP is not supported for reasoning models',
           });
         }
->>>>>>> 0153bfafa (fix(openai): fix parameter exclusion logic (#10946))
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
