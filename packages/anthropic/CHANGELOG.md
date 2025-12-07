@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 0ae783e: feat(anthropic): add the new tool search tools
+
 ## 3.0.0-beta.74
 
 ### Patch Changes

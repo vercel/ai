@@ -53,10 +53,13 @@ every file.
 
 ## Codemod Table
 
-| Codemod Name                         | Description                                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `rename-text-embedding-to-embedding` | Renames `textEmbeddingModel` to `embeddingModel` and `textEmbedding` to `embedding` on providers   |
-| `rename-mock-v2-to-v3`               | Renames V2 mock classes from `ai/test` to V3 (e.g., `MockLanguageModelV2` → `MockLanguageModelV3`) |
+| Codemod Name                                             | Description                                                                                        |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `rename-text-embedding-to-embedding`                     | Renames `textEmbeddingModel` to `embeddingModel` and `textEmbedding` to `embedding` on providers   |
+| `rename-mock-v2-to-v3`                                   | Renames V2 mock classes from `ai/test` to V3 (e.g., `MockLanguageModelV2` → `MockLanguageModelV3`) |
+| `rename-tool-call-options-to-tool-execution-options`     | Renames the `ToolCallOptions` type to `ToolExecutionOptions`                                       |
+| `rename-core-message-to-model-message`                   | Renames the `CoreMessage` type to `ModelMessage`                                                   |
+| `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
 
 ## AI SDK Core
 
