@@ -34,6 +34,7 @@ export function getOpenAILanguageModelCapabilities(
     modelId.startsWith('gpt-5-chat')
   );
 
+  // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
   const supportsNonReasoningParameters = modelId.startsWith('gpt-5.1');
 
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
