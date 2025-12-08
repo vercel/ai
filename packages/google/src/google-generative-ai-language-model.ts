@@ -149,11 +149,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             responseFormat?.type === 'json' ? 'application/json' : undefined,
           responseSchema:
             responseFormat?.type === 'json' &&
-            responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
-            // TODO convert into provider option
-            (googleOptions?.structuredOutputs ?? true)
+              responseFormat.schema != null &&
+              // Google GenAI does not support all OpenAPI Schema features,
+              // so this is needed as an escape hatch:
+              // TODO convert into provider option
+              (googleOptions?.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
@@ -209,13 +209,23 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
     const content: Array<LanguageModelV3Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
+    const warningsWithMissingCandidate: LanguageModelV3CallWarning[] =
+      candidate == null
+        ? [
+          ...warnings,
+          {
+            type: 'other',
+            message: 'No candidates returned from Google Generative AI.',
+          },
+        ]
+        : warnings;
 
     // Associates a code execution result with its preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
@@ -278,7 +288,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -288,7 +298,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
+        finishReason: candidate?.finishReason,
         hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
       usage: {
@@ -298,13 +308,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         reasoningTokens: usageMetadata?.thoughtsTokenCount ?? undefined,
         cachedInputTokens: usageMetadata?.cachedContentTokenCount ?? undefined,
       },
-      warnings,
+      warnings: warningsWithMissingCandidate,
       providerMetadata: {
         google: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -482,10 +492,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         id: currentReasoningBlockId,
                         providerMetadata: part.thoughtSignature
                           ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
+                            google: {
+                              thoughtSignature: part.thoughtSignature,
+                            },
+                          }
                           : undefined,
                       });
                     }
@@ -496,8 +506,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       delta: part.text,
                       providerMetadata: part.thoughtSignature
                         ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
+                          google: { thoughtSignature: part.thoughtSignature },
+                        }
                         : undefined,
                     });
                   } else {
@@ -518,10 +528,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                         id: currentTextBlockId,
                         providerMetadata: part.thoughtSignature
                           ? {
-                              google: {
-                                thoughtSignature: part.thoughtSignature,
-                              },
-                            }
+                            google: {
+                              thoughtSignature: part.thoughtSignature,
+                            },
+                          }
                           : undefined,
                       });
                     }
@@ -532,8 +542,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       delta: part.text,
                       providerMetadata: part.thoughtSignature
                         ? {
-                            google: { thoughtSignature: part.thoughtSignature },
-                          }
+                          google: { thoughtSignature: part.thoughtSignature },
+                        }
                         : undefined,
                     });
                   }
@@ -644,26 +654,27 @@ function getToolCallsFromParts({
   parts: ContentSchema['parts'];
   generateId: () => string;
 }) {
-  const functionCallParts = parts?.filter(
-    part => 'functionCall' in part,
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
+  const functionCallParts = (parts ?? []).filter(
+    (
+      part,
+    ): part is GoogleGenerativeAIContentPart & {
       functionCall: { name: string; args: unknown };
       thoughtSignature?: string | null;
-    }
-  >;
+    } =>
+      typeof part === 'object' && part != null && 'functionCall' in part,
+  );
 
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
-        type: 'tool-call' as const,
-        toolCallId: generateId(),
-        toolName: part.functionCall.name,
-        args: JSON.stringify(part.functionCall.args),
-        providerMetadata: part.thoughtSignature
-          ? { google: { thoughtSignature: part.thoughtSignature } }
-          : undefined,
-      }));
+      type: 'tool-call' as const,
+      toolCallId: generateId(),
+      toolName: part.functionCall.name,
+      args: JSON.stringify(part.functionCall.args),
+      providerMetadata: part.thoughtSignature
+        ? { google: { thoughtSignature: part.thoughtSignature } }
+        : undefined,
+    }));
 }
 
 function extractSources({
@@ -880,15 +891,17 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
@@ -900,24 +913,21 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
+type CandidatesSchema = InferSchema<typeof responseSchema>['candidates'];
+type CandidateSchema = NonNullable<CandidatesSchema>[number];
+
+type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
   GroundingMetadataSchema['groundingChunks']
 >[number];
 
-export type UrlContextMetadataSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
->;
+export type UrlContextMetadataSchema = NonNullable<CandidateSchema['urlContextMetadata']>;
 
-export type SafetyRatingSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
->[number];
+export type SafetyRatingSchema = NonNullable<CandidateSchema['safetyRatings']>[number];
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
