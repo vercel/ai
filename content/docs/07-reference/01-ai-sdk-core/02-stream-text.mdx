@@ -11,9 +11,10 @@ You can use the streamText function for interactive use cases such as chat bots 
 
 ```ts
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { textStream } = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -41,7 +42,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'system',
-      type: 'string | SystemModelMessage',
+      type: 'string | SystemModelMessage | SystemModelMessage[]',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -632,7 +633,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage',
+              type: 'string | SystemModelMessage | SystemModelMessage[]',
               isOptional: true,
               description: 'Change the system prompt for this step.',
             },
@@ -672,7 +673,7 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | SystemModelMessage | undefined',
+              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
               description: 'The system prompt.',
             },
             {
