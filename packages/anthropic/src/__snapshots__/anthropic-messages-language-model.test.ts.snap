@@ -12148,6 +12148,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12235,6 +12236,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12424,6 +12426,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12540,6 +12543,7 @@ The weather in",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
