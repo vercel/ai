@@ -1,0 +1,115 @@
+---
+title: Keywords AI
+description: Trace, monitor, and evaluate your LLMs with the Keywords AI Gateway/Tracing and Vercel AI SDK.
+---
+
+# Keywords AI Observability
+
+[Keywords AI](https://keywordsai.co) is a full-stack LLM engineering platform that helps developers and PMs build reliable AI products **10× faster**.
+
+In a shared workspace, product teams can monitor, optimize, and improve AI performance:
+
+- [LLM Gateway](https://docs.keywordsai.co/integration/development-frameworks/llm_framework/vercel)
+- [Agent Tracing](https://docs.keywordsai.co/integration/development-frameworks/tracing/vercel-tracing)
+
+---
+
+## Setup
+
+1. **Create an account**  
+   Sign up for a free account at [Keywords AI](https://platform.keywordsai.co/platform).
+
+2. **Generate an API key**  
+   In your dashboard, go to **Settings → API Keys** and create a new key.  
+   Add it to your environment:
+
+   ```bash
+   KEYWORDS_API_KEY="your-api-key"
+   ```
+
+3. **Install the Keywords AI SDK client**
+   If you’re using the Vercel AI SDK:
+
+   ```bash
+   npm install @keywords-ai/sdk
+   ```
+
+   This package automatically exports logs, token usage, and latency metrics to your Keywords AI workspace.
+
+---
+
+## Gateway
+
+The [**Keywords AI Gateway**](https://docs.keywordsai.co/integration/development-frameworks/llm_framework/vercel) routes all your LLM traffic through a single observability layer — without requiring any code changes.
+It logs request/response metadata, token counts, costs, and latency, while keeping your provider API keys secure.
+
+Example:
+
+```ts
+import { streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://gateway.keywordsai.co/v1', // routed through Keywords AI
+});
+
+const result = await streamText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Summarize how the LLM Gateway works in Keywords AI.',
+});
+
+return result.toAIStreamResponse();
+```
+
+<Frame>
+  <img
+    src="https://keywordsai-static.s3.us-east-1.amazonaws.com/docs/get-started/observability/logging.jpg"
+    alt="LLM Gateway logging"
+  />
+</Frame>
+
+---
+
+## Tracing
+
+The **Tracing exporter** integrates directly with the [Vercel AI SDK](https://docs.keywordsai.co/integration/development-frameworks/tracing/vercel-tracing).
+Each AI call is automatically traced with identifiers, metadata, and timing information — ideal for performance evaluation and reliability audits.
+
+Example usage:
+
+```ts
+import { trace } from '@keywords-ai/sdk';
+
+await trace({
+  name: 'customer-summary',
+  model: 'gpt-4o',
+  messages: [
+    {
+      role: 'user',
+      content: 'Summarize the difference between Langfuse and Keywords AI.',
+    },
+  ],
+  metadata: {
+    feature: 'summarization',
+    env: 'production',
+  },
+});
+```
+
+You’ll see each trace in your **Keywords AI Tracing dashboard**, complete with duration, token metrics, and linked spans.
+You can group traces by user session, endpoint, or experiment to compare quality and latency.
+
+<Frame>
+  <img
+    src="https://keywordsai-static.s3.us-east-1.amazonaws.com/docs/get-started/observability/tracing.jpg"
+    alt="Agent tracing"
+  />
+</Frame>
+---
+
+## Resources
+
+- [Example Project](https://github.com/Keywords-AI/keywordsai-example-projects/tree/main/vercel_ai_next_openai)
+- [Discord](https://discord.gg/4qsFsdsM)
+- [Book a Demo](https://cal.com/keywordsai/demo?duration=15)
