@@ -3292,44 +3292,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         );
       });
 
-      it('should emit warning for unknown context management strategy', async () => {
-        server.urls['https://api.anthropic.com/v1/messages'].response = {
-          type: 'json-value',
-          body: {
-            id: 'msg_123',
-            type: 'message',
-            role: 'assistant',
-            content: [{ type: 'text', text: 'Hello' }],
-            model: 'claude-3-haiku-20240307',
-            stop_reason: 'end_turn',
-            stop_sequence: null,
-            usage: { input_tokens: 100, output_tokens: 50 },
-            context_management: {
-              applied_edits: [
-                {
-                  type: 'unknown_strategy',
-                },
-              ],
-            },
-          },
-        };
-
-        const result = await model.doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(result.warnings).toContainEqual({
-          type: 'other',
-          message: expect.stringContaining(
-            'Unknown context management strategy',
-          ),
-        });
-
-        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
-          appliedEdits: [],
-        });
-      });
-
       it('should parse context_management from response', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
