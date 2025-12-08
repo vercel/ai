@@ -1021,9 +1021,6 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                     cleared_thinking_turns: z.number(),
                     cleared_input_tokens: z.number(),
                   }),
-                  z.object({
-                    type: z.string(),
-                  }),
                 ]),
               ),
             })

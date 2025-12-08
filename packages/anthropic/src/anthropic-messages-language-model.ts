@@ -957,38 +957,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   })) ?? null,
               }
             : null,
-          contextManagement: response.context_management
-            ? {
-                appliedEdits: response.context_management.applied_edits
-                  .map(edit => {
-                    const strategy = edit.type;
-
-                    switch (strategy) {
-                      case 'clear_tool_uses_20250919':
-                        return {
-                          type: edit.type,
-                          clearedToolUses: edit.cleared_tool_uses,
-                          clearedInputTokens: edit.cleared_input_tokens,
-                        };
-
-                      case 'clear_thinking_20251015':
-                        return {
-                          type: edit.type,
-                          clearedThinkingTurns: edit.cleared_thinking_turns,
-                          clearedInputTokens: edit.cleared_input_tokens,
-                        };
-
-                      default:
-                        warnings.push({
-                          type: 'other',
-                          message: `Unknown context management strategy: ${strategy}`,
-                        });
-                        return undefined;
-                    }
-                  })
-                  .filter(edit => edit !== undefined),
-              }
-            : null,
+          contextManagement:
+            mapAnthropicResponseContextManagement(
+              response.context_management,
+            ) ?? null,
         } satisfies AnthropicMessageMetadata,
       },
     };
@@ -1665,7 +1637,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   : null;
 
               if (value.delta.context_management) {
-                contextManagement = value.delta.context_management;
+                contextManagement = mapAnthropicResponseContextManagement(
+                  value.delta.context_management,
+                );
               }
 
               rawUsage = {
@@ -1845,4 +1819,34 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function mapAnthropicResponseContextManagement(
+  contextManagement: AnthropicResponseContextManagement | null | undefined,
+): AnthropicMessageMetadata['contextManagement'] | undefined {
+  return contextManagement
+    ? {
+        appliedEdits: contextManagement.applied_edits
+          .map(edit => {
+            const strategy = edit.type;
+
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  clearedToolUses: edit.cleared_tool_uses,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  clearedThinkingTurns: edit.cleared_thinking_turns,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+            }
+          })
+          .filter(edit => edit !== undefined),
+      }
+    : null;
 }
