@@ -443,3 +443,194 @@ it('should add warnings for google maps on unsupported models', () => {
     ]
   `);
 });
+
+it('should handle vertex rag store tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_rag_store',
+        name: 'vertex_rag_store',
+        args: {
+          ragCorpus:
+            'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+          topK: 5,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toStrictEqual([
+    {
+      retrieval: {
+        vertex_rag_store: {
+          rag_resources: [
+            {
+              rag_corpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+            },
+          ],
+          similarity_top_k: 5,
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle vertex rag store tool with ragFileIds', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_rag_store',
+        name: 'vertex_rag_store',
+        args: {
+          ragCorpus:
+            'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+          ragFileIds: ['file-1', 'file-2'],
+          topK: 10,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toStrictEqual([
+    {
+      retrieval: {
+        vertex_rag_store: {
+          rag_resources: [
+            {
+              rag_corpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+              rag_file_ids: ['file-1', 'file-2'],
+            },
+          ],
+          similarity_top_k: 10,
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle vertex rag store tool with metadataFilter', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_rag_store',
+        name: 'vertex_rag_store',
+        args: {
+          ragCorpus:
+            'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+          metadataFilter: 'user_id = "user-123" AND project = "acme"',
+          topK: 10,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toStrictEqual([
+    {
+      retrieval: {
+        vertex_rag_store: {
+          rag_resources: [
+            {
+              rag_corpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+            },
+          ],
+          similarity_top_k: 10,
+          rag_retrieval_config: {
+            filter: {
+              metadata_filter: 'user_id = "user-123" AND project = "acme"',
+            },
+          },
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle vertex rag store tool with vectorSimilarityThreshold', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_rag_store',
+        name: 'vertex_rag_store',
+        args: {
+          ragCorpus:
+            'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+          vectorSimilarityThreshold: 0.7,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toStrictEqual([
+    {
+      retrieval: {
+        vertex_rag_store: {
+          rag_resources: [
+            {
+              rag_corpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+            },
+          ],
+          rag_retrieval_config: {
+            filter: {
+              vector_similarity_threshold: 0.7,
+            },
+          },
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle vertex rag store tool with vectorDistanceThreshold', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.vertex_rag_store',
+        name: 'vertex_rag_store',
+        args: {
+          ragCorpus:
+            'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+          vectorDistanceThreshold: 0.5,
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toStrictEqual([
+    {
+      retrieval: {
+        vertex_rag_store: {
+          rag_resources: [
+            {
+              rag_corpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-corpus',
+            },
+          ],
+          rag_retrieval_config: {
+            filter: {
+              vector_distance_threshold: 0.5,
+            },
+          },
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});

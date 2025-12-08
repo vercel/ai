@@ -821,10 +821,30 @@ The `vertexRagStore` tool accepts the following configuration options:
   - The RagCorpus resource name in the format: `projects/{project}/locations/{location}/ragCorpora/{rag_corpus}`
   - This identifies your specific RAG corpus to search against
 
+- **`ragFileIds`** (`string[]`, optional)
+
+  - File IDs within the corpus to search
+  - When specified, only these files are searched instead of the entire corpus
+  - For large-scale filtering, prefer using `metadataFilter` instead
+
 - **`topK`** (`number`, optional)
 
   - The number of top contexts to retrieve from your RAG corpus
   - Defaults to the corpus configuration if not specified
+
+- **`metadataFilter`** (`string`, optional)
+
+  - Filter expression for metadata assigned to files when uploaded
+  - Example: `'user_id = "user-123" AND project = "acme"'`
+
+- **`vectorSimilarityThreshold`** (`number`, optional)
+
+  - Only return results with vector similarity larger than this threshold
+  - Value should be between 0 and 1
+
+- **`vectorDistanceThreshold`** (`number`, optional)
+
+  - Only return results with vector distance smaller than this threshold
 
 ### Image Outputs
 

@@ -147,13 +147,43 @@ export function prepareTools({
           break;
         case 'google.vertex_rag_store':
           if (isGemini2orNewer) {
+            const hasFilter =
+              tool.args.metadataFilter ||
+              tool.args.vectorSimilarityThreshold !== undefined ||
+              tool.args.vectorDistanceThreshold !== undefined;
+
             googleTools.push({
               retrieval: {
                 vertex_rag_store: {
-                  rag_resources: {
-                    rag_corpus: tool.args.ragCorpus,
-                  },
-                  similarity_top_k: tool.args.topK as number | undefined,
+                  rag_resources: [
+                    {
+                      rag_corpus: tool.args.ragCorpus,
+                      ...(tool.args.ragFileIds && {
+                        rag_file_ids: tool.args.ragFileIds,
+                      }),
+                    },
+                  ],
+                  ...(tool.args.topK !== undefined && {
+                    similarity_top_k: tool.args.topK,
+                  }),
+                  ...(hasFilter && {
+                    rag_retrieval_config: {
+                      filter: {
+                        ...(tool.args.metadataFilter && {
+                          metadata_filter: tool.args.metadataFilter,
+                        }),
+                        ...(tool.args.vectorSimilarityThreshold !==
+                          undefined && {
+                          vector_similarity_threshold:
+                            tool.args.vectorSimilarityThreshold,
+                        }),
+                        ...(tool.args.vectorDistanceThreshold !== undefined && {
+                          vector_distance_threshold:
+                            tool.args.vectorDistanceThreshold,
+                        }),
+                      },
+                    },
+                  }),
                 },
               },
             });
