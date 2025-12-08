@@ -1,11 +1,11 @@
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-7-sonnet-20250219'),
+    model: anthropic('claude-haiku-4-5'),
     messages: [
       {
         role: 'user',
@@ -110,22 +110,5 @@ async function main() {
     },
   });
 
-  console.log('Text:');
-  console.log(result.text);
-  console.log();
-
-  console.log('Context Management:');
-  console.log(
-    JSON.stringify(
-      result.providerMetadata?.anthropic?.contextManagement,
-      null,
-      2,
-    ),
-  );
-  console.log();
-
-  console.log('Usage:');
-  console.log(JSON.stringify(result.usage, null, 2));
-}
-
-main().catch(console.error);
+  console.log('request body:', JSON.stringify(result.request.body, null, 2));
+});
