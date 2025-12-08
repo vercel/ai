@@ -3366,6 +3366,103 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
         });
       });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
     });
   });
 
