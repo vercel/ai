@@ -1,4 +1,8 @@
-import { LanguageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3Usage,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   InferSchema,
   ProviderOptions,
@@ -10,7 +14,6 @@ import * as z4 from 'zod/v4';
 import {
   CallWarning,
   FinishReason,
-  LanguageModelUsage,
   ToolChoice,
   Prompt,
   CallSettings,
@@ -144,7 +147,7 @@ functionality that can be fully encapsulated in the provider.
       /**
        * The token usage of the generated response.
        */
-      usage: LanguageModelUsage;
+      usage: LanguageModelV3Usage;
       /**
        * The final ui node that was generated.
        */
@@ -200,7 +203,7 @@ functionality that can be fully encapsulated in the provider.
 
   let finishEvent: {
     finishReason: FinishReason;
-    usage: LanguageModelUsage;
+    usage: LanguageModelV3Usage;
     warnings?: CallWarning[];
     response?: {
       headers?: Record<string, string>;
