@@ -1,23 +1,27 @@
 ---
-title: Markdown Chatbot with Streamdown
+title: Markdown Chatbot with Memoization
 description: Build a chatbot that renders and memoizes Markdown responses with Next.js and the AI SDK.
 tags: ['next', 'streaming', 'chatbot', 'markdown']
 ---
 
-# Markdown Chatbot with Streamdown
+# Markdown Chatbot with Memoization
 
-When building a chatbot with Next.js and the AI SDK, you'll likely want to render the model's responses in Markdown format using a streaming-optimized markdown library like [Streamdown](https://streamdown.ai/).
+When building a chatbot with Next.js and the AI SDK, you'll likely want to render the model's responses in Markdown format using a library like `react-markdown`. However, this can have negative performance implications as the Markdown is re-rendered on each new token received from the streaming response.
 
-As conversations get longer and more complex, the performance impact of using non-optimized markdown libraries becomes exponentially worse since the entire conversation history is re-rendered with each new token.
+As conversations get longer and more complex, this performance impact becomes exponentially worse since the entire conversation history is re-rendered with each new token.
 
-Streamdown uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re-computation. In this case, parsed Markdown blocks are memoized to prevent them from being re-parsed and re-rendered on each token update, which means that once a block is fully parsed, it's cached and reused rather than being regenerated. This approach significantly improves rendering performance for long conversations by eliminating redundant parsing and rendering operations.
+This recipe uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re-computation. In this case, parsed Markdown blocks are memoized to prevent them from being re-parsed and re-rendered on each token update, which means that once a block is fully parsed, it's cached and reused rather than being regenerated. This approach significantly improves rendering performance for long conversations by eliminating redundant parsing and rendering operations.
+
+<Note>
+  If you don't want to set memoization up manually, you can use [Streamdown](https://streamdown.ai/) instead of `react-markdown` and `marked`.
+</Note>
 
 ## Installation
 
-First, install the required dependency for Streamdown:
+First, install the required dependencies for Markdown rendering and parsing:
 
 ```bash
-npm install streamdown
+npm install react-markdown marked
 ```
 
 ## Server
@@ -41,11 +45,48 @@ export async function POST(req: Request) {
 }
 ```
 
+## Memoized Markdown Component
+
+Next, create a memoized markdown component that will take in raw Markdown text into blocks and only updates when the content actually changes. This component splits Markdown content into blocks using the `marked` library to identify discrete Markdown elements, then uses React's memoization features to optimize re-rendering by only updating blocks that have actually changed.
+
+```tsx filename='components/memoized-markdown.tsx'
+import { marked } from 'marked';
+import { memo, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+
+function parseMarkdownIntoBlocks(markdown: string): string[] {
+  const tokens = marked.lexer(markdown);
+  return tokens.map(token => token.raw);
+}
+
+const MemoizedMarkdownBlock = memo(
+  ({ content }: { content: string }) => {
+    return <ReactMarkdown>{content}</ReactMarkdown>;
+  },
+  (prevProps, nextProps) => {
+    if (prevProps.content !== nextProps.content) return false;
+    return true;
+  },
+);
+
+MemoizedMarkdownBlock.displayName = 'MemoizedMarkdownBlock';
+
+export const MemoizedMarkdown = memo(
+  ({ content, id }: { content: string; id: string }) => {
+    const blocks = useMemo(() => parseMarkdownIntoBlocks(content), [content]);
+
+    return blocks.map((block, index) => (
+      <MemoizedMarkdownBlock content={block} key={`${id}-block_${index}`} />
+    ));
+  },
+);
+
+MemoizedMarkdown.displayName = 'MemoizedMarkdown';
+```
+
 ## Client
 
-Finally, on the client, use the `useChat` hook to manage the chat state and render the chat interface. You can use the `Streamdown` component to render the message contents in Markdown format without compromising on performance. Additionally, you can render the form in its own component so as to not trigger unnecessary re-renders of the chat messages. You can also use the `experimental_throttle` option that will throttle data updates to a specified interval, helping to manage rendering performance.
-
-Streamdown creates a memoized markdown component that will take in raw Markdown text into blocks and only updates when the content actually changes. This component splits Markdown content into blocks to identify discrete Markdown elements, then uses React's memoization features to optimize re-rendering by only updating blocks that have actually changed.
+Finally, on the client, use the `useChat` hook to manage the chat state and render the chat interface. You can use the `MemoizedMarkdown` component to render the message contents in Markdown format without compromising on performance. Additionally, you can render the form in its own component so as to not trigger unnecessary re-renders of the chat messages. You can also use the `experimental_throttle` option that will throttle data updates to a specified interval, helping to manage rendering performance.
 
 ```typescript filename='app/page.tsx'
 "use client";
@@ -53,7 +94,7 @@ Streamdown creates a memoized markdown component that will take in raw Markdown 
 import { Chat, useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useState } from "react";
-import { Streamdown } from "streamdown";
+import { MemoizedMarkdown } from "@/components/memoized-markdown";
 
 const chat = new Chat({
   transport: new DefaultChatTransport({
@@ -76,9 +117,11 @@ export default function Page() {
               {message.parts.map((part) => {
                 if (part.type === "text") {
                   return (
-                    <Streamdown key={`${message.id}-text`}>
-                      {part.text}
-                    </Streamdown>
+                    <MemoizedMarkdown
+                      key={`${message.id}-text`}
+                      id={message.id}
+                      content={part.text}
+                    />
                   );
                 }
               })}
