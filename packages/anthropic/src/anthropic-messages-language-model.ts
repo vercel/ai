@@ -35,11 +35,13 @@ import {
   AnthropicToolCallMetadata,
 } from './anthropic-message-metadata';
 import {
+  AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
   Citation,
+  AnthropicResponseContextManagement,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -225,6 +227,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
+    const contextManagement = anthropicOptions?.contextManagement;
+
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
@@ -244,6 +248,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         'anthropic.memory_20250818': 'memory',
         'anthropic.web_search_20250305': 'web_search',
         'anthropic.web_fetch_20250910': 'web_fetch',
+        'anthropic.tool_search_regex_20251119': 'tool_search_tool_regex',
+        'anthropic.tool_search_bm25_20251119': 'tool_search_tool_bm25',
       },
     });
 
@@ -326,6 +332,48 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
+
+      ...(contextManagement && {
+        context_management: {
+          edits: contextManagement.edits
+            .map(edit => {
+              const strategy = edit.type;
+              switch (strategy) {
+                case 'clear_tool_uses_20250919':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                    ...(edit.clearAtLeast !== undefined && {
+                      clear_at_least: edit.clearAtLeast,
+                    }),
+                    ...(edit.clearToolInputs !== undefined && {
+                      clear_tool_inputs: edit.clearToolInputs,
+                    }),
+                    ...(edit.excludeTools !== undefined && {
+                      exclude_tools: edit.excludeTools,
+                    }),
+                  };
+
+                case 'clear_thinking_20251015':
+                  return {
+                    type: edit.type,
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                  };
+
+                default:
+                  warnings.push({
+                    type: 'other',
+                    message: `Unknown context management strategy: ${strategy}`,
+                  });
+                  return undefined;
+              }
+            })
+            .filter(edit => edit !== undefined),
+        },
+      }),
     };
 
     if (isThinking) {
@@ -386,6 +434,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (contextManagement) {
+      betas.add('context-management-2025-06-27');
     }
 
     if (
@@ -699,6 +751,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               input: JSON.stringify(part.input),
               providerExecuted: true,
             });
+          } else if (
+            part.name === 'tool_search_tool_regex' ||
+            part.name === 'tool_search_tool_bm25'
+          ) {
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName(part.name),
+              input: JSON.stringify(part.input),
+              providerExecuted: true,
+            });
           }
 
           break;
@@ -855,6 +918,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           });
           break;
         }
+
+        // tool search tool results:
+        case 'tool_search_tool_result': {
+          if (part.content.type === 'tool_search_tool_search_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              result: part.content.tool_references.map(ref => ({
+                type: ref.type,
+                toolName: ref.tool_name,
+              })),
+            });
+          } else {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              isError: true,
+              result: {
+                type: 'tool_search_tool_result_error',
+                errorCode: part.content.error_code,
+              },
+            });
+          }
+          break;
+        }
       }
     }
 
@@ -896,6 +986,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   })) ?? null,
               }
             : null,
+          contextManagement:
+            mapAnthropicResponseContextManagement(
+              response.context_management,
+            ) ?? null,
         } satisfies AnthropicMessageMetadata,
       },
     };
@@ -955,6 +1049,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
+    let contextManagement:
+      | AnthropicMessageMetadata['contextManagement']
+      | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
@@ -972,6 +1069,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'code_execution_tool_result'
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
+      | 'tool_search_tool_result'
       | 'mcp_tool_use'
       | 'mcp_tool_result'
       | undefined = undefined;
@@ -1130,6 +1228,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolName: customToolName,
                       providerExecuted: true,
                     });
+                  } else if (
+                    part.name === 'tool_search_tool_regex' ||
+                    part.name === 'tool_search_tool_bm25'
+                  ) {
+                    const customToolName = toolNameMapping.toCustomToolName(
+                      part.name,
+                    );
+
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: '',
+                      providerExecuted: true,
+                      firstDelta: true,
+                      providerToolName: part.name,
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
+                      providerExecuted: true,
+                    });
                   }
 
                   return;
@@ -1263,6 +1385,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolNameMapping.toCustomToolName('code_execution'),
                     result: part.content,
                   });
+                  return;
+                }
+
+                // tool search tool results:
+                case 'tool_search_tool_result': {
+                  if (part.content.type === 'tool_search_tool_search_result') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      result: part.content.tool_references.map(ref => ({
+                        type: ref.type,
+                        toolName: ref.tool_name,
+                      })),
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      isError: true,
+                      result: {
+                        type: 'tool_search_tool_result_error',
+                        errorCode: part.content.error_code,
+                      },
+                    });
+                  }
                   return;
                 }
 
@@ -1539,6 +1688,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
                   : null;
 
+              if (value.delta.context_management) {
+                contextManagement = mapAnthropicResponseContextManagement(
+                  value.delta.context_management,
+                );
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -1558,6 +1713,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     cacheCreationInputTokens,
                     stopSequence,
                     container,
+                    contextManagement,
                   } satisfies AnthropicMessageMetadata,
                 },
               });
@@ -1682,4 +1838,34 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function mapAnthropicResponseContextManagement(
+  contextManagement: AnthropicResponseContextManagement | null | undefined,
+): AnthropicMessageMetadata['contextManagement'] | null {
+  return contextManagement
+    ? {
+        appliedEdits: contextManagement.applied_edits
+          .map(edit => {
+            const strategy = edit.type;
+
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  clearedToolUses: edit.cleared_tool_uses,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  clearedThinkingTurns: edit.cleared_thinking_turns,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+            }
+          })
+          .filter(edit => edit !== undefined),
+      }
+    : null;
 }

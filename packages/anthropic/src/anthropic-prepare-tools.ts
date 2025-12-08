@@ -15,6 +15,10 @@ import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 
+export interface AnthropicToolOptions {
+  deferLoading?: boolean;
+}
+
 export async function prepareTools({
   tools,
   toolChoice,
@@ -65,7 +69,8 @@ export async function prepareTools({
           schema: anthropicToolProviderOptions,
         });
 
-        // Convert allowedCallers to Anthropic API format
+        // Extract deferLoading and allowedCallers from Anthropic options
+        const deferLoading = anthropicToolOptions?.deferLoading;
         const allowedCallers = anthropicToolOptions?.allowedCallers as
           | AnthropicAllowedCaller[]
           | undefined;
@@ -78,6 +83,7 @@ export async function prepareTools({
           ...(supportsStructuredOutput === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
+          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
           ...(tool.inputExamples != null
             ? {
                 input_examples: tool.inputExamples.map(
@@ -248,6 +254,24 @@ export async function prepareTools({
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
               cache_control: undefined,
+            });
+            break;
+          }
+
+          case 'anthropic.tool_search_regex_20251119': {
+            betas.add('advanced-tool-use-2025-11-20');
+            anthropicTools.push({
+              type: 'tool_search_tool_regex_20251119',
+              name: 'tool_search_tool_regex',
+            });
+            break;
+          }
+
+          case 'anthropic.tool_search_bm25_20251119': {
+            betas.add('advanced-tool-use-2025-11-20');
+            anthropicTools.push({
+              type: 'tool_search_tool_bm25_20251119',
+              name: 'tool_search_tool_bm25',
             });
             break;
           }

@@ -23,7 +23,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall: LanguageModelV3ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-  system: string | SystemModelMessage | undefined;
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
 }): Promise<TypedToolCall<TOOLS>> {
   try {

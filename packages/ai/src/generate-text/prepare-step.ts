@@ -34,7 +34,7 @@ export type PrepareStepResult<
       model?: LanguageModel;
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
       activeTools?: Array<keyof NoInfer<TOOLS>>;
-      system?: string | SystemModelMessage;
+      system?: string | SystemModelMessage | Array<SystemModelMessage>;
       messages?: Array<ModelMessage>;
       providerOptions?: ProviderOptions;
     }

@@ -5,6 +5,14 @@ description: API Reference for generateObject.
 
 # `generateObject()`
 
+<Note type="warning">
+  `generateObject` is deprecated. Use
+  [`generateText`](/docs/reference/ai-sdk-core/generate-text) with the
+  [`output`](/docs/reference/ai-sdk-core/output) property instead. See
+  [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data) for
+  more information.
+</Note>
+
 Generates a typed, structured object for a given prompt and schema using a language model.
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
@@ -142,7 +150,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'system',
-      type: 'string | SystemModelMessage',
+      type: 'string | SystemModelMessage | SystemModelMessage[]',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
