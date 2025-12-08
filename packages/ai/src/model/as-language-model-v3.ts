@@ -18,6 +18,7 @@ export function asLanguageModelV3(
   return new Proxy(model, {
     get(target, prop: keyof LanguageModelV2) {
       if (prop === 'specificationVersion') return 'v3';
+
       return target[prop];
     },
   }) as unknown as LanguageModelV3;

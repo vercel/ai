@@ -715,7 +715,18 @@ describe('generateObject', () => {
           },
           usage: {
             inputTokens: 10,
+            inputTokenDetails: {
+              totalTokens: 10,
+              noCacheTokens: 10,
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+            },
             outputTokens: 20,
+            outputTokenDetails: {
+              totalTokens: 20,
+              textTokens: 20,
+              reasoningTokens: undefined,
+            },
             totalTokens: 30,
             reasoningTokens: undefined,
             cachedInputTokens: undefined,

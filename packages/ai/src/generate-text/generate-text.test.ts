@@ -891,8 +891,20 @@ describe('generateText', () => {
               },
               "usage": {
                 "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                  "totalTokens": 3,
+                },
                 "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                  "totalTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
@@ -927,15 +939,38 @@ describe('generateText', () => {
           ],
           "totalUsage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+              "totalTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+              "totalTokens": 10,
+            },
             "outputTokens": 10,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+              "totalTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+              "totalTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -1083,26 +1118,49 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+              "totalTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+              "totalTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+              "totalTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+              "totalTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1324,8 +1382,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                      "totalTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1393,8 +1463,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                      "totalTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1507,8 +1589,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                      "totalTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1576,8 +1670,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                      "totalTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1711,26 +1817,49 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+              "totalTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+              "totalTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+              "totalTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+              "totalTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1910,8 +2039,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                      "totalTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1989,8 +2130,20 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                      "totalTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                      "totalTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -3778,8 +3931,22 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 10,
+                  "totalTokens": 10,
+                },
                 "inputTokens": 10,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 20,
+                  "totalTokens": 20,
+                },
                 "outputTokens": 20,
+                "raw": undefined,
+                "reasoningTokens": undefined,
                 "totalTokens": 30,
               },
               "warnings": [],
