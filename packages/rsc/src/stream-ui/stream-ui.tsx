@@ -24,6 +24,7 @@ import {
   prepareRetries,
   prepareCallSettings,
   convertToLanguageModelPrompt,
+  asLanguageModelUsage,
 } from 'ai/internal';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';
@@ -371,7 +372,7 @@ functionality that can be fully encapsulated in the provider.
           case 'finish': {
             finishEvent = {
               finishReason: value.finishReason,
-              usage: value.usage,
+              usage: asLanguageModelUsage(value.usage),
               warnings,
               response: result.response,
             };
