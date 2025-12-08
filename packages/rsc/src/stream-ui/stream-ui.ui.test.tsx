@@ -1,10 +1,10 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { LanguageModelUsage } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
-import { describe, it, expect, beforeEach } from 'vitest';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -52,10 +52,18 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
-const testUsage: LanguageModelUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 0,
+  },
 };
 
 const mockTextModel = new MockLanguageModelV3({
