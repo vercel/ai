@@ -4,4 +4,9 @@ export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
 } from './google-vertex-provider-node';
+export type {
+  GoogleVertexSpeechModelId,
+  GoogleVertexSpeechProviderOptions,
+  GoogleVertexSpeechVoiceId,
+} from './google-vertex-speech-options';
 export { VERSION } from './version';
