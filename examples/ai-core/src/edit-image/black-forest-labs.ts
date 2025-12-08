@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { presentImages } from '../lib/present-image';
-
+import { experimental_generateImage as generateImage } from 'ai';
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
 import 'dotenv/config';
 
 type Flux2EditArguments = {
@@ -35,7 +36,7 @@ type Flux2EditArguments = {
   webhook_url?: string | null;
   /** Secret for webhook signature verification, sent in the X-Webhook-Secret header. */
   webhook_secret?: string | null;
-}
+};
 
 async function imagePathToBase64(imagePath: string): Promise<string> {
   const imageBuffer = readFileSync(imagePath);
@@ -77,7 +78,7 @@ async function awaitImageAndRender(pollingUrl: string) {
   }
 }
 
-async function generateImage() {
+async function bflGenerateImage() {
   const response = await fetch('https://api.bfl.ai/v1/flux-kontext-pro', {
     method: 'POST',
     headers: {
@@ -102,16 +103,22 @@ async function generateImage() {
   await awaitImageAndRender(pollingUrl);
 }
 
-async function editImage() {
+async function bflEditImage() {
   const args: Flux2EditArguments = {
-    prompt: 'A baby elephant with a shirt that has the logo from input image 1. Do not change the text of the logo.',
-    input_image: 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
+    prompt:
+      'A baby elephant with a shirt that has the logo from input image 1. Do not change the text of the logo.',
+    input_image:
+      'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
     width: 1024,
     height: 768,
-  };  
+  };
   const response = await fetch('https://api.bfl.ai/v1/flux-2-pro', {
     method: 'POST',
-    headers: { accept: 'application/json', 'x-key': process.env.BFL_API_KEY!, 'Content-Type': 'application/json' },
+    headers: {
+      accept: 'application/json',
+      'x-key': process.env.BFL_API_KEY!,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(args),
   });
   const request = await response.json();
@@ -123,4 +130,18 @@ async function editImage() {
   await awaitImageAndRender(pollingUrl);
 }
 
-editImage().catch(console.error);
+async function bflEditImageAi() {
+  const { images } = await generateImage({
+    model: blackForestLabs.image('flux-2-pro'),
+    prompt: {
+      text: 'A baby elephant with a shirt that has the logo from input image 1. Do not change the text of the logo.',
+      images: [
+        'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
+      ],
+    },
+  });
+  
+  await presentImages(images);
+}
+
+bflEditImageAi().catch(console.error);

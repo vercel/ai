@@ -1,6 +1,7 @@
 import {
   ImageModelV3,
   ImageModelV3CallOptions,
+  ImageModelV3File,
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -310,25 +311,28 @@ function normalizePrompt(
 
   return {
     prompt: prompt.text,
-    files: prompt.images.map(image => ({
-      type: 'file' as const,
-      data: convertDataContentToUint8Array(image),
-      mediaType:
-        detectMediaType({
-          data: convertDataContentToUint8Array(image),
-          signatures: imageMediaTypeSignatures,
-        }) || 'image/png',
-    })),
+    files: prompt.images.map(toImageModelV3File),
     mask: prompt.mask
-      ? {
-          type: 'file' as const,
-          data: convertDataContentToUint8Array(prompt.mask),
-          mediaType:
-            detectMediaType({
-              data: convertDataContentToUint8Array(prompt.mask),
-              signatures: imageMediaTypeSignatures,
-            }) || 'image/png',
-        }
+      ? toImageModelV3File(prompt.mask)
       : undefined,
+  };
+}
+
+function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
+  if (typeof dataContent === 'string' && dataContent.startsWith('http')) {
+    return {
+      type: 'url',
+      url: dataContent,
+    };
+  }
+
+  return {
+    type: 'file',
+    data: convertDataContentToUint8Array(dataContent),
+    mediaType:
+      detectMediaType({
+        data: convertDataContentToUint8Array(dataContent),
+        signatures: imageMediaTypeSignatures,
+      }) || 'image/png',
   };
 }

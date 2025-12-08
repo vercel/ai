@@ -3,7 +3,7 @@
 import { readFileSync } from 'fs';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
-import { generateImage } from '../../../../packages/ai/src/generate-image/generate-image';
+import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 /* 

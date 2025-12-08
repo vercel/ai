@@ -79,9 +79,9 @@ export class OpenAIImageModel implements ImageModelV3 {
         formData: inputToFormData({
           model: this.modelId,
           prompt,
-          image: files.map(
+          image: await Promise.all(files.map(
             file =>
-              new Blob(
+              file.type === 'file' ? new Blob(
                 [
                   file.data instanceof Uint8Array
                     ? new Blob([file.data as BlobPart], {
@@ -92,8 +92,8 @@ export class OpenAIImageModel implements ImageModelV3 {
                       }),
                 ],
                 { type: file.mediaType },
-              ),
-          ),
+              ) : downloadImageAsBlob(file.url),
+          )),
           n,
           size,
           ...(providerOptions.openai ?? {}),
@@ -307,4 +307,14 @@ function inputToFormData(input: Input): FormData {
   }
 
   return formData;
+}
+
+async function downloadImageAsBlob(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download image from URL: ${url}. Status: ${response.status} ${response.statusText}`,
+    );
+  }
+  return await response.blob();
 }
