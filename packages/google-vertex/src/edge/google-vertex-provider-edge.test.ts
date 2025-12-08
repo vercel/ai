@@ -82,7 +82,7 @@ describe('google-vertex-provider-edge', () => {
     const mockCreateVertex = vi.mocked(createVertexOriginal);
     const passedOptions = mockCreateVertex.mock.calls[0][0];
 
-    await resolve(passedOptions?.headers);
+    await resolve(passedOptions?.headers); // call the headers function
 
     expect(edgeAuth.generateAuthToken).toHaveBeenCalledWith({
       clientEmail: 'test@example.com',
