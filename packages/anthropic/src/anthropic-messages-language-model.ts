@@ -984,8 +984,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
 
-    let contextManagement: AnthropicResponseContextManagement | null = null;
-
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
       url,
@@ -1021,6 +1019,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
+    let contextManagement:
+      | AnthropicMessageMetadata['contextManagement']
+      | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
@@ -1661,40 +1662,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     cacheCreationInputTokens,
                     stopSequence,
                     container,
-                    contextManagement: contextManagement
-                      ? {
-                          appliedEdits: contextManagement.applied_edits
-                            .map(edit => {
-                              const strategy = edit.type;
-                              switch (strategy) {
-                                case 'clear_tool_uses_20250919':
-                                  return {
-                                    type: edit.type,
-                                    clearedToolUses: edit.cleared_tool_uses,
-                                    clearedInputTokens:
-                                      edit.cleared_input_tokens,
-                                  };
-
-                                case 'clear_thinking_20251015':
-                                  return {
-                                    type: edit.type,
-                                    clearedThinkingTurns:
-                                      edit.cleared_thinking_turns,
-                                    clearedInputTokens:
-                                      edit.cleared_input_tokens,
-                                  };
-
-                                default:
-                                  warnings.push({
-                                    type: 'other',
-                                    message: `Unknown context management strategy: ${strategy}`,
-                                  });
-                                  return undefined;
-                              }
-                            })
-                            .filter(edit => edit !== undefined),
-                        }
-                      : null,
+                    contextManagement,
                   } satisfies AnthropicMessageMetadata,
                 },
               });
@@ -1823,7 +1791,7 @@ function getModelCapabilities(modelId: string): {
 
 function mapAnthropicResponseContextManagement(
   contextManagement: AnthropicResponseContextManagement | null | undefined,
-): AnthropicMessageMetadata['contextManagement'] | undefined {
+): AnthropicMessageMetadata['contextManagement'] | null {
   return contextManagement
     ? {
         appliedEdits: contextManagement.applied_edits
