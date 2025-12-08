@@ -49,4 +49,3 @@ export function convertGoogleGenerativeAIUsage(
     raw: usage,
   };
 }
-
