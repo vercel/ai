@@ -3,7 +3,6 @@ import {
   SharedV3Warning,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -16,6 +15,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import {
+  convertOpenAICompletionUsage,
+  OpenAICompletionUsage,
+} from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -188,11 +191,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     return {
       content: [{ type: 'text', text: choice.text }],
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens,
-      },
+      usage: convertOpenAICompletionUsage(response.usage),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       request: { body: args },
       response: {
@@ -236,11 +235,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
     return {
@@ -286,9 +281,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
@@ -319,7 +312,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               providerMetadata,
-              usage,
+              usage: convertOpenAICompletionUsage(usage),
             });
           },
         }),
