@@ -17,10 +17,12 @@ import {
   AnthropicAssistantMessage,
   AnthropicMessagesPrompt,
   anthropicReasoningMetadataSchema,
+  AnthropicToolCallContent,
   AnthropicToolResultContent,
   AnthropicUserMessage,
   AnthropicWebFetchToolResultContent,
 } from './anthropic-messages-api';
+import { AnthropicToolCallMetadata } from './anthropic-message-metadata';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
@@ -563,12 +565,27 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
+                // Extract caller metadata if present (for programmatic tool calling)
+                const toolCallMetadata = part.providerOptions?.anthropic as
+                  | AnthropicToolCallMetadata
+                  | undefined;
+                const caller: AnthropicToolCallContent['caller'] =
+                  toolCallMetadata?.caller
+                    ? toolCallMetadata.caller.type === 'direct'
+                      ? { type: 'direct' }
+                      : {
+                          type: 'code_execution_20250825',
+                          tool_id: toolCallMetadata.caller.toolId,
+                        }
+                    : undefined;
+
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.input,
                   cache_control: cacheControl,
+                  caller,
                 });
                 break;
               }
@@ -627,11 +644,16 @@ export async function convertToAnthropicMessagesPrompt({
                   // to distinguish between code execution 20250522 and 20250825,
                   // we check if a type property is present in the output.value
                   if (output.value.type === 'code_execution_result') {
-                    // code execution 20250522
+                    // code execution 20250522 (also used for programmatic tool calling)
                     const codeExecutionOutput = await validateTypes({
                       value: output.value,
                       schema: codeExecution_20250522OutputSchema,
                     });
+
+                    // Include content array if present (for programmatic tool calling)
+                    const outputWithContent = output.value as {
+                      content?: unknown[];
+                    };
 
                     anthropicContent.push({
                       type: 'code_execution_tool_result',
@@ -641,6 +663,10 @@ export async function convertToAnthropicMessagesPrompt({
                         stdout: codeExecutionOutput.stdout,
                         stderr: codeExecutionOutput.stderr,
                         return_code: codeExecutionOutput.return_code,
+                        // Include content array for programmatic tool calling compatibility
+                        ...(outputWithContent.content != null
+                          ? { content: outputWithContent.content }
+                          : {}),
                       },
                       cache_control: cacheControl,
                     });

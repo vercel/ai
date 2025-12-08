@@ -102,6 +102,13 @@ export interface AnthropicToolCallContent {
   name: string;
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
+  /**
+   * Information about how the tool was called.
+   * Present when programmatic tool calling is used.
+   */
+  caller?:
+    | { type: 'direct' }
+    | { type: 'code_execution_20250825'; tool_id: string };
 }
 
 export interface AnthropicServerToolUseContent {

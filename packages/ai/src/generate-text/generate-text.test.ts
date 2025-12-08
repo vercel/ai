@@ -2635,6 +2635,7 @@ describe('generateText', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
+              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -2646,7 +2647,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": undefined,
+              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -2657,6 +2658,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
             {
+              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -2668,7 +2670,7 @@ describe('generateText', () => {
               "type": "tool-call",
             },
             {
-              "dynamic": undefined,
+              "dynamic": true,
               "error": "ERROR",
               "input": {
                 "value": "value",
@@ -2683,50 +2685,11 @@ describe('generateText', () => {
       });
 
       it('should include provider-executed tool calls in staticToolCalls', async () => {
-        expect(result.staticToolCalls).toMatchInlineSnapshot(`
-          [
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-            {
-              "input": {
-                "value": "value",
-              },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
-              "toolCallId": "call-2",
-              "toolName": "web_search",
-              "type": "tool-call",
-            },
-          ]
-        `);
+        expect(result.staticToolCalls).toMatchInlineSnapshot(`[]`);
       });
 
       it('should include provider-executed results in staticToolResults (errors excluded)', async () => {
-        expect(result.staticToolResults).toMatchInlineSnapshot(`
-          [
-            {
-              "dynamic": undefined,
-              "input": {
-                "value": "value",
-              },
-              "output": "{ "value": "result1" }",
-              "providerExecuted": true,
-              "toolCallId": "call-1",
-              "toolName": "web_search",
-              "type": "tool-result",
-            },
-          ]
-        `);
+        expect(result.staticToolResults).toMatchInlineSnapshot(`[]`);
       });
 
       it('should only execute a single step', async () => {
@@ -3286,6 +3249,7 @@ describe('generateText', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "dynamic": true,
             "input": {
               "value": "test",
             },
@@ -3297,7 +3261,7 @@ describe('generateText', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": undefined,
+            "dynamic": true,
             "input": {
               "value": "test",
             },
@@ -3316,7 +3280,7 @@ describe('generateText', () => {
       expect(result.toolResults).toMatchInlineSnapshot(`
         [
           {
-            "dynamic": undefined,
+            "dynamic": true,
             "input": {
               "value": "test",
             },

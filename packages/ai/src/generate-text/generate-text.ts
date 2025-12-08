@@ -473,13 +473,21 @@ A function that attempts to repair a tool call that failed to parse.
               }),
               tracer,
               fn: async span => {
+                // Merge base providerOptions with step-specific providerOptions
+                const stepProviderOptions = prepareStepResult?.providerOptions
+                  ? {
+                      ...providerOptions,
+                      ...prepareStepResult.providerOptions,
+                    }
+                  : providerOptions;
+
                 const result = await stepModel.doGenerate({
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers: headersWithUserAgent,
                 });
@@ -978,21 +986,23 @@ function asContent<TOOLS extends ToolSet>({
         case 'tool-result': {
           const toolCall = toolCalls.find(
             toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
+          );
 
-          if (toolCall == null) {
-            throw new Error(`Tool call ${part.toolCallId} not found.`);
-          }
+          // For provider-executed tool results (like code_execution_tool_result),
+          // the tool call might be from a previous step (programmatic tool calling).
+          // In this case, we use the information from the tool result itself.
+          const input = toolCall?.input;
+          const dynamic = part.dynamic ?? toolCall?.dynamic;
 
           if (part.isError) {
             return {
               type: 'tool-error' as const,
               toolCallId: part.toolCallId,
               toolName: part.toolName as keyof TOOLS & string,
-              input: toolCall.input,
+              input,
               error: part.result,
               providerExecuted: true,
-              dynamic: toolCall.dynamic,
+              dynamic,
             } as TypedToolError<TOOLS>;
           }
 
@@ -1000,10 +1010,10 @@ function asContent<TOOLS extends ToolSet>({
             type: 'tool-result' as const,
             toolCallId: part.toolCallId,
             toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
+            input,
             output: part.result,
             providerExecuted: true,
-            dynamic: toolCall.dynamic,
+            dynamic,
           } as TypedToolResult<TOOLS>;
         }
       }

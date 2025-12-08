@@ -307,16 +307,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           })),
         }),
 
-      // container with agent skills:
+      // container: string ID for resuming, or object with skills for agent skills
       ...(anthropicOptions?.container && {
-        container: {
-          id: anthropicOptions.container.id,
-          skills: anthropicOptions.container.skills?.map(skill => ({
-            type: skill.type,
-            skill_id: skill.skillId,
-            version: skill.version,
-          })),
-        } satisfies AnthropicContainer,
+        container:
+          anthropicOptions.container.skills &&
+          anthropicOptions.container.skills.length > 0
+            ? ({
+                id: anthropicOptions.container.id,
+                skills: anthropicOptions.container.skills.map(skill => ({
+                  type: skill.type,
+                  skill_id: skill.skillId,
+                  version: skill.version,
+                })),
+              } satisfies AnthropicContainer)
+            : anthropicOptions.container.id,
       }),
 
       // prompt:
@@ -809,7 +813,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           break;
         }
 
-        // code execution 20250522:
+        // code execution 20250522 (also used for programmatic tool calling with 20250825):
         case 'code_execution_tool_result': {
           if (part.content.type === 'code_execution_result') {
             content.push({
@@ -821,6 +825,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 stdout: part.content.stdout,
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
+                // Include content array for programmatic tool calling compatibility
+                content: (part.content as any).content ?? [],
               },
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {

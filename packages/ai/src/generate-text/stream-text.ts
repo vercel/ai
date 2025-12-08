@@ -1208,6 +1208,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
 
+          // Merge base providerOptions with step-specific providerOptions
+          const stepProviderOptions = prepareStepResult?.providerOptions
+            ? {
+                ...providerOptions,
+                ...prepareStepResult.providerOptions,
+              }
+            : providerOptions;
+
           const {
             result: { stream, response, request },
             doStreamSpan,
@@ -1266,7 +1274,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers,
                   includeRawChunks,
