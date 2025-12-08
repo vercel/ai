@@ -4,6 +4,7 @@ import {
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -40,12 +41,18 @@ vi.mock('../version', () => {
   };
 });
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
 
 const dummyResponseValues = {

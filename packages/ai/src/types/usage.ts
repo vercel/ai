@@ -16,22 +16,22 @@ export type LanguageModelUsage = {
     /**
      * The total number of input (prompt) tokens used.
      */
-    total: number | undefined;
+    totalTokens: number | undefined;
 
     /**
      * The number of non-cached input (prompt) tokens used.
      */
-    noCache: number | undefined;
+    noCacheTokens: number | undefined;
 
     /**
      * The number of cached input (prompt) tokens read.
      */
-    cacheRead: number | undefined;
+    cacheReadTokens: number | undefined;
 
     /**
      * The number of cached input (prompt) tokens written.
      */
-    cacheWrite: number | undefined;
+    cacheWriteTokens: number | undefined;
   };
 
   /**
@@ -46,17 +46,17 @@ export type LanguageModelUsage = {
     /**
      * The total number of output (completion) tokens used.
      */
-    total: number | undefined;
+    totalTokens: number | undefined;
 
     /**
      * The number of text tokens used.
      */
-    text: number | undefined;
+    textTokens: number | undefined;
 
     /**
      * The number of reasoning tokens used.
      */
-    reasoning: number | undefined;
+    reasoningTokens: number | undefined;
   };
 
   /**
@@ -101,36 +101,36 @@ export function addLanguageModelUsage(
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     inputTokenDetails: {
-      total: addTokenCounts(
-        usage1.inputTokenDetails?.total,
-        usage2.inputTokenDetails?.total,
+      totalTokens: addTokenCounts(
+        usage1.inputTokenDetails?.totalTokens,
+        usage2.inputTokenDetails?.totalTokens,
       ),
-      noCache: addTokenCounts(
-        usage1.inputTokenDetails?.noCache,
-        usage2.inputTokenDetails?.noCache,
+      noCacheTokens: addTokenCounts(
+        usage1.inputTokenDetails?.noCacheTokens,
+        usage2.inputTokenDetails?.noCacheTokens,
       ),
-      cacheRead: addTokenCounts(
-        usage1.inputTokenDetails?.cacheRead,
-        usage2.inputTokenDetails?.cacheRead,
+      cacheReadTokens: addTokenCounts(
+        usage1.inputTokenDetails?.cacheReadTokens,
+        usage2.inputTokenDetails?.cacheReadTokens,
       ),
-      cacheWrite: addTokenCounts(
-        usage1.inputTokenDetails?.cacheWrite,
-        usage2.inputTokenDetails?.cacheWrite,
+      cacheWriteTokens: addTokenCounts(
+        usage1.inputTokenDetails?.cacheWriteTokens,
+        usage2.inputTokenDetails?.cacheWriteTokens,
       ),
     },
     outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
     outputTokenDetails: {
-      total: addTokenCounts(
-        usage1.outputTokenDetails?.total,
-        usage2.outputTokenDetails?.total,
+      totalTokens: addTokenCounts(
+        usage1.outputTokenDetails?.totalTokens,
+        usage2.outputTokenDetails?.totalTokens,
       ),
-      text: addTokenCounts(
-        usage1.outputTokenDetails?.text,
-        usage2.outputTokenDetails?.text,
+      textTokens: addTokenCounts(
+        usage1.outputTokenDetails?.textTokens,
+        usage2.outputTokenDetails?.textTokens,
       ),
-      reasoning: addTokenCounts(
-        usage1.outputTokenDetails?.reasoning,
-        usage2.outputTokenDetails?.reasoning,
+      reasoningTokens: addTokenCounts(
+        usage1.outputTokenDetails?.reasoningTokens,
+        usage2.outputTokenDetails?.reasoningTokens,
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),

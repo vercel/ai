@@ -317,7 +317,7 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.usage.reasoningTokens).toBe(5);
+      expect(response.usage?.outputTokens?.reasoning).toBe(5);
     });
 
     it('should handle response with cached input tokens in usage', async () => {
@@ -343,7 +343,7 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.usage.cachedInputTokens).toBe(8);
+      expect(response.usage?.inputTokens?.cacheRead).toBe(8);
     });
 
     it('should handle response with different finish reasons', async () => {

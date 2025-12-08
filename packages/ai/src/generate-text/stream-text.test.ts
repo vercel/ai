@@ -7,6 +7,7 @@ import {
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   SharedV3ProviderMetadata,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -59,20 +60,32 @@ const defaultSettings = () =>
     onError: () => {},
   }) as const;
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
 
-const testUsage2 = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 23,
-  reasoningTokens: 10,
-  cachedInputTokens: 3,
+const testUsage2: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 10,
+  },
 };
 
 function createTestModel({
@@ -3179,7 +3192,15 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+              usage: {
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                },
+                outputTokens: { total: 5, text: 5, reasoning: 0 },
+              },
             },
           ]),
         }),
@@ -11300,11 +11321,17 @@ describe('streamText', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 usage: {
-                  inputTokens: undefined,
-                  outputTokens: undefined,
-                  totalTokens: undefined,
-                  reasoningTokens: undefined,
-                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: undefined,
+                    noCache: undefined,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: undefined,
+                    text: undefined,
+                    reasoning: undefined,
+                  },
                 },
               },
             ]),

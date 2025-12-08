@@ -7,13 +7,20 @@ import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 import { describe, it, expect } from 'vitest';
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 
-const testUsage = {
-  inputTokens: 5,
-  outputTokens: 10,
-  totalTokens: 18,
-  reasoningTokens: 3,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 3,
+  },
 };
 
 describe('extractReasoningMiddleware', () => {

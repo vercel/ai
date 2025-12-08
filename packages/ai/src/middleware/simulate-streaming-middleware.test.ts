@@ -1,3 +1,4 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
@@ -19,12 +20,18 @@ const DEFAULT_SETTINGs = {
   },
 };
 
-const testUsage = {
-  inputTokens: 5,
-  outputTokens: 10,
-  totalTokens: 18,
-  reasoningTokens: 3,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 3,
+  },
 };
 
 describe('simulateStreamingMiddleware', () => {
