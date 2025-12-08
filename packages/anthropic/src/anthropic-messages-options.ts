@@ -67,6 +67,11 @@ export const anthropicToolProviderOptions = z.object({
   allowedCallers: z
     .array(z.enum(['direct', 'code_execution_20250825']))
     .optional(),
+  /**
+   * Whether to defer loading of this tool's definition.
+   * When true, the tool definition will be loaded lazily.
+   */
+  deferLoading: z.boolean().optional(),
 });
 
 export type AnthropicToolProviderOptions = z.infer<
