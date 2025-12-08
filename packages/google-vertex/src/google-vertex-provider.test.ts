@@ -53,6 +53,21 @@ describe('google-vertex-provider', () => {
     );
   });
 
+  it('should pass providerOptionsName as vertex to language model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        providerOptionsName: 'vertex',
+      }),
+    );
+  });
+
   it('should throw an error when using new keyword', () => {
     const provider = createVertex({ project: 'test-project' });
 
