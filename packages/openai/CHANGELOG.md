@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.80
+
+### Patch Changes
+
+- 707a163: feat(openai): additional settings for file search tool
+
 ## 2.0.79
 
 ### Patch Changes
