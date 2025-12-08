@@ -67,6 +67,20 @@ export type StreamObjectOnErrorCallback = (event: {
 }) => Promise<void> | void;
 
 /**
+Callback that is set using the `onChunk` option.
+
+@param event - The event that is passed to the callback.
+ */
+export type StreamObjectOnChunkCallback<PARTIAL> = (event: {
+  chunk: Extract<
+    ObjectStreamPart<PARTIAL>,
+    {
+      type: 'object' | 'text-delta';
+    }
+  >;
+}) => PromiseLike<void> | void;
+
+/**
 Callback that is set using the `onFinish` option.
 
 @param event - The event that is passed to the callback.
@@ -163,6 +177,10 @@ via tool or schema description.
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
 
+@param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+@param onError - Callback that is invoked when an error occurs during streaming. You can use it to log errors.
+@param onFinish - Callback that is called when the LLM response and the final object validation are finished.
+
 @returns
 A result object for accessing the partial object stream and additional information.
 
@@ -245,6 +263,18 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
+Callback that is called for each chunk of the stream.
+The stream processing will pause until the callback promise is resolved.
+     */
+      onChunk?: StreamObjectOnChunkCallback<
+        OUTPUT extends 'enum'
+          ? string
+          : OUTPUT extends 'array'
+            ? RESULT
+            : DeepPartial<RESULT>
+      >;
+
+      /**
 Callback that is invoked when an error occurs during streaming.
 You can use it to log errors.
 The stream processing will pause until the callback promise is resolved.
@@ -291,6 +321,7 @@ Callback that is called when the LLM response and the final object validation ar
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    onChunk,
     onError = ({ error }: { error: unknown }) => {
       console.error(error);
     },
@@ -341,6 +372,7 @@ Callback that is called when the LLM response and the final object validation ar
     schemaDescription,
     providerOptions,
     repairText,
+    onChunk,
     onError,
     onFinish,
     download,
@@ -388,6 +420,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription,
     providerOptions,
     repairText,
+    onChunk,
     onError,
     onFinish,
     download,
@@ -409,6 +442,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
+    onChunk: StreamObjectOnChunkCallback<PARTIAL> | undefined;
     onError: StreamObjectOnErrorCallback;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     download: DownloadFunction | undefined;
@@ -442,11 +476,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       ObjectStreamPart<PARTIAL>,
       ObjectStreamPart<PARTIAL>
     >({
-      transform(chunk, controller) {
+      async transform(chunk, controller) {
         controller.enqueue(chunk);
 
+        if (chunk.type === 'object' || chunk.type === 'text-delta') {
+          await onChunk?.({ chunk });
+        }
+
         if (chunk.type === 'error') {
-          onError({ error: wrapGatewayError(chunk.error) });
+          await onError({ error: wrapGatewayError(chunk.error) });
         }
       },
     });

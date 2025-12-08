@@ -21,7 +21,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { StreamObjectResult } from './stream-object-result';
+import { StreamObjectResult, ObjectStreamPart } from './stream-object-result';
 
 const testUsage = {
   inputTokens: 3,
@@ -605,6 +605,106 @@ describe('streamObject', () => {
         convertAsyncIterableToArray(result.partialObjectStream);
 
         expect(await result.finishReason).toStrictEqual('stop');
+      });
+    });
+
+    describe('options.onChunk', () => {
+      let result: Array<
+        Extract<
+          ObjectStreamPart<any>,
+          {
+            type: 'object' | 'text-delta';
+          }
+        >
+      >;
+
+      beforeEach(async () => {
+        result = [];
+
+        const resultObject = streamObject({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ ' },
+              { type: 'text-delta', id: '1', delta: '"content": ' },
+              { type: 'text-delta', id: '1', delta: `"Hello, ` },
+              { type: 'text-delta', id: '1', delta: `world` },
+              { type: 'text-delta', id: '1', delta: `!"` },
+              { type: 'text-delta', id: '1', delta: ' }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+                providerMetadata: {
+                  testProvider: { testKey: 'testValue' },
+                },
+              },
+            ]),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'test-input',
+          onChunk(event) {
+            result.push(event.chunk);
+          },
+        });
+
+        await convertAsyncIterableToArray(resultObject.partialObjectStream);
+      });
+
+      it('should return events in order', async () => {
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "object": {},
+              "type": "object",
+            },
+            {
+              "textDelta": "{ ",
+              "type": "text-delta",
+            },
+            {
+              "object": {
+                "content": "Hello, ",
+              },
+              "type": "object",
+            },
+            {
+              "textDelta": ""content": "Hello, ",
+              "type": "text-delta",
+            },
+            {
+              "object": {
+                "content": "Hello, world",
+              },
+              "type": "object",
+            },
+            {
+              "textDelta": "world",
+              "type": "text-delta",
+            },
+            {
+              "object": {
+                "content": "Hello, world!",
+              },
+              "type": "object",
+            },
+            {
+              "textDelta": "!"",
+              "type": "text-delta",
+            },
+            {
+              "textDelta": " }",
+              "type": "text-delta",
+            },
+          ]
+        `);
       });
     });
 
