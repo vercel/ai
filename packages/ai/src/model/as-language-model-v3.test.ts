@@ -159,7 +159,8 @@ describe('asLanguageModelV3', () => {
 
       expect(response.content).toHaveLength(1);
       expect(response.finishReason).toBe('stop');
-      expect(response.usage.inputTokens).toBe(10);
+      expect(response.usage.inputTokens.total).toBe(10);
+      expect(response.usage.outputTokens.total).toBe(5);
     });
 
     it('should make doStream method callable', async () => {
