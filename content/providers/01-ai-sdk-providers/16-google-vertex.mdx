@@ -394,7 +394,7 @@ import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'; // Note: imp
 import { generateText, streamText } from 'ai';
 
 // For generateText:
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
     google: {
@@ -408,8 +408,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   prompt: 'Explain quantum computing in simple terms.',
 });
 
-console.log('Reasoning:', reasoning);
-console.log('Reasoning Details:', reasoningDetails);
+console.log('Reasoning:', reasoningText);
+console.log('Reasoning Details:', reasoning);
 console.log('Final Text:', text);
 
 // For streamText:
@@ -438,7 +438,7 @@ for await (const part of result.fullStream) {
 
 When `includeThoughts` is true, parts of the API response marked with `thought: true` will be processed as reasoning.
 
-- In `generateText`, these contribute to the `reasoning` (string) and `reasoningDetails` (array) fields.
+- In `generateText`, these contribute to the `reasoningText` (string) and `reasoning` (array) fields.
 - In `streamText`, these are emitted as `reasoning` stream parts.
 
 <Note>
@@ -970,7 +970,7 @@ and specifying a thinking budget in tokens.
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertexAnthropic('claude-3-7-sonnet@20250219'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -980,8 +980,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
