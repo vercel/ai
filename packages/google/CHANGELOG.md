@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.45
+
+### Patch Changes
+
+- 363b1f5: fix(google,google-vertex): update known model IDs
+
 ## 2.0.44
 
 ### Patch Changes
