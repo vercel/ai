@@ -1,10 +1,87 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
-import { ImageModelV3Usage } from '@ai-sdk/provider';
+import { ImageModelV3Usage, JSONObject } from '@ai-sdk/provider';
 
 /**
-Represents the number of tokens used in a prompt and completion.
+ * Represents the number of tokens used in a prompt and completion.
  */
-export type LanguageModelUsage = LanguageModelV3Usage;
+export type LanguageModelUsage = {
+  /**
+   * The number of input (prompt) tokens used.
+   */
+  inputTokens: number | undefined;
+
+  /**
+   * Detailed information about the input tokens.
+   */
+  inputTokenDetails?: {
+    /**
+     * The total number of input (prompt) tokens used.
+     */
+    total: number | undefined;
+
+    /**
+     * The number of non-cached input (prompt) tokens used.
+     */
+    noCache: number | undefined;
+
+    /**
+     * The number of cached input (prompt) tokens read.
+     */
+    cacheRead: number | undefined;
+
+    /**
+     * The number of cached input (prompt) tokens written.
+     */
+    cacheWrite: number | undefined;
+  };
+
+  /**
+   * The number of output (completion) tokens used.
+   */
+  outputTokens: number | undefined;
+
+  /**
+   * Detailed information about the output tokens.
+   */
+  outputTokenDetails?: {
+    /**
+     * The total number of output (completion) tokens used.
+     */
+    total: number | undefined;
+
+    /**
+     * The number of text tokens used.
+     */
+    text: number | undefined;
+
+    /**
+     * The number of reasoning tokens used.
+     */
+    reasoning: number | undefined;
+  };
+
+  /**
+   * The total number of tokens used.
+   */
+  totalTokens: number | undefined;
+
+  /**
+   * @deprecated Use outputTokenDetails.reasoning instead.
+   */
+  reasoningTokens?: number | undefined;
+
+  /**
+   * @deprecated Use inputTokenDetails.cacheRead instead.
+   */
+  cachedInputTokens?: number | undefined;
+
+  /**
+   * Raw usage information from the provider.
+   *
+   * This is the usage information in the shape that the provider returns.
+   * It can include additional information that is not part of the standard usage information.
+   */
+  raw?: JSONObject;
+};
 
 /**
 Represents the number of tokens used in an embedding.
@@ -23,7 +100,39 @@ export function addLanguageModelUsage(
 ): LanguageModelUsage {
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
+    inputTokenDetails: {
+      total: addTokenCounts(
+        usage1.inputTokenDetails?.total,
+        usage2.inputTokenDetails?.total,
+      ),
+      noCache: addTokenCounts(
+        usage1.inputTokenDetails?.noCache,
+        usage2.inputTokenDetails?.noCache,
+      ),
+      cacheRead: addTokenCounts(
+        usage1.inputTokenDetails?.cacheRead,
+        usage2.inputTokenDetails?.cacheRead,
+      ),
+      cacheWrite: addTokenCounts(
+        usage1.inputTokenDetails?.cacheWrite,
+        usage2.inputTokenDetails?.cacheWrite,
+      ),
+    },
     outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
+    outputTokenDetails: {
+      total: addTokenCounts(
+        usage1.outputTokenDetails?.total,
+        usage2.outputTokenDetails?.total,
+      ),
+      text: addTokenCounts(
+        usage1.outputTokenDetails?.text,
+        usage2.outputTokenDetails?.text,
+      ),
+      reasoning: addTokenCounts(
+        usage1.outputTokenDetails?.reasoning,
+        usage2.outputTokenDetails?.reasoning,
+      ),
+    },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
     reasoningTokens: addTokenCounts(
       usage1.reasoningTokens,
