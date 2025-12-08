@@ -962,6 +962,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 appliedEdits: response.context_management.applied_edits
                   .map(edit => {
                     const strategy = edit.type;
+
                     switch (strategy) {
                       case 'clear_tool_uses_20250919':
                         return {

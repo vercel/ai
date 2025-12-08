@@ -714,9 +714,6 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 cleared_thinking_turns: z.number(),
                 cleared_input_tokens: z.number(),
               }),
-              z.object({
-                type: z.string(),
-              }),
             ]),
           ),
         })
