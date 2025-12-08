@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 92c6241: feat(openai): additional settings for file search tool
+
 ## 3.0.0-beta.87
 
 ### Patch Changes
