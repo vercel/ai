@@ -13,7 +13,8 @@ As conversations get longer and more complex, this performance impact becomes ex
 This recipe uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re-computation. In this case, parsed Markdown blocks are memoized to prevent them from being re-parsed and re-rendered on each token update, which means that once a block is fully parsed, it's cached and reused rather than being regenerated. This approach significantly improves rendering performance for long conversations by eliminating redundant parsing and rendering operations.
 
 <Note>
-  If you don't want to set memoization up manually, you can use [Streamdown](https://streamdown.ai/) instead of `react-markdown` and `marked`.
+  If you don't want to set memoization up manually, you can use
+  [Streamdown](https://streamdown.ai/) instead of `react-markdown` and `marked`.
 </Note>
 
 ## Installation
