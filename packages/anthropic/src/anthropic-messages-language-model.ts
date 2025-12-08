@@ -371,7 +371,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       if (thinkingBudget == null) {
         throw new UnsupportedFunctionalityError({
           functionality: 'extended thinking',
-          message: 'thinking requires a budget',
+          message: 'Extended thinking requires a thinking budget',
         });
       }
 
