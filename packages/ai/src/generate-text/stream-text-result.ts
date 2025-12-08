@@ -440,4 +440,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'raw';
       rawValue: unknown;
+    }
+  | {
+      type: 'clear';
     };

@@ -2,6 +2,7 @@ export {
   generateText,
   type GenerateTextOnFinishCallback,
   type GenerateTextOnStepFinishCallback,
+  type StepContinueResult,
 } from './generate-text';
 export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';
@@ -10,6 +11,7 @@ export type {
   GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export { object, text, array } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,

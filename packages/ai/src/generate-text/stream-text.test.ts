@@ -4223,6 +4223,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": undefined,
             "request": {},
             "response": {
@@ -4299,6 +4301,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+            "validationError": undefined,
             "warnings": [],
           },
         ]
@@ -4346,6 +4349,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": undefined,
             "request": {},
             "response": {
@@ -4373,6 +4378,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+            "validationError": undefined,
             "warnings": [],
           },
         ]
@@ -4414,6 +4420,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": undefined,
             "request": {},
             "response": {
@@ -4453,6 +4461,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+            "validationError": undefined,
             "warnings": [],
           },
         ]
@@ -4927,6 +4936,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": {
                 "testProvider": {
                   "testKey": "testValue",
@@ -4984,6 +4995,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ],
@@ -5168,6 +5180,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -5195,6 +5209,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ],
@@ -5344,6 +5359,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -5383,6 +5400,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ],
@@ -6003,6 +6021,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -6056,6 +6076,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -6067,6 +6088,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -6130,6 +6153,7 @@ describe('streamText', () => {
                     "reasoningTokens": 10,
                     "totalTokens": 23,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -6188,6 +6212,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -6241,6 +6267,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
               DefaultStepResult {
@@ -6252,6 +6279,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -6315,6 +6344,7 @@ describe('streamText', () => {
                   "reasoningTokens": 10,
                   "totalTokens": 23,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ]
@@ -6392,6 +6422,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -6445,6 +6477,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
               DefaultStepResult {
@@ -6456,6 +6489,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -6519,6 +6554,7 @@ describe('streamText', () => {
                   "reasoningTokens": 10,
                   "totalTokens": 23,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ]
@@ -6928,6 +6964,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -6976,6 +7014,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -6987,6 +7026,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -7045,6 +7086,7 @@ describe('streamText', () => {
                     "reasoningTokens": 10,
                     "totalTokens": 23,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -7112,6 +7154,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -7160,6 +7204,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -7171,6 +7216,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -7229,6 +7276,7 @@ describe('streamText', () => {
                     "reasoningTokens": 10,
                     "totalTokens": 23,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -7585,6 +7633,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -7638,6 +7688,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
                 DefaultStepResult {
@@ -7649,6 +7700,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -7712,6 +7765,7 @@ describe('streamText', () => {
                     "reasoningTokens": 10,
                     "totalTokens": 23,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -7770,6 +7824,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -7823,6 +7879,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
               DefaultStepResult {
@@ -7834,6 +7891,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -7897,6 +7956,7 @@ describe('streamText', () => {
                   "reasoningTokens": 10,
                   "totalTokens": 23,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ]
@@ -7970,6 +8030,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -8023,6 +8085,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
               DefaultStepResult {
@@ -8034,6 +8097,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -8097,6 +8162,7 @@ describe('streamText', () => {
                   "reasoningTokens": 10,
                   "totalTokens": 23,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ]
@@ -8487,6 +8553,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -8540,6 +8608,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -8577,6 +8646,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -8630,6 +8701,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -9972,6 +10044,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": undefined,
             "request": {},
             "response": {
@@ -10018,6 +10092,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+            "validationError": undefined,
             "warnings": [],
           },
         ]
@@ -10433,6 +10508,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -10484,6 +10561,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ]
@@ -10753,6 +10831,8 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": undefined,
+                "output": undefined,
                 "providerMetadata": {
                   "testProvider": {
                     "testKey": "TEST VALUE",
@@ -10810,6 +10890,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ],
@@ -10940,6 +11021,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -10997,6 +11080,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+            "validationError": undefined,
             "warnings": [],
           }
         `);
@@ -11405,6 +11489,8 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "isOutputValid": undefined,
+            "output": undefined,
             "providerMetadata": undefined,
             "request": {},
             "response": {
@@ -11431,6 +11517,7 @@ describe('streamText', () => {
               "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
+            "validationError": undefined,
             "warnings": [],
           }
         `);
@@ -11865,6 +11952,10 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "isOutputValid": true,
+                "output": {
+                  "value": "Hello, world!",
+                },
                 "providerMetadata": undefined,
                 "request": {},
                 "response": {
@@ -11892,6 +11983,7 @@ describe('streamText', () => {
                   "reasoningTokens": undefined,
                   "totalTokens": 13,
                 },
+                "validationError": undefined,
                 "warnings": [],
               },
             ],
@@ -12854,6 +12946,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -12896,6 +12990,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ]
@@ -13156,6 +13251,8 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "isOutputValid": undefined,
+                  "output": undefined,
                   "providerMetadata": undefined,
                   "request": {},
                   "response": {
@@ -13202,6 +13299,7 @@ describe('streamText', () => {
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
+                  "validationError": undefined,
                   "warnings": [],
                 },
               ],
@@ -14060,6 +14158,8 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "isOutputValid": undefined,
+              "output": undefined,
               "providerMetadata": undefined,
               "request": {},
               "response": {
@@ -14110,6 +14210,7 @@ describe('streamText', () => {
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
+              "validationError": undefined,
               "warnings": [],
             },
           ]

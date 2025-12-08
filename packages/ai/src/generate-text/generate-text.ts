@@ -69,13 +69,47 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
+Result that can be returned from `onStepFinish` to continue the generation loop
+with injected feedback messages.
+ */
+export type StepContinueResult =
+  | {
+      continue: true;
+      messages: Array<ModelMessage>;
+      /**
+       * Whether to clear the current step in the UI stream.
+       *
+       * If set to `true`, the UI will clear the current step before the next step starts.
+       * This is useful for retrying a step that failed validation.
+       *
+       * If set to `false`, the UI will keep the current step.
+       *
+       * @default true
+       */
+      experimental_clearStep?: boolean;
+    }
+  | {
+      continue: false;
+    }
+  | undefined;
+
+/**
 Callback that is set using the `onStepFinish` option.
 
 @param stepResult - The result of the step.
+
+@returns Optionally returns a `StepContinueResult` to continue the loop with feedback messages.
+If `void` or `undefined` is returned, the loop continues normally based on tool calls and stop conditions.
+If `{ continue: true, messages }` is returned, the loop continues with the injected messages.
+If `{ continue: false }` is returned, the loop stops (even if tool calls exist).
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
-) => Promise<void> | void;
+) =>
+  | PromiseLike<StepContinueResult>
+  | StepContinueResult
+  | Promise<void>
+  | void;
 
 /**
 Callback that is set using the `onFinish` option.
@@ -398,9 +432,16 @@ A function that attempts to repair a tool call that failed to parse.
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
+        let nextStepContinuationMessages: Array<ModelMessage> = [];
 
         do {
-          const stepInputMessages = [...initialMessages, ...responseMessages];
+          const stepInputMessages = [
+            ...initialMessages,
+            ...responseMessages,
+            ...nextStepContinuationMessages,
+          ];
+          // Clear continuation messages after using them (they're only for this step)
+          nextStepContinuationMessages = [];
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -657,6 +698,33 @@ A function that attempts to repair a tool call that failed to parse.
             }),
           );
 
+          // Validate output if output strategy is provided and step finished with "stop"
+          let parsedOutput: unknown | undefined;
+          let validationError: Error | undefined;
+          let isOutputValid: boolean | undefined;
+
+          if (output != null && currentModelResponse.finishReason === 'stop') {
+            const stepText = extractTextContent(currentModelResponse.content);
+            if (stepText !== undefined) {
+              const outputSpecification = output;
+              try {
+                parsedOutput = await outputSpecification.parseCompleteOutput(
+                  { text: stepText },
+                  {
+                    response: currentModelResponse.response,
+                    usage: currentModelResponse.usage,
+                    finishReason: currentModelResponse.finishReason,
+                  },
+                );
+                isOutputValid = true;
+              } catch (error) {
+                validationError =
+                  error instanceof Error ? error : new Error(String(error));
+                isOutputValid = false;
+              }
+            }
+          }
+
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
@@ -670,6 +738,9 @@ A function that attempts to repair a tool call that failed to parse.
               // deep clone msgs to avoid mutating past messages in multi-step:
               messages: structuredClone(responseMessages),
             },
+            output: parsedOutput,
+            validationError,
+            isOutputValid,
           });
 
           logWarnings({
@@ -679,15 +750,37 @@ A function that attempts to repair a tool call that failed to parse.
           });
 
           steps.push(currentStepResult);
-          await onStepFinish?.(currentStepResult);
-        } while (
-          // there are tool calls:
-          clientToolCalls.length > 0 &&
-          // all current tool calls have outputs (incl. execution errors):
-          clientToolOutputs.length === clientToolCalls.length &&
-          // continue until a stop condition is met:
-          !(await isStopConditionMet({ stopConditions, steps }))
-        );
+          const onStepFinishResult = await onStepFinish?.(currentStepResult);
+
+          // Handle continuation result - store messages for next step if continuation requested
+          let shouldContinue = false;
+          if (
+            onStepFinishResult != null &&
+            typeof onStepFinishResult === 'object' &&
+            'continue' in onStepFinishResult
+          ) {
+            if (onStepFinishResult.continue === true) {
+              // Store continuation messages for the next step's input
+              nextStepContinuationMessages = onStepFinishResult.messages;
+              shouldContinue = true;
+            }
+            // continue: false means stop even if tool calls exist
+          } else {
+            // No explicit continuation result - continue if there are tool calls
+            shouldContinue =
+              clientToolCalls.length > 0 &&
+              clientToolOutputs.length === clientToolCalls.length;
+          }
+
+          const stopConditionMet = await isStopConditionMet({
+            stopConditions,
+            steps,
+          });
+
+          if (!shouldContinue || stopConditionMet) {
+            break;
+          }
+        } while (true);
 
         // Add response information to the span:
         span.setAttributes(
@@ -756,18 +849,24 @@ A function that attempts to repair a tool call that failed to parse.
           totalUsage,
         });
 
-        // parse output only if the last step was finished with "stop":
+        // Use already-parsed output if available, otherwise parse it now
         let resolvedOutput;
         if (lastStep.finishReason === 'stop') {
-          const outputSpecification = output ?? text();
-          resolvedOutput = await outputSpecification.parseCompleteOutput(
-            { text: lastStep.text },
-            {
-              response: lastStep.response,
-              usage: lastStep.usage,
-              finishReason: lastStep.finishReason,
-            },
-          );
+          if (lastStep.output !== undefined) {
+            // Output was already parsed during the loop
+            resolvedOutput = lastStep.output;
+          } else {
+            // Parse output now (for backward compatibility or when output wasn't validated in loop)
+            const outputSpecification = output ?? text();
+            resolvedOutput = await outputSpecification.parseCompleteOutput(
+              { text: lastStep.text },
+              {
+                response: lastStep.response,
+                usage: lastStep.usage,
+                finishReason: lastStep.finishReason,
+              },
+            );
+          }
         }
 
         return new DefaultGenerateTextResult({
