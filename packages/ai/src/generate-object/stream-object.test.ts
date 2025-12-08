@@ -23,6 +23,7 @@ import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { asLanguageModelUsage } from '../types/usage';
 
 const testUsage: LanguageModelV3Usage = {
   inputTokens: {
@@ -880,7 +881,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -924,7 +925,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -965,7 +966,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -1808,7 +1809,7 @@ describe('streamObject', () => {
             timestamp: new Date(0),
             modelId: 'mock-model-id',
           },
-          usage: testUsage,
+          usage: asLanguageModelUsage(testUsage),
           finishReason: 'stop',
         });
       }

@@ -30,7 +30,11 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  asLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
@@ -664,7 +668,7 @@ A function that attempts to repair a tool call that failed to parse.
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
             finishReason: currentModelResponse.finishReason,
-            usage: currentModelResponse.usage,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: currentModelResponse.request ?? {},

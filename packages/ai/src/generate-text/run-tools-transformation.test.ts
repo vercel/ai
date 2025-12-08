@@ -1,4 +1,7 @@
-import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import {
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+} from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -11,13 +14,20 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
+
 describe('runToolsTransformation', () => {
   it('should forward text parts', async () => {
     const inputStream: ReadableStream<LanguageModelV3StreamPart> =

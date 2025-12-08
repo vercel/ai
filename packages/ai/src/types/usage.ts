@@ -1,4 +1,8 @@
-import { ImageModelV3Usage, JSONObject } from '@ai-sdk/provider';
+import {
+  ImageModelV3Usage,
+  JSONObject,
+  LanguageModelV3Usage,
+} from '@ai-sdk/provider';
 
 /**
  * Represents the number of tokens used in a prompt and completion.
@@ -93,6 +97,31 @@ The number of tokens used in the embedding.
    */
   tokens: number;
 };
+
+export function asLanguageModelUsage(
+  usage: LanguageModelV3Usage,
+): LanguageModelUsage {
+  return {
+    inputTokens: usage.inputTokens.total,
+    inputTokenDetails: {
+      totalTokens: usage.inputTokens.total,
+      noCacheTokens: usage.inputTokens.noCache,
+      cacheReadTokens: usage.inputTokens.cacheRead,
+      cacheWriteTokens: usage.inputTokens.cacheWrite,
+    },
+    outputTokens: usage.outputTokens.total,
+    outputTokenDetails: {
+      totalTokens: usage.outputTokens.total,
+      textTokens: usage.outputTokens.text,
+      reasoningTokens: usage.outputTokens.reasoning,
+    },
+    totalTokens:
+      (usage.inputTokens.total ?? 0) + (usage.outputTokens.total ?? 0),
+    raw: usage.raw,
+    reasoningTokens: usage.outputTokens.reasoning,
+    cachedInputTokens: usage.inputTokens.cacheRead,
+  };
+}
 
 export function addLanguageModelUsage(
   usage1: LanguageModelUsage,

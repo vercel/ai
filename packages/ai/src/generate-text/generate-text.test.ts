@@ -1003,11 +1003,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1150,11 +1156,17 @@ describe('generateText', () => {
                   ],
                   finishReason: 'tool-calls',
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 5,
-                    totalTokens: 15,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
                   },
                   response: {
                     id: 'test-id-1-from-model',
@@ -1770,11 +1782,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -3459,9 +3477,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [
@@ -3594,9 +3620,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [

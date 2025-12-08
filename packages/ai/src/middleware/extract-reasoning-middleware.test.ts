@@ -1,13 +1,13 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
-import { describe, it, expect } from 'vitest';
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
 
 const testUsage: LanguageModelV3Usage = {
   inputTokens: {
