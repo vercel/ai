@@ -13,7 +13,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
-import { createAnthropic } from './anthropic-provider';
+import { anthropic, createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
@@ -756,6 +756,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic": {
             "cacheCreationInputTokens": null,
             "container": null,
+            "contextManagement": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1070,6 +1071,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1206,6 +1208,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -3247,6 +3250,184 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(result.warnings).toStrictEqual([]);
     });
+
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [{ type: 'clear_tool_uses_20250919' }],
+          },
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'clear_tool_uses_20250919',
+                  cleared_tool_uses: 5,
+                  cleared_input_tokens: 10000,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'clear_tool_uses_20250919',
+              clearedToolUses: 5,
+              clearedInputTokens: 10000,
+            },
+          ],
+        });
+      });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -3355,6 +3536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3487,6 +3669,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3664,6 +3847,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,
                     "container": null,
+                    "contextManagement": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -3849,6 +4033,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3948,6 +4133,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -4029,6 +4215,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -4096,6 +4283,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -4109,6 +4297,142 @@ describe('AnthropicMessagesLanguageModel', () => {
               "inputTokens": 17,
               "outputTokens": 227,
               "totalTokens": 244,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should stream tool deltas', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+          `data: {"type": "ping"}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+          `data: {"type":"content_block_stop","index":0    }\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+          `data: {"type":"content_block_stop","index":1              }\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+          `data: {"type":"message_stop"           }\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            inputSchema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Okay",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "delta": "!",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolName": "test-tool",
+            "type": "tool-input-start",
+          },
+          {
+            "delta": "{"value",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "":",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": ""Spark",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": "le",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-delta",
+          },
+          {
+            "delta": " Day"}",
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-delta",
+          },
+          {
+            "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "type": "tool-input-end",
+          },
+          {
+            "input": "{"value":"Sparkle Day"}",
+            "providerExecuted": undefined,
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "container": null,
+                "contextManagement": null,
+                "stopSequence": null,
+                "usage": {
+                  "input_tokens": 441,
+                  "output_tokens": 65,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 441,
+              "outputTokens": 65,
+              "totalTokens": 506,
             },
           },
         ]
@@ -4336,6 +4660,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4410,6 +4735,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -4514,6 +4840,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4562,6 +4889,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -4797,6 +5125,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4914,98 +5243,99 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
-              "modelId": "claude-3-haiku-20240307",
-              "type": "response-metadata",
-            },
-            {
-              "id": "0",
-              "type": "text-start",
-            },
-            {
-              "delta": "Okay",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "delta": "!",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
-            },
-            {
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "toolName": "test-tool",
-              "type": "tool-input-start",
-            },
-            {
-              "delta": "{"value",
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": "":",
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": ""Spark",
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": "le",
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-delta",
-            },
-            {
-              "delta": " Day"}",
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-delta",
-            },
-            {
-              "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "type": "tool-input-end",
-            },
-            {
-              "input": "{"value":"Sparkle Day"}",
-              "providerExecuted": undefined,
-              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
-              "toolName": "test-tool",
-              "type": "tool-call",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": {
-                "anthropic": {
-                  "cacheCreationInputTokens": null,
-                  "container": null,
-                  "stopSequence": null,
-                  "usage": {
-                    "input_tokens": 441,
-                    "output_tokens": 65,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                "modelId": "claude-3-haiku-20240307",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "Okay",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": "!",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"value",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "":",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""Spark",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "le",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": " Day"}",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"value":"Sparkle Day"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": null,
+                    "container": null,
+                    "contextManagement": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "input_tokens": 441,
+                      "output_tokens": 65,
+                    },
                   },
                 },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 441,
+                  "outputTokens": 65,
+                  "totalTokens": 506,
+                },
               },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 441,
-                "outputTokens": 65,
-                "totalTokens": 506,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
 
       it('should support tools with empty parameters in streaming', async () => {
@@ -5030,80 +5360,81 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(result.stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
-              "modelId": "claude-sonnet-4-5-20250929",
-              "type": "response-metadata",
-            },
-            {
-              "id": "0",
-              "type": "text-start",
-            },
-            {
-              "delta": "I'll update the issue list for",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "delta": " you.",
-              "id": "0",
-              "type": "text-delta",
-            },
-            {
-              "id": "0",
-              "type": "text-end",
-            },
-            {
-              "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
-              "toolName": "updateIssueList",
-              "type": "tool-input-start",
-            },
-            {
-              "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
-              "type": "tool-input-end",
-            },
-            {
-              "input": "{}",
-              "providerExecuted": undefined,
-              "toolCallId": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
-              "toolName": "updateIssueList",
-              "type": "tool-call",
-            },
-            {
-              "finishReason": "tool-calls",
-              "providerMetadata": {
-                "anthropic": {
-                  "cacheCreationInputTokens": 0,
-                  "container": null,
-                  "stopSequence": null,
-                  "usage": {
-                    "cache_creation": {
-                      "ephemeral_1h_input_tokens": 0,
-                      "ephemeral_5m_input_tokens": 0,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
+                "modelId": "claude-sonnet-4-5-20250929",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "I'll update the issue list for",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": " you.",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "contextManagement": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 565,
+                      "output_tokens": 48,
+                      "service_tier": "standard",
                     },
-                    "cache_creation_input_tokens": 0,
-                    "cache_read_input_tokens": 0,
-                    "input_tokens": 565,
-                    "output_tokens": 48,
-                    "service_tier": "standard",
                   },
                 },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 565,
+                  "outputTokens": 48,
+                  "totalTokens": 613,
+                },
               },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": 0,
-                "inputTokens": 565,
-                "outputTokens": 48,
-                "totalTokens": 613,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 

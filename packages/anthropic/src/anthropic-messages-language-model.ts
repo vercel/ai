@@ -31,11 +31,13 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
+  AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
   Citation,
+  AnthropicResponseContextManagement,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -221,6 +223,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
+    const contextManagement = anthropicOptions?.contextManagement;
+
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
@@ -320,6 +324,48 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
+
+      ...(contextManagement && {
+        context_management: {
+          edits: contextManagement.edits
+            .map(edit => {
+              const strategy = edit.type;
+              switch (strategy) {
+                case 'clear_tool_uses_20250919':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                    ...(edit.clearAtLeast !== undefined && {
+                      clear_at_least: edit.clearAtLeast,
+                    }),
+                    ...(edit.clearToolInputs !== undefined && {
+                      clear_tool_inputs: edit.clearToolInputs,
+                    }),
+                    ...(edit.excludeTools !== undefined && {
+                      exclude_tools: edit.excludeTools,
+                    }),
+                  };
+
+                case 'clear_thinking_20251015':
+                  return {
+                    type: edit.type,
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                  };
+
+                default:
+                  warnings.push({
+                    type: 'other',
+                    message: `Unknown context management strategy: ${strategy}`,
+                  });
+                  return undefined;
+              }
+            })
+            .filter(edit => edit !== undefined),
+        },
+      }),
     };
 
     if (isThinking) {
@@ -380,6 +426,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       anthropicOptions.mcpServers.length > 0
     ) {
       betas.add('mcp-client-2025-04-04');
+    }
+
+    if (contextManagement) {
+      betas.add('context-management-2025-06-27');
     }
 
     if (
@@ -907,6 +957,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   })) ?? null,
               }
             : null,
+          contextManagement:
+            mapAnthropicResponseContextManagement(
+              response.context_management,
+            ) ?? null,
         } satisfies AnthropicMessageMetadata,
       },
     };
@@ -965,6 +1019,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
 
+    let contextManagement:
+      | AnthropicMessageMetadata['contextManagement']
+      | null = null;
     let rawUsage: JSONObject | undefined = undefined;
     let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
@@ -1580,6 +1637,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
                   : null;
 
+              if (value.delta.context_management) {
+                contextManagement = mapAnthropicResponseContextManagement(
+                  value.delta.context_management,
+                );
+              }
+
               rawUsage = {
                 ...rawUsage,
                 ...(value.usage as JSONObject),
@@ -1599,6 +1662,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     cacheCreationInputTokens,
                     stopSequence,
                     container,
+                    contextManagement,
                   } satisfies AnthropicMessageMetadata,
                 },
               });
@@ -1723,4 +1787,34 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function mapAnthropicResponseContextManagement(
+  contextManagement: AnthropicResponseContextManagement | null | undefined,
+): AnthropicMessageMetadata['contextManagement'] | null {
+  return contextManagement
+    ? {
+        appliedEdits: contextManagement.applied_edits
+          .map(edit => {
+            const strategy = edit.type;
+
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  clearedToolUses: edit.cleared_tool_uses,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  clearedThinkingTurns: edit.cleared_thinking_turns,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+            }
+          })
+          .filter(edit => edit !== undefined),
+      }
+    : null;
 }

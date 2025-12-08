@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- b2dbfbf: add context_management for anthropic
+
 ## 3.0.0-beta.76
 
 ### Patch Changes
