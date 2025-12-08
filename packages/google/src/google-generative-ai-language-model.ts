@@ -47,6 +47,12 @@ type GoogleGenerativeAIConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * This allows Vertex to use 'vertex' as the primary provider options key
+   * while maintaining backward compatibility with 'google'.
+   */
+  providerOptionsName?: string;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
@@ -91,11 +97,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
     const warnings: SharedV3Warning[] = [];
 
-    const googleOptions = await parseProviderOptions({
-      provider: 'google',
-      providerOptions,
-      schema: googleGenerativeAIProviderOptions,
-    });
+    const providerOptionsName = this.config.providerOptionsName;
+    let googleOptions = providerOptionsName
+      ? await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: googleGenerativeAIProviderOptions,
+        })
+      : undefined;
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleGenerativeAIProviderOptions,
+      });
+    }
 
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
