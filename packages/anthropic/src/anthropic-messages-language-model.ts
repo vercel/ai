@@ -31,13 +31,12 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
-  Citation,
   AnthropicResponseContextManagement,
+  Citation,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -371,7 +370,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     if (isThinking) {
       if (thinkingBudget == null) {
         throw new UnsupportedFunctionalityError({
-          functionality: 'thinking requires a budget',
+          functionality: 'extended thinking',
+          message: 'thinking requires a budget',
         });
       }
 
