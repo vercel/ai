@@ -126,14 +126,7 @@ async function replaceCharacterAi() {
     type: 'image/png',
   }).arrayBuffer();
 
-  // await presentImages([
-  //     {
-  //       uint8Array: Buffer.from(b64_json, 'base64'),
-  //       base64: '',
-  //       mediaType: '',
-  //     },
-  //   ]);
-
+  console.log('INPUT IMAGE:');
   await presentImages([
     {
       uint8Array: new Uint8Array(catImage),
@@ -142,14 +135,19 @@ async function replaceCharacterAi() {
     },
   ]);
 
+  const prompt =
+    'Turn the cat into a dog but retain the style and dimensions of the original image';
+  console.log(`PROMPT: ${prompt}`);
+
   const { images } = await generateImage({
     model: openai.image('gpt-image-1'),
     prompt: {
-      text: 'Turn the cat into a dog but retain the style and dimensions of the original image',
+      text: prompt,
       images: [catImage],
     },
   });
 
+  console.log('OUTPUT IMAGE:');
   await presentImages(images);
 }
 
@@ -157,7 +155,7 @@ async function createVariations() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
 
   const input: Input = {
-    model: 'gpt-image-1',
+    // model: 'gpt-image-1',
     n: 3,
     image: new Blob([imageBuffer], { type: 'image/png' }),
   };
@@ -174,30 +172,46 @@ async function createVariations() {
  */
 async function createVariationsAi() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+  const catImage = await new Blob([imageBuffer], {
+    type: 'image/png',
+  }).arrayBuffer();
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: {
-      images: [new Blob([imageBuffer], { type: 'image/png' })],
+  console.log('INPUT IMAGE:');
+  await presentImages([
+    {
+      uint8Array: new Uint8Array(catImage),
+      base64: '',
+      mediaType: 'image/png',
     },
-    n: 3,
-  });
+  ]);
 
-  // or
+  throw new Error('/images/variations endpoint not yet supported in AI SDK');
+  // const { images } = await generateImage({
+  //   model: openai.image('gpt-image-1'),
+  //   prompt: {
+  //     images: [catImage],
+  //   },
+  //   n: 3
+  // });
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: [new Blob([imageBuffer], { type: 'image/png' })],
-    n: 3,
-  });
+  // console.log('OUTPUT IMAGE:');
+  // await presentImages(images);
 
-  // or even
+  // // or
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: new Blob([imageBuffer], { type: 'image/png' }),
-    n: 3,
-  });
+  // generateImage({
+  //   model: 'gpt-image-1',
+  //   prompt: [new Blob([imageBuffer], { type: 'image/png' })],
+  //   n: 3,
+  // });
+
+  // // or even
+
+  // generateImage({
+  //   model: 'gpt-image-1',
+  //   prompt: new Blob([imageBuffer], { type: 'image/png' }),
+  //   n: 3,
+  // });
 }
 
 async function removeBackground() {
@@ -215,28 +229,41 @@ async function removeBackground() {
 
 async function removeBackgroundAi() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+  const catImage = await new Blob([imageBuffer], {
+    type: 'image/png',
+  }).arrayBuffer();
 
-  const input: Input = {
-    model: 'gpt-image-1',
-    image: new Blob([imageBuffer], { type: 'image/png' }),
-    background: 'transparent',
-    prompt: 'do not change anything',
-    output_format: 'png',
-  };
+  console.log('INPUT IMAGE:');
+  await presentImages([
+    {
+      uint8Array: new Uint8Array(catImage),
+      base64: '',
+      mediaType: 'image/png',
+    },
+  ]);
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: new Blob([imageBuffer], { type: 'image/png' }),
-    n: 3,
+  const prompt =
+    'do not change anything';
+  console.log(`PROMPT: ${prompt}`);
+
+  const { images } = await generateImage({
+    model: openai.image('gpt-image-1'),
+    prompt: {
+      text: 'do not change anything',
+      images: [catImage]
+    },
     providerOptions: {
       openai: {
-        image: {
-          background: 'transparent',
-          output_format: 'png',
-        },
+        background: 'transparent',
+        output_format: 'png',
       },
     },
   });
+
+
+
+  console.log('OUTPUT IMAGE:');
+  await presentImages(images);
 }
 
 async function upscaleImage() {
@@ -258,12 +285,30 @@ async function upscaleImage() {
  */
 async function upscaleImageAi() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+  const catImage = await new Blob([imageBuffer], {
+    type: 'image/png',
+  }).arrayBuffer();
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: new Blob([imageBuffer], { type: 'image/png' }),
+  console.log('INPUT IMAGE:');
+  await presentImages([
+    {
+      uint8Array: new Uint8Array(catImage),
+      base64: '',
+      mediaType: 'image/png',
+    },
+  ]);
+
+  const { images } = await generateImage({
+    model: openai.image('gpt-image-1'),
+    prompt: {
+      text: 'upscale',
+      images: [catImage],
+    },
     size: '1024x1024',
   });
+
+  console.log('OUTPUT IMAGE:');
+  await presentImages(images);
 }
 
 async function combineImages() {
@@ -289,17 +334,19 @@ async function combineImagesAi() {
   const dog = readFileSync('data/comic-dog.png') as BlobPart;
   const owl = readFileSync('data/comic-owl.png') as BlobPart;
   const bear = readFileSync('data/comic-bear.png') as BlobPart;
-  const images = [cat, dog, owl, bear].map(
-    img => new Blob([img], { type: 'image/png' }) as Blob,
+  const animalsImages = [cat, dog, owl, bear].map(
+    img => new Blob([img], { type: 'image/png' }).arrayBuffer(),
   );
 
-  generateImage({
-    model: 'gpt-image-1',
+  const { images } = await generateImage({
+    model: openai.image('gpt-image-1'),
     prompt: {
       text: 'Combine these animals into an image containing all 4 ouf them, like a group photo, retaining the style and dimensions of the original images',
-      images,
+      images: await Promise.all(animalsImages),
     },
   });
+
+  await presentImages(images);
 }
 
 async function editWithMask() {
@@ -325,14 +372,16 @@ async function editWithMaskAi() {
   const image = readFileSync('data/sunlit_lounge.png') as BlobPart;
   const mask = readFileSync('data/sunlit_lounge_mask.png') as BlobPart;
 
-  generateImage({
-    model: 'gpt-image-1',
+  const { images } = await generateImage({
+    model: openai.image('gpt-image-1'),
     prompt: {
       text: 'A sunlit indoor lounge area with a pool containing a flamingo',
-      images: [new Blob([image], { type: 'image/png' })],
-      mask: new Blob([mask], { type: 'image/png' }),
+      images: [await new Blob([image], { type: 'image/png' }).arrayBuffer()],
+      mask: await new Blob([mask], { type: 'image/png' }).arrayBuffer(),
     },
   });
+
+  await presentImages(images);
 }
 
 async function outpaint() {
@@ -350,24 +399,37 @@ async function outpaint() {
 
 async function outpaintAi() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
+    const catImage = await new Blob([imageBuffer], {
+    type: 'image/png',
+  }).arrayBuffer();
 
-  generateImage({
-    model: 'gpt-image-1',
-    prompt: {
-      text: 'Expand the image to show more background scenery on the left side of the cat, retaining the style and dimensions of the original image',
-      images: [new Blob([imageBuffer], { type: 'image/png' })],
+  console.log('INPUT IMAGE:');
+  await presentImages([
+    {
+      uint8Array: new Uint8Array(catImage),
+      base64: '',
+      mediaType: 'image/png',
     },
-    size: '1536x1024',
+  ]);
+
+  const { images } = await generateImage({
+    model: openai.image('gpt-image-1'),
+    prompt: {
+      text: 'Create a new tile showing more background scenery on the left side of the cat, retaining the style and dimensions of the original image. The right side of the image should seamlessly connect to the left side of the original image.',
+      images: [catImage],
+    },
   });
+
+  await presentImages(images);
 }
 
-replaceCharacterAi().catch(console.error);
-// createVariations().catch(console.error);
-// removeBackground().catch(console.error);
-// upscaleImage().catch(console.error);
-// combineImages().catch(console.error);
-// editWithMask().catch(console.error);
-// outpaint().catch(console.error);
+// replaceCharacterAi().catch(console.error);
+// createVariationsAi().catch(console.error);
+// removeBackgroundAi().catch(console.error);
+// upscaleImageAi().catch(console.error);
+// combineImagesAi().catch(console.error);
+// editWithMaskAi().catch(console.error);
+outpaintAi().catch(console.error);
 
 function inputToFormData(input: Input): FormData {
   const formData = new FormData();
