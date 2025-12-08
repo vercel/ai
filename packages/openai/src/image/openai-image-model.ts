@@ -37,6 +37,8 @@ export class OpenAIImageModel implements ImageModelV3 {
 
   async doGenerate({
     prompt,
+    files,
+    mask,
     n,
     size,
     aspectRatio,
@@ -63,6 +65,11 @@ export class OpenAIImageModel implements ImageModelV3 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    if (files != null) {
+      throw new Error('Image editing is not yet implemented for OpenAI models.');
+    }
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
