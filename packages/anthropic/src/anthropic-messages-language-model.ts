@@ -12,7 +12,6 @@ import {
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   SharedV3Warning,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -369,9 +368,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (isThinking) {
       if (thinkingBudget == null) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'extended thinking',
-          message: 'Extended thinking requires a thinking budget',
+        warnings.push({
+          type: 'unsupported',
+          feature: 'extended thinking',
+          details: 'thinking budget is required when thinking is enabled.',
         });
       }
 
@@ -403,7 +403,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
