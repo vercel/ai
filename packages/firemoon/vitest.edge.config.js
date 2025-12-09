@@ -11,5 +11,3 @@ export default defineConfig({
     __PACKAGE_VERSION__: JSON.stringify(packageJson.version),
   },
 });
-
-

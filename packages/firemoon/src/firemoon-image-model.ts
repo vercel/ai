@@ -34,7 +34,7 @@ export class FiremoonImageModel implements ImageModelV3 {
   constructor(
     readonly modelId: FiremoonImageModelId,
     private readonly config: FiremoonImageModelConfig,
-  ) { }
+  ) {}
 
   async doGenerate({
     prompt,
@@ -88,10 +88,7 @@ export class FiremoonImageModel implements ImageModelV3 {
       }
     }
 
-    const {
-      value: response,
-      responseHeaders,
-    } = await postJsonToApi({
+    const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/${this.modelId}`,
       headers: combineHeaders(await resolve(this.config.headers), headers),
       body: requestBody,
@@ -109,7 +106,8 @@ export class FiremoonImageModel implements ImageModelV3 {
       // In a full implementation, you'd need to extend the AI SDK to support video generation
       warnings.push({
         type: 'other',
-        message: 'Video generation is not fully supported in this AI SDK version. Only URLs are returned.',
+        message:
+          'Video generation is not fully supported in this AI SDK version. Only URLs are returned.',
       });
 
       const images = response.videos.map(() => new Uint8Array());

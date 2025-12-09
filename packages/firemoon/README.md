@@ -108,6 +108,7 @@ const result = await generateImage({
 ### Image Models
 
 - **FLUX Models**
+
   - `flux/dev` - Fast, high-quality image generation
   - `flux/schnell` - Rapid image generation
   - `flux/pro` - Professional-grade images
@@ -120,10 +121,12 @@ const result = await generateImage({
 ### Video Models
 
 - **Kling Models**
+
   - `kling/kling-2-1-master` - Professional video generation
   - `kling/kling-1-6` - Video generation
 
 - **Minimax Models**
+
   - `minimax/hailuo-02` - Creative AI content
   - `minimax/video-01` - Video generation
 
@@ -214,4 +217,3 @@ For more information about the AI SDK:
 ## Support
 
 Need help? Contact Firemoon Studio at [hi@firemoon.studio](mailto:hi@firemoon.studio)
-

@@ -10,5 +10,3 @@
 - Comprehensive error handling
 - Multiple images per request (up to 4)
 - Custom provider options for fine-tuned control
-
-
