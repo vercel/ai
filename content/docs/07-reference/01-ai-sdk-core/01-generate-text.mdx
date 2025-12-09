@@ -773,22 +773,27 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -805,14 +810,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -853,22 +864,27 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -885,14 +901,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1029,22 +1051,27 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1061,14 +1088,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1443,22 +1476,27 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
               properties: [
                 {
-                  name: 'noCacheTokens',
-                  type: 'number | undefined',
-                  description:
-                    'The number of non-cached input (prompt) tokens used.',
-                },
-                {
-                  name: 'cacheReadTokens',
-                  type: 'number | undefined',
-                  description:
-                    'The number of cached input (prompt) tokens read.',
-                },
-                {
-                  name: 'cacheWriteTokens',
-                  type: 'number | undefined',
-                  description:
-                    'The number of cached input (prompt) tokens written.',
+                  type: 'LanguageModelInputTokenDetails',
+                  parameters: [
+                    {
+                      name: 'noCacheTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of non-cached input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'cacheReadTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of cached input (prompt) tokens read.',
+                    },
+                    {
+                      name: 'cacheWriteTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of cached input (prompt) tokens written.',
+                    },
+                  ],
                 },
               ],
             },
@@ -1475,14 +1513,19 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Detailed information about the output (completion) tokens.',
               properties: [
                 {
-                  name: 'textTokens',
-                  type: 'number | undefined',
-                  description: 'The number of text tokens used.',
-                },
-                {
-                  name: 'reasoningTokens',
-                  type: 'number | undefined',
-                  description: 'The number of reasoning tokens used.',
+                  type: 'LanguageModelOutputTokenDetails',
+                  parameters: [
+                    {
+                      name: 'textTokens',
+                      type: 'number | undefined',
+                      description: 'The number of text tokens used.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      description: 'The number of reasoning tokens used.',
+                    },
+                  ],
                 },
               ],
             },
@@ -1783,22 +1826,27 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1815,14 +1863,20 @@ To see `generateText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
