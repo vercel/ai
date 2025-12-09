@@ -11,7 +11,6 @@ import {
   LanguageModelV3ToolCall,
   SharedV3ProviderMetadata,
   SharedV3Warning,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -39,8 +38,8 @@ import {
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
-  Citation,
   AnthropicResponseContextManagement,
+  Citation,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -262,7 +261,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -373,9 +372,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (isThinking) {
       if (thinkingBudget == null) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'thinking requires a budget',
+        warnings.push({
+          type: 'compatibility',
+          feature: 'extended thinking',
+          details:
+            'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
+
+        baseArgs.thinking = {
+          type: 'enabled',
+          budget_tokens: 1024,
+        };
+
+        thinkingBudget = 1024;
       }
 
       if (baseArgs.temperature != null) {
@@ -406,7 +415,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:

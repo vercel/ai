@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 9e1e758: fix(anthropic): use default thinking budget when unspecified
+
 ## 3.0.0-beta.77
 
 ### Patch Changes
