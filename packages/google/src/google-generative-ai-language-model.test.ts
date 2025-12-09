@@ -2119,8 +2119,8 @@ describe('doGenerate', () => {
     });
   });
 
-  describe('providerMetadata key based on providerOptionsName', () => {
-    it('should use "vertex" as providerMetadata key when providerOptionsName is "vertex"', async () => {
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'json-value',
         body: {
@@ -2148,7 +2148,6 @@ describe('doGenerate', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        providerOptionsName: 'vertex',
       });
 
       const { providerMetadata } = await model.doGenerate({
@@ -2164,7 +2163,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use "google" as providerMetadata key when providerOptionsName is not set', async () => {
+    it('should use "google" as providerMetadata key when provider does not include "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'json-value',
         body: {
@@ -2192,7 +2191,7 @@ describe('doGenerate', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        // providerOptionsName not set - should default to 'google'
+        //should default to 'google'
       });
 
       const { providerMetadata } = await model.doGenerate({
@@ -2208,7 +2207,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use "vertex" as providerMetadata key in thoughtSignature content when providerOptionsName is "vertex"', async () => {
+    it('should use "vertex" as providerMetadata key in thoughtSignature content when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'json-value',
         body: {
@@ -2243,7 +2242,6 @@ describe('doGenerate', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        providerOptionsName: 'vertex',
       });
 
       const { content } = await model.doGenerate({
@@ -2258,7 +2256,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use "vertex" as providerMetadata key in tool call content when providerOptionsName is "vertex"', async () => {
+    it('should use "vertex" as providerMetadata key in tool call content when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'json-value',
         body: {
@@ -2294,7 +2292,6 @@ describe('doGenerate', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        providerOptionsName: 'vertex',
       });
 
       const { content } = await model.doGenerate({
@@ -3754,8 +3751,8 @@ describe('doStream', () => {
     });
   });
 
-  describe('providerMetadata key based on providerOptionsName', () => {
-    it('should use "vertex" as providerMetadata key in finish event when providerOptionsName is "vertex"', async () => {
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key in finish event when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3791,7 +3788,6 @@ describe('doStream', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        providerOptionsName: 'vertex',
       });
 
       const { stream } = await model.doStream({
@@ -3812,7 +3808,7 @@ describe('doStream', () => {
       }
     });
 
-    it('should use "google" as providerMetadata key in finish event when providerOptionsName is not set', async () => {
+    it('should use "google" as providerMetadata key in finish event when provider does not include "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3848,7 +3844,6 @@ describe('doStream', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        // providerOptionsName not set - should default to 'google'
       });
 
       const { stream } = await model.doStream({
@@ -3870,7 +3865,7 @@ describe('doStream', () => {
       }
     });
 
-    it('should use "vertex" as providerMetadata key in streaming reasoning events when providerOptionsName is "vertex"', async () => {
+    it('should use "vertex" as providerMetadata key in streaming reasoning events when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
         type: 'stream-chunks',
         chunks: [
@@ -3912,7 +3907,6 @@ describe('doStream', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
         generateId: () => 'test-id',
-        providerOptionsName: 'vertex',
       });
 
       const { stream } = await model.doStream({
