@@ -257,7 +257,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -369,10 +369,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     if (isThinking) {
       if (thinkingBudget == null) {
         warnings.push({
-          type: 'unsupported',
+          type: 'compatibility',
           feature: 'extended thinking',
-          details: 'thinking budget is required when thinking is enabled.',
+          details:
+            'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
+
+        baseArgs.thinking = {
+          type: 'enabled',
+          budget_tokens: 1024,
+        };
+
+        thinkingBudget = 1024;
       }
 
       if (baseArgs.temperature != null) {
