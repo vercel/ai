@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { webFetch_20250910OutputSchema } from './web-fetch-20250910';
 
 describe('webFetch_20250910OutputSchema', () => {
-    it('should fail validation when title is null', async () => {
+    it('should not fail validation when title is null', async () => {
         const problematicResponse = {
             type: 'web_fetch_result',
             url: 'https://test.com',
