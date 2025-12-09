@@ -595,30 +595,69 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
             {
               name: 'inputTokens',
               type: 'number | undefined',
-              description: 'The number of input (prompt) tokens used.',
+              description: 'The total number of input (prompt) tokens used.',
+            },
+            {
+              name: 'inputTokenDetails',
+              type: 'LanguageModelInputTokenDetails',
+              description:
+                'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+              properties: [
+                {
+                  name: 'noCacheTokens',
+                  type: 'number | undefined',
+                  description:
+                    'The number of non-cached input (prompt) tokens used.',
+                },
+                {
+                  name: 'cacheReadTokens',
+                  type: 'number | undefined',
+                  description:
+                    'The number of cached input (prompt) tokens read.',
+                },
+                {
+                  name: 'cacheWriteTokens',
+                  type: 'number | undefined',
+                  description:
+                    'The number of cached input (prompt) tokens written.',
+                },
+              ],
             },
             {
               name: 'outputTokens',
               type: 'number | undefined',
-              description: 'The number of output (completion) tokens used.',
+              description:
+                'The number of total output (completion) tokens used.',
+            },
+            {
+              name: 'outputTokenDetails',
+              type: 'LanguageModelOutputTokenDetails',
+              description:
+                'Detailed information about the output (completion) tokens.',
+              properties: [
+                {
+                  name: 'textTokens',
+                  type: 'number | undefined',
+                  description: 'The number of text tokens used.',
+                },
+                {
+                  name: 'reasoningTokens',
+                  type: 'number | undefined',
+                  description: 'The number of reasoning tokens used.',
+                },
+              ],
             },
             {
               name: 'totalTokens',
               type: 'number | undefined',
+              description: 'The total number of tokens used.',
+            },
+            {
+              name: 'raw',
+              type: 'object | undefined',
+              isOptional: true,
               description:
-                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-            },
-            {
-              name: 'reasoningTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of reasoning tokens used.',
-            },
-            {
-              name: 'cachedInputTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of cached input tokens.',
+                "Raw usage information from the provider. This is the provider's original usage information and may include additional fields.",
             },
           ],
         },

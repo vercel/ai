@@ -85,6 +85,13 @@ const modelMessages = convertToModelMessages(messages); // ModelMessage[]
 They will be removed in a future version.
 You can use `generateText` and `streamText` with an `output` setting instead.
 
+### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
+
+`cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` have been deprecated.
+
+You can replace `cachedInputTokens` with `inputTokenDetails.cacheReadTokens`
+and `reasoningTokens` with `outputTokenDetails.reasoningTokens`.
+
 ### `ToolCallOptions` to `ToolExecutionOptions` Rename
 
 The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
