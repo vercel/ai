@@ -40,7 +40,11 @@ import {
   ToolChoice,
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  createNullLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
@@ -894,11 +898,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
-          const totalUsage = recordedTotalUsage ?? {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          const totalUsage =
+            recordedTotalUsage ?? createNullLanguageModelUsage();
 
           // from finish:
           self._finishReason.resolve(finishReason);
@@ -1296,11 +1297,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
-          let stepUsage: LanguageModelUsage = {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1638,11 +1635,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         await streamStep({
           currentStep: 0,
           responseMessages: initialResponseMessages,
-          usage: {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          },
+          usage: createNullLanguageModelUsage(),
         });
       },
     }).catch(error => {

@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.139
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/gateway@2.0.0-beta.74
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 6.0.0-beta.138
 
 ### Patch Changes

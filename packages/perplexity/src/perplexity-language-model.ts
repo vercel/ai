@@ -1,10 +1,9 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,6 +15,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { convertPerplexityUsage } from './convert-perplexity-usage';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
@@ -154,12 +154,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: response.usage?.reasoning_tokens ?? undefined,
-      },
+      usage: convertPerplexityUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -208,12 +203,13 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-      reasoningTokens: undefined,
-    };
+    let usage:
+      | {
+          prompt_tokens: number | undefined;
+          completion_tokens: number | undefined;
+          reasoning_tokens?: number | null | undefined;
+        }
+      | undefined = undefined;
 
     const providerMetadata: {
       perplexity: {
@@ -284,9 +280,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.reasoningTokens = value.usage.reasoning_tokens ?? undefined;
+              usage = value.usage;
 
               providerMetadata.perplexity.usage = {
                 citationTokens: value.usage.citation_tokens ?? null,
@@ -337,7 +331,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertPerplexityUsage(usage),
               providerMetadata,
             });
           },
