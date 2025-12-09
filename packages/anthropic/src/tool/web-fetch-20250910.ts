@@ -84,16 +84,16 @@ const factory = createProviderToolFactoryWithOutputSchema<
       citations?: { enabled: boolean };
 
       source:
-      | {
-        type: 'base64';
-        mediaType: 'application/pdf';
-        data: string;
-      }
-      | {
-        type: 'text';
-        mediaType: 'text/plain';
-        data: string;
-      };
+        | {
+            type: 'base64';
+            mediaType: 'application/pdf';
+            data: string;
+          }
+        | {
+            type: 'text';
+            mediaType: 'text/plain';
+            data: string;
+          };
     };
 
     /**
