@@ -1,5 +1,27 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 6f1577e: fix(mcp): pass json header for refreshAuth
+
+## 1.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
 ## 1.0.0-beta.27
 
 ### Patch Changes

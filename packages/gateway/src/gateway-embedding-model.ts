@@ -77,6 +77,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
+        warnings: [],
       };
     } catch (error) {
       throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));

@@ -50,6 +50,7 @@ describe('model.supportsParallelCalls', () => {
           return {
             embeddings: [dummyEmbeddings[index]],
             response: { headers: {}, body: {} },
+            warnings: [],
           };
         },
       }),
@@ -98,6 +99,7 @@ describe('model.supportsParallelCalls', () => {
           return {
             embeddings: [dummyEmbeddings[index]],
             response: { headers: {}, body: {} },
+            warnings: [],
           };
         },
       }),
@@ -147,6 +149,7 @@ describe('model.supportsParallelCalls', () => {
           return {
             embeddings: [dummyEmbeddings[index]],
             response: { headers: {}, body: {} },
+            warnings: [],
           };
         },
       }),
@@ -195,10 +198,10 @@ describe('result.embedding', () => {
           switch (callCount++) {
             case 0:
               assert.deepStrictEqual(values, testValues.slice(0, 2));
-              return { embeddings: dummyEmbeddings.slice(0, 2) };
+              return { embeddings: dummyEmbeddings.slice(0, 2), warnings: [] };
             case 1:
               assert.deepStrictEqual(values, testValues.slice(2));
-              return { embeddings: dummyEmbeddings.slice(2) };
+              return { embeddings: dummyEmbeddings.slice(2), warnings: [] };
             default:
               throw new Error('Unexpected call');
           }
@@ -227,6 +230,7 @@ describe('result.responses', () => {
                 response: {
                   body: { first: true },
                 },
+                warnings: [],
               };
             case 1:
               assert.deepStrictEqual(values, [testValues[1]]);
@@ -235,6 +239,7 @@ describe('result.responses', () => {
                 response: {
                   body: { second: true },
                 },
+                warnings: [],
               };
             case 2:
               assert.deepStrictEqual(values, [testValues[2]]);
@@ -243,6 +248,7 @@ describe('result.responses', () => {
                 response: {
                   body: { third: true },
                 },
+                warnings: [],
               };
             default:
               throw new Error('Unexpected call');
@@ -283,11 +289,13 @@ describe('result.usage', () => {
               return {
                 embeddings: dummyEmbeddings.slice(0, 2),
                 usage: { tokens: 10 },
+                warnings: [],
               };
             case 1:
               return {
                 embeddings: dummyEmbeddings.slice(2),
                 usage: { tokens: 20 },
+                warnings: [],
               };
             default:
               throw new Error('Unexpected call');
@@ -312,7 +320,7 @@ describe('options.headers', () => {
             'user-agent': 'ai/0.0.0-test',
           });
 
-          return { embeddings: dummyEmbeddings };
+          return { embeddings: dummyEmbeddings, warnings: [] };
         },
       }),
       values: testValues,
@@ -329,7 +337,7 @@ describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const model = new MockEmbeddingModelV3({
       doEmbed: async ({ providerOptions }) => {
-        return { embeddings: [[1, 2, 3]] };
+        return { embeddings: [[1, 2, 3]], warnings: [] };
       },
     });
 
@@ -388,12 +396,14 @@ describe('telemetry', () => {
               return {
                 embeddings: dummyEmbeddings.slice(0, 2),
                 usage: { tokens: 10 },
+                warnings: [],
               };
             case 1:
               assert.deepStrictEqual(values, testValues.slice(2));
               return {
                 embeddings: dummyEmbeddings.slice(2),
                 usage: { tokens: 20 },
+                warnings: [],
               };
             default:
               throw new Error('Unexpected call');
@@ -497,6 +507,6 @@ function mockEmbed(
 ): EmbeddingModelV3['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response, providerMetadata };
+    return { embeddings, usage, response, providerMetadata, warnings: [] };
   };
 }

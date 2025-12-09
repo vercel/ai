@@ -5,6 +5,14 @@ description: API Reference for streamObject
 
 # `streamObject()`
 
+<Note type="warning">
+  `streamObject` is deprecated. Use
+  [`streamText`](/docs/reference/ai-sdk-core/stream-text) with the
+  [`output`](/docs/reference/ai-sdk-core/output) property instead. See
+  [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data) for
+  more information.
+</Note>
+
 Streams a typed, structured object for a given prompt and schema using a language model.
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
@@ -13,10 +21,11 @@ It can be used to force the language model to return structured data, e.g. for i
 
 ```ts
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,10 +49,11 @@ You can use `elementStream` to get the stream of complete array elements.
 
 ```ts highlight="7,18"
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -66,7 +76,7 @@ for await (const hero of elementStream) {
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -86,7 +96,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -119,14 +129,6 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
-      name: 'mode',
-      type: "'auto' | 'json' | 'tool'",
-      description:
-        "The mode to use for object generation. Not every model supports all modes. \
-        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
-        Must be 'json' for 'no-schema' output.",
-    },
-    {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
@@ -153,7 +155,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         Not available with 'no-schema' or 'enum' output.",
     },
     {
-      name: 'system | SystemModelMessage',
+      name: 'system | SystemModelMessage | SystemModelMessage[]',
       type: 'string',
       description:
         'The system prompt to use that specifies the behavior of the model.',

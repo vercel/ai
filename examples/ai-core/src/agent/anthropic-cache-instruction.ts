@@ -8,15 +8,21 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 const agent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5'),
-  instructions: {
-    role: 'system',
-    content: `You are a JavaScript expert that knows everything about the following error message: ${errorMessage}`,
-    providerOptions: {
-      anthropic: {
-        cacheControl: { type: 'ephemeral' },
-      } satisfies AnthropicProviderOptions,
+  instructions: [
+    {
+      role: 'system',
+      content: `You are a JavaScript expert that knows everything about the following error message: ${errorMessage}`,
+      providerOptions: {
+        anthropic: {
+          cacheControl: { type: 'ephemeral', ttl: '1h' },
+        } satisfies AnthropicProviderOptions,
+      },
     },
-  },
+    {
+      role: 'system',
+      content: 'You pay special attention to the error message.',
+    },
+  ],
 });
 
 run(async () => {
@@ -26,4 +32,5 @@ run(async () => {
 
   print('Result:', result.content);
   print('Metadata:', result.providerMetadata?.anthropic);
+  print('Request:', result.request.body);
 });

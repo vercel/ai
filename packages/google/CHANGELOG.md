@@ -1,5 +1,27 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
 ## 3.0.0-beta.64
 
 ### Patch Changes
