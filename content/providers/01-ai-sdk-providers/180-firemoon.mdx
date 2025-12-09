@@ -1,0 +1,139 @@
+---
+title: Firemoon
+description: Learn how to use Firemoon models with the AI SDK.
+---
+
+# Firemoon Provider
+
+[Firemoon Studio](https://firemoon.studio/) is an AI platform specializing in high-quality image and video generation models.
+
+## Setup
+
+The Firemoon provider is available via the `@ai-sdk/firemoon` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/firemoon" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/firemoon" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/firemoon" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create a Firemoon provider instance with your API key:
+
+```ts
+import { createFiremoon } from '@ai-sdk/firemoon';
+
+const firemoon = createFiremoon({
+  apiKey: process.env.FIREMOON_API_KEY,
+});
+```
+
+## Image Generation
+
+Firemoon supports various image generation models through the `image()` method:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('flux/dev'),
+  prompt: 'An orangered moon with a dark background',
+  size: '1024x1024',
+});
+
+console.log(result.images[0]);
+```
+
+### Available Models
+
+- `flux/dev` - Fast and high-quality image generation
+- `flux/schnell` - Ultra-fast image generation
+- `kling/kling-2-1-master` - Video generation (returns empty images with warnings)
+
+### Parameters
+
+#### Size
+
+You can specify the image size using the `size` parameter:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('flux/dev'),
+  prompt: 'A beautiful landscape with an orangered moon in the background',
+  size: '1024x1024', // or '512x512', etc.
+});
+```
+
+Or use aspect ratio mapping:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('flux/dev'),
+  prompt: 'A beautiful landscape with an orangered moon in the background',
+  aspectRatio: '16:9', // maps to landscape_16_9
+});
+```
+
+#### Seed
+
+For reproducible results, you can specify a seed:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('flux/dev'),
+  prompt: 'A beautiful landscape with an orangered moon in the background',
+  seed: 12345,
+});
+```
+
+#### Custom Parameters
+
+You can pass additional parameters specific to Firemoon models:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('flux/dev'),
+  prompt: 'A beautiful landscape with an orangered moon in the background',
+  providerOptions: {
+    firemoon: {
+      // custom parameters
+    },
+  },
+});
+```
+
+## Error Handling
+
+The Firemoon provider throws `APICallError` for API-related errors:
+
+```ts
+try {
+  const result = await generateImage({
+    model: firemoon.image('flux/dev'),
+    prompt: 'A beautiful landscape with an orangered moon in the background',
+  });
+} catch (error) {
+  if (error instanceof APICallError) {
+    console.error('API Error:', error.message);
+    console.error('Status:', error.statusCode);
+  }
+}
+```
+
+## Video Generation
+
+Video models are supported but currently return empty images with warnings since the AI SDK doesn't fully support video generation yet:
+
+```ts
+const result = await generateImage({
+  model: firemoon.image('kling/kling-2-1-master'),
+  prompt: 'A beautiful animation with an orangered moon in the background',
+  aspectRatio: '16:9',
+});
+// Returns empty images with warning about video support
+```
