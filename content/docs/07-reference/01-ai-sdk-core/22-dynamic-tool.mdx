@@ -71,7 +71,7 @@ export const customTool = dynamicTool({
                 'An async function that is called with the arguments from the tool call. The input is typed as unknown and must be validated/cast at runtime.',
                 properties: [
                   {
-                    type: "ToolCallOptions",
+                    type: "ToolExecutionOptions",
                     parameters: [
                       {
                       name: 'toolCallId',

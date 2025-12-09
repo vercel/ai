@@ -366,10 +366,7 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-<Note>
-  The bash tool must have the name `bash`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Memory Tool
 
@@ -385,10 +382,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 ```
 
-<Note>
-  The memory tool must have the name `memory`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Text Editor Tool
 
@@ -396,7 +390,6 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 ```ts
 const tools = {
-  // tool name must be str_replace_based_edit_tool
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
     async execute({ command, path, old_str, new_str }) {
@@ -408,7 +401,7 @@ const tools = {
 
 <Note>
   Different models support different versions of the tool. For Claude Sonnet 3.5
-  and 3.7 you need to use older tool versions and tool names.
+  and 3.7 you need to use older tool versions.
 </Note>
 
 Parameters:

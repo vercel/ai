@@ -27,7 +27,7 @@ Create a route handler that calls a model and then streams the responses in a cu
 
 ```tsx filename="app/api/stream/route.ts"
 import { tools } from '@/ai/tools'; // your tools
-import { streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 
 export type StreamEvent =
   | { type: 'text'; text: string }
@@ -36,6 +36,10 @@ export type StreamEvent =
 
 const encoder = new TextEncoder();
 
+function formatEvent(event: StreamEvent): Uint8Array {
+  return encoder.encode('data: ' + JSON.stringify(event) + '\n\n');
+}
+
 export async function POST(request: Request) {
   const { prompt } = await request.json();
 
@@ -43,44 +47,38 @@ export async function POST(request: Request) {
     prompt,
     model: 'anthropic/claude-sonnet-4.5',
     tools,
+    stopWhen: stepCountIs(5),
   });
 
-  const formatEvent = (data: StreamEvent) => {
-    return encoder.encode('data: ' + JSON.stringify(data) + '\n\n');
-  };
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      for await (const part of result.fullStream) {
-        switch (part.type) {
-          case 'text-delta':
-            controller.enqueue(formatEvent({ type: 'text', text: part.text }));
-            break;
-          case 'tool-call':
-            controller.enqueue(
-              formatEvent({
-                type: 'tool-call',
-                toolName: part.toolName,
-                input: part.input,
-              }),
-            );
-            break;
-          case 'tool-result':
-            controller.enqueue(
-              formatEvent({
-                type: 'tool-result',
-                toolName: part.toolName,
-                result: part.output,
-              }),
-            );
-            break;
-        }
+  const transformStream = new TransformStream({
+    transform(chunk, controller) {
+      switch (chunk.type) {
+        case 'text-delta':
+          controller.enqueue(formatEvent({ type: 'text', text: chunk.text }));
+          break;
+        case 'tool-call':
+          controller.enqueue(
+            formatEvent({
+              type: 'tool-call',
+              toolName: chunk.toolName,
+              input: chunk.input,
+            }),
+          );
+          break;
+        case 'tool-result':
+          controller.enqueue(
+            formatEvent({
+              type: 'tool-result',
+              toolName: chunk.toolName,
+              result: chunk.output,
+            }),
+          );
+          break;
       }
-      controller.close();
     },
   });
 
-  return new Response(stream, {
+  return new Response(result.fullStream.pipeThrough(transformStream), {
     headers: { 'Content-Type': 'text/event-stream' },
   });
 }

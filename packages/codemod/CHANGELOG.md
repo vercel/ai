@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.3
+
+### Patch Changes
+
+- 10128fd: feat(codemods): v5 -> v6 codemods
+
 ## 3.0.0-beta.2
 
 ### Major Changes

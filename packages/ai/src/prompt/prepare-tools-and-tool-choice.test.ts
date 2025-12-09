@@ -369,4 +369,41 @@ describe('prepareToolsAndToolChoice', () => {
       }
     `);
   });
+
+  it('should pass through strict mode setting', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        tool1: tool({
+          description: 'Tool 1 description',
+          inputSchema: z.object({}),
+          strict: true,
+        }),
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "type": "auto",
+        },
+        "tools": [
+          {
+            "description": "Tool 1 description",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {},
+              "type": "object",
+            },
+            "name": "tool1",
+            "providerOptions": undefined,
+            "strict": true,
+            "type": "function",
+          },
+        ],
+      }
+    `);
+  });
 });

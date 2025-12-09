@@ -31,6 +31,7 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { shellInputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
 import { mcpOutputSchema } from '../tool/mcp';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
@@ -136,6 +137,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         'openai.file_search': 'file_search',
         'openai.image_generation': 'image_generation',
         'openai.local_shell': 'local_shell',
+        'openai.shell': 'shell',
         'openai.web_search': 'web_search',
         'openai.web_search_preview': 'web_search_preview',
         'openai.mcp': 'mcp',
@@ -151,12 +153,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
+        hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
       });
 
     warnings.push(...inputWarnings);
 
-    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
@@ -346,7 +349,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     } = await prepareResponsesTools({
       tools,
       toolChoice,
-      strictJsonSchema,
     });
 
     return {
@@ -465,6 +467,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: JSON.stringify({
               action: part.action,
             } satisfies InferSchema<typeof localShellInputSchema>),
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+              },
+            },
+          });
+
+          break;
+        }
+
+        case 'shell_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('shell'),
+            input: JSON.stringify({
+              action: {
+                commands: part.action.commands,
+              },
+            } satisfies InferSchema<typeof shellInputSchema>),
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
@@ -1059,6 +1081,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   });
                 }
+              } else if (value.item.type === 'shell_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  toolCallId: value.item.call_id,
+                };
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
@@ -1298,6 +1325,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       env: value.item.action.env,
                     },
                   } satisfies InferSchema<typeof localShellInputSchema>),
+                  providerMetadata: {
+                    [providerKey]: { itemId: value.item.id },
+                  },
+                });
+              } else if (value.item.type === 'shell_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  input: JSON.stringify({
+                    action: {
+                      commands: value.item.action.commands,
+                    },
+                  } satisfies InferSchema<typeof shellInputSchema>),
                   providerMetadata: {
                     [providerKey]: { itemId: value.item.id },
                   },

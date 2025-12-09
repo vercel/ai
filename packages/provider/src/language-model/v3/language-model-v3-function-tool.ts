@@ -31,6 +31,15 @@ understand the tool's input requirements and to provide matching suggestions.
   inputSchema: JSONSchema7;
 
   /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
+
+  /**
 The provider-specific options for the tool.
    */
   providerOptions?: SharedV3ProviderOptions;

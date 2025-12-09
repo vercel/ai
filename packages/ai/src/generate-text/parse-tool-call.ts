@@ -92,6 +92,8 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       invalid: true,
       error,
       title: tools?.[toolCall.toolName]?.title,
+      providerExecuted: toolCall.providerExecuted,
+      providerMetadata: toolCall.providerMetadata,
     };
   }
 }
