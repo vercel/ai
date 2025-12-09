@@ -102,6 +102,11 @@ type AnthropicMessagesConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
   generateId?: () => string;
+
+  /**
+   * When false, the model will use JSON tool fallback for structured outputs.
+   */
+  supportsNativeStructuredOutput?: boolean;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
@@ -203,9 +208,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
-      supportsStructuredOutput,
+      supportsStructuredOutput: modelSupportsStructuredOutput,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    const supportsStructuredOutput =
+      (this.config.supportsNativeStructuredOutput ?? true) &&
+      modelSupportsStructuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
