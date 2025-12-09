@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const vertex = createVertex({
-    apiKey: process.env.GOOGLE_API_KEY,
+    apiKey: process.env.GOOGLE_VERTEX_API_KEY,
   });
 
   const result = streamText({
