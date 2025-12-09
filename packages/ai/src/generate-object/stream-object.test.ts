@@ -362,13 +362,11 @@ describe('streamObject', () => {
               "cacheReadTokens": undefined,
               "cacheWriteTokens": undefined,
               "noCacheTokens": 3,
-              "totalTokens": 3,
             },
             "inputTokens": 3,
             "outputTokenDetails": {
               "reasoningTokens": undefined,
               "textTokens": 10,
-              "totalTokens": 10,
             },
             "outputTokens": 10,
             "raw": undefined,

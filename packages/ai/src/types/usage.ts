@@ -9,7 +9,7 @@ import {
  */
 export type LanguageModelUsage = {
   /**
-   * The number of input (prompt) tokens used.
+   * The number of total input (prompt) tokens used.
    */
   inputTokens: number | undefined;
 
@@ -17,11 +17,6 @@ export type LanguageModelUsage = {
    * Detailed information about the input tokens.
    */
   inputTokenDetails?: {
-    /**
-     * The total number of input (prompt) tokens used.
-     */
-    totalTokens: number | undefined;
-
     /**
      * The number of non-cached input (prompt) tokens used.
      */
@@ -39,7 +34,7 @@ export type LanguageModelUsage = {
   };
 
   /**
-   * The number of output (completion) tokens used.
+   * The number of total output (completion) tokens used.
    */
   outputTokens: number | undefined;
 
@@ -47,11 +42,6 @@ export type LanguageModelUsage = {
    * Detailed information about the output tokens.
    */
   outputTokenDetails?: {
-    /**
-     * The total number of output (completion) tokens used.
-     */
-    totalTokens: number | undefined;
-
     /**
      * The number of text tokens used.
      */
@@ -104,19 +94,19 @@ export function asLanguageModelUsage(
   return {
     inputTokens: usage.inputTokens.total,
     inputTokenDetails: {
-      totalTokens: usage.inputTokens.total,
       noCacheTokens: usage.inputTokens.noCache,
       cacheReadTokens: usage.inputTokens.cacheRead,
       cacheWriteTokens: usage.inputTokens.cacheWrite,
     },
     outputTokens: usage.outputTokens.total,
     outputTokenDetails: {
-      totalTokens: usage.outputTokens.total,
       textTokens: usage.outputTokens.text,
       reasoningTokens: usage.outputTokens.reasoning,
     },
-    totalTokens:
-      (usage.inputTokens.total ?? 0) + (usage.outputTokens.total ?? 0),
+    totalTokens: addTokenCounts(
+      usage.inputTokens.total,
+      usage.outputTokens.total,
+    ),
     raw: usage.raw,
     reasoningTokens: usage.outputTokens.reasoning,
     cachedInputTokens: usage.inputTokens.cacheRead,
@@ -130,10 +120,6 @@ export function addLanguageModelUsage(
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     inputTokenDetails: {
-      totalTokens: addTokenCounts(
-        usage1.inputTokenDetails?.totalTokens,
-        usage2.inputTokenDetails?.totalTokens,
-      ),
       noCacheTokens: addTokenCounts(
         usage1.inputTokenDetails?.noCacheTokens,
         usage2.inputTokenDetails?.noCacheTokens,
@@ -149,10 +135,6 @@ export function addLanguageModelUsage(
     },
     outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
     outputTokenDetails: {
-      totalTokens: addTokenCounts(
-        usage1.outputTokenDetails?.totalTokens,
-        usage2.outputTokenDetails?.totalTokens,
-      ),
       textTokens: addTokenCounts(
         usage1.outputTokenDetails?.textTokens,
         usage2.outputTokenDetails?.textTokens,
