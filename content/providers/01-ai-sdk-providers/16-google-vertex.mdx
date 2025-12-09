@@ -61,7 +61,7 @@ const vertex = createVertex({
 });
 ```
 
-Google Vertex supports two different authentication implementations depending on your runtime environment.
+Google Vertex supports multiple authentication methods depending on your runtime environment and requirements.
 
 #### Node.js Runtime
 
@@ -228,6 +228,25 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+#### Express Mode
+
+Express mode provides a simplified authentication method using an API key instead of OAuth or service account credentials. When using express mode, the `project` and `location` settings are not required.
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+
+const vertex = createVertex({
+  apiKey: process.env.GOOGLE_VERTEX_API_KEY,
+});
+```
+
+##### Optional Provider Settings
+
+- **apiKey** _string_
+
+  The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
+  It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
 
 ### Language Models
 
