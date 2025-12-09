@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 024e778: feat(provider/vertext): add express mode support
+
 ## 4.0.0-beta.106
 
 ### Patch Changes
