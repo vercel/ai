@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/anthropic@3.0.0-beta.79
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/google@3.0.0-beta.68
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 4.0.0-beta.105
 
 ### Patch Changes
