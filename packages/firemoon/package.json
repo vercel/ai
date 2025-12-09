@@ -1,6 +1,6 @@
 {
   "name": "firemoon-ai-sdk-provider",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "AI SDK provider for Firemoon Studio - image and video generation",
   "license": "Apache-2.0",
   "sideEffects": false,
