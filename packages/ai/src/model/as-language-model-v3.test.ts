@@ -200,43 +200,49 @@ describe('asLanguageModelV3', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "id": "1",
-              "type": "text-start",
-            },
-            {
-              "delta": "Hello",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": ", ",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "delta": "world!",
-              "id": "1",
-              "type": "text-delta",
-            },
-            {
-              "id": "1",
-              "type": "text-end",
-            },
-            {
-              "finishReason": "stop",
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": 4,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": 2,
-                "totalTokens": 13,
+            [
+              {
+                "id": "1",
+                "type": "text-start",
               },
-            },
-          ]
-        `);
+              {
+                "delta": "Hello",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "delta": ", ",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "delta": "world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "finishReason": "stop",
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 4,
+                    "cacheWrite": undefined,
+                    "noCache": undefined,
+                    "total": 3,
+                  },
+                  "outputTokens": {
+                    "reasoning": 2,
+                    "text": undefined,
+                    "total": 10,
+                  },
+                },
+              },
+            ]
+          `);
       });
     });
 
