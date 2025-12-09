@@ -50,12 +50,6 @@ type GoogleGenerativeAIConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
-
-  /**
-   * This allows Vertex to use 'vertex' as the primary provider options key
-   * while maintaining backward compatibility with 'google'.
-   */
-  providerOptionsName?: string;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
@@ -100,7 +94,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
     const warnings: SharedV3Warning[] = [];
 
-    const providerOptionsName = this.config.providerOptionsName ?? 'google';
+    const providerOptionsName = this.config.provider.includes('vertex')
+      ? 'vertex'
+      : 'google';
     let googleOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,

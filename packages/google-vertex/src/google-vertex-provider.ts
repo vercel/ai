@@ -140,7 +140,6 @@ export function createVertex(
           /^gs:\/\/.*$/,
         ],
       }),
-      providerOptionsName: 'vertex',
     });
   };
 
