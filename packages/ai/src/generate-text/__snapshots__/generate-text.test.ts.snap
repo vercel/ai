@@ -137,8 +137,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "usage": {
         "cachedInputTokens": undefined,
+        "inputTokenDetails": {
+          "cacheReadTokens": undefined,
+          "cacheWriteTokens": undefined,
+          "noCacheTokens": 10,
+        },
         "inputTokens": 10,
+        "outputTokenDetails": {
+          "reasoningTokens": undefined,
+          "textTokens": 5,
+        },
         "outputTokens": 5,
+        "raw": undefined,
         "reasoningTokens": undefined,
         "totalTokens": 15,
       },
@@ -206,8 +216,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       },
       "usage": {
         "cachedInputTokens": undefined,
+        "inputTokenDetails": {
+          "cacheReadTokens": undefined,
+          "cacheWriteTokens": undefined,
+          "noCacheTokens": 3,
+        },
         "inputTokens": 3,
+        "outputTokenDetails": {
+          "reasoningTokens": undefined,
+          "textTokens": 10,
+        },
         "outputTokens": 10,
+        "raw": undefined,
         "reasoningTokens": undefined,
         "totalTokens": 13,
       },
@@ -219,15 +239,34 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "toolResults": [],
   "totalUsage": {
     "cachedInputTokens": undefined,
+    "inputTokenDetails": {
+      "cacheReadTokens": undefined,
+      "cacheWriteTokens": undefined,
+      "noCacheTokens": 13,
+    },
     "inputTokens": 13,
+    "outputTokenDetails": {
+      "reasoningTokens": undefined,
+      "textTokens": 15,
+    },
     "outputTokens": 15,
     "reasoningTokens": undefined,
     "totalTokens": 28,
   },
   "usage": {
     "cachedInputTokens": undefined,
+    "inputTokenDetails": {
+      "cacheReadTokens": undefined,
+      "cacheWriteTokens": undefined,
+      "noCacheTokens": 3,
+    },
     "inputTokens": 3,
+    "outputTokenDetails": {
+      "reasoningTokens": undefined,
+      "textTokens": 10,
+    },
     "outputTokens": 10,
+    "raw": undefined,
     "reasoningTokens": undefined,
     "totalTokens": 13,
   },
@@ -304,8 +343,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 10,
+      },
       "inputTokens": 10,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 5,
+      },
       "outputTokens": 5,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 15,
     },
@@ -373,8 +422,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -496,8 +555,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 10,
+      },
       "inputTokens": 10,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 5,
+      },
       "outputTokens": 5,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 15,
     },
@@ -565,8 +634,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -644,8 +723,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 10,
+      },
       "inputTokens": 10,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 5,
+      },
       "outputTokens": 5,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 15,
     },
@@ -713,8 +802,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -836,8 +935,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 10,
+      },
       "inputTokens": 10,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 5,
+      },
       "outputTokens": 5,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 15,
     },
@@ -905,8 +1014,18 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -1167,8 +1286,18 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -1242,8 +1371,18 @@ exports[`generateText > result.steps > should contain files 1`] = `
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
@@ -1309,8 +1448,18 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     },
     "usage": {
       "cachedInputTokens": undefined,
+      "inputTokenDetails": {
+        "cacheReadTokens": undefined,
+        "cacheWriteTokens": undefined,
+        "noCacheTokens": 3,
+      },
       "inputTokens": 3,
+      "outputTokenDetails": {
+        "reasoningTokens": undefined,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": undefined,
       "totalTokens": 13,
     },
