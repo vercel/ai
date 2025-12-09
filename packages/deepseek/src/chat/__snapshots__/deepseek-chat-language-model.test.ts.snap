@@ -86,11 +86,27 @@ But the question is phrased: "How many 'r's are in the word 'strawberry'?" So an
     "timestamp": 2025-12-02T07:35:03.000Z,
   },
   "usage": {
-    "cachedInputTokens": 0,
-    "inputTokens": 18,
-    "outputTokens": 345,
-    "reasoningTokens": 315,
-    "totalTokens": 363,
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 18,
+      "total": 18,
+    },
+    "outputTokens": {
+      "reasoning": 315,
+      "text": 30,
+      "total": 345,
+    },
+    "raw": {
+      "completion_tokens": 345,
+      "completion_tokens_details": {
+        "reasoning_tokens": 315,
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 18,
+      "prompt_tokens": 18,
+      "total_tokens": 363,
+    },
   },
   "warnings": [],
 }
@@ -198,11 +214,24 @@ exports[`DeepSeekChatLanguageModel > doGenerate > text > should extract text con
     "timestamp": 2025-12-02T06:18:36.000Z,
   },
   "usage": {
-    "cachedInputTokens": 0,
-    "inputTokens": 13,
-    "outputTokens": 300,
-    "reasoningTokens": undefined,
-    "totalTokens": 313,
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 13,
+      "total": 13,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 300,
+      "total": 300,
+    },
+    "raw": {
+      "completion_tokens": 300,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 13,
+      "prompt_tokens": 13,
+      "total_tokens": 313,
+    },
   },
   "warnings": [],
 }
@@ -327,11 +356,27 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > json response form
     "timestamp": 2025-12-02T13:15:41.000Z,
   },
   "usage": {
-    "cachedInputTokens": 320,
-    "inputTokens": 495,
-    "outputTokens": 144,
-    "reasoningTokens": 118,
-    "totalTokens": 639,
+    "inputTokens": {
+      "cacheRead": 320,
+      "cacheWrite": undefined,
+      "noCache": 175,
+      "total": 495,
+    },
+    "outputTokens": {
+      "reasoning": 118,
+      "text": 26,
+      "total": 144,
+    },
+    "raw": {
+      "completion_tokens": 144,
+      "completion_tokens_details": {
+        "reasoning_tokens": 118,
+      },
+      "prompt_cache_hit_tokens": 320,
+      "prompt_cache_miss_tokens": 175,
+      "prompt_tokens": 495,
+      "total_tokens": 639,
+    },
   },
   "warnings": [],
 }
@@ -455,11 +500,27 @@ exports[`DeepSeekChatLanguageModel > doGenerate > tool call > should extract too
     "timestamp": 2025-12-02T08:57:25.000Z,
   },
   "usage": {
-    "cachedInputTokens": 320,
-    "inputTokens": 339,
-    "outputTokens": 92,
-    "reasoningTokens": 48,
-    "totalTokens": 431,
+    "inputTokens": {
+      "cacheRead": 320,
+      "cacheWrite": undefined,
+      "noCache": 19,
+      "total": 339,
+    },
+    "outputTokens": {
+      "reasoning": 48,
+      "text": 44,
+      "total": 92,
+    },
+    "raw": {
+      "completion_tokens": 92,
+      "completion_tokens_details": {
+        "reasoning_tokens": 48,
+      },
+      "prompt_cache_hit_tokens": 320,
+      "prompt_cache_miss_tokens": 19,
+      "prompt_tokens": 339,
+      "total_tokens": 431,
+    },
   },
   "warnings": [],
 }
@@ -1610,11 +1671,27 @@ exports[`DeepSeekChatLanguageModel > doStream > reasoning > should stream reason
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 18,
-      "outputTokens": 219,
-      "reasoningTokens": 205,
-      "totalTokens": 237,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 18,
+        "total": 18,
+      },
+      "outputTokens": {
+        "reasoning": 205,
+        "text": 14,
+        "total": 219,
+      },
+      "raw": {
+        "completion_tokens": 219,
+        "completion_tokens_details": {
+          "reasoning_tokens": 205,
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 18,
+        "prompt_tokens": 18,
+        "total_tokens": 237,
+      },
     },
   },
 ]
@@ -3668,11 +3745,24 @@ exports[`DeepSeekChatLanguageModel > doStream > text > should stream text 1`] = 
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 13,
-      "outputTokens": 400,
-      "reasoningTokens": undefined,
-      "totalTokens": 413,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 13,
+        "total": 13,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 400,
+        "total": 400,
+      },
+      "raw": {
+        "completion_tokens": 400,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 13,
+        "prompt_tokens": 13,
+        "total_tokens": 413,
+      },
     },
   },
 ]
@@ -3968,11 +4058,27 @@ exports[`DeepSeekChatLanguageModel > doStream > tool call > should stream tool c
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 320,
-      "inputTokens": 339,
-      "outputTokens": 83,
-      "reasoningTokens": 39,
-      "totalTokens": 422,
+      "inputTokens": {
+        "cacheRead": 320,
+        "cacheWrite": undefined,
+        "noCache": 19,
+        "total": 339,
+      },
+      "outputTokens": {
+        "reasoning": 39,
+        "text": 44,
+        "total": 83,
+      },
+      "raw": {
+        "completion_tokens": 83,
+        "completion_tokens_details": {
+          "reasoning_tokens": 39,
+        },
+        "prompt_cache_hit_tokens": 320,
+        "prompt_cache_miss_tokens": 19,
+        "prompt_tokens": 339,
+        "total_tokens": 422,
+      },
     },
   },
 ]

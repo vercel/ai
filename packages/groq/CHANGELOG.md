@@ -1,5 +1,14 @@
 # @ai-sdk/groq
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 3.0.0-beta.47
 
 ### Patch Changes

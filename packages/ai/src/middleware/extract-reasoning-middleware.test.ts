@@ -1,19 +1,26 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
 } from '@ai-sdk/provider-utils/test';
+import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
-import { describe, it, expect } from 'vitest';
 
-const testUsage = {
-  inputTokens: 5,
-  outputTokens: 10,
-  totalTokens: 18,
-  reasoningTokens: 3,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 3,
+  },
 };
 
 describe('extractReasoningMiddleware', () => {
@@ -340,21 +347,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
@@ -471,21 +497,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
@@ -579,21 +624,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
@@ -704,21 +768,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
@@ -780,21 +863,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
@@ -870,21 +972,40 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish-step",
               "usage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
             },
             {
               "finishReason": "stop",
               "totalUsage": {
-                "cachedInputTokens": undefined,
+                "cachedInputTokens": 0,
+                "inputTokenDetails": {
+                  "cacheReadTokens": 0,
+                  "cacheWriteTokens": 0,
+                  "noCacheTokens": 5,
+                },
                 "inputTokens": 5,
+                "outputTokenDetails": {
+                  "reasoningTokens": 3,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
                 "reasoningTokens": 3,
-                "totalTokens": 18,
+                "totalTokens": 15,
               },
               "type": "finish",
             },
