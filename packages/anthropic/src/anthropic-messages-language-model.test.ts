@@ -905,6 +905,51 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
 
+    it('should use default thinking budget when it is not set', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('claude-haiku-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled' },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 64000,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-haiku-4-5",
+          "thinking": {
+            "budget_tokens": 1024,
+            "type": "enabled",
+          },
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "thinking budget is required when thinking is enabled. using default budget of 1024 tokens.",
+            "feature": "extended thinking",
+            "type": "compatibility",
+          },
+        ]
+      `);
+    });
+
     it('should pass tools and toolChoice', async () => {
       prepareJsonResponse({});
 
