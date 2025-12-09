@@ -33,12 +33,4 @@ describe('FiremoonImageModel', () => {
     });
     expect(model.modelId).toBe('flux/dev');
   });
-
-  it('accepts video model ids', () => {
-    const model = new FiremoonImageModel('kling/kling-2-1-master', {
-      provider: 'firemoon',
-      baseURL: 'https://firemoon.studio/api',
-    });
-    expect(model.modelId).toBe('kling/kling-2-1-master');
-  });
 });

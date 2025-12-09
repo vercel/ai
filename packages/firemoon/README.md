@@ -1,6 +1,6 @@
 # AI SDK - Firemoon Provider
 
-The **Firemoon provider** for the [AI SDK](https://ai-sdk.dev/docs) contains image and video generation support for the Firemoon Studio API.
+The **Firemoon provider** for the [AI SDK](https://ai-sdk.dev/docs) contains image generation support for the Firemoon Studio API.
 
 ## Setup
 
@@ -86,23 +86,6 @@ images.forEach((image, index) => {
 });
 ```
 
-### Video Generation
-
-Generate videos using Kling models:
-
-```ts
-const result = await generateImage({
-  model: firemoon.image('kling/kling-2-1-master'),
-  prompt: 'A butterfly emerging from its chrysalis',
-  providerOptions: {
-    firemoon: {
-      duration: '5',
-      aspect_ratio: '16:9',
-    },
-  },
-});
-```
-
 ## Supported Models
 
 ### Image Models
@@ -113,25 +96,17 @@ const result = await generateImage({
   - `flux/schnell` - Rapid image generation
   - `flux/pro` - Professional-grade images
 
+- **Fine-tuned Models**
+
+  - `firemoon-studio/better-faces` - Enhances image details, creativity, and contrast for improved visual quality
+  - `firemoon-studio/cosplay-costumes` - Generates various character costumes and cosplay outfits
+  - `firemoon-studio/detail-maximizer` - Enhances image details, creativity, and contrast for improved visual quality
+
 - **Ideogram Models**
   - `ideogram/v3` - Advanced image generation
   - `ideogram/v3-turbo` - Fast ideogram generation
   - `ideogram/v3-character-edit` - Character editing
 
-### Video Models
-
-- **Kling Models**
-
-  - `kling/kling-2-1-master` - Professional video generation
-  - `kling/kling-1-6` - Video generation
-
-- **Minimax Models**
-
-  - `minimax/hailuo-02` - Creative AI content
-  - `minimax/video-01` - Video generation
-
-- **Google Veo Models**
-  - `google/veo-3-fast` - Fast video generation
 
 ## Model Options
 
@@ -150,12 +125,6 @@ FLUX and Ideogram models support:
 - `guidance_scale` (number) - How closely to follow the prompt (1-20)
 - `num_inference_steps` (number) - Number of denoising steps (1-50)
 
-### Video Model Options
-
-Kling and video models support:
-
-- `duration` (string) - Video duration in seconds
-- `aspect_ratio` (string) - Video aspect ratio: `16:9`, `9:16`, `1:1`
 
 ## Authentication
 

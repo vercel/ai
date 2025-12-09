@@ -1,7 +1,7 @@
 {
   "name": "firemoon-ai-sdk-provider",
   "version": "0.0.0",
-  "description": "AI SDK provider for Firemoon Studio - image and video generation",
+  "description": "AI SDK provider for Firemoon Studio - image generation",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -34,11 +34,11 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider": "^3.0.0-beta.26",
+    "@ai-sdk/provider-utils": "^4.0.0-beta.45"
   },
   "devDependencies": {
-    "@ai-sdk/test-server": "workspace:*",
+    "@ai-sdk/test-server": "^1.0.0-beta.1",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
@@ -65,7 +65,6 @@
   "keywords": [
     "ai",
     "firemoon",
-    "image-generation",
-    "video-generation"
+    "image-generation"
   ]
 }

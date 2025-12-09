@@ -34,7 +34,7 @@ export class FiremoonImageModel implements ImageModelV3 {
   constructor(
     readonly modelId: FiremoonImageModelId,
     private readonly config: FiremoonImageModelConfig,
-  ) {}
+  ) { }
 
   async doGenerate({
     prompt,
@@ -52,40 +52,27 @@ export class FiremoonImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    // Determine if this is a video model based on modelId
-    const isVideoModel =
-      this.modelId.startsWith('kling/') ||
-      this.modelId.includes('video') ||
-      this.modelId.startsWith('google/veo');
-
-    // Build the request body based on the model type
+    // Build the request body
     const requestBody: any = {
       prompt,
       ...(seed !== undefined && { seed }),
-      ...(n !== undefined && !isVideoModel && { num_images: n }),
+      ...(n !== undefined && { num_images: n }),
       ...(providerOptions.firemoon ?? {}),
     };
 
-    // Handle size/aspect ratio for image models
-    if (!isVideoModel) {
-      if (size) {
-        requestBody.image_size = size;
-      } else if (aspectRatio) {
-        // Map aspect ratios to Firemoon size formats
-        const sizeMap: Record<string, string> = {
-          '1:1': 'square_hd',
-          '3:4': 'portrait_4_3',
-          '4:3': 'landscape_4_3',
-          '9:16': 'portrait_16_9',
-          '16:9': 'landscape_16_9',
-        };
-        requestBody.image_size = sizeMap[aspectRatio] || 'landscape_4_3';
-      }
-    } else {
-      // For video models, use aspect_ratio parameter
-      if (aspectRatio) {
-        requestBody.aspect_ratio = aspectRatio;
-      }
+    // Handle size/aspect ratio
+    if (size) {
+      requestBody.image_size = size;
+    } else if (aspectRatio) {
+      // Map aspect ratios to Firemoon size formats
+      const sizeMap: Record<string, string> = {
+        '1:1': 'square_hd',
+        '3:4': 'portrait_4_3',
+        '4:3': 'landscape_4_3',
+        '9:16': 'portrait_16_9',
+        '16:9': 'landscape_16_9',
+      };
+      requestBody.image_size = sizeMap[aspectRatio] || 'landscape_4_3';
     }
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -99,29 +86,6 @@ export class FiremoonImageModel implements ImageModelV3 {
       abortSignal,
       fetch: this.config.fetch,
     });
-
-    // Handle video response
-    if ('videos' in response) {
-      // For video models, we return empty images for now since AI SDK doesn't support videos yet
-      // In a full implementation, you'd need to extend the AI SDK to support video generation
-      warnings.push({
-        type: 'other',
-        message:
-          'Video generation is not fully supported in this AI SDK version. Only URLs are returned.',
-      });
-
-      const images = response.videos.map(() => new Uint8Array());
-
-      return {
-        images,
-        warnings,
-        response: {
-          timestamp: currentDate,
-          modelId: this.modelId,
-          headers: responseHeaders,
-        },
-      };
-    }
 
     // Handle image response - fetch the actual image data
     const images = await Promise.all(
@@ -158,41 +122,20 @@ export class FiremoonImageModel implements ImageModelV3 {
   }
 }
 
-const firemoonResponseSchema = z.union([
-  // Image response
-  z.object({
-    images: z.array(
-      z.object({
-        url: z.string(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        content_type: z.string().optional(),
-      }),
-    ),
-    seed: z.number().optional(),
-    has_nsfw_concepts: z.array(z.boolean()).optional(),
-    timings: z
-      .object({
-        inference: z.number(),
-      })
-      .optional(),
-  }),
-  // Video response
-  z.object({
-    videos: z.array(
-      z.object({
-        url: z.string(),
-        duration: z.number().optional(),
-        width: z.number().optional(),
-        height: z.number().optional(),
-        content_type: z.string().optional(),
-      }),
-    ),
-    seed: z.number().optional(),
-    timings: z
-      .object({
-        inference: z.number(),
-      })
-      .optional(),
-  }),
-]);
+const firemoonResponseSchema = z.object({
+  images: z.array(
+    z.object({
+      url: z.string(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+      content_type: z.string().optional(),
+    }),
+  ),
+  seed: z.number().optional(),
+  has_nsfw_concepts: z.array(z.boolean()).optional(),
+  timings: z
+    .object({
+      inference: z.number(),
+    })
+    .optional(),
+});
