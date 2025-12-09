@@ -39,7 +39,11 @@ import {
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
 import {
   AsyncIterableStream,
@@ -568,11 +572,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
         // store information for onFinish callback:
         let warnings: SharedV3Warning[] | undefined;
-        let usage: LanguageModelUsage = {
-          inputTokens: undefined,
-          outputTokens: undefined,
-          totalTokens: undefined,
-        };
+        let usage: LanguageModelUsage = createNullLanguageModelUsage();
         let finishReason: LanguageModelV3FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;

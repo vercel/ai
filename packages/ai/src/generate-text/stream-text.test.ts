@@ -48,7 +48,10 @@ import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 import { features } from 'node:process';
-import { asLanguageModelUsage } from '../types/usage';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 
 const defaultSettings = () =>
   ({
@@ -10899,7 +10902,16 @@ describe('streamText', () => {
                 if (chunk.type === 'finish') {
                   chunk.totalUsage = {
                     inputTokens: 200,
+                    inputTokenDetails: {
+                      noCacheTokens: 200,
+                      cacheReadTokens: undefined,
+                      cacheWriteTokens: undefined,
+                    },
                     outputTokens: 300,
+                    outputTokenDetails: {
+                      reasoningTokens: undefined,
+                      textTokens: 300,
+                    },
                     totalTokens: undefined,
                     reasoningTokens: undefined,
                     cachedInputTokens: undefined,
@@ -10911,13 +10923,24 @@ describe('streamText', () => {
           prompt: 'test-input',
         });
 
-        expect(await result.totalUsage).toStrictEqual({
-          inputTokens: 200,
-          outputTokens: 300,
-          totalTokens: undefined,
-          reasoningTokens: undefined,
-          cachedInputTokens: undefined,
-        });
+        expect(await result.totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 200,
+            },
+            "inputTokens": 200,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 300,
+            },
+            "outputTokens": 300,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
+          }
+        `);
       });
 
       it('result.finishReason should be transformed', async () => {
@@ -11983,13 +12006,7 @@ describe('streamText', () => {
                   type: 'finish-step',
                   finishReason: 'stop',
                   providerMetadata: undefined,
-                  usage: {
-                    inputTokens: undefined,
-                    outputTokens: undefined,
-                    totalTokens: undefined,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
+                  usage: createNullLanguageModelUsage(),
                   response: {
                     id: 'response-id',
                     modelId: 'mock-model-id',
@@ -12000,13 +12017,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
-                  totalUsage: {
-                    inputTokens: undefined,
-                    outputTokens: undefined,
-                    totalTokens: undefined,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
-                  },
+                  totalUsage: createNullLanguageModelUsage(),
                 });
 
                 return;
@@ -12079,20 +12090,36 @@ describe('streamText', () => {
                 },
                 "type": "finish-step",
                 "usage": {
-                  "cachedInputTokens": undefined,
+                  "inputTokenDetails": {
+                    "cacheReadTokens": undefined,
+                    "cacheWriteTokens": undefined,
+                    "noCacheTokens": undefined,
+                  },
                   "inputTokens": undefined,
+                  "outputTokenDetails": {
+                    "reasoningTokens": undefined,
+                    "textTokens": undefined,
+                  },
                   "outputTokens": undefined,
-                  "reasoningTokens": undefined,
+                  "raw": undefined,
                   "totalTokens": undefined,
                 },
               },
               {
                 "finishReason": "stop",
                 "totalUsage": {
-                  "cachedInputTokens": undefined,
+                  "inputTokenDetails": {
+                    "cacheReadTokens": undefined,
+                    "cacheWriteTokens": undefined,
+                    "noCacheTokens": undefined,
+                  },
                   "inputTokens": undefined,
+                  "outputTokenDetails": {
+                    "reasoningTokens": undefined,
+                    "textTokens": undefined,
+                  },
                   "outputTokens": undefined,
-                  "reasoningTokens": undefined,
+                  "raw": undefined,
                   "totalTokens": undefined,
                 },
                 "type": "finish",
@@ -12160,10 +12187,18 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "usage": {
-              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": undefined,
+              },
               "inputTokens": undefined,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": undefined,
+              },
               "outputTokens": undefined,
-              "reasoningTokens": undefined,
+              "raw": undefined,
               "totalTokens": undefined,
             },
             "warnings": [],

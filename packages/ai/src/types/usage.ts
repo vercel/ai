@@ -9,14 +9,14 @@ import {
  */
 export type LanguageModelUsage = {
   /**
-   * The number of total input (prompt) tokens used.
+   * The total number of input (prompt) tokens used.
    */
   inputTokens: number | undefined;
 
   /**
    * Detailed information about the input tokens.
    */
-  inputTokenDetails?: {
+  inputTokenDetails: {
     /**
      * The number of non-cached input (prompt) tokens used.
      */
@@ -41,7 +41,7 @@ export type LanguageModelUsage = {
   /**
    * Detailed information about the output tokens.
    */
-  outputTokenDetails?: {
+  outputTokenDetails: {
     /**
      * The number of text tokens used.
      */
@@ -110,6 +110,24 @@ export function asLanguageModelUsage(
     raw: usage.raw,
     reasoningTokens: usage.outputTokens.reasoning,
     cachedInputTokens: usage.inputTokens.cacheRead,
+  };
+}
+
+export function createNullLanguageModelUsage(): LanguageModelUsage {
+  return {
+    inputTokens: undefined,
+    inputTokenDetails: {
+      noCacheTokens: undefined,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
+    },
+    outputTokens: undefined,
+    outputTokenDetails: {
+      textTokens: undefined,
+      reasoningTokens: undefined,
+    },
+    totalTokens: undefined,
+    raw: undefined,
   };
 }
 
