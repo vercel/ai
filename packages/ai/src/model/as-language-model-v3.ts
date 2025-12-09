@@ -8,22 +8,6 @@ import {
 } from '@ai-sdk/provider';
 import { logV2CompatibilityWarning } from '../util/log-v2-compatibility-warning';
 
-function convertV2UsageToV3(usage: LanguageModelV2Usage): LanguageModelV3Usage {
-  return {
-    inputTokens: {
-      total: usage.inputTokens,
-      noCache: undefined,
-      cacheRead: usage.cachedInputTokens,
-      cacheWrite: undefined,
-    },
-    outputTokens: {
-      total: usage.outputTokens,
-      text: undefined,
-      reasoning: usage.reasoningTokens,
-    },
-  };
-}
-
 export function asLanguageModelV3(
   model: LanguageModelV2 | LanguageModelV3,
 ): LanguageModelV3 {
@@ -87,4 +71,20 @@ function convertV2StreamToV3(
       },
     }),
   );
+}
+
+function convertV2UsageToV3(usage: LanguageModelV2Usage): LanguageModelV3Usage {
+  return {
+    inputTokens: {
+      total: usage.inputTokens,
+      noCache: undefined,
+      cacheRead: usage.cachedInputTokens,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: usage.outputTokens,
+      text: undefined,
+      reasoning: usage.reasoningTokens,
+    },
+  };
 }
