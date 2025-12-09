@@ -12,8 +12,25 @@ export type OpenAIResponsesUsage = {
 };
 
 export function convertOpenAIResponsesUsage(
-  usage: OpenAIResponsesUsage,
+  usage: OpenAIResponsesUsage | undefined | null,
 ): LanguageModelV3Usage {
+  if (usage == null) {
+    return {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
+      raw: undefined,
+    };
+  }
+
   const inputTokens = usage.input_tokens;
   const outputTokens = usage.output_tokens;
   const cachedTokens = usage.input_tokens_details?.cached_tokens ?? 0;

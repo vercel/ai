@@ -1625,22 +1625,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: usage
-                ? convertOpenAIResponsesUsage(usage)
-                : {
-                    inputTokens: {
-                      total: undefined,
-                      noCache: undefined,
-                      cacheRead: undefined,
-                      cacheWrite: undefined,
-                    },
-                    outputTokens: {
-                      total: undefined,
-                      text: undefined,
-                      reasoning: undefined,
-                    },
-                    raw: undefined,
-                  },
+              usage: convertOpenAIResponsesUsage(usage),
               providerMetadata,
             });
           },
