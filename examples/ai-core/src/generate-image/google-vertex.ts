@@ -1,10 +1,17 @@
 import {
   GoogleVertexImageProviderOptions,
-  vertex,
+  createVertex
 } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { presentImages } from '../lib/present-image';
+
+const vertex = createVertex({
+  fetch: (url, options) => {
+    console.log('Vertex Fetch URL:', url);
+    return fetch(url, options);
+  }
+})
 
 async function main() {
   const result = await generateImage({
