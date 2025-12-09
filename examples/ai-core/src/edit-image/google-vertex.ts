@@ -6,7 +6,7 @@ import { presentImages } from '../lib/present-image';
 
 import 'dotenv/config';
 import { experimental_generateImage as generateImage } from 'ai';
-import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleVertexImageProviderOptions, vertex } from '@ai-sdk/google-vertex';
 
 /* 
     see
@@ -180,4 +180,30 @@ async function insertWithMask() {
   }
 }
 
-insertWithMask().catch(console.error);
+async function insertWithMaskAi() {
+  const image = readFileSync('data/sunlit_lounge.png');
+  const mask = readFileSync('data/sunlit_lounge_mask_black_white.png');
+
+  const { images } = await generateImage({
+    model: vertex.image(MODEL_ID),
+    prompt: {
+      text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+      images: [image],
+      mask: mask,
+    },
+    providerOptions: {
+      vertex: {
+        edit: {
+          baseSteps: 50,
+          mode: 'EDIT_MODE_INPAINT_INSERTION',
+          maskMode: 'MASK_MODE_USER_PROVIDED',
+          maskDilation: 0.01,
+        },
+      } satisfies GoogleVertexImageProviderOptions,
+    },
+  });
+  await presentImages(images);
+}
+
+// insertWithMask().catch(console.error);
+insertWithMaskAi().catch(error => console.dir(error, { depth: null }));

@@ -1,6 +1,9 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleVertexImageModel } from './google-vertex-image-model';
+import {
+  GoogleVertexImageModel,
+  GoogleVertexImageProviderOptions,
+} from './google-vertex-image-model';
 import { createVertex } from './google-vertex-provider';
 
 vi.mock('./version', () => ({
@@ -132,13 +135,19 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "16:9",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
 
     it('should pass aspect ratio directly when specified', async () => {
@@ -155,13 +164,19 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "16:9",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
 
     it('should pass seed directly when specified', async () => {
@@ -178,13 +193,19 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          seed: 42,
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "sampleCount": 1,
+            "seed": 42,
+          },
+        }
+      `);
     });
 
     it('should combine aspectRatio, seed and provider options', async () => {
@@ -201,19 +222,25 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {
           vertex: {
             addWatermark: false,
-          },
+          } satisfies GoogleVertexImageProviderOptions,
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-          seed: 42,
-          addWatermark: false,
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "addWatermark": false,
+            "aspectRatio": "1:1",
+            "sampleCount": 1,
+            "seed": 42,
+          },
+        }
+      `);
     });
 
     it('should return warnings for unsupported settings', async () => {
@@ -329,22 +356,29 @@ describe('GoogleVertexImageModel', () => {
             negativePrompt: 'negative prompt',
             personGeneration: 'allow_all',
             sampleImageSize: '2K',
+            // @ts-expect-error Testing invalid option
             foo: 'bar',
-          },
+          } satisfies GoogleVertexImageProviderOptions,
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 2,
-          addWatermark: false,
-          negativePrompt: 'negative prompt',
-          personGeneration: 'allow_all',
-          aspectRatio: '16:9',
-          sampleImageSize: '2K',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "A cute baby sea otter",
+            },
+          ],
+          "parameters": {
+            "addWatermark": false,
+            "aspectRatio": "16:9",
+            "negativePrompt": "negative prompt",
+            "personGeneration": "allow_all",
+            "sampleCount": 2,
+            "sampleImageSize": "2K",
+          },
+        }
+      `);
     });
 
     it('should return image meta data', async () => {
@@ -371,6 +405,277 @@ describe('GoogleVertexImageModel', () => {
           },
         ],
       });
+    });
+  });
+
+  describe('Image Editing', () => {
+    function prepareJsonResponse({
+      headers,
+    }: {
+      headers?: Record<string, string>;
+    } = {}) {
+      server.urls[
+        'https://api.example.com/models/imagen-3.0-generate-002:predict'
+      ].response = {
+        type: 'json-value',
+        headers,
+        body: {
+          predictions: [
+            {
+              mimeType: 'image/png',
+              bytesBase64Encoded: 'edited-base64-image',
+            },
+          ],
+        },
+      };
+    }
+
+    it('should send edit request with files and mask', async () => {
+      prepareJsonResponse();
+
+      // Create test image data (base64 encoded)
+      const imageData = 'base64-source-image';
+      const maskData = 'base64-mask-image';
+
+      await model.doGenerate({
+        prompt: 'A sunlit indoor lounge with a flamingo',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskData,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "A sunlit indoor lounge with a flamingo",
+              "referenceImages": [
+                {
+                  "referenceId": 1,
+                  "referenceImage": {
+                    "bytesBase64Encoded": "base64-source-image",
+                  },
+                  "referenceType": "REFERENCE_TYPE_RAW",
+                },
+                {
+                  "maskImageConfig": {
+                    "maskMode": "MASK_MODE_USER_PROVIDED",
+                  },
+                  "referenceId": 2,
+                  "referenceImage": {
+                    "bytesBase64Encoded": "base64-mask-image",
+                  },
+                  "referenceType": "REFERENCE_TYPE_MASK",
+                },
+              ],
+            },
+          ],
+          "parameters": {
+            "editMode": "EDIT_MODE_INPAINT_INSERTION",
+            "sampleCount": 1,
+          },
+        }
+      `);
+    });
+
+    it('should send edit request with Uint8Array data', async () => {
+      prepareJsonResponse();
+
+      // Create test Uint8Array data (represents 'hello' in bytes)
+      const imageUint8Array = new Uint8Array([104, 101, 108, 108, 111]);
+      const maskUint8Array = new Uint8Array([119, 111, 114, 108, 100]);
+
+      await model.doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: imageUint8Array,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskUint8Array,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      // Check that the data was converted to base64
+      expect(
+        requestBody.instances[0].referenceImages[0].referenceImage
+          .bytesBase64Encoded,
+      ).toBe('aGVsbG8='); // 'hello' in base64
+      expect(
+        requestBody.instances[0].referenceImages[1].referenceImage
+          .bytesBase64Encoded,
+      ).toBe('d29ybGQ='); // 'world' in base64
+    });
+
+    it('should send edit request with custom edit options', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'Remove the object',
+        files: [
+          {
+            type: 'file',
+            data: 'base64-source-image',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: 'base64-mask-image',
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          vertex: {
+            edit: {
+              mode: 'EDIT_MODE_INPAINT_REMOVAL',
+              baseSteps: 50,
+              maskMode: 'MASK_MODE_USER_PROVIDED',
+              maskDilation: 0.01,
+            },
+          } satisfies GoogleVertexImageProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "Remove the object",
+              "referenceImages": [
+                {
+                  "referenceId": 1,
+                  "referenceImage": {
+                    "bytesBase64Encoded": "base64-source-image",
+                  },
+                  "referenceType": "REFERENCE_TYPE_RAW",
+                },
+                {
+                  "maskImageConfig": {
+                    "dilation": 0.01,
+                    "maskMode": "MASK_MODE_USER_PROVIDED",
+                  },
+                  "referenceId": 2,
+                  "referenceImage": {
+                    "bytesBase64Encoded": "base64-mask-image",
+                  },
+                  "referenceType": "REFERENCE_TYPE_MASK",
+                },
+              ],
+            },
+          ],
+          "parameters": {
+            "editConfig": {
+              "baseSteps": 50,
+            },
+            "editMode": "EDIT_MODE_INPAINT_REMOVAL",
+            "sampleCount": 1,
+          },
+        }
+      `);
+    });
+
+    it('should extract the edited images', async () => {
+      prepareJsonResponse();
+
+      const result = await model.doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: 'base64-source-image',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: 'base64-mask-image',
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['edited-base64-image']);
+    });
+
+    it('should send edit request without mask (for operations that do not require mask)', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt: 'Upscale this image',
+        files: [
+          {
+            type: 'file',
+            data: 'base64-source-image',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          vertex: {
+            edit: {mode: 'EDIT_MODE_CONTROLLED_EDITING'},
+          } satisfies GoogleVertexImageProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "Upscale this image",
+              "referenceImages": [
+                {
+                  "referenceId": 1,
+                  "referenceImage": {
+                    "bytesBase64Encoded": "base64-source-image",
+                  },
+                  "referenceType": "REFERENCE_TYPE_RAW",
+                },
+              ],
+            },
+          ],
+          "parameters": {
+            "editMode": "EDIT_MODE_CONTROLLED_EDITING",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
   });
 
@@ -416,7 +721,7 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {
             vertex: {
               addWatermark: false,
-            },
+            } satisfies GoogleVertexImageProviderOptions,
           },
         });
 
@@ -445,20 +750,26 @@ describe('GoogleVertexImageModel', () => {
             vertex: {
               personGeneration: 'allow_adult',
               safetySetting: 'block_medium_and_above',
-            },
+            } satisfies GoogleVertexImageProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          instances: [{ prompt: 'test imagen 4 prompt' }],
-          parameters: {
-            sampleCount: 2,
-            aspectRatio: '1:1',
-            seed: 123,
-            personGeneration: 'allow_adult',
-            safetySetting: 'block_medium_and_above',
-          },
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "instances": [
+              {
+                "prompt": "test imagen 4 prompt",
+              },
+            ],
+            "parameters": {
+              "aspectRatio": "1:1",
+              "personGeneration": "allow_adult",
+              "safetySetting": "block_medium_and_above",
+              "sampleCount": 2,
+              "seed": 123,
+            },
+          }
+        `);
       });
     });
 
@@ -556,7 +867,7 @@ describe('GoogleVertexImageModel', () => {
             vertex: {
               negativePrompt: 'blurry, low quality',
               addWatermark: true,
-            },
+            } satisfies GoogleVertexImageProviderOptions,
           },
         });
 
@@ -588,21 +899,27 @@ describe('GoogleVertexImageModel', () => {
               safetySetting: 'block_only_high',
               addWatermark: true,
               storageUri: 'gs://my-bucket/images/',
-            },
+            } satisfies GoogleVertexImageProviderOptions,
           },
         });
 
-        expect(await server.calls[0].requestBodyJson).toStrictEqual({
-          instances: [{ prompt: 'comprehensive test prompt' }],
-          parameters: {
-            sampleCount: 1,
-            negativePrompt: 'avoid this content',
-            personGeneration: 'dont_allow',
-            safetySetting: 'block_only_high',
-            addWatermark: true,
-            storageUri: 'gs://my-bucket/images/',
-          },
-        });
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "instances": [
+              {
+                "prompt": "comprehensive test prompt",
+              },
+            ],
+            "parameters": {
+              "addWatermark": true,
+              "negativePrompt": "avoid this content",
+              "personGeneration": "dont_allow",
+              "safetySetting": "block_only_high",
+              "sampleCount": 1,
+              "storageUri": "gs://my-bucket/images/",
+            },
+          }
+        `);
       });
     });
   });
