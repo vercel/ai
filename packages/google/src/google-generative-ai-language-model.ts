@@ -100,16 +100,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
     const warnings: SharedV3Warning[] = [];
 
-    const providerOptionsName = this.config.providerOptionsName;
-    let googleOptions = providerOptionsName
-      ? await parseProviderOptions({
-          provider: providerOptionsName,
-          providerOptions,
-          schema: googleGenerativeAIProviderOptions,
-        })
-      : undefined;
+    const providerOptionsName = this.config.providerOptionsName ?? 'google';
+    let googleOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: googleGenerativeAIProviderOptions,
+    });
 
-    if (googleOptions == null) {
+    if (googleOptions == null && providerOptionsName !== 'google') {
       googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
