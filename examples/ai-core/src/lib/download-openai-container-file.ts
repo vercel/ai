@@ -68,7 +68,12 @@ export async function downloadOpenaiContainerFile(
       size: buffer.length,
     };
   } catch (error) {
-    console.error('error:', error);
+    console.error('download failed', {
+      op: 'downloadOpenaiContainerFile',
+      container,
+      file,
+      error,
+    });
     throw error;
   }
 }

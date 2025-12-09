@@ -71,7 +71,12 @@ export async function downloadAzureContainerFile(
       size: buffer.length,
     };
   } catch (error) {
-    console.error('error:', error);
+    console.error('download failed', {
+      op: 'downloadAzureContainerFile',
+      container,
+      file,
+      error,
+    });
     throw error;
   }
 }
