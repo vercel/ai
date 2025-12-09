@@ -1,4 +1,5 @@
 import {
+  APICallError,
   JSONObject,
   LanguageModelV3,
   LanguageModelV3Prompt,
@@ -12,7 +13,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnthropicProviderOptions } from './anthropic-messages-options';
-import { createAnthropic } from './anthropic-provider';
+import { anthropic, createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
 
 vi.mock('./version', () => ({
@@ -668,56 +669,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should extract tool calls', async () => {
-      prepareJsonResponse({
-        content: [
-          { type: 'text', text: 'Some text\n\n' },
-          {
-            type: 'tool_use',
-            id: 'toolu_1',
-            name: 'test-tool',
-            input: { value: 'example value' },
-          },
-        ],
-        stopReason: 'tool_use',
-      });
-
-      const { content, finishReason } = await model.doGenerate({
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            inputSchema: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        ],
-        prompt: TEST_PROMPT,
-      });
-
-      expect(content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "Some text
-
-        ",
-            "type": "text",
-          },
-          {
-            "input": "{"value":"example value"}",
-            "toolCallId": "toolu_1",
-            "toolName": "test-tool",
-            "type": "tool-call",
-          },
-        ]
-      `);
-      expect(finishReason).toStrictEqual('tool-calls');
-    });
-
     it('should extract usage', async () => {
       prepareJsonResponse({
         usage: { input_tokens: 20, output_tokens: 5 },
@@ -805,6 +756,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic": {
             "cacheCreationInputTokens": null,
             "container": null,
+            "contextManagement": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1119,6 +1071,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1255,6 +1208,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+              "contextManagement": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -1524,6 +1478,98 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    describe('function tool', () => {
+      it('should extract tool calls', async () => {
+        prepareJsonResponse({
+          content: [
+            { type: 'text', text: 'Some text\n\n' },
+            {
+              type: 'tool_use',
+              id: 'toolu_1',
+              name: 'test-tool',
+              input: { value: 'example value' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        const { content, finishReason } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Some text
+
+        ",
+            "type": "text",
+          },
+          {
+            "input": "{"value":"example value"}",
+            "toolCallId": "toolu_1",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+        expect(finishReason).toStrictEqual('tool-calls');
+      });
+
+      it('should support tools with empty parameters', async () => {
+        prepareJsonFixtureResponse('anthropic-tool-no-args');
+
+        const result = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "<thinking>
+          The updateIssueList tool was provided in the list of available functions. The tool has no required parameters, so it can be called without any additional information needed from the user.
+          </thinking>
+
+          Okay, I will update the current issue list:",
+              "type": "text",
+            },
+            {
+              "input": "{}",
+              "toolCallId": "toolu_01LRmxn9vGM1d2DZSDBowdZ1",
+              "toolName": "updateIssueList",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('web search tool', () => {
       describe('with fixture', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
@@ -1535,7 +1581,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_search_20250305',
                 name: 'web_search',
                 args: {
@@ -1620,7 +1666,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1657,7 +1703,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1692,7 +1738,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1739,7 +1785,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1782,7 +1828,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1856,7 +1902,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1935,7 +1981,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -1984,7 +2030,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.web_search_20250305',
               name: 'web_search',
               args: {
@@ -2022,7 +2068,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2073,7 +2119,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2097,7 +2143,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'anthropic.web_fetch_20250910',
                 name: 'web_fetch',
                 args: { maxUses: 1 },
@@ -2107,6 +2153,217 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+    });
+
+    describe('tool search tool', () => {
+      describe('regex variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-regex.1');
+
+          result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Find out weather data in SF' },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool search tool and deferred tools', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 64000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Find out weather data in SF",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-5",
+              "tools": [
+                {
+                  "name": "tool_search_tool_regex",
+                  "type": "tool_search_tool_regex_20251119",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "For a location",
+                  "input_schema": {
+                    "properties": {
+                      "location": {
+                        "type": "string",
+                      },
+                      "unit": {
+                        "enum": [
+                          "celsius",
+                          "fahrenheit",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "name": "get_temp_data",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include advanced-tool-use beta header', async () => {
+          expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+            {
+              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+              "x-api-key": "test-api-key",
+            }
+          `);
+        });
+
+        it('should include tool search tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('bm25 variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-bm25.1');
+
+          result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with tool search bm25 tool', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "max_tokens": 64000,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "What is the weather in San Francisco?",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-sonnet-4-5",
+              "tools": [
+                {
+                  "name": "tool_search_tool_bm25",
+                  "type": "tool_search_tool_bm25_20251119",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "Get the current weather at a specific location",
+                  "input_schema": {
+                    "properties": {
+                      "location": {
+                        "type": "string",
+                      },
+                      "unit": {
+                        "enum": [
+                          "celsius",
+                          "fahrenheit",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "name": "get_weather",
+                },
+              ],
+            }
+          `);
+        });
+
+        it('should include advanced-tool-use beta header', async () => {
+          expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+            {
+              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-version": "2023-06-01",
+              "content-type": "application/json",
+              "x-api-key": "test-api-key",
+            }
+          `);
+        });
+
+        it('should include tool search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
       });
@@ -2198,7 +2455,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2347,7 +2604,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2387,7 +2644,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2420,7 +2677,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2469,7 +2726,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.memory_20250818',
               name: 'memory',
               args: {},
@@ -2489,7 +2746,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2538,7 +2795,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2556,7 +2813,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2574,7 +2831,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250825',
               name: 'code_execution',
               args: {},
@@ -2624,7 +2881,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2704,7 +2961,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2767,7 +3024,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2816,7 +3073,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               inputSchema: { type: 'object', properties: {} },
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.code_execution_20250522',
               name: 'code_execution',
               args: {},
@@ -2867,7 +3124,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
@@ -2875,10 +3132,19 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
+        model.doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toThrowError(
+        new APICallError({
+          message: 'Overloaded',
+          url: 'https://api.anthropic.com/v1/messages',
+          requestBodyValues: {},
+          statusCode: 529,
+          responseHeaders: {},
+          responseBody:
+            '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
+          isRetryable: true,
         }),
-      ).rejects.toThrow('Overloaded');
+      );
     });
 
     describe('temperature clamping', () => {
@@ -2983,6 +3249,184 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
 
       expect(result.warnings).toStrictEqual([]);
+    });
+
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [{ type: 'clear_tool_uses_20250919' }],
+          },
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'clear_tool_uses_20250919',
+                  cleared_tool_uses: 5,
+                  cleared_input_tokens: 10000,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'clear_tool_uses_20250919',
+              clearedToolUses: 5,
+              clearedInputTokens: 10000,
+            },
+          ],
+        });
+      });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
     });
   });
 
@@ -3092,6 +3536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3224,6 +3669,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3401,6 +3847,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,
                     "container": null,
+                    "contextManagement": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -3586,6 +4033,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3685,6 +4133,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3766,6 +4215,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3833,6 +4283,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3968,6 +4419,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -4208,6 +4660,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4282,6 +4735,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+                "contextManagement": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -4386,6 +4840,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4434,6 +4889,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -4669,6 +5125,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+                  "contextManagement": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4687,151 +5144,356 @@ describe('AnthropicMessagesLanguageModel', () => {
           ]
         `);
       });
+    });
+    describe('mcp servers', () => {
+      it('should stream code execution tool results', async () => {
+        prepareChunksFixtureResponse('anthropic-mcp.1');
 
-      describe('mcp servers', () => {
-        it('should stream code execution tool results', async () => {
-          prepareChunksFixtureResponse('anthropic-mcp.1');
-
-          const result = await model.doStream({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              anthropic: {
-                mcpServers: [
-                  {
-                    type: 'url',
-                    name: 'echo',
-                    url: 'https://echo.mcp.inevitable.fyi/mcp',
-                  },
-                ],
-              } satisfies AnthropicProviderOptions,
-            },
-          });
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
-      describe('agent skills', () => {
-        it('should stream code execution tool results', async () => {
-          prepareChunksFixtureResponse(
-            'anthropic-code-execution-20250825.pptx-skill',
-          );
-
-          const result = await model.doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'anthropic.code_execution_20250825',
-                name: 'code_execution',
-                args: {},
-              },
-            ],
-            providerOptions: {
-              anthropic: {
-                container: {
-                  skills: [{ type: 'anthropic', skillId: 'pptx' }],
-                },
-              } satisfies AnthropicProviderOptions,
-            },
-          });
-
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
-      describe('code execution 20250825 tool', () => {
-        it('should stream code execution tool results', async () => {
-          prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
-
-          const result = await model.doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'anthropic.code_execution_20250825',
-                name: 'code_execution',
-                args: {},
-              },
-            ],
-          });
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-
-        it('should include file id list in code execution tool call result.', async () => {
-          prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
-
-          const result = await model.doStream({
-            prompt: TEST_PROMPT,
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'anthropic.code_execution_20250825',
-                name: 'code_execution',
-                args: {},
-              },
-            ],
-          });
-
-          expect(
-            await convertReadableStreamToArray(result.stream),
-          ).toMatchSnapshot();
-        });
-      });
-
-      describe('web fetch tool', () => {
-        describe('txt response', () => {
-          let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
-
-          beforeEach(async () => {
-            prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
-
-            result = await model.doStream({
-              prompt: TEST_PROMPT,
-              tools: [
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              mcpServers: [
                 {
-                  type: 'provider-defined',
-                  id: 'anthropic.web_fetch_20250910',
-                  name: 'web_fetch',
-                  args: { maxUses: 1 },
+                  type: 'url',
+                  name: 'echo',
+                  url: 'https://echo.mcp.inevitable.fyi/mcp',
                 },
               ],
-            });
-          });
-
-          it('should stream web search tool results', async () => {
-            expect(
-              await convertReadableStreamToArray(result.stream),
-            ).toMatchSnapshot();
-          });
+            } satisfies AnthropicProviderOptions,
+          },
         });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('agent skills', () => {
+      it('should stream code execution tool results', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pptx' }],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('function tool', () => {
+      it('should stream tool deltas', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+            `data: {"type": "ping"}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+            `data: {"type":"content_block_stop","index":0    }\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+            `data: {"type":"content_block_stop","index":1              }\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+            `data: {"type":"message_stop"           }\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                "modelId": "claude-3-haiku-20240307",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "Okay",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": "!",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"value",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "":",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""Spark",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "le",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": " Day"}",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"value":"Sparkle Day"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": null,
+                    "container": null,
+                    "contextManagement": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "input_tokens": 441,
+                      "output_tokens": 65,
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": undefined,
+                  "inputTokens": 441,
+                  "outputTokens": 65,
+                  "totalTokens": 506,
+                },
+              },
+            ]
+          `);
       });
 
-      describe('web search tool', () => {
+      it('should support tools with empty parameters in streaming', async () => {
+        prepareChunksFixtureResponse('anthropic-tool-no-args');
+
+        const result = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
+                "modelId": "claude-sonnet-4-5-20250929",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "I'll update the issue list for",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": " you.",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": "tool-calls",
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "contextManagement": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 565,
+                      "output_tokens": 48,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "cachedInputTokens": 0,
+                  "inputTokens": 565,
+                  "outputTokens": 48,
+                  "totalTokens": 613,
+                },
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('code execution 20250825 tool', () => {
+      it('should stream code execution tool results', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+
+      it('should include file id list in code execution tool call result.', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-20250825.2');
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('web fetch tool', () => {
+      describe('txt response', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
 
         beforeEach(async () => {
-          prepareChunksFixtureResponse('anthropic-web-search-tool.1');
+          prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
 
           result = await model.doStream({
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
-                id: 'anthropic.web_search_20250305',
-                name: 'web_search',
-                args: {
-                  maxUses: 1,
-                  userLocation: {
-                    type: 'approximate',
-                    country: 'US',
-                  },
-                },
+                type: 'provider',
+                id: 'anthropic.web_fetch_20250910',
+                name: 'web_fetch',
+                args: { maxUses: 1 },
               },
             ],
           });
@@ -4845,16 +5507,263 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
-    it('should throw an api error when the server is overloaded', async () => {
+    describe('web search tool', () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-web-search-tool.1');
+
+        result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20250305',
+              name: 'web_search',
+              args: {
+                maxUses: 1,
+                userLocation: {
+                  type: 'approximate',
+                  country: 'US',
+                },
+              },
+            },
+          ],
+        });
+      });
+
+      it('should stream web search tool results', async () => {
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search tool', () => {
+      describe('regex variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-regex.1');
+
+          result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'text', text: 'Find out weather data in SF' },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream tool search regex results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+
+      describe('bm25 variant', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+
+        beforeEach(async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-bm25.1');
+
+          result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                    unit: { type: 'string', enum: ['celsius', 'fahrenheit'] },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should stream tool search bm25 results', async () => {
+          expect(
+            await convertReadableStreamToArray(result.stream),
+          ).toMatchSnapshot();
+        });
+      });
+    });
+
+    it('should throw an api error when the server is returning a 529 overloaded error', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'error',
         status: 529,
         body: '{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}',
       };
 
-      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
-        'Overloaded',
-      );
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}",
+            "responseHeaders": {
+              "content-length": "90",
+              "content-type": "text/plain",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
+    });
+
+    it('should throw an api error when the first stream chunk is an overloaded error', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `event: error\n`,
+          `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n`,
+          `\n`,
+        ],
+      };
+
+      try {
+        await model.doStream({ prompt: TEST_PROMPT });
+        expect.fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(APICallError);
+        const apiCallError = error as APICallError;
+        expect({
+          message: apiCallError.message,
+          url: apiCallError.url,
+          requestBodyValues: apiCallError.requestBodyValues,
+          statusCode: apiCallError.statusCode,
+          responseHeaders: apiCallError.responseHeaders,
+          responseBody: apiCallError.responseBody,
+          isRetryable: apiCallError.isRetryable,
+        }).toMatchInlineSnapshot(`
+          {
+            "isRetryable": true,
+            "message": "Overloaded",
+            "requestBodyValues": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "cache_control": undefined,
+                      "text": "Hello",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-3-haiku-20240307",
+              "stop_sequences": undefined,
+              "stream": true,
+              "system": undefined,
+              "temperature": undefined,
+              "tool_choice": undefined,
+              "tools": undefined,
+              "top_k": undefined,
+              "top_p": undefined,
+            },
+            "responseBody": "{"type":"overloaded_error","message":"Overloaded"}",
+            "responseHeaders": {
+              "cache-control": "no-cache",
+              "connection": "keep-alive",
+              "content-type": "text/event-stream",
+            },
+            "statusCode": 529,
+            "url": "https://api.anthropic.com/v1/messages",
+          }
+        `);
+      }
     });
 
     it('should forward overloaded error during streaming', async () => {
@@ -4864,6 +5773,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
           `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
           `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `event: error\n`,
           `data: {"type":"error","error":{"details":null,"type":"overloaded_error","message":"Overloaded"}}\n\n`,
         ],
       };

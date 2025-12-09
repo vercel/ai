@@ -1,21 +1,23 @@
 import {
-  SharedV3Warning,
   LanguageModelV3Prompt,
   LanguageModelV3ToolCallPart,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
   isNonNullable,
   parseProviderOptions,
+  ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { applyPatchOutputSchema } from '../tool/apply-patch';
 import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
+import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -33,16 +35,22 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 
 export async function convertToOpenAIResponsesInput({
   prompt,
+  toolNameMapping,
   systemMessageMode,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
+  hasShellTool = false,
+  hasApplyPatchTool = false,
 }: {
   prompt: LanguageModelV3Prompt;
+  toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
+  hasShellTool?: boolean;
+  hasApplyPatchTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;
@@ -138,7 +146,6 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV3ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -162,8 +169,6 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              toolCallParts[part.toolCallId] = part;
-
               if (part.providerExecuted) {
                 break;
               }
@@ -178,7 +183,11 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              if (hasLocalShellTool && part.toolName === 'local_shell') {
+              const resolvedToolName = toolNameMapping.toProviderToolName(
+                part.toolName,
+              );
+
+              if (hasLocalShellTool && resolvedToolName === 'local_shell') {
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
@@ -200,10 +209,30 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              if (hasShellTool && resolvedToolName === 'shell') {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: shellInputSchema,
+                });
+                input.push({
+                  type: 'shell_call',
+                  call_id: part.toolCallId,
+                  id: id!,
+                  status: 'completed',
+                  action: {
+                    commands: parsedInput.action.commands,
+                    timeout_ms: parsedInput.action.timeoutMs,
+                    max_output_length: parsedInput.action.maxOutputLength,
+                  },
+                });
+
+                break;
+              }
+
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
-                name: part.toolName,
+                name: resolvedToolName,
                 arguments: JSON.stringify(part.input),
                 id,
               });
@@ -305,9 +334,13 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           const output = part.output;
 
+          const resolvedToolName = toolNameMapping.toProviderToolName(
+            part.toolName,
+          );
+
           if (
             hasLocalShellTool &&
-            part.toolName === 'local_shell' &&
+            resolvedToolName === 'local_shell' &&
             output.type === 'json'
           ) {
             const parsedOutput = await validateTypes({
@@ -318,6 +351,53 @@ export async function convertToOpenAIResponsesInput({
             input.push({
               type: 'local_shell_call_output',
               call_id: part.toolCallId,
+              output: parsedOutput.output,
+            });
+            break;
+          }
+
+          if (
+            hasShellTool &&
+            resolvedToolName === 'shell' &&
+            output.type === 'json'
+          ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: shellOutputSchema,
+            });
+
+            input.push({
+              type: 'shell_call_output',
+              call_id: part.toolCallId,
+              output: parsedOutput.output.map(item => ({
+                stdout: item.stdout,
+                stderr: item.stderr,
+                outcome:
+                  item.outcome.type === 'timeout'
+                    ? { type: 'timeout' as const }
+                    : {
+                        type: 'exit' as const,
+                        exit_code: item.outcome.exitCode,
+                      },
+              })),
+            });
+            break;
+          }
+
+          if (
+            hasApplyPatchTool &&
+            part.toolName === 'apply_patch' &&
+            output.type === 'json'
+          ) {
+            const parsedOutput = await validateTypes({
+              value: output.value,
+              schema: applyPatchOutputSchema,
+            });
+
+            input.push({
+              type: 'apply_patch_call_output',
+              call_id: part.toolCallId,
+              status: parsedOutput.status,
               output: parsedOutput.output,
             });
             break;

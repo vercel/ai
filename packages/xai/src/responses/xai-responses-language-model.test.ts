@@ -336,7 +336,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -363,7 +363,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.web_search',
               name: 'web_search',
               args: {
@@ -401,7 +401,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.x_search',
               name: 'x_search',
               args: {},
@@ -421,7 +421,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -576,13 +576,13 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
             },
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -606,7 +606,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -699,7 +699,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},

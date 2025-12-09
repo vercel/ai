@@ -101,8 +101,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     if (
       tools?.some(
         tool =>
-          tool.type === 'provider-defined' &&
-          tool.id === 'google.vertex_rag_store',
+          tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
       ) &&
       !this.config.provider.startsWith('google.vertex.')
     ) {

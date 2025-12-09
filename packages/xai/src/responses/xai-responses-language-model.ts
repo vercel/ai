@@ -83,16 +83,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const webSearchToolName = tools?.find(
-      tool => tool.type === 'provider-defined' && tool.id === 'xai.web_search',
+      tool => tool.type === 'provider' && tool.id === 'xai.web_search',
     )?.name;
 
     const xSearchToolName = tools?.find(
-      tool => tool.type === 'provider-defined' && tool.id === 'xai.x_search',
+      tool => tool.type === 'provider' && tool.id === 'xai.x_search',
     )?.name;
 
     const codeExecutionToolName = tools?.find(
-      tool =>
-        tool.type === 'provider-defined' && tool.id === 'xai.code_execution',
+      tool => tool.type === 'provider' && tool.id === 'xai.code_execution',
     )?.name;
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({

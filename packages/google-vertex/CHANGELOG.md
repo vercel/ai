@@ -1,5 +1,144 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+- Updated dependencies [4d2e88e]
+  - @ai-sdk/google@3.0.0-beta.67
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [b2dbfbf]
+  - @ai-sdk/anthropic@3.0.0-beta.77
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/anthropic@3.0.0-beta.76
+  - @ai-sdk/google@3.0.0-beta.66
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [0ae783e]
+  - @ai-sdk/anthropic@3.0.0-beta.75
+
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/anthropic@3.0.0-beta.74
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/google@3.0.0-beta.65
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/anthropic@3.0.0-beta.73
+  - @ai-sdk/google@3.0.0-beta.64
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [a5f77a6]
+  - @ai-sdk/anthropic@3.0.0-beta.72
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/anthropic@3.0.0-beta.71
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/google@3.0.0-beta.63
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- 00dfa76: feat(provider/google-vertex): Add support for the imageSize provider option
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [f13958c]
+  - @ai-sdk/anthropic@3.0.0-beta.70
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [589a4ee]
+  - @ai-sdk/anthropic@3.0.0-beta.69
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [9e35785]
+  - @ai-sdk/anthropic@3.0.0-beta.68
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [eb56fc6]
+  - @ai-sdk/anthropic@3.0.0-beta.67
+
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- cdb463a: update google-auth-library to ^10.5.0
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/anthropic@3.0.0-beta.66
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/google@3.0.0-beta.62
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/anthropic@3.0.0-beta.65
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/google@3.0.0-beta.61
+
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/anthropic@3.0.0-beta.64
+  - @ai-sdk/google@3.0.0-beta.60
+
 ## 4.0.0-beta.87
 
 ### Patch Changes
