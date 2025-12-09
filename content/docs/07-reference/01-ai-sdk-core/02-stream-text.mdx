@@ -42,7 +42,7 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'system',
-      type: 'string | SystemModelMessage',
+      type: 'string | SystemModelMessage | SystemModelMessage[]',
       description:
         'The system prompt to use that specifies the behavior of the model.',
     },
@@ -633,7 +633,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'system',
-              type: 'string | SystemModelMessage',
+              type: 'string | SystemModelMessage | SystemModelMessage[]',
               isOptional: true,
               description: 'Change the system prompt for this step.',
             },
@@ -673,7 +673,7 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'system',
-              type: 'string | SystemModelMessage | undefined',
+              type: 'string | SystemModelMessage | SystemModelMessage[] | undefined',
               description: 'The system prompt.',
             },
             {
@@ -1019,31 +1019,70 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description:
+                        'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
                       description:
-                        'The number of output (completion) tokens used.',
+                        'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
+                      description: 'The total number of tokens used.',
+                    },
+                    {
+                      name: 'raw',
+                      type: 'object | undefined',
+                      isOptional: true,
                       description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-                    },
-                    {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                        "Raw usage information from the provider. This is the provider's original usage information and may include additional fields.",
                     },
                   ],
                 },
@@ -1055,7 +1094,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The full text that has been generated.',
             },
             {
-              name: 'reasoning',
+              name: 'reasoningText',
               type: 'string | undefined',
               description:
                 'The reasoning text of the model (only available for some models).',
@@ -1225,31 +1264,70 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description:
+                        'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
                       description:
-                        'The number of output (completion) tokens used.',
+                        'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
+                      description: 'The total number of tokens used.',
+                    },
+                    {
+                      name: 'raw',
+                      type: 'object | undefined',
+                      isOptional: true,
                       description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-                    },
-                    {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                        "Raw usage information from the provider. This is the provider's original usage information and may include additional fields.",
                     },
                   ],
                 },
@@ -1314,7 +1392,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The reasoning text of the model (only available for some models).',
             },
             {
-              name: 'reasoningDetails',
+              name: 'reasoning',
               type: 'Array<ReasoningDetail>',
               description:
                 'The reasoning details of the model (only available for some models).',
@@ -1579,39 +1657,76 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Promise<LanguageModelUsage>',
       description: 'The total token usage of the generated response. When there are multiple steps, the usage is the sum of all step usages. Automatically consumes the stream.',
       properties: [
-        {
-          type: 'LanguageModelUsage',
-          parameters: [
-            {
-              name: 'inputTokens',
-              type: 'number | undefined',
-              description: 'The number of input (prompt) tokens used.',
-            },
-            {
-              name: 'outputTokens',
-              type: 'number | undefined',
-              description: 'The number of output (completion) tokens used.',
-            },
-            {
-              name: 'totalTokens',
-              type: 'number | undefined',
-              description:
-                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-            },
-            {
-              name: 'reasoningTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of reasoning tokens used.',
-            },
-            {
-              name: 'cachedInputTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of cached input tokens.',
-            },
-          ],
-        },
+                  {
+                  type: 'LanguageModelUsage',
+                  parameters: [
+                    {
+                      name: 'inputTokens',
+                      type: 'number | undefined',
+                      description: 'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
+                    },
+                    {
+                      name: 'outputTokens',
+                      type: 'number | undefined',
+                      description: 'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
+                    },
+                    {
+                      name: 'totalTokens',
+                      type: 'number | undefined',
+                      description: 'The total number of tokens used.',
+                    },
+                    {
+                      name: 'raw',
+                      type: 'object | undefined',
+                      isOptional: true,
+                      description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
+                    },
+                  ],
+                },
       ],
     },
     {
@@ -1929,30 +2044,67 @@ To see `streamText` in action, check out [these examples](#examples).
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description: 'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description: 'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
-                      description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                      description: 'The total number of tokens used.',
                     },
                     {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
+                      name: 'raw',
+                      type: 'object | undefined',
                       isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                      description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
                     },
                   ],
                 },
@@ -2366,36 +2518,73 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'LanguageModelUsage',
               description: 'The token usage of the generated text.',
               properties: [
-                {
+                 {
                   type: 'LanguageModelUsage',
                   parameters: [
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description: 'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description: 'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
-                      description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                      description: 'The total number of tokens used.',
                     },
                     {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
+                      name: 'raw',
+                      type: 'object | undefined',
                       isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                      description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
                     },
                   ],
                 },
@@ -2443,36 +2632,73 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'LanguageModelUsage',
               description: 'The total token usage of the generated text.',
               properties: [
-                {
+          {
                   type: 'LanguageModelUsage',
                   parameters: [
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description: 'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          name: 'noCacheTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of non-cached input (prompt) tokens used.',
+                        },
+                        {
+                          name: 'cacheReadTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens read.',
+                        },
+                        {
+                          name: 'cacheWriteTokens',
+                          type: 'number | undefined',
+                          description:
+                            'The number of cached input (prompt) tokens written.',
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
-                      description: 'The number of output (completion) tokens used.',
+                      description: 'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          name: 'textTokens',
+                          type: 'number | undefined',
+                          description: 'The number of text tokens used.',
+                        },
+                        {
+                          name: 'reasoningTokens',
+                          type: 'number | undefined',
+                          description: 'The number of reasoning tokens used.',
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
-                      description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
+                      description: 'The total number of tokens used.',
                     },
                     {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
+                      name: 'raw',
+                      type: 'object | undefined',
                       isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                      description: 'Raw usage information from the provider. This is the provider\'s original usage information and may include additional fields.',
                     },
                   ],
                 },

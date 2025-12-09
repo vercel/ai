@@ -3764,10 +3764,30 @@ Sonora's style emerged from indigenous Yaqui and Mayo tribes, who used desert fo
     "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": 216,
-      "outputTokens": 863,
-      "reasoningTokens": 237,
-      "totalTokens": 1079,
+      "inputTokens": {
+        "cacheRead": 192,
+        "cacheWrite": undefined,
+        "noCache": 24,
+        "total": 216,
+      },
+      "outputTokens": {
+        "reasoning": 237,
+        "text": 626,
+        "total": 863,
+      },
+      "raw": {
+        "input_tokens": 216,
+        "input_tokens_details": {
+          "cached_tokens": 192,
+        },
+        "num_server_side_tools_used": 0,
+        "num_sources_used": 0,
+        "output_tokens": 863,
+        "output_tokens_details": {
+          "reasoning_tokens": 237,
+        },
+        "total_tokens": 1079,
+      },
     },
   },
 ]
@@ -7062,10 +7082,30 @@ Sonoran's style is practical for its hot, dry climate—dishes are quick to prep
     "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": 216,
-      "outputTokens": 831,
-      "reasoningTokens": 253,
-      "totalTokens": 1047,
+      "inputTokens": {
+        "cacheRead": 192,
+        "cacheWrite": undefined,
+        "noCache": 24,
+        "total": 216,
+      },
+      "outputTokens": {
+        "reasoning": 253,
+        "text": 578,
+        "total": 831,
+      },
+      "raw": {
+        "input_tokens": 216,
+        "input_tokens_details": {
+          "cached_tokens": 192,
+        },
+        "num_server_side_tools_used": 0,
+        "num_sources_used": 0,
+        "output_tokens": 831,
+        "output_tokens_details": {
+          "reasoning_tokens": 253,
+        },
+        "total_tokens": 1047,
+      },
     },
   },
 ]
@@ -10477,10 +10517,30 @@ Sonoran cuisine reflects Indigenous roots from tribes like the Tohono O'odham an
     "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": 216,
-      "outputTokens": 923,
-      "reasoningTokens": 323,
-      "totalTokens": 1139,
+      "inputTokens": {
+        "cacheRead": 192,
+        "cacheWrite": undefined,
+        "noCache": 24,
+        "total": 216,
+      },
+      "outputTokens": {
+        "reasoning": 323,
+        "text": 600,
+        "total": 923,
+      },
+      "raw": {
+        "input_tokens": 216,
+        "input_tokens_details": {
+          "cached_tokens": 192,
+        },
+        "num_server_side_tools_used": 0,
+        "num_sources_used": 0,
+        "output_tokens": 923,
+        "output_tokens_details": {
+          "reasoning_tokens": 323,
+        },
+        "total_tokens": 1139,
+      },
     },
   },
 ]
@@ -11917,10 +11977,30 @@ Note: "XAI" can also refer to "Explainable AI," a field in machine learning that
     "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": 1875,
-      "outputTokens": 695,
-      "reasoningTokens": 397,
-      "totalTokens": 2570,
+      "inputTokens": {
+        "cacheRead": 1578,
+        "cacheWrite": undefined,
+        "noCache": 297,
+        "total": 1875,
+      },
+      "outputTokens": {
+        "reasoning": 397,
+        "text": 298,
+        "total": 695,
+      },
+      "raw": {
+        "input_tokens": 1875,
+        "input_tokens_details": {
+          "cached_tokens": 1578,
+        },
+        "num_server_side_tools_used": 1,
+        "num_sources_used": 0,
+        "output_tokens": 695,
+        "output_tokens_details": {
+          "reasoning_tokens": 397,
+        },
+        "total_tokens": 2570,
+      },
     },
   },
 ]

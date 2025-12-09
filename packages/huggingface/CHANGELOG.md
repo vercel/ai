@@ -1,5 +1,24 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.42
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/openai-compatible@2.0.0-beta.46
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 1.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/openai-compatible@2.0.0-beta.45
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
 ## 1.0.0-beta.40
 
 ### Patch Changes
