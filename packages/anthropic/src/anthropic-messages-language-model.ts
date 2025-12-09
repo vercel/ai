@@ -477,7 +477,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // structured output:
-    if (useStructuredOutput) {
+    // Only pass beta when actually using native output_format
+    const usingNativeOutputFormat =
+      useStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
+    if (usingNativeOutputFormat) {
       betas.add('structured-outputs-2025-11-13');
     }
 
