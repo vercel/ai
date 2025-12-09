@@ -24,7 +24,7 @@ export const webFetch_20250910OutputSchema = lazySchema(() =>
       url: z.string(),
       content: z.object({
         type: z.literal('document'),
-        title: z.string(),
+        title: z.string().nullable(),
         citations: z.object({ enabled: z.boolean() }).optional(),
         source: z.union([
           z.object({
@@ -76,7 +76,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
       /**
        * Title of the document
        */
-      title: string;
+      title: string | null;
 
       /**
        * Citation configuration for the document
@@ -84,16 +84,16 @@ const factory = createProviderToolFactoryWithOutputSchema<
       citations?: { enabled: boolean };
 
       source:
-        | {
-            type: 'base64';
-            mediaType: 'application/pdf';
-            data: string;
-          }
-        | {
-            type: 'text';
-            mediaType: 'text/plain';
-            data: string;
-          };
+      | {
+        type: 'base64';
+        mediaType: 'application/pdf';
+        data: string;
+      }
+      | {
+        type: 'text';
+        mediaType: 'text/plain';
+        data: string;
+      };
     };
 
     /**
