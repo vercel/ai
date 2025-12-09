@@ -5,6 +5,7 @@ import { MockLanguageModelV3 } from 'ai/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { streamUI } from './stream-ui';
+import { asLanguageModelUsage } from 'ai/internal';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -229,7 +230,7 @@ describe('rsc - streamUI() onFinish callback', () => {
   });
 
   it('should contain token usage', () => {
-    expect(result.usage).toStrictEqual(testUsage);
+    expect(result.usage).toStrictEqual(asLanguageModelUsage(testUsage));
   });
 
   it('should contain finish reason', async () => {
