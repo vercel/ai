@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.54
+
+### Patch Changes
+
+- ccf34f3: fix(anthropic): make title field nullable in web_fetch and web_search tool output schemas
+
 ## 2.0.53
 
 ### Patch Changes
