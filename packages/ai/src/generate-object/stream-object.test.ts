@@ -3,6 +3,7 @@ import {
   SharedV3Warning,
   LanguageModelV3StreamPart,
   TypeValidationError,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -22,15 +23,21 @@ import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { asLanguageModelUsage } from '../types/usage';
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
-
 function createTestModel({
   warnings = [],
   stream = convertArrayToReadableStream([
@@ -351,8 +358,18 @@ describe('streamObject', () => {
         expect(await result.usage).toMatchInlineSnapshot(`
           {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           }
@@ -874,7 +891,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -918,7 +935,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -959,7 +976,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -1802,7 +1819,7 @@ describe('streamObject', () => {
             timestamp: new Date(0),
             modelId: 'mock-model-id',
           },
-          usage: testUsage,
+          usage: asLanguageModelUsage(testUsage),
           finishReason: 'stop',
         });
       }
