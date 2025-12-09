@@ -67,4 +67,79 @@ describe('google-vertex-provider-node', () => {
       keyFile: 'path/to/key.json',
     });
   });
+
+  describe('Express Mode', () => {
+    it('should use API key header when apiKey is provided', async () => {
+      createVertexNode({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+      });
+
+      expect(createVertexOriginal).toHaveBeenCalledTimes(1);
+      const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+
+      expect(await resolve(passedOptions?.headers)).toStrictEqual({
+        'x-goog-api-key': 'test-api-key',
+      });
+    });
+
+    it('should merge custom headers with API key in Express Mode', async () => {
+      createVertexNode({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+        headers: async () => ({
+          'Custom-Header': 'custom-value',
+        }),
+      });
+
+      const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+
+      expect(await resolve(passedOptions?.headers)).toEqual({
+        'x-goog-api-key': 'test-api-key',
+        'Custom-Header': 'custom-value',
+      });
+    });
+
+    it('should prioritize API key over OAuth when both apiKey and googleAuthOptions are provided', async () => {
+      createVertexNode({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+        googleAuthOptions: {
+          keyFile: 'path/to/key.json',
+        },
+      });
+
+      const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+      const headers = await resolve(passedOptions?.headers);
+
+      expect(headers).toHaveProperty('x-goog-api-key', 'test-api-key');
+      expect(headers).not.toHaveProperty('Authorization');
+      expect(generateAuthToken).not.toHaveBeenCalled();
+    });
+
+    it('should not call generateAuthToken when API key is present', async () => {
+      createVertexNode({
+        project: 'test-project',
+        apiKey: 'test-api-key',
+      });
+
+      const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+      await resolve(passedOptions?.headers);
+
+      expect(generateAuthToken).not.toHaveBeenCalled();
+    });
+
+    it('should use OAuth mode when apiKey is not provided', async () => {
+      createVertexNode({
+        project: 'test-project',
+      });
+
+      const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
+      const headers = await resolve(passedOptions?.headers);
+
+      expect(headers).toHaveProperty('Authorization', 'Bearer mock-auth-token');
+      expect(headers).not.toHaveProperty('x-goog-api-key');
+      expect(generateAuthToken).toHaveBeenCalled();
+    });
+  });
 });

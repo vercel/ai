@@ -25,12 +25,25 @@ export function createVertex(
 ): GoogleVertexProvider {
   return createVertexOriginal({
     ...options,
-    headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken(
-        options.googleAuthOptions,
-      )}`,
-      ...(await resolve(options.headers)),
-    }),
+    headers: async () => {
+      const resolvedHeaders = await resolve(options.headers);
+
+      // Express Mode - Use API key authentication
+      if (options.apiKey) {
+        return {
+          'x-goog-api-key': options.apiKey,
+          ...resolvedHeaders,
+        };
+      }
+
+      // OAuth Mode - Use Bearer token authentication
+      return {
+        Authorization: `Bearer ${await generateAuthToken(
+          options.googleAuthOptions,
+        )}`,
+        ...resolvedHeaders,
+      };
+    },
   });
 }
 

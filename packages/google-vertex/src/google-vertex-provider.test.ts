@@ -246,4 +246,91 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+
+  describe('Express Mode', () => {
+    it('should use generativelanguage.googleapis.com URL when apiKey is provided', () => {
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+        apiKey: 'test-api-key',
+      });
+      provider('test-model-id');
+
+      expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+        'test-model-id',
+        expect.objectContaining({
+          baseURL:
+            'https://generativelanguage.googleapis.com/v1beta/projects/test-project/locations/us-central1/publishers/google',
+        }),
+      );
+    });
+
+    it('should use generativelanguage.googleapis.com for embedding model in Express Mode', () => {
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+        apiKey: 'test-api-key',
+      });
+      provider.textEmbeddingModel('test-embedding-model');
+
+      expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
+        'test-embedding-model',
+        expect.objectContaining({
+          baseURL:
+            'https://generativelanguage.googleapis.com/v1beta/projects/test-project/locations/us-central1/publishers/google',
+        }),
+      );
+    });
+
+    it('should use generativelanguage.googleapis.com for image model in Express Mode', () => {
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+        apiKey: 'test-api-key',
+      });
+      provider.image('imagen-3.0-generate-002');
+
+      expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+        'imagen-3.0-generate-002',
+        expect.objectContaining({
+          baseURL:
+            'https://generativelanguage.googleapis.com/v1beta/projects/test-project/locations/us-central1/publishers/google',
+        }),
+      );
+    });
+
+    it('should prefer explicit baseURL over Express Mode URL', () => {
+      const customBaseURL = 'https://custom-endpoint.example.com';
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+        apiKey: 'test-api-key',
+        baseURL: customBaseURL,
+      });
+      provider('test-model-id');
+
+      expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+        'test-model-id',
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
+    });
+
+    it('should use OAuth URL when no API key is provided', () => {
+      const provider = createVertex({
+        project: 'test-project',
+        location: 'us-central1',
+      });
+      provider('test-model-id');
+
+      expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+        'test-model-id',
+        expect.objectContaining({
+          baseURL:
+            'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
+        }),
+      );
+    });
+  });
 });
