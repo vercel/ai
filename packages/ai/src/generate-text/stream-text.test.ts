@@ -7090,9 +7090,11 @@ describe('streamText', () => {
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let doStreamCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
+        modelId: string;
         stepNumber: number;
         steps: Array<StepResult<any>>;
         messages: Array<ModelMessage>;
+        experimental_context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -7161,10 +7163,23 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
+          experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
-          prepareStep: async ({ model, stepNumber, steps, messages }) => {
-            prepareStepCalls.push({ stepNumber, steps, messages });
+          prepareStep: async ({
+            model,
+            stepNumber,
+            steps,
+            messages,
+            experimental_context,
+          }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps,
+              messages,
+              experimental_context,
+            });
 
             if (stepNumber === 0) {
               return {
@@ -7179,6 +7194,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { context: 'state2' },
               };
             }
 
@@ -7186,6 +7202,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { context: 'state3' },
               };
             }
           },
@@ -7328,12 +7345,16 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
+              "experimental_context": {
+                "context": "state1",
+              },
               "messages": [
                 {
                   "content": "test-input",
                   "role": "user",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -7503,6 +7524,9 @@ describe('streamText', () => {
               ],
             },
             {
+              "experimental_context": {
+                "context": "state2",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7538,6 +7562,7 @@ describe('streamText', () => {
                   "role": "tool",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -14365,6 +14390,33 @@ describe('streamText', () => {
       });
     });
 
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+            response: {},
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      await result.consumeStream();
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
     it('should send context in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
@@ -17100,35 +17152,6 @@ describe('streamText', () => {
       `);
 
       expect(await result.text).toBe('response from without-image-url-support');
-    });
-  });
-
-  describe('prepareStep with experimental_context', () => {
-    it('should pass experimental_context to prepareStep', async () => {
-      let capturedContext: unknown;
-
-      const result = streamText({
-        model: new MockLanguageModelV3({
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-end', id: '1' },
-              { type: 'finish', finishReason: 'stop', usage: testUsage },
-            ]),
-            response: {},
-          }),
-        }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
-          return undefined;
-        },
-        prompt: 'test',
-      });
-
-      await result.consumeStream();
-      expect(capturedContext).toEqual({ myData: 'test-value' });
     });
   });
 });
