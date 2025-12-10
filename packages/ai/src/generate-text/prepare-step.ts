@@ -3,18 +3,18 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
 
 /**
-Function that you can use to provide different settings for a step.
-
-@param options - The options for the step.
-@param options.steps - The steps that have been executed so far.
-@param options.stepNumber - The number of the step that is being executed.
-@param options.model - The model that is being used.
-@param options.messages - The messages that will be sent to the model for the current step.
-@param options.experimental_context - The context passed via the experimental_context setting (experimental).
-
-@returns An object that contains the settings for the step.
-If you return undefined (or for undefined settings), the settings from the outer level will be used.
-    */
+ * Function that you can use to provide different settings for a step.
+ *
+ * @param options - The options for the step.
+ * @param options.steps - The steps that have been executed so far.
+ * @param options.stepNumber - The number of the step that is being executed.
+ * @param options.model - The model that is being used.
+ * @param options.messages - The messages that will be sent to the model for the current step.
+ * @param options.experimental_context - The context passed via the experimental_context setting (experimental).
+ *
+ * @returns An object that contains the settings for the step.
+ * If you return undefined (or for undefined settings), the settings from the outer level will be used.
+ */
 export type PrepareStepFunction<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
 > = (options: {
