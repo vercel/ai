@@ -12,6 +12,18 @@ import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
 import { OpenAIResponsesTool } from './openai-responses-api';
 
+/**
+ * Maps the SDK's `needsApproval` boolean to OpenAI's `require_approval` format.
+ *
+ * @param needsApproval - Whether the tool needs approval before execution
+ * @returns OpenAI's require_approval value: 'always' if true, 'never' otherwise
+ */
+function mapNeedsApprovalToRequireApproval(
+  needsApproval: boolean | undefined,
+): 'always' | 'never' {
+  return needsApproval === true ? 'always' : 'never';
+}
+
 export async function prepareResponsesTools({
   tools,
   toolChoice,
@@ -189,7 +201,9 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              require_approval: 'never',
+              require_approval: mapNeedsApprovalToRequireApproval(
+                tool.needsApproval,
+              ),
               server_description: args.serverDescription,
               server_url: args.serverUrl,
             });

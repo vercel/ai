@@ -21,6 +21,7 @@ import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
+  OpenAIResponsesMcpApprovalResponse,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
 
@@ -333,6 +334,31 @@ export async function convertToOpenAIResponsesInput({
       case 'tool': {
         for (const part of content) {
           const output = part.output;
+
+          // Check if this is an MCP approval response
+          const mcpApprovalRequestId = (
+            part.providerOptions?.openai as
+              | { mcpApprovalRequestId?: string }
+              | undefined
+          )?.mcpApprovalRequestId;
+
+          if (mcpApprovalRequestId != null) {
+            // This is an MCP approval response - extract approval info and send to OpenAI
+            const approved =
+              output.type === 'json' &&
+              typeof output.value === 'object' &&
+              output.value !== null &&
+              'approved' in output.value
+                ? Boolean(output.value.approved)
+                : output.type !== 'execution-denied';
+
+            input.push({
+              type: 'mcp_approval_response',
+              approve: approved,
+              approval_request_id: mcpApprovalRequestId,
+            } satisfies OpenAIResponsesMcpApprovalResponse);
+            continue;
+          }
 
           const resolvedToolName = toolNameMapping.toProviderToolName(
             part.toolName,

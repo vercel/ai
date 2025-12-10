@@ -25,4 +25,10 @@ export type LanguageModelV3ProviderTool = {
    * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
    */
   args: Record<string, unknown>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
+   * For provider-executed tools, this is passed to the provider to handle approval.
+   */
+  needsApproval?: boolean;
 };

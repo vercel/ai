@@ -65,6 +65,9 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           name,
           id: tool.id,
           args: tool.args,
+          ...(tool.needsApproval != null
+            ? { needsApproval: tool.needsApproval === true }
+            : {}),
         });
         break;
       default: {

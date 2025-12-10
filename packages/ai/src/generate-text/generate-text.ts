@@ -353,24 +353,32 @@ A function that attempts to repair a tool call that failed to parse.
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
-        const { approvedToolApprovals, deniedToolApprovals } =
-          collectToolApprovals<TOOLS>({ messages: initialMessages });
+        const {
+          approvedToolApprovals,
+          deniedToolApprovals,
+          mcpApprovedApprovals,
+          mcpDeniedApprovals,
+        } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-        if (
-          deniedToolApprovals.length > 0 ||
-          approvedToolApprovals.length > 0
-        ) {
-          const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
-              toolApproval => toolApproval.toolCall,
-            ),
-            tools: tools as TOOLS,
-            tracer,
-            telemetry,
-            messages: initialMessages,
-            abortSignal,
-            experimental_context,
-          });
+        const hasRegularApprovals =
+          deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0;
+        const hasMcpApprovals =
+          mcpApprovedApprovals.length > 0 || mcpDeniedApprovals.length > 0;
+
+        if (hasRegularApprovals || hasMcpApprovals) {
+          const toolOutputs = hasRegularApprovals
+            ? await executeTools({
+                toolCalls: approvedToolApprovals.map(
+                  toolApproval => toolApproval.toolCall,
+                ),
+                tools: tools as TOOLS,
+                tracer,
+                telemetry,
+                messages: initialMessages,
+                abortSignal,
+                experimental_context,
+              })
+            : [];
 
           responseMessages.push({
             role: 'tool',
@@ -397,6 +405,36 @@ A function that attempts to repair a tool call that failed to parse.
                 output: {
                   type: 'execution-denied' as const,
                   reason: toolApproval.approvalResponse.reason,
+                },
+              })),
+              // add MCP approval responses (approved) - these will be converted to mcp_approval_response by the provider:
+              ...mcpApprovedApprovals.map(mcpApproval => ({
+                type: 'tool-result' as const,
+                toolCallId: mcpApproval.toolCall.toolCallId,
+                toolName: mcpApproval.toolCall.toolName,
+                output: {
+                  type: 'json' as const,
+                  value: { approved: true },
+                },
+                providerOptions: {
+                  openai: {
+                    mcpApprovalRequestId: mcpApproval.mcpApprovalRequestId,
+                  },
+                },
+              })),
+              // add MCP approval responses (denied) - these will be converted to mcp_approval_response by the provider:
+              ...mcpDeniedApprovals.map(mcpApproval => ({
+                type: 'tool-result' as const,
+                toolCallId: mcpApproval.toolCall.toolCallId,
+                toolName: mcpApproval.toolCall.toolName,
+                output: {
+                  type: 'execution-denied' as const,
+                  reason: mcpApproval.approvalResponse.reason,
+                },
+                providerOptions: {
+                  openai: {
+                    mcpApprovalRequestId: mcpApproval.mcpApprovalRequestId,
+                  },
                 },
               })),
             ],
@@ -973,28 +1011,33 @@ function asContent<TOOLS extends ToolSet>({
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
-  return [
-    ...content.map(part => {
+  // Use flatMap to allow emitting multiple parts for MCP approval requests
+  const mappedContent: Array<ContentPart<TOOLS>> = content.flatMap(
+    (part): Array<ContentPart<TOOLS>> => {
       switch (part.type) {
         case 'text':
         case 'reasoning':
         case 'source':
-          return part;
+          return [part];
 
         case 'file': {
-          return {
-            type: 'file' as const,
-            file: new DefaultGeneratedFile(part),
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-          };
+          return [
+            {
+              type: 'file' as const,
+              file: new DefaultGeneratedFile(part),
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
+            },
+          ];
         }
 
         case 'tool-call': {
-          return toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
+          return [
+            toolCalls.find(
+              toolCall => toolCall.toolCallId === part.toolCallId,
+            )!,
+          ];
         }
 
         case 'tool-result': {
@@ -1002,35 +1045,92 @@ function asContent<TOOLS extends ToolSet>({
             toolCall => toolCall.toolCallId === part.toolCallId,
           )!;
 
+          // Check if this is an MCP approval request
+          const result = part.result as {
+            type?: string;
+            approvalRequestId?: string;
+            name?: string;
+            arguments?: string;
+            serverLabel?: string;
+          } | null;
+
+          if (
+            result != null &&
+            typeof result === 'object' &&
+            result.type === 'approvalRequest' &&
+            result.approvalRequestId != null
+          ) {
+            // Parse the sub-tool arguments
+            let parsedArgs: unknown;
+            try {
+              parsedArgs =
+                result.arguments != null
+                  ? JSON.parse(result.arguments)
+                  : undefined;
+            } catch {
+              parsedArgs = result.arguments;
+            }
+
+            // Create a synthetic tool call for the MCP sub-tool
+            const syntheticToolCall = {
+              type: 'tool-call' as const,
+              toolCallId: part.toolCallId,
+              toolName: (result.name ?? part.toolName) as keyof TOOLS & string,
+              input: parsedArgs,
+              providerExecuted: true,
+              dynamic: true,
+              providerOptions: {
+                openai: {
+                  mcpApprovalRequestId: result.approvalRequestId,
+                  mcpServerLabel: result.serverLabel,
+                },
+              },
+            } as TypedToolCall<TOOLS>;
+
+            // Return both the tool call and the approval request
+            return [
+              syntheticToolCall,
+              {
+                type: 'tool-approval-request' as const,
+                approvalId: result.approvalRequestId,
+                toolCall: syntheticToolCall,
+              } as ToolApprovalRequestOutput<TOOLS>,
+            ];
+          }
+
           if (toolCall == null) {
             throw new Error(`Tool call ${part.toolCallId} not found.`);
           }
 
           if (part.isError) {
-            return {
-              type: 'tool-error' as const,
+            return [
+              {
+                type: 'tool-error' as const,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName as keyof TOOLS & string,
+                input: toolCall.input,
+                error: part.result,
+                providerExecuted: true,
+                dynamic: toolCall.dynamic,
+              } as TypedToolError<TOOLS>,
+            ];
+          }
+
+          return [
+            {
+              type: 'tool-result' as const,
               toolCallId: part.toolCallId,
               toolName: part.toolName as keyof TOOLS & string,
               input: toolCall.input,
-              error: part.result,
+              output: part.result,
               providerExecuted: true,
               dynamic: toolCall.dynamic,
-            } as TypedToolError<TOOLS>;
-          }
-
-          return {
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            output: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-          } as TypedToolResult<TOOLS>;
+            } as TypedToolResult<TOOLS>,
+          ];
         }
       }
-    }),
-    ...toolOutputs,
-    ...toolApprovalRequests,
-  ];
+    },
+  );
+
+  return [...mappedContent, ...toolOutputs, ...toolApprovalRequests];
 }

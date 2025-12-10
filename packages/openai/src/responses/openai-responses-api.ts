@@ -18,7 +18,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesApplyPatchCall
   | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesMcpApprovalResponse;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -161,6 +162,16 @@ export type OpenAIResponsesApplyPatchCallOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+/**
+ * Response to an MCP tool approval request.
+ * Used to approve or deny an MCP tool call that requires user approval.
+ */
+export type OpenAIResponsesMcpApprovalResponse = {
+  type: 'mcp_approval_response';
+  approve: boolean;
+  approval_request_id: string;
 };
 
 /**

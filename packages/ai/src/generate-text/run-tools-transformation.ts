@@ -314,6 +314,61 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
 
+          // Check if this is an MCP approval request
+          const result = chunk.result as {
+            type?: string;
+            approvalRequestId?: string;
+            name?: string;
+            arguments?: string;
+            serverLabel?: string;
+          } | null;
+
+          if (
+            result != null &&
+            typeof result === 'object' &&
+            result.type === 'approvalRequest' &&
+            result.approvalRequestId != null
+          ) {
+            // Parse the sub-tool arguments
+            let parsedArgs: unknown;
+            try {
+              parsedArgs =
+                result.arguments != null
+                  ? JSON.parse(result.arguments)
+                  : undefined;
+            } catch {
+              parsedArgs = result.arguments;
+            }
+
+            // Create a synthetic tool call for the MCP sub-tool
+            const syntheticToolCall = {
+              type: 'tool-call' as const,
+              toolCallId: chunk.toolCallId,
+              toolName: result.name ?? toolName,
+              input: parsedArgs,
+              providerExecuted: true,
+              dynamic: true,
+              // Store the MCP approval request ID in providerOptions for later use
+              providerOptions: {
+                openai: {
+                  mcpApprovalRequestId: result.approvalRequestId,
+                  mcpServerLabel: result.serverLabel,
+                },
+              },
+            };
+
+            // Emit the synthetic tool call so UI can display sub-tool details
+            controller.enqueue(syntheticToolCall as TypedToolCall<TOOLS>);
+
+            // Emit the approval request for the MCP sub-tool
+            toolResultsStreamController!.enqueue({
+              type: 'tool-approval-request',
+              approvalId: result.approvalRequestId,
+              toolCall: syntheticToolCall as TypedToolCall<TOOLS>,
+            });
+            break;
+          }
+
           if (chunk.isError) {
             toolResultsStreamController!.enqueue({
               type: 'tool-error',

@@ -11,6 +11,8 @@ describe('collectToolApprovals', () => {
       {
         "approvedToolApprovals": [],
         "deniedToolApprovals": [],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -45,6 +47,8 @@ describe('collectToolApprovals', () => {
       {
         "approvedToolApprovals": [],
         "deniedToolApprovals": [],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -106,6 +110,8 @@ describe('collectToolApprovals', () => {
           },
         ],
         "deniedToolApprovals": [],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -152,6 +158,8 @@ describe('collectToolApprovals', () => {
       {
         "approvedToolApprovals": [],
         "deniedToolApprovals": [],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -215,6 +223,8 @@ describe('collectToolApprovals', () => {
             },
           },
         ],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -262,6 +272,8 @@ describe('collectToolApprovals', () => {
       {
         "approvedToolApprovals": [],
         "deniedToolApprovals": [],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });
@@ -478,6 +490,8 @@ describe('collectToolApprovals', () => {
             },
           },
         ],
+        "mcpApprovedApprovals": [],
+        "mcpDeniedApprovals": [],
       }
     `);
   });

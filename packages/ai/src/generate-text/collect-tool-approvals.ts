@@ -14,6 +14,25 @@ export type CollectedToolApprovals<TOOLS extends ToolSet> = {
 };
 
 /**
+ * Collected MCP approval that needs to be sent back to the provider.
+ */
+export type CollectedMcpApproval<TOOLS extends ToolSet> = {
+  approvalRequest: ToolApprovalRequest;
+  approvalResponse: ToolApprovalResponse;
+  toolCall: TypedToolCall<TOOLS>;
+  /** The MCP approval request ID from OpenAI */
+  mcpApprovalRequestId: string;
+};
+
+/**
+ * Check if an approval ID is an MCP approval from OpenAI.
+ * OpenAI's MCP approval request IDs start with 'mcpr_'.
+ */
+function isMcpApprovalId(approvalId: string): boolean {
+  return approvalId.startsWith('mcpr_');
+}
+
+/**
  * If the last message is a tool message, this function collects all tool approvals
  * from that message.
  */
@@ -24,6 +43,8 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 }): {
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
+  mcpApprovedApprovals: Array<CollectedMcpApproval<TOOLS>>;
+  mcpDeniedApprovals: Array<CollectedMcpApproval<TOOLS>>;
 } {
   const lastMessage = messages.at(-1);
 
@@ -31,6 +52,8 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     return {
       approvedToolApprovals: [],
       deniedToolApprovals: [],
+      mcpApprovedApprovals: [],
+      mcpDeniedApprovals: [],
     };
   }
 
@@ -71,6 +94,8 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 
   const approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
   const deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>> = [];
+  const mcpApprovedApprovals: Array<CollectedMcpApproval<TOOLS>> = [];
+  const mcpDeniedApprovals: Array<CollectedMcpApproval<TOOLS>> = [];
 
   const approvalResponses = lastMessage.content.filter(
     part => part.type === 'tool-approval-response',
@@ -83,10 +108,30 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       continue;
     }
 
+    const toolCall = toolCallsByToolCallId[approvalRequest!.toolCallId];
+
+    // Check if this is an MCP approval (from OpenAI)
+    if (isMcpApprovalId(approvalResponse.approvalId)) {
+      const mcpApproval: CollectedMcpApproval<TOOLS> = {
+        approvalRequest,
+        approvalResponse,
+        toolCall,
+        mcpApprovalRequestId: approvalResponse.approvalId,
+      };
+
+      if (approvalResponse.approved) {
+        mcpApprovedApprovals.push(mcpApproval);
+      } else {
+        mcpDeniedApprovals.push(mcpApproval);
+      }
+      continue;
+    }
+
+    // Regular tool approval
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
       approvalResponse,
-      toolCall: toolCallsByToolCallId[approvalRequest!.toolCallId],
+      toolCall,
     };
 
     if (approvalResponse.approved) {
@@ -96,5 +141,10 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     }
   }
 
-  return { approvedToolApprovals, deniedToolApprovals };
+  return {
+    approvedToolApprovals,
+    deniedToolApprovals,
+    mcpApprovedApprovals,
+    mcpDeniedApprovals,
+  };
 }

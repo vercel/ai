@@ -1087,14 +1087,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         const initialMessages = initialPrompt.messages;
         const initialResponseMessages: Array<ResponseMessage> = [];
 
-        const { approvedToolApprovals, deniedToolApprovals } =
-          collectToolApprovals<TOOLS>({ messages: initialMessages });
+        const {
+          approvedToolApprovals,
+          deniedToolApprovals,
+          mcpApprovedApprovals,
+          mcpDeniedApprovals,
+        } = collectToolApprovals<TOOLS>({ messages: initialMessages });
+
+        const hasRegularApprovals =
+          deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0;
+        const hasMcpApprovals =
+          mcpApprovedApprovals.length > 0 || mcpDeniedApprovals.length > 0;
 
         // initial tool execution step stream
-        if (
-          deniedToolApprovals.length > 0 ||
-          approvedToolApprovals.length > 0
-        ) {
+        if (hasRegularApprovals || hasMcpApprovals) {
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1119,6 +1125,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
+            // Execute regular approved tool calls
             await Promise.all(
               approvedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
@@ -1166,6 +1173,36 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   output: {
                     type: 'execution-denied' as const,
                     reason: toolApproval.approvalResponse.reason,
+                  },
+                })),
+                // add MCP approval responses (approved) - these will be converted to mcp_approval_response by the provider:
+                ...mcpApprovedApprovals.map(mcpApproval => ({
+                  type: 'tool-result' as const,
+                  toolCallId: mcpApproval.toolCall.toolCallId,
+                  toolName: mcpApproval.toolCall.toolName,
+                  output: {
+                    type: 'json' as const,
+                    value: { approved: true },
+                  },
+                  providerOptions: {
+                    openai: {
+                      mcpApprovalRequestId: mcpApproval.mcpApprovalRequestId,
+                    },
+                  },
+                })),
+                // add MCP approval responses (denied) - these will be converted to mcp_approval_response by the provider:
+                ...mcpDeniedApprovals.map(mcpApproval => ({
+                  type: 'tool-result' as const,
+                  toolCallId: mcpApproval.toolCall.toolCallId,
+                  toolName: mcpApproval.toolCall.toolName,
+                  output: {
+                    type: 'execution-denied' as const,
+                    reason: mcpApproval.approvalResponse.reason,
+                  },
+                  providerOptions: {
+                    openai: {
+                      mcpApprovalRequestId: mcpApproval.mcpApprovalRequestId,
+                    },
                   },
                 })),
               ],
