@@ -1,5 +1,29 @@
 # @ai-sdk/openai
 
+## 2.0.80
+
+### Patch Changes
+
+- 707a163: feat(openai): additional settings for file search tool
+
+## 2.0.79
+
+### Patch Changes
+
+- 5b6aa88: fix(openai): fix parameter exclusion logic
+
+## 2.0.78
+
+### Patch Changes
+
+- e245b61: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
+## 2.0.77
+
+### Patch Changes
+
+- 31f6c20: fix(openai): allow open_page action type url to be nullish
+
 ## 2.0.76
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.108
+
+### Patch Changes
+
+- 03cafbc: chore(ai): export ContentPart type
+
+## 5.0.107
+
+### Patch Changes
+
+- 21c9f90: fix(ai): remove unused mode setting from generateObject and streamObject
+
 ## 5.0.106
 
 ### Patch Changes

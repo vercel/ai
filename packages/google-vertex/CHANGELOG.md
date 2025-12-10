@@ -1,5 +1,20 @@
 # @ai-sdk/google-vertex
 
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
+## 3.0.87
+
+### Patch Changes
+
+- 363b1f5: fix(google,google-vertex): update known model IDs
+- Updated dependencies [363b1f5]
+  - @ai-sdk/google@2.0.45
+
 ## 3.0.86
 
 ### Patch Changes

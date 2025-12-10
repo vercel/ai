@@ -118,14 +118,14 @@ export type OpenAIResponsesFileSearchToolComparisonFilter = {
   key: string;
 
   /**
-   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
+   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte, in, nin.
    */
-  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin';
 
   /**
-   * The value to compare against the attribute key; supports string, number, or boolean types.
+   * The value to compare against the attribute key; supports string, number, boolean, or array of string types.
    */
-  value: string | number | boolean;
+  value: string | number | boolean | string[];
 };
 
 /**
@@ -391,12 +391,12 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
               }),
               z.object({
                 type: z.literal('open_page'),
-                url: z.string(),
+                url: z.string().nullish(),
               }),
               z.object({
                 type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
+                url: z.string().nullish(),
+                pattern: z.string().nullish(),
               }),
             ]),
           }),
@@ -631,12 +631,12 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('open_page'),
-                  url: z.string(),
+                  url: z.string().nullish(),
                 }),
                 z.object({
                   type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
                 }),
               ]),
             }),

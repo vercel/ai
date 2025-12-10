@@ -14,7 +14,7 @@
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
     "ai": "workspace:*",
-    "next": "^15.5.4",
+    "next": "^15.5.7",
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^1.7.1"

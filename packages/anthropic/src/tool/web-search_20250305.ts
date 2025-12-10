@@ -29,7 +29,7 @@ export const webSearch_20250305OutputSchema = lazySchema(() =>
     z.array(
       z.object({
         url: z.string(),
-        title: z.string(),
+        title: z.string().nullable(),
         pageAge: z.string().nullable(),
         encryptedContent: z.string(),
         type: z.literal('web_search_result'),
@@ -64,7 +64,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     /**
      * The title of the source page.
      */
-    title: string;
+    title: string | null;
 
     /**
      * When the site was last updated

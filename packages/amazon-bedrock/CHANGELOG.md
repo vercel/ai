@@ -1,5 +1,24 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
+## 3.0.67
+
+### Patch Changes
+
+- 1887f82: fix(bedrock): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.66
+
+### Patch Changes
+
+- c36a1ad: feat(provider/bedrock): Support Nova 2 extended reasoning `maxReasoningEffort` field
+
 ## 3.0.65
 
 ### Patch Changes

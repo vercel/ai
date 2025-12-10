@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.106",
+  "version": "5.0.108",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,

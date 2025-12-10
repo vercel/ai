@@ -70,12 +70,13 @@ Let’s take a look at the example above, but refactored to utilize the AI SDK C
 ```tsx
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = await streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages,
   });
 
