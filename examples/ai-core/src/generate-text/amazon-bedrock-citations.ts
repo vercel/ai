@@ -1,7 +1,7 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 import 'dotenv/config';
-import { BedrockCitation } from '../../../../packages/amazon-bedrock/src/bedrock-api-types';
+import fs from 'fs';
 
 async function main() {
   const result = await generateText({
@@ -12,12 +12,12 @@ async function main() {
         content: [
           {
             type: 'text',
-            text: 'What color is the grass? Use citations.',
+            text: 'Summarize this PDF and provide key points.',
           },
           {
             type: 'file',
-            mediaType: 'text/plain',
-            data: 'The grass is green in spring and summer. The sky is blue during clear weather.',
+            data: fs.readFileSync('./data/ai.pdf'),
+            mediaType: 'application/pdf',
             providerOptions: {
               bedrock: {
                 citations: { enabled: true },
@@ -29,30 +29,12 @@ async function main() {
     ],
   });
 
-  console.log('Response:', result.text);
+  console.log('PDF Response:',result.text);
+  console.log('PDF Sources', result.sources);
 
-  const citations = result.content.filter(part => part.type === 'source');
-  citations.forEach((citation, i) => {
-    if (
-      citation.sourceType === 'document' &&
-      citation.providerMetadata?.bedrock
-    ) {
-      const metaCitation = citation.providerMetadata.bedrock
-        .citation as BedrockCitation;
-      if (!metaCitation) {
-        return;
-      }
-
-      const citedText = metaCitation.sourceContent?.[0]?.text ?? 'N/A';
-      const location =
-        metaCitation.location?.documentChar ||
-        metaCitation.location?.documentPage ||
-        metaCitation.location?.documentChunk;
-      const startIdx = location?.start ?? 'N/A';
-      const endIdx = location?.end ?? 'N/A';
-      console.log(`\n[${i + 1}] "${citedText}" (chars: ${startIdx}-${endIdx})`);
-    }
-  });
+  if (result.text.length === 0) {
+    throw new Error('No response text provided, should have extracted citation content!');
+  }
 }
 
 main().catch(console.error);
