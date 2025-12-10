@@ -1,13 +1,13 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  SharedV3Warning,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -42,16 +42,15 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { features } from 'node:process';
-import {
-  asLanguageModelUsage,
-  createNullLanguageModelUsage,
-} from '../types/usage';
 
 const defaultSettings = () =>
   ({
