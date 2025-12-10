@@ -68,19 +68,19 @@ export interface AnthropicRedactedThinkingContent {
 
 type AnthropicContentSource =
   | {
-      type: 'base64';
-      media_type: string;
-      data: string;
-    }
+    type: 'base64';
+    media_type: string;
+    data: string;
+  }
   | {
-      type: 'url';
-      url: string;
-    }
+    type: 'url';
+    url: string;
+  }
   | {
-      type: 'text';
-      media_type: 'text/plain';
-      data: string;
-    };
+    type: 'text';
+    media_type: 'text/plain';
+    data: string;
+  };
 
 export interface AnthropicImageContent {
   type: 'image';
@@ -109,16 +109,16 @@ export interface AnthropicServerToolUseContent {
   type: 'server_tool_use';
   id: string;
   name:
-    | 'web_fetch'
-    | 'web_search'
-    // code execution 20250522:
-    | 'code_execution'
-    // code execution 20250825:
-    | 'bash_code_execution'
-    | 'text_editor_code_execution'
-    // tool search:
-    | 'tool_search_tool_regex'
-    | 'tool_search_tool_bm25';
+  | 'web_fetch'
+  | 'web_search'
+  // code execution 20250522:
+  | 'code_execution'
+  // code execution 20250825:
+  | 'bash_code_execution'
+  | 'text_editor_code_execution'
+  // tool search:
+  | 'tool_search_tool_regex'
+  | 'tool_search_tool_bm25';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -150,12 +150,12 @@ export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
   content:
-    | string
-    | Array<
-        | AnthropicNestedTextContent
-        | AnthropicNestedImageContent
-        | AnthropicNestedDocumentContent
-      >;
+  | string
+  | Array<
+    | AnthropicNestedTextContent
+    | AnthropicNestedImageContent
+    | AnthropicNestedDocumentContent
+  >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -177,17 +177,17 @@ export interface AnthropicToolSearchToolResultContent {
   type: 'tool_search_tool_result';
   tool_use_id: string;
   content:
-    | {
-        type: 'tool_search_tool_search_result';
-        tool_references: Array<{
-          type: 'tool_reference';
-          tool_name: string;
-        }>;
-      }
-    | {
-        type: 'tool_search_tool_result_error';
-        error_code: string;
-      };
+  | {
+    type: 'tool_search_tool_search_result';
+    tool_references: Array<{
+      type: 'tool_reference';
+      tool_name: string;
+    }>;
+  }
+  | {
+    type: 'tool_search_tool_result_error';
+    error_code: string;
+  };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -209,30 +209,30 @@ export interface AnthropicTextEditorCodeExecutionToolResultContent {
   type: 'text_editor_code_execution_tool_result';
   tool_use_id: string;
   content:
-    | {
-        type: 'text_editor_code_execution_tool_result_error';
-        error_code: string;
-      }
-    | {
-        type: 'text_editor_code_execution_create_result';
-        is_file_update: boolean;
-      }
-    | {
-        type: 'text_editor_code_execution_view_result';
-        content: string;
-        file_type: string;
-        num_lines: number | null;
-        start_line: number | null;
-        total_lines: number | null;
-      }
-    | {
-        type: 'text_editor_code_execution_str_replace_result';
-        lines: string[] | null;
-        new_lines: number | null;
-        new_start: number | null;
-        old_lines: number | null;
-        old_start: number | null;
-      };
+  | {
+    type: 'text_editor_code_execution_tool_result_error';
+    error_code: string;
+  }
+  | {
+    type: 'text_editor_code_execution_create_result';
+    is_file_update: boolean;
+  }
+  | {
+    type: 'text_editor_code_execution_view_result';
+    content: string;
+    file_type: string;
+    num_lines: number | null;
+    start_line: number | null;
+    total_lines: number | null;
+  }
+  | {
+    type: 'text_editor_code_execution_str_replace_result';
+    lines: string[] | null;
+    new_lines: number | null;
+    new_start: number | null;
+    old_lines: number | null;
+    old_start: number | null;
+  };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -241,20 +241,20 @@ export interface AnthropicBashCodeExecutionToolResultContent {
   type: 'bash_code_execution_tool_result';
   tool_use_id: string;
   content:
-    | {
-        type: 'bash_code_execution_result';
-        stdout: string;
-        stderr: string;
-        return_code: number;
-        content: {
-          type: 'bash_code_execution_output';
-          file_id: string;
-        }[];
-      }
-    | {
-        type: 'bash_code_execution_tool_result_error';
-        error_code: string;
-      };
+  | {
+    type: 'bash_code_execution_result';
+    stdout: string;
+    stderr: string;
+    return_code: number;
+    content: {
+      type: 'bash_code_execution_output';
+      file_id: string;
+    }[];
+  }
+  | {
+    type: 'bash_code_execution_tool_result_error';
+    error_code: string;
+  };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -270,8 +270,8 @@ export interface AnthropicWebFetchToolResultContent {
       title: string | null;
       citations?: { enabled: boolean };
       source:
-        | { type: 'base64'; media_type: 'application/pdf'; data: string }
-        | { type: 'text'; media_type: 'text/plain'; data: string };
+      | { type: 'base64'; media_type: 'application/pdf'; data: string }
+      | { type: 'text'; media_type: 'text/plain'; data: string };
     };
   };
   cache_control: AnthropicCacheControl | undefined;
@@ -296,90 +296,90 @@ export interface AnthropicMcpToolResultContent {
 
 export type AnthropicTool =
   | {
-      name: string;
-      description: string | undefined;
-      input_schema: JSONSchema7;
-      cache_control: AnthropicCacheControl | undefined;
-      strict?: boolean;
-      /**
-       * When true, this tool is deferred and will only be loaded when
-       * discovered via the tool search tool.
-       */
-      defer_loading?: boolean;
-    }
+    name: string;
+    description: string | undefined;
+    input_schema: JSONSchema7;
+    cache_control: AnthropicCacheControl | undefined;
+    strict?: boolean;
+    /**
+     * When true, this tool is deferred and will only be loaded when
+     * discovered via the tool search tool.
+     */
+    defer_loading?: boolean;
+  }
   | {
-      type: 'code_execution_20250522';
-      name: string;
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    type: 'code_execution_20250522';
+    name: string;
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      type: 'code_execution_20250825';
-      name: string;
-    }
+    type: 'code_execution_20250825';
+    name: string;
+  }
   | {
-      name: string;
-      type: 'computer_20250124' | 'computer_20241022';
-      display_width_px: number;
-      display_height_px: number;
-      display_number: number;
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    name: string;
+    type: 'computer_20250124' | 'computer_20241022';
+    display_width_px: number;
+    display_height_px: number;
+    display_number: number;
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      name: string;
-      type:
-        | 'text_editor_20250124'
-        | 'text_editor_20241022'
-        | 'text_editor_20250429';
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    name: string;
+    type:
+    | 'text_editor_20250124'
+    | 'text_editor_20241022'
+    | 'text_editor_20250429';
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      name: string;
-      type: 'text_editor_20250728';
-      max_characters?: number;
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    name: string;
+    type: 'text_editor_20250728';
+    max_characters?: number;
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      name: string;
-      type: 'bash_20250124' | 'bash_20241022';
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    name: string;
+    type: 'bash_20250124' | 'bash_20241022';
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      name: string;
-      type: 'memory_20250818';
-    }
+    name: string;
+    type: 'memory_20250818';
+  }
   | {
-      type: 'web_fetch_20250910';
-      name: string;
-      max_uses?: number;
-      allowed_domains?: string[];
-      blocked_domains?: string[];
-      citations?: { enabled: boolean };
-      max_content_tokens?: number;
-      cache_control: AnthropicCacheControl | undefined;
-    }
+    type: 'web_fetch_20250910';
+    name: string;
+    max_uses?: number;
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+    citations?: { enabled: boolean };
+    max_content_tokens?: number;
+    cache_control: AnthropicCacheControl | undefined;
+  }
   | {
-      type: 'web_search_20250305';
-      name: string;
-      max_uses?: number;
-      allowed_domains?: string[];
-      blocked_domains?: string[];
-      user_location?: {
-        type: 'approximate';
-        city?: string;
-        region?: string;
-        country?: string;
-        timezone?: string;
-      };
-      cache_control: AnthropicCacheControl | undefined;
-    }
-  | {
-      type: 'tool_search_tool_regex_20251119';
-      name: string;
-    }
-  | {
-      type: 'tool_search_tool_bm25_20251119';
-      name: string;
+    type: 'web_search_20250305';
+    name: string;
+    max_uses?: number;
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+    user_location?: {
+      type: 'approximate';
+      city?: string;
+      region?: string;
+      country?: string;
+      timezone?: string;
     };
+    cache_control: AnthropicCacheControl | undefined;
+  }
+  | {
+    type: 'tool_search_tool_regex_20251119';
+    name: string;
+  }
+  | {
+    type: 'tool_search_tool_bm25_20251119';
+    name: string;
+  };
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
@@ -550,11 +550,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    })
+                  ]),
                 }),
               }),
               z.object({
@@ -796,11 +803,18 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    })
+                  ]),
                 }),
               }),
               z.object({
