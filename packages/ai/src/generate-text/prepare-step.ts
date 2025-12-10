@@ -25,14 +25,37 @@ export type PrepareStepFunction<
   experimental_context?: unknown;
 }) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
 
+/**
+ * The result type returned by a {@link PrepareStepFunction},
+ * allowing per-step overrides of model, tools, or messages.
+ */
 export type PrepareStepResult<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
 > =
   | {
+      /**
+       * Optionally override which LanguageModel instance is used for this step.
+       */
       model?: LanguageModel;
+
+      /**
+       * Optionally set which tool the model must call, or provide tool call configuration.
+       */
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
+
+      /**
+       * If provided, only these tools are enabled/available for this step.
+       */
       activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+      /**
+       * Optionally override the system message(s) sent to the model for this step.
+       */
       system?: string | SystemModelMessage | Array<SystemModelMessage>;
+
+      /**
+       * Optionally override the full set of messages sent to the model.
+       */
       messages?: Array<ModelMessage>;
     }
   | undefined;
