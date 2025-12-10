@@ -1197,6 +1197,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1218,6 +1219,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
+
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
 
           const {
             result: { stream, response, request },
