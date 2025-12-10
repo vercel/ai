@@ -12,7 +12,7 @@ export function wrapGatewayError(error: unknown): unknown {
     return new AISDKError({
       name: 'GatewayError',
       message:
-        'Missing AI Gateway Key. Get one here: https://vercel.link/4rcaGME',
+        'Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: https://v6.ai-sdk.dev/docs/getting-started/choosing-a-provider#ai-gateway'',
       cause: error,
     });
   }
