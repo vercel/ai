@@ -18,11 +18,30 @@ import { StepResult } from './step-result';
 export type PrepareStepFunction<
   TOOLS extends Record<string, Tool> = Record<string, Tool>,
 > = (options: {
+  /**
+   * The steps that have been executed so far.
+   */
   steps: Array<StepResult<NoInfer<TOOLS>>>;
+
+  /**
+   * The number of the step that is being executed.
+   */
   stepNumber: number;
+
+  /**
+   * The model instance that is being used for this step.
+   */
   model: LanguageModel;
+
+  /**
+   * The messages that will be sent to the model for the current step.
+   */
   messages: Array<ModelMessage>;
-  experimental_context?: unknown;
+
+  /**
+   * The context passed via the experimental_context setting (experimental).
+   */
+  experimental_context: unknown;
 }) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
 
 /**
@@ -57,5 +76,10 @@ export type PrepareStepResult<
        * Optionally override the full set of messages sent to the model.
        */
       messages?: Array<ModelMessage>;
+
+      /**
+       * Context that is passed into tool execution. Experimental.
+       */
+      experimental_context?: unknown;
     }
   | undefined;
