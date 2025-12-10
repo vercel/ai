@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "2.0.0-beta.141",
+  "version": "2.0.0-beta.142",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",

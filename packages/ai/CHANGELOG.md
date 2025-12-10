@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.0-beta.142
+
+### Patch Changes
+
+- 7169511: feat(agent): support context in onFinish callback
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+
 ## 6.0.0-beta.141
 
 ### Patch Changes
