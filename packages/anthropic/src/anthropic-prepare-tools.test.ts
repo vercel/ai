@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
+import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
-    const result = await prepareTools({ tools: undefined });
+    const result = await prepareTools({
+      tools: undefined,
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+    });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -14,7 +20,11 @@ describe('prepareTools', () => {
   });
 
   it('should return undefined tools and tool_choice when tools are empty', async () => {
-    const result = await prepareTools({ tools: [] });
+    const result = await prepareTools({
+      tools: [],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+    });
     expect(result).toEqual({
       tools: undefined,
       tool_choice: undefined,
@@ -33,9 +43,12 @@ describe('prepareTools', () => {
           inputSchema: { type: 'object', properties: {} },
         },
       ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
     expect(result.tools).toEqual([
       {
+        cache_control: undefined,
         name: 'testFunction',
         description: 'A test function',
         input_schema: { type: 'object', properties: {} },
@@ -45,13 +58,172 @@ describe('prepareTools', () => {
     expect(result.toolWarnings).toEqual([]);
   });
 
+  it('should correctly preserve tool input examples', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool_with_examples',
+          description: 'tool with examples',
+          inputSchema: {
+            type: 'object',
+            properties: { a: { type: 'number' } },
+          },
+          inputExamples: [{ input: { a: 1 } }, { input: { a: 2 } }],
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {
+          "advanced-tool-use-2025-11-20",
+        },
+        "toolChoice": undefined,
+        "toolWarnings": [],
+        "tools": [
+          {
+            "cache_control": undefined,
+            "description": "tool with examples",
+            "input_examples": [
+              {
+                "a": 1,
+              },
+              {
+                "a": 2,
+              },
+            ],
+            "input_schema": {
+              "properties": {
+                "a": {
+                  "type": "number",
+                },
+              },
+              "type": "object",
+            },
+            "name": "tool_with_examples",
+          },
+        ],
+      }
+    `);
+  });
+
+  describe('strict mode for function tools', () => {
+    it('should include strict when supportsStructuredOutput is true and strict is true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+              "strict": true,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include strict when strict is undefined even if supportsStructuredOutput is true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include strict when supportsStructuredOutput is false', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
   describe('provider-defined tools', () => {
     describe('computer_20241022', () => {
       it('should correctly prepare computer_20241022 tool', async () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.computer_20241022',
               name: 'computer',
               args: {
@@ -61,6 +233,8 @@ describe('prepareTools', () => {
               },
             },
           ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -90,12 +264,14 @@ describe('prepareTools', () => {
         const result = await prepareTools({
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'anthropic.text_editor_20241022',
               name: 'text_editor',
               args: {},
             },
           ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
         });
         expect(result).toMatchInlineSnapshot(`
           {
@@ -120,12 +296,14 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.bash_20241022',
             name: 'bash',
             args: {},
           },
         ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -150,12 +328,14 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: { maxCharacters: 10000 },
           },
         ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -178,12 +358,14 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.text_editor_20250728',
             name: 'str_replace_based_edit_tool',
             args: {},
           },
         ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -206,7 +388,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_search_20250305',
             name: 'web_search',
             args: {
@@ -216,6 +398,8 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -246,7 +430,7 @@ describe('prepareTools', () => {
       const result = await prepareTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'anthropic.web_fetch_20250910',
             name: 'web_fetch',
             args: {
@@ -257,6 +441,8 @@ describe('prepareTools', () => {
             },
           },
         ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -285,34 +471,189 @@ describe('prepareTools', () => {
         }
       `);
     });
+
+    it('should correctly prepare tool_search_regex_20251119', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.tool_search_regex_20251119',
+            name: 'tool_search',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "tool_search_tool_regex",
+              "type": "tool_search_tool_regex_20251119",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare tool_search_bm25_20251119', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.tool_search_bm25_20251119',
+            name: 'tool_search',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "tool_search_tool_bm25",
+              "type": "tool_search_tool_bm25_20251119",
+            },
+          ],
+        }
+      `);
+    });
+  });
+
+  describe('deferLoading for function tools', () => {
+    it('should include defer_loading when set to true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              anthropic: { deferLoading: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "defer_loading": true,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should include defer_loading when set to false', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              anthropic: { deferLoading: false },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "defer_loading": false,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include defer_loading when not specified', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('defer_loading');
+    });
   });
 
   it('should add warnings for unsupported tools', async () => {
     const result = await prepareTools({
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'unsupported.tool',
           name: 'unsupported_tool',
           args: {},
         },
       ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
+
     expect(result.tools).toEqual([]);
     expect(result.toolChoice).toBeUndefined();
     expect(result.toolWarnings).toMatchInlineSnapshot(`
-    [
-      {
-        "tool": {
-          "args": {},
-          "id": "unsupported.tool",
-          "name": "unsupported_tool",
-          "type": "provider-defined",
+      [
+        {
+          "feature": "provider-defined tool unsupported.tool",
+          "type": "unsupported",
         },
-        "type": "unsupported-tool",
-      },
-    ]
-  `);
+      ]
+    `);
   });
 
   it('should handle tool choice "auto"', async () => {
@@ -326,7 +667,9 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'auto' },
+      supportsStructuredOutput: true,
     });
+
     expect(result.toolChoice).toEqual({ type: 'auto' });
   });
 
@@ -341,7 +684,9 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'required' },
+      supportsStructuredOutput: true,
     });
+
     expect(result.toolChoice).toEqual({ type: 'any' });
   });
 
@@ -356,6 +701,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
     });
     expect(result.tools).toBeUndefined();
     expect(result.toolChoice).toBeUndefined();
@@ -372,6 +718,7 @@ describe('prepareTools', () => {
         },
       ],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
+      supportsStructuredOutput: true,
     });
     expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
   });
@@ -391,6 +738,8 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
     });
 
     expect(result.tools).toMatchInlineSnapshot(`
@@ -457,6 +806,8 @@ describe('prepareTools', () => {
           },
         },
       ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
       cacheControlValidator,
     });
 
@@ -477,11 +828,100 @@ describe('prepareTools', () => {
     // 5th should be rejected (cache_control should be undefined)
     expect(result.tools?.[4]).toHaveProperty('cache_control', undefined);
 
-    // Should have warning
-    expect(cacheControlValidator.getWarnings()).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'cacheControl',
-      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
-    });
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
+          "feature": "cacheControl breakpoint limit",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+});
+
+describe('webFetch_20250910OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = {
+      type: 'web_fetch_result',
+      url: 'https://test.com',
+      retrievedAt: '2025-12-08T20:46:31.114158',
+      content: {
+        type: 'document',
+        title: null,
+        source: {
+          type: 'text',
+          mediaType: 'text/plain',
+          data: '',
+        },
+      },
+    };
+
+    const schema = webFetch_20250910OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept valid response with string title', async () => {
+    const validResponse = {
+      type: 'web_fetch_result',
+      url: 'https://test.com',
+      retrievedAt: '2025-12-08T20:46:31.114158',
+      content: {
+        type: 'document',
+        title: 'Example Title',
+        source: {
+          type: 'text',
+          mediaType: 'text/plain',
+          data: 'Some content',
+        },
+      },
+    };
+
+    const schema = webFetch_20250910OutputSchema();
+    const result = await schema.validate!(validResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('webSearch_20250305OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = [
+      {
+        url: 'https://test.com',
+        title: null,
+        pageAge: 'April 30, 2025',
+        encryptedContent:
+          'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+        type: 'web_search_result',
+      },
+    ];
+
+    const schema = webSearch_20250305OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept valid response with string title', async () => {
+    const validResponse = [
+      {
+        url: 'https://test.com',
+        title: 'Test title',
+        pageAge: 'April 30, 2025',
+        encryptedContent:
+          'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+        type: 'web_search_result',
+      },
+    ];
+
+    const schema = webSearch_20250305OutputSchema();
+    const result = await schema.validate!(validResponse);
+
+    expect(result.success).toBe(true);
   });
 });

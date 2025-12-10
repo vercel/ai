@@ -25,7 +25,7 @@ export default function TestOpenAIWebSearch() {
             switch (part.type) {
               case 'text':
                 return <div key={index}>{part.text}</div>;
-              case 'tool-imageGeneration':
+              case 'tool-image':
                 return <GenerateImageView key={index} invocation={part} />;
             }
           })}

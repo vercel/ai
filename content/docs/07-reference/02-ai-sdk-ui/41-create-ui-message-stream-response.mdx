@@ -22,6 +22,7 @@ import {
   createUIMessageStreamResponse,
   streamText,
 } from 'ai';
+__PROVIDER_IMPORT__;
 
 const response = createUIMessageStreamResponse({
   status: 200,
@@ -56,7 +57,7 @@ const response = createUIMessageStreamResponse({
 
       // Merge with LLM stream
       const result = streamText({
-        model: 'anthropic/claude-sonnet-4.5',
+        model: __MODEL__,
         prompt: 'Say hello',
       });
 

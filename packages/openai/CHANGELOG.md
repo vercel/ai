@@ -1,5 +1,152 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 92c6241: feat(openai): additional settings for file search tool
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- 0153bfa: fix(openai): fix parameter exclusion logic
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- 78f813e: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- 88edc28: feat (provider/openai): include more image generation response metadata
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 73d9883: chore(openai): enable strict json by default
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- 88fc415: feat(openai): add the new provider 'apply_patch' tool
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 1d0de66: refactoring(provider/openai): simplify code
+
 ## 3.0.0-beta.68
 
 ### Patch Changes

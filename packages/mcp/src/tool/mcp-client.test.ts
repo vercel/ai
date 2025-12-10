@@ -90,6 +90,38 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose _meta field from MCP tool definition', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'tool-with-meta',
+              description: 'A tool with metadata',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  input: { type: 'string' },
+                },
+              },
+              _meta: {
+                'openai/outputTemplate': '{{result}}',
+              },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['tool-with-meta'];
+
+    expect(tool._meta?.['openai/outputTemplate']).toBe('{{result}}');
+  });
+
   it('should list resources from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },

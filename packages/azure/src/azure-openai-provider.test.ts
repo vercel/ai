@@ -931,7 +931,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'file_search',
               args: {
@@ -1013,7 +1013,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'code_interpreter',
               args: {},
@@ -1068,7 +1068,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1139,7 +1139,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1221,7 +1221,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.web_search_preview',
               name: 'web_search_preview',
               args: {},
@@ -1245,7 +1245,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.image_generation',
             name: 'image_generation',
             args: {
@@ -1366,11 +1366,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 234,
-              "inputTokens": 543,
-              "outputTokens": 478,
-              "reasoningTokens": 123,
-              "totalTokens": 1021,
+              "inputTokens": {
+                "cacheRead": 234,
+                "cacheWrite": undefined,
+                "noCache": 309,
+                "total": 543,
+              },
+              "outputTokens": {
+                "reasoning": 123,
+                "text": 355,
+                "total": 478,
+              },
+              "raw": {
+                "input_tokens": 543,
+                "input_tokens_details": {
+                  "cached_tokens": 234,
+                },
+                "output_tokens": 478,
+                "output_tokens_details": {
+                  "reasoning_tokens": 123,
+                },
+              },
             },
           },
         ]
@@ -1498,11 +1514,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1594,11 +1626,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 50,
+                "total": 50,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 50,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 25,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1612,7 +1660,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.code_interpreter',
             name: 'code_interpreter',
             args: {},
@@ -1633,7 +1681,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1655,7 +1703,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1682,7 +1730,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.web_search_preview',
             name: 'web_search_preview',
             args: {},

@@ -1,5 +1,47 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- 53f3368: feat(provider): support embedding model call warnings in specification
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+
 ## 3.0.0-beta.19
 
 ### Patch Changes

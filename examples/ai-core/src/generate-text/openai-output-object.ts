@@ -31,7 +31,6 @@ run(async () => {
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  // { location: 'San Francisco', temperature: 81 }
   print('Output:', result.output);
   print('Request:', result.request.body);
 });

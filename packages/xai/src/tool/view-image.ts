@@ -1,4 +1,4 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import { createProviderToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 const viewImageOutputSchema = z.object({
@@ -9,9 +9,8 @@ const viewImageOutputSchema = z.object({
     .describe('objects detected in the image'),
 });
 
-const viewImageToolFactory = createProviderDefinedToolFactoryWithOutputSchema({
+const viewImageToolFactory = createProviderToolFactoryWithOutputSchema({
   id: 'xai.view_image',
-  name: 'view_image',
   inputSchema: z.object({}).describe('no input parameters'),
   outputSchema: viewImageOutputSchema,
 });

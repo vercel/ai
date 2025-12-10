@@ -1,20 +1,15 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallOptions,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 import { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
-import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
 const deepgramProviderOptionsSchema = z.object({
@@ -79,7 +74,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
   private async getArgs({
     providerOptions,
   }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({

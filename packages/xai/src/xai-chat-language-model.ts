@@ -1,6 +1,6 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
@@ -22,6 +22,7 @@ import { mapXaiFinishReason } from './map-xai-finish-reason';
 import { XaiChatModelId, xaiProviderOptions } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
+import { convertXaiChatUsage } from './convert-xai-chat-usage';
 
 type XaiChatConfig = {
   provider: string;
@@ -66,7 +67,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // parse xai-specific provider options
     const options =
@@ -78,31 +79,19 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     // check for unsupported parameters
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     // convert ai sdk messages to xai format
@@ -275,16 +264,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapXaiFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage.prompt_tokens,
-        outputTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-        reasoningTokens:
-          response.usage.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
-      },
+      usage: convertXaiChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -319,13 +299,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
-    };
+    let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
     const lastReasoningDeltas: Record<string, string> = {};
@@ -378,14 +352,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
             // update usage if present
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              usage = convertXaiChatUsage(value.usage);
             }
 
             const choice = value.choices[0];
@@ -502,7 +469,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({ type: 'finish', finishReason, usage: usage! });
           },
         }),
       ),
@@ -534,6 +501,8 @@ const xaiUsageSchema = z.object({
     })
     .nullish(),
 });
+
+export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
 const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),

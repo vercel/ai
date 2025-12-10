@@ -24,7 +24,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
     anthropicTools: {
       ...original.anthropicTools,
       bash_20241022: (args: any) => ({
-        type: 'provider-defined',
+        type: 'provider',
         id: 'anthropic.bash_20241022',
         name: 'bash',
         args,
@@ -83,6 +83,11 @@ const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
 
+const novaModelId = 'us.amazon.nova-2-lite-v1:0';
+const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -93,6 +98,7 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [novaGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -133,6 +139,13 @@ beforeEach(() => {
 });
 
 const model = new BedrockChatLanguageModel(modelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaModel = new BedrockChatLanguageModel(novaModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -271,10 +284,22 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 4,
-            "outputTokens": 34,
-            "totalTokens": 38,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 4,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 34,
+              "total": 34,
+            },
+            "raw": {
+              "inputTokens": 4,
+              "outputTokens": 34,
+              "totalTokens": 38,
+            },
           },
         },
       ]
@@ -371,9 +396,18 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -529,9 +563,18 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -578,9 +621,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -627,9 +679,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -676,9 +737,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -725,9 +795,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -761,9 +840,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -902,10 +990,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 4,
-            "outputTokens": 34,
-            "totalTokens": 38,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 4,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 34,
+              "total": 34,
+            },
+            "raw": {
+              "inputTokens": 4,
+              "outputTokens": 34,
+              "totalTokens": 38,
+            },
           },
         },
       ]
@@ -1126,10 +1226,24 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 2,
-            "inputTokens": 4,
-            "outputTokens": 34,
-            "totalTokens": 38,
+            "inputTokens": {
+              "cacheRead": 2,
+              "cacheWrite": 3,
+              "noCache": 2,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 34,
+              "total": 34,
+            },
+            "raw": {
+              "cacheReadInputTokens": 2,
+              "cacheWriteInputTokens": 3,
+              "inputTokens": 4,
+              "outputTokens": 34,
+              "totalTokens": 38,
+            },
           },
         },
       ]
@@ -1264,9 +1378,18 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -1334,9 +1457,18 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -1405,9 +1537,18 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -1693,9 +1834,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -1766,9 +1916,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -1840,10 +1999,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 100,
-            "outputTokens": 20,
-            "totalTokens": 120,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 100,
+              "total": 100,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "inputTokens": 100,
+              "outputTokens": 20,
+              "totalTokens": 120,
+            },
           },
         },
       ]
@@ -1927,9 +2098,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2033,9 +2213,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2166,9 +2355,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2301,14 +2499,89 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 500,
-            "outputTokens": 100,
-            "totalTokens": 600,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 500,
+              "total": 500,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 100,
+              "total": 100,
+            },
+            "raw": {
+              "inputTokens": 500,
+              "outputTokens": 100,
+              "totalTokens": 600,
+            },
           },
         },
       ]
     `);
+  });
+
+  it('should warn when Anthropic model receives maxReasoningEffort in stream', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    await convertReadableStreamToArray(result.stream);
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+  });
+
+  it('should support tool calls with empty input (no arguments)', async () => {
+    setupMockEventStreamHandler();
+    prepareChunksFixtureResponse('bedrock-tool-no-args');
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'updateIssueList',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    const toolCallPart = result.find(part => part.type === 'tool-call');
+    expect(toolCallPart).toBeDefined();
+    expect(toolCallPart?.input).toBe('{}');
   });
 });
 
@@ -2398,10 +2671,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 4,
-        "outputTokens": 34,
-        "totalTokens": 38,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "noCache": 4,
+          "total": 4,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 34,
+          "total": 34,
+        },
+        "raw": {
+          "inputTokens": 4,
+          "outputTokens": 34,
+          "totalTokens": 38,
+        },
       }
     `);
   });
@@ -2701,7 +2986,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
@@ -2806,7 +3091,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
@@ -2851,7 +3136,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider-defined',
+          type: 'provider',
           id: 'anthropic.bash_20241022',
           name: 'bash',
           args: {},
@@ -2981,10 +3266,24 @@ describe('doGenerate', () => {
     `);
     expect(response.usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": 2,
-        "inputTokens": 4,
-        "outputTokens": 34,
-        "totalTokens": 38,
+        "inputTokens": {
+          "cacheRead": 2,
+          "cacheWrite": 3,
+          "noCache": 2,
+          "total": 4,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 34,
+          "total": 34,
+        },
+        "raw": {
+          "cacheReadInputTokens": 2,
+          "cacheWriteInputTokens": 3,
+          "inputTokens": 4,
+          "outputTokens": 34,
+          "totalTokens": 38,
+        },
       }
     `);
   });
@@ -3063,6 +3362,71 @@ describe('doGenerate', () => {
       foo: 'bar',
       custom: 42,
       thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
+  });
+
+  it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
+    server.urls[novaGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await novaModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+            budgetTokens: 2048,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+    prepareJsonResponse({});
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported',
+      feature: 'maxReasoningEffort',
+      details:
+        'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
     });
   });
 
@@ -3300,8 +3664,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.",
-          "setting": "toolContent",
-          "type": "unsupported-setting",
+          "feature": "toolContent",
+          "type": "unsupported",
         },
       ]
     `);
@@ -3514,13 +3878,15 @@ describe('doGenerate', () => {
       responseFormat: { type: 'xml' as any },
     });
 
-    expect(result.warnings).toEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
-        details: 'Only text and json response formats are supported.',
-      },
-    ]);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Only text and json response formats are supported.",
+          "feature": "responseFormat",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should process PDF citation responses in generate', async () => {
@@ -4242,8 +4608,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "1.5 exceeds bedrock maximum of 1.0. clamped to 1.0",
-          "setting": "temperature",
-          "type": "unsupported-setting",
+          "feature": "temperature",
+          "type": "unsupported",
         },
       ]
     `);
@@ -4264,8 +4630,8 @@ describe('doGenerate', () => {
       [
         {
           "details": "-0.5 is below bedrock minimum of 0. clamped to 0",
-          "setting": "temperature",
-          "type": "unsupported-setting",
+          "feature": "temperature",
+          "type": "unsupported",
         },
       ]
     `);
@@ -4529,5 +4895,41 @@ describe('doGenerate', () => {
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
     expect(result.finishReason).toBe('stop');
+  });
+
+  it('should support tool calls with empty input (no arguments)', async () => {
+    prepareJsonFixtureResponse('bedrock-tool-no-args');
+
+    const result = await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'updateIssueList',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            required: [],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I'll update the issue list for you.",
+          "type": "text",
+        },
+        {
+          "input": "{}",
+          "toolCallId": "tool-use-id",
+          "toolName": "updateIssueList",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 });

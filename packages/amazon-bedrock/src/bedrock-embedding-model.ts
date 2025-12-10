@@ -91,6 +91,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: [response.embedding],
       usage: { tokens: response.inputTextTokenCount },
     };

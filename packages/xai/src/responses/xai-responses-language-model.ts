@@ -1,10 +1,10 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,17 +17,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
+import { xaiFailedResponseHandler } from '../xai-error';
+import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
+import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
+import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
-import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
   XaiResponsesModelId,
   xaiResponsesProviderOptions,
 } from './xai-responses-options';
-import { xaiFailedResponseHandler } from '../xai-error';
-import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
 type XaiResponsesConfig = {
@@ -69,7 +70,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const options =
       (await parseProviderOptions({
@@ -79,23 +80,19 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       })) ?? {};
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     const webSearchToolName = tools?.find(
-      tool => tool.type === 'provider-defined' && tool.id === 'xai.web_search',
+      tool => tool.type === 'provider' && tool.id === 'xai.web_search',
     )?.name;
 
     const xSearchToolName = tools?.find(
-      tool => tool.type === 'provider-defined' && tool.id === 'xai.x_search',
+      tool => tool.type === 'provider' && tool.id === 'xai.x_search',
     )?.name;
 
     const codeExecutionToolName = tools?.find(
-      tool =>
-        tool.type === 'provider-defined' && tool.id === 'xai.code_execution',
+      tool => tool.type === 'provider' && tool.id === 'xai.code_execution',
     )?.name;
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
@@ -274,12 +271,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapXaiResponsesFinishReason(response.status),
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.total_tokens,
-        reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
-      },
+      usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -318,11 +310,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -458,11 +446,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const response = event.response;
 
               if (response.usage) {
-                usage.inputTokens = response.usage.input_tokens;
-                usage.outputTokens = response.usage.output_tokens;
-                usage.totalTokens = response.usage.total_tokens;
-                usage.reasoningTokens =
-                  response.usage.output_tokens_details?.reasoning_tokens;
+                usage = convertXaiResponsesUsage(response.usage);
               }
 
               if (response.status) {
@@ -624,7 +608,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({ type: 'finish', finishReason, usage: usage! });
           },
         }),
       ),

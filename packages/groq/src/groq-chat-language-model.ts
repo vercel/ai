@@ -1,13 +1,12 @@
 import {
   InvalidResponseDataError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -21,6 +20,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
@@ -73,7 +73,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }: Parameters<LanguageModelV3['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
@@ -84,10 +84,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (
@@ -96,8 +93,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       !structuredOutputs
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details:
           'JSON response format schema is only supported with structuredOutputs',
       });
@@ -220,13 +217,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapGroqFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        cachedInputTokens:
-          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
-      },
+      usage: convertGroqUsage(response.usage),
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -272,12 +263,18 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     }> = [];
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-      cachedInputTokens: undefined,
-    };
+    let usage:
+      | {
+          prompt_tokens?: number | null | undefined;
+          completion_tokens?: number | null | undefined;
+          prompt_tokens_details?:
+            | {
+                cached_tokens?: number | null | undefined;
+              }
+            | null
+            | undefined;
+        }
+      | undefined = undefined;
     let isFirstChunk = true;
     let isActiveText = false;
     let isActiveReasoning = false;
@@ -325,13 +322,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.x_groq?.usage != null) {
-              usage.inputTokens = value.x_groq.usage.prompt_tokens ?? undefined;
-              usage.outputTokens =
-                value.x_groq.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.x_groq.usage.total_tokens ?? undefined;
-              usage.cachedInputTokens =
-                value.x_groq.usage.prompt_tokens_details?.cached_tokens ??
-                undefined;
+              usage = value.x_groq.usage;
             }
 
             const choice = value.choices[0];
@@ -507,7 +498,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertGroqUsage(usage),
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },

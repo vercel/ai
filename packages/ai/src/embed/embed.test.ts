@@ -119,7 +119,7 @@ describe('options.headers', () => {
             'user-agent': 'ai/0.0.0-test',
           });
 
-          return { embeddings: [dummyEmbedding] };
+          return { embeddings: [dummyEmbedding], warnings: [] };
         },
       }),
       value: testValue,
@@ -141,7 +141,7 @@ describe('options.providerOptions', () => {
             aProvider: { someKey: 'someValue' },
           });
 
-          return { embeddings: [[1, 2, 3]] };
+          return { embeddings: [[1, 2, 3]], warnings: [] };
         },
       }),
       value: 'test-input',
@@ -225,6 +225,6 @@ function mockEmbed(
 ): EmbeddingModelV3['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
-    return { embeddings, usage, response, providerMetadata };
+    return { embeddings, usage, response, providerMetadata, warnings: [] };
   };
 }

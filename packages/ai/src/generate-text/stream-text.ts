@@ -1,10 +1,11 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   IdGenerator,
   isAbortError,
   ProviderOptions,
@@ -39,7 +40,11 @@ import {
   ToolChoice,
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  createNullLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
@@ -58,7 +63,6 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -156,14 +160,23 @@ Callback that is set using the `onFinish` option.
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;
 
@@ -894,11 +907,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
-          const totalUsage = recordedTotalUsage ?? {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          const totalUsage =
+            recordedTotalUsage ?? createNullLanguageModelUsage();
 
           // from finish:
           self._finishReason.resolve(finishReason);
@@ -930,6 +940,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
+            experimental_context,
           });
 
           // Add response information to the root span:
@@ -1291,16 +1302,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV3CallWarning[] | undefined;
+          let warnings: SharedV3Warning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
-          let stepUsage: LanguageModelUsage = {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1638,11 +1645,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         await streamStep({
           currentStep: 0,
           responseMessages: initialResponseMessages,
-          usage: {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          },
+          usage: createNullLanguageModelUsage(),
         });
       },
     }).catch(error => {
