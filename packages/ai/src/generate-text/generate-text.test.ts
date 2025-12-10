@@ -3557,7 +3557,7 @@ describe('generateText', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -3594,10 +3594,10 @@ describe('generateText', () => {
       });
     });
 
-    it('should send context  in onFinish callback', async () => {
+    it('should send context in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
