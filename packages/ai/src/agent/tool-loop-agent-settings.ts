@@ -36,7 +36,7 @@ export type ToolLoopAgentSettings<
    *
    * It can be a string, or, if you need to pass additional provider options (e.g. for caching), a `SystemModelMessage`.
    */
-  instructions?: string | SystemModelMessage;
+  instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
 
   /**
 The language model to use.
