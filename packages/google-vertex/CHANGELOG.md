@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/anthropic@3.0.0-beta.81
+  - @ai-sdk/google@3.0.0-beta.69
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [05d5b9a]
+  - @ai-sdk/anthropic@3.0.0-beta.80
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 024e778: feat(provider/vertext): add express mode support
+
 ## 4.0.0-beta.106
 
 ### Patch Changes
