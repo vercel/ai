@@ -89,14 +89,23 @@ Callback that is set using the `onFinish` option.
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;
 
@@ -411,6 +420,7 @@ A function that attempts to repair a tool call that failed to parse.
             steps,
             stepNumber: steps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
@@ -762,6 +772,7 @@ A function that attempts to repair a tool call that failed to parse.
           providerMetadata: lastStep.providerMetadata,
           steps,
           totalUsage,
+          experimental_context,
         });
 
         // parse output only if the last step was finished with "stop":

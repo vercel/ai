@@ -602,6 +602,13 @@ To see `streamText` in action, check out [these examples](#examples).
                       description:
                         'The messages that will be sent to the model for the current step.',
                     },
+                    {
+                      name: 'experimental_context',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'The context passed via the experimental_context setting (experimental).',
+                    },
                   ],
                 },
               ],
@@ -1029,22 +1036,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1061,14 +1073,20 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1274,22 +1292,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1306,14 +1329,20 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1570,6 +1599,11 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              description: 'The experimental context.',
+            },
           ],
         },
       ],
@@ -1672,22 +1706,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -1703,14 +1742,19 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description: 'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2053,22 +2097,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2084,14 +2133,19 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description: 'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2533,22 +2587,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2564,14 +2623,19 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description: 'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2647,22 +2711,27 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
                       properties: [
                         {
-                          name: 'noCacheTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of non-cached input (prompt) tokens used.',
-                        },
-                        {
-                          name: 'cacheReadTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens read.',
-                        },
-                        {
-                          name: 'cacheWriteTokens',
-                          type: 'number | undefined',
-                          description:
-                            'The number of cached input (prompt) tokens written.',
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
                         },
                       ],
                     },
@@ -2678,14 +2747,19 @@ To see `streamText` in action, check out [these examples](#examples).
                         'Detailed information about the output (completion) tokens.',
                       properties: [
                         {
-                          name: 'textTokens',
-                          type: 'number | undefined',
-                          description: 'The number of text tokens used.',
-                        },
-                        {
-                          name: 'reasoningTokens',
-                          type: 'number | undefined',
-                          description: 'The number of reasoning tokens used.',
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description: 'The number of reasoning tokens used.',
+                            },
+                          ],
                         },
                       ],
                     },

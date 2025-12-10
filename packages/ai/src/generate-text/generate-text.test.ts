@@ -735,6 +735,7 @@ describe('generateText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
@@ -3552,11 +3553,11 @@ describe('generateText', () => {
     });
   });
 
-  describe('tool execution context', () => {
+  describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -3588,6 +3589,31 @@ describe('generateText', () => {
       });
 
       // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
+
+    it('should send context in onFinish callback', async () => {
+      let recordedContext: unknown | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: 'stop',
+          }),
+        }),
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+        onFinish: ({ experimental_context }) => {
+          recordedContext = experimental_context;
+        },
+      });
+
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });
@@ -5012,6 +5038,29 @@ describe('generateText', () => {
       `);
 
       expect(result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('prepareStep with experimental_context', () => {
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedContext).toEqual({ myData: 'test-value' });
     });
   });
 });

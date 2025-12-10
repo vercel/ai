@@ -1,13 +1,13 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  SharedV3Warning,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
   LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -42,16 +42,15 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+} from '../types/usage';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { features } from 'node:process';
-import {
-  asLanguageModelUsage,
-  createNullLanguageModelUsage,
-} from '../types/usage';
 
 const defaultSettings = () =>
   ({
@@ -5033,6 +5032,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": {
@@ -5328,6 +5328,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
@@ -5539,6 +5540,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -6242,6 +6244,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
+              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -7990,6 +7993,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
+              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -11355,6 +11359,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
+            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "providerMetadata": {
@@ -12598,6 +12603,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
+            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "providerMetadata": undefined,
@@ -14301,7 +14307,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('tool execution context', () => {
+  describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
@@ -14354,6 +14360,41 @@ describe('streamText', () => {
       await result.consumeStream();
 
       // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
+
+    it('should send context in onFinish callback', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+        onFinish: ({ experimental_context }) => {
+          recordedContext = experimental_context;
+        },
+      });
+
+      await result.consumeStream();
+
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });
@@ -17059,6 +17100,35 @@ describe('streamText', () => {
       `);
 
       expect(await result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('prepareStep with experimental_context', () => {
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              { type: 'finish', finishReason: 'stop', usage: testUsage },
+            ]),
+            response: {},
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      await result.consumeStream();
+      expect(capturedContext).toEqual({ myData: 'test-value' });
     });
   });
 });

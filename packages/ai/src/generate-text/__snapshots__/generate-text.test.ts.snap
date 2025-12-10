@@ -10,6 +10,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   ],
   "dynamicToolCalls": [],
   "dynamicToolResults": [],
+  "experimental_context": undefined,
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
