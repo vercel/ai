@@ -215,11 +215,10 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
        * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
        *
-       * Note: The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-       * models. Setting `reasoningEffort` to 'none' with other models will result in
+       * The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
+       * models. Also, the 'xhigh' type for `reasoningEffort` is only available for
+       * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
        * an error.
-       * 
-       * Note: The 'xhigh' type for `reasoningEffort` is only available for OpenAI's GPT-5.1-Codex-Max model.
        */
       reasoningEffort: z.string().nullish(),
 
