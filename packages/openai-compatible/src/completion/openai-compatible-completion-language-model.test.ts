@@ -136,9 +136,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
@@ -448,9 +461,22 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 362,
-            "totalTokens": 372,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 362,
+              "total": 362,
+            },
+            "raw": {
+              "completion_tokens": 362,
+              "prompt_tokens": 10,
+              "total_tokens": 372,
+            },
           },
         },
       ]
@@ -490,9 +516,18 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -527,9 +562,18 @@ describe('doStream', () => {
             "finishReason": "error",
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]

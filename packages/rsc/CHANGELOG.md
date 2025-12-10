@@ -1,5 +1,29 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [b1405bf]
+  - ai@6.0.0-beta.141
+
+## 2.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [7fdd89d]
+  - ai@6.0.0-beta.140
+
+## 2.0.0-beta.141
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - ai@6.0.0-beta.139
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 2.0.0-beta.140
 
 ### Patch Changes

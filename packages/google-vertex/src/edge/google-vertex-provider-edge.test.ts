@@ -2,7 +2,7 @@ import { resolve } from '@ai-sdk/provider-utils';
 import { createVertex as createVertexEdge } from './google-vertex-provider-edge';
 import { createVertex as createVertexOriginal } from '../google-vertex-provider';
 import * as edgeAuth from './google-vertex-auth-edge';
-import { describe, beforeEach, expect, it, vi } from 'vitest';
+import { describe, beforeEach, afterEach, expect, it, vi } from 'vitest';
 
 // Mock the imported modules
 vi.mock('./google-vertex-auth-edge', () => ({
@@ -18,6 +18,11 @@ vi.mock('../google-vertex-provider', () => ({
 describe('google-vertex-provider-edge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.GOOGLE_VERTEX_API_KEY;
+  });
+
+  afterEach(() => {
+    delete process.env.GOOGLE_VERTEX_API_KEY;
   });
 
   it('default headers function should return auth token', async () => {
@@ -83,5 +88,18 @@ describe('google-vertex-provider-edge', () => {
       clientEmail: 'test@example.com',
       privateKey: 'test-key',
     });
+  });
+
+  it('should pass options through to base provider when apiKey is provided', async () => {
+    createVertexEdge({
+      apiKey: 'test-api-key',
+    });
+
+    const mockCreateVertex = vi.mocked(createVertexOriginal);
+    const passedOptions = mockCreateVertex.mock.calls[0][0];
+
+    expect(passedOptions?.apiKey).toBe('test-api-key');
+    expect(passedOptions?.headers).toBeUndefined();
+    expect(edgeAuth.generateAuthToken).not.toHaveBeenCalled();
   });
 });

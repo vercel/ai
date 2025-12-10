@@ -5,7 +5,6 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -24,6 +23,7 @@ import {
   cohereChatModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
+import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
 import { prepareTools } from './cohere-prepare-tools';
@@ -204,13 +204,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapCohereFinishReason(response.finish_reason),
-      usage: {
-        inputTokens: response.usage.tokens.input_tokens,
-        outputTokens: response.usage.tokens.output_tokens,
-        totalTokens:
-          response.usage.tokens.input_tokens +
-          response.usage.tokens.output_tokens,
-      },
+      usage: convertCohereUsage(response.usage.tokens),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -240,11 +234,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: CohereUsageTokens | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -410,11 +400,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
               case 'message-end': {
                 finishReason = mapCohereFinishReason(value.delta.finish_reason);
-                const tokens = value.delta.usage.tokens;
-
-                usage.inputTokens = tokens.input_tokens;
-                usage.outputTokens = tokens.output_tokens;
-                usage.totalTokens = tokens.input_tokens + tokens.output_tokens;
+                usage = value.delta.usage.tokens;
                 return;
               }
 
@@ -428,7 +414,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertCohereUsage(usage),
             });
           },
         }),

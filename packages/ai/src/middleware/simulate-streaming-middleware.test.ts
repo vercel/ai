@@ -1,3 +1,4 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
@@ -19,12 +20,18 @@ const DEFAULT_SETTINGs = {
   },
 };
 
-const testUsage = {
-  inputTokens: 5,
-  outputTokens: 10,
-  totalTokens: 18,
-  reasoningTokens: 3,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 3,
+  },
 };
 
 describe('simulateStreamingMiddleware', () => {
@@ -96,21 +103,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -196,21 +222,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -342,21 +387,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -470,21 +534,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -601,21 +684,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "tool-calls",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -684,21 +786,40 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },

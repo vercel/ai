@@ -165,7 +165,7 @@ export interface AnthropicWebSearchToolResultContent {
   tool_use_id: string;
   content: Array<{
     url: string;
-    title: string;
+    title: string | null;
     page_age: string | null;
     encrypted_content: string;
     type: string;

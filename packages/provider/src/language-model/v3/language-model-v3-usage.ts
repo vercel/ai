@@ -1,34 +1,59 @@
-/**
-Usage information for a language model call.
+import { JSONObject } from '../../json-value';
 
-If your API return additional usage information, you can add it to the
-provider metadata under your provider's key.
+/**
+ * Usage information for a language model call.
  */
 export type LanguageModelV3Usage = {
   /**
-The number of input (prompt) tokens used.
+   * Information about the input tokens.
    */
-  inputTokens: number | undefined;
+  inputTokens: {
+    /**
+     *The total number of input (prompt) tokens used.
+     */
+    total: number | undefined;
+
+    /**
+     * The number of non-cached input (prompt) tokens used.
+     */
+    noCache: number | undefined;
+
+    /**
+     * The number of cached input (prompt) tokens read.
+     */
+    cacheRead: number | undefined;
+
+    /**
+     * The number of cached input (prompt) tokens written.
+     */
+    cacheWrite: number | undefined;
+  };
 
   /**
-The number of output (completion) tokens used.
+   * Information about the output tokens.
    */
-  outputTokens: number | undefined;
+  outputTokens: {
+    /**
+     * The total number of output (completion) tokens used.
+     */
+    total: number | undefined;
+
+    /**
+     * The number of text tokens used.
+     */
+    text: number | undefined;
+
+    /**
+     * The number of reasoning tokens used.
+     */
+    reasoning: number | undefined;
+  };
 
   /**
-The total number of tokens as reported by the provider.
-This number might be different from the sum of `inputTokens` and `outputTokens`
-and e.g. include reasoning tokens or other overhead.
+   * Raw usage information from the provider.
+   *
+   * This is the usage information in the shape that the provider returns.
+   * It can include additional information that is not part of the standard usage information.
    */
-  totalTokens: number | undefined;
-
-  /**
-The number of reasoning tokens used.
-   */
-  reasoningTokens?: number | undefined;
-
-  /**
-The number of cached input tokens.
-   */
-  cachedInputTokens?: number | undefined;
+  raw?: JSONObject;
 };

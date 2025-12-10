@@ -1,4 +1,4 @@
-import { SharedV3Warning, LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart, SharedV3Warning } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
@@ -9,6 +9,7 @@ import { Tracer } from '@opentelemetry/api';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
+import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -210,7 +211,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           finishChunk = {
             type: 'finish',
             finishReason: chunk.finishReason,
-            usage: chunk.usage,
+            usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
           break;

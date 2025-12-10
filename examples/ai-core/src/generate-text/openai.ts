@@ -11,4 +11,5 @@ run(async () => {
   });
 
   print('Content:', result.content);
+  print('Usage:', result.usage);
 });

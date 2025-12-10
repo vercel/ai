@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 3.0.0-beta.88
 
 ### Patch Changes

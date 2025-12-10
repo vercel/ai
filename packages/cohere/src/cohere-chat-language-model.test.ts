@@ -145,9 +145,21 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "input_tokens": 20,
+          "output_tokens": 5,
+        },
       }
     `);
   });
@@ -916,9 +928,21 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": 34,
-            "outputTokens": 12,
-            "totalTokens": 46,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 34,
+              "total": 34,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 12,
+              "total": 12,
+            },
+            "raw": {
+              "input_tokens": 34,
+              "output_tokens": 12,
+            },
           },
         },
       ]
@@ -1013,9 +1037,21 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": 34,
-            "outputTokens": 12,
-            "totalTokens": 46,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 34,
+              "total": 34,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 12,
+              "total": 12,
+            },
+            "raw": {
+              "input_tokens": 34,
+              "output_tokens": 12,
+            },
           },
         },
       ]
@@ -1145,9 +1181,21 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": 893,
-            "outputTokens": 62,
-            "totalTokens": 955,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 893,
+              "total": 893,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 62,
+              "total": 62,
+            },
+            "raw": {
+              "input_tokens": 893,
+              "output_tokens": 62,
+            },
           },
         },
       ]
@@ -1192,9 +1240,18 @@ describe('doStream', () => {
             "finishReason": "error",
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]
@@ -1372,9 +1429,21 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 5,
-            "totalTokens": 15,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "input_tokens": 10,
+              "output_tokens": 5,
+            },
           },
         },
       ]

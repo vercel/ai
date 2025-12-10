@@ -354,11 +354,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "candidatesTokenCount": 5,
+          "promptTokenCount": 20,
+          "totalTokenCount": 25,
+        },
       }
     `);
   });
@@ -2109,11 +2120,23 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 10,
-        "outputTokens": 15,
-        "reasoningTokens": 8,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 10,
+          "total": 10,
+        },
+        "outputTokens": {
+          "reasoning": 8,
+          "text": 15,
+          "total": 23,
+        },
+        "raw": {
+          "candidatesTokenCount": 15,
+          "promptTokenCount": 10,
+          "thoughtsTokenCount": 8,
+          "totalTokenCount": 25,
+        },
       }
     `);
   });
@@ -2396,11 +2419,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
         },
       ]
@@ -2918,11 +2952,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
         },
       ]
@@ -3278,11 +3323,23 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 14,
-            "outputTokens": 18,
-            "reasoningTokens": 142,
-            "totalTokens": 174,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 14,
+              "total": 14,
+            },
+            "outputTokens": {
+              "reasoning": 142,
+              "text": 18,
+              "total": 160,
+            },
+            "raw": {
+              "candidatesTokenCount": 18,
+              "promptTokenCount": 14,
+              "thoughtsTokenCount": 142,
+              "totalTokenCount": 174,
+            },
           },
         },
       ]
@@ -3418,9 +3475,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]

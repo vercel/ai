@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createVertex } from './google-vertex-provider';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
@@ -7,8 +7,25 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 // Mock the imported modules
 vi.mock('@ai-sdk/provider-utils', () => ({
   loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
+  loadOptionalSetting: vi
+    .fn()
+    .mockImplementation(({ settingValue, environmentVariableName }) => {
+      if (settingValue) return settingValue;
+      if (
+        environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
+        process.env.GOOGLE_VERTEX_API_KEY
+      ) {
+        return process.env.GOOGLE_VERTEX_API_KEY;
+      }
+      return undefined;
+    }),
   generateId: vi.fn().mockReturnValue('mock-id'),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  resolve: vi.fn().mockImplementation(async value => {
+    if (typeof value === 'function') return value();
+    return value;
+  }),
+  withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
 }));
 
 vi.mock('@ai-sdk/google/internal', () => ({
@@ -32,6 +49,11 @@ vi.mock('./google-vertex-image-model', () => ({
 describe('google-vertex-provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.GOOGLE_VERTEX_API_KEY;
+  });
+
+  afterEach(() => {
+    delete process.env.GOOGLE_VERTEX_API_KEY;
   });
 
   it('should create a language model with default settings', () => {
@@ -245,5 +267,48 @@ describe('google-vertex-provider', () => {
         generateId: expect.any(Function),
       }),
     );
+  });
+
+  it('should use express mode base URL when apiKey is provided', () => {
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL: 'https://aiplatform.googleapis.com/v1/publishers/google',
+      }),
+    );
+  });
+
+  it('should add API key as query parameter via custom fetch', async () => {
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+    });
+    provider('test-model-id');
+
+    const calledConfig = vi.mocked(GoogleGenerativeAILanguageModel).mock
+      .calls[0][1];
+    const customFetch = calledConfig.fetch;
+
+    expect(customFetch).toBeDefined();
+
+    const mockResponse = new Response('{}');
+    const originalFetch = vi.fn().mockResolvedValue(mockResponse);
+    vi.stubGlobal('fetch', originalFetch);
+
+    await customFetch!(
+      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
+      {},
+    );
+
+    expect(originalFetch).toHaveBeenCalledWith(
+      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent?key=test-api-key',
+      {},
+    );
+
+    vi.unstubAllGlobals();
   });
 });

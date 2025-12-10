@@ -1,4 +1,8 @@
-export { type Agent } from './agent';
+export {
+  type Agent,
+  type AgentCallParameters,
+  type AgentStreamParameters,
+} from './agent';
 export { type ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callback';
 export { type ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 export {

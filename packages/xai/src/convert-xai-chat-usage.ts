@@ -1,0 +1,23 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { XaiChatUsage } from './xai-chat-language-model';
+
+export function convertXaiChatUsage(usage: XaiChatUsage): LanguageModelV3Usage {
+  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+  const reasoningTokens =
+    usage.completion_tokens_details?.reasoning_tokens ?? 0;
+
+  return {
+    inputTokens: {
+      total: usage.prompt_tokens,
+      noCache: usage.prompt_tokens - cacheReadTokens,
+      cacheRead: cacheReadTokens,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: usage.completion_tokens,
+      text: usage.completion_tokens - reasoningTokens,
+      reasoning: reasoningTokens,
+    },
+    raw: usage,
+  };
+}

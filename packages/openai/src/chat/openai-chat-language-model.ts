@@ -5,7 +5,6 @@ import {
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -22,6 +21,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  convertOpenAIChatUsage,
+  OpenAIChatUsage,
+} from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -375,13 +378,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: completionTokenDetails?.reasoning_tokens ?? undefined,
-        cachedInputTokens: promptTokenDetails?.cached_tokens ?? undefined,
-      },
+      usage: convertOpenAIChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -432,11 +429,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     }> = [];
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
 
@@ -488,14 +481,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              usage = value.usage;
 
               if (
                 value.usage.completion_tokens_details
@@ -684,7 +670,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAIChatUsage(usage),
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },

@@ -31,11 +31,17 @@ vi.mock('../version', () => {
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: {
-    inputTokens: 10,
-    outputTokens: 20,
-    totalTokens: 30,
-    reasoningTokens: undefined,
-    cachedInputTokens: undefined,
+    inputTokens: {
+      total: 10,
+      noCache: 10,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 20,
+      text: 20,
+      reasoning: undefined,
+    },
   },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
   warnings: [],
@@ -709,7 +715,16 @@ describe('generateObject', () => {
           },
           usage: {
             inputTokens: 10,
+            inputTokenDetails: {
+              noCacheTokens: 10,
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+            },
             outputTokens: 20,
+            outputTokenDetails: {
+              textTokens: 20,
+              reasoningTokens: undefined,
+            },
             totalTokens: 30,
             reasoningTokens: undefined,
             cachedInputTokens: undefined,

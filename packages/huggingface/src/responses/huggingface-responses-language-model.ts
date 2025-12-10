@@ -5,7 +5,6 @@ import {
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,6 +18,10 @@ import {
 import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
+import {
+  HuggingFaceResponsesUsage,
+  convertHuggingFaceResponsesUsage,
+} from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
@@ -303,14 +306,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       finishReason: mapHuggingFaceResponsesFinishReason(
         response.incomplete_details?.reason ?? 'stop',
       ),
-      usage: {
-        inputTokens: response.usage?.input_tokens ?? 0,
-        outputTokens: response.usage?.output_tokens ?? 0,
-        totalTokens:
-          response.usage?.total_tokens ??
-          (response.usage?.input_tokens ?? 0) +
-            (response.usage?.output_tokens ?? 0),
-      },
+      usage: convertHuggingFaceResponsesUsage(response.usage),
       request: { body },
       response: {
         id: response.id,
@@ -355,11 +351,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     let responseId: string | null = null;
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: HuggingFaceResponsesUsage | undefined = undefined;
 
     return {
       stream: response.pipeThrough(
@@ -465,12 +457,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                 value.response.incomplete_details?.reason ?? 'stop',
               );
               if (value.response.usage) {
-                usage.inputTokens = value.response.usage.input_tokens;
-                usage.outputTokens = value.response.usage.output_tokens;
-                usage.totalTokens =
-                  value.response.usage.total_tokens ??
-                  value.response.usage.input_tokens +
-                    value.response.usage.output_tokens;
+                usage = value.response.usage;
               }
               return;
             }
@@ -506,7 +493,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertHuggingFaceResponsesUsage(usage),
               providerMetadata: {
                 huggingface: {
                   responseId,

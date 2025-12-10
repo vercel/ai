@@ -44,9 +44,17 @@ describe('createAgentUIStreamResponse', () => {
                   type: 'finish',
                   finishReason: 'stop',
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 10,
-                    totalTokens: 20,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
                   },
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },

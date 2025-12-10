@@ -6,7 +6,6 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3Reasoning,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   LanguageModelV3FunctionTool,
 } from '@ai-sdk/provider';
@@ -32,6 +31,7 @@ import {
   bedrockProviderOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
+import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
@@ -453,12 +453,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         response.stopReason as BedrockStopReason,
         isJsonResponseFromTool,
       ),
-      usage: {
-        inputTokens: response.usage?.inputTokens,
-        outputTokens: response.usage?.outputTokens,
-        totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
-        cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
-      },
+      usage: convertBedrockUsage(response.usage),
       response: {
         // TODO add id, timestamp, etc
         headers: responseHeaders,
@@ -493,11 +488,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: BedrockUsage | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
 
@@ -568,15 +559,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.metadata) {
-              usage.inputTokens =
-                value.metadata.usage?.inputTokens ?? usage.inputTokens;
-              usage.outputTokens =
-                value.metadata.usage?.outputTokens ?? usage.outputTokens;
-              usage.totalTokens =
-                (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-              usage.cachedInputTokens =
-                value.metadata.usage?.cacheReadInputTokens ??
-                usage.cachedInputTokens;
+              if (value.metadata.usage) {
+                usage = value.metadata.usage;
+              }
 
               const cacheUsage =
                 value.metadata.usage?.cacheWriteInputTokens != null
@@ -813,7 +798,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertBedrockUsage(usage),
               ...(providerMetadata && { providerMetadata }),
             });
           },

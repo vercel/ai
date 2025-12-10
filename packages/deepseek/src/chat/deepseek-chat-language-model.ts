@@ -21,6 +21,7 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
+import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
@@ -194,16 +195,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapDeepSeekFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
-        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens: responseBody.usage?.total_tokens ?? undefined,
-        reasoningTokens:
-          responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
-      },
+      usage: convertDeepSeekUsage(responseBody.usage),
       providerMetadata: {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
@@ -510,15 +502,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                inputTokens: usage?.prompt_tokens ?? undefined,
-                outputTokens: usage?.completion_tokens ?? undefined,
-                totalTokens: usage?.total_tokens ?? undefined,
-                reasoningTokens:
-                  usage?.completion_tokens_details?.reasoning_tokens ??
-                  undefined,
-                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
-              },
+              usage: convertDeepSeekUsage(usage),
               providerMetadata: {
                 [providerOptionsName]: {
                   promptCacheHitTokens:
