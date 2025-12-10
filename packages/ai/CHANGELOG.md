@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.109
+
+### Patch Changes
+
+- 427547a: Improve ai gateway error message when api key is not present
+
 ## 5.0.108
 
 ### Patch Changes
