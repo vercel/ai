@@ -438,7 +438,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id,
     approved,
     reason,
-    options
+    options,
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -479,7 +479,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.makeRequest({
           trigger: 'submit-message',
           messageId: this.lastMessage?.id,
-          ...options
+          ...options,
         });
       }
     });
