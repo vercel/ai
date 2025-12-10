@@ -1220,6 +1220,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
 
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
+
           const {
             result: { stream, response, request },
             doStreamSpan,

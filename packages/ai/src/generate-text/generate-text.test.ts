@@ -1174,6 +1174,7 @@ describe('generateText', () => {
       let onStepFinishResults: StepResult<any>[];
       let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
+        modelId: string;
         stepNumber: number;
         steps: Array<StepResult<any>>;
         messages: Array<ModelMessage>;
@@ -1271,6 +1272,7 @@ describe('generateText', () => {
             experimental_context,
           }) => {
             prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
@@ -1323,6 +1325,7 @@ describe('generateText', () => {
                   "role": "user",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -1529,6 +1532,7 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
