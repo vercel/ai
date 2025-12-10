@@ -115,8 +115,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
     const openaiOptions = await parseProviderOptions({
-      provider: 'openai',
+      provider: providerKey,
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
@@ -149,6 +150,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         prompt,
         toolNameMapping,
         systemMessageMode: modelCapabilities.systemMessageMode,
+        providerKey,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -508,7 +510,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         case 'message': {
           for (const contentPart of part.content) {
             if (
-              options.providerOptions?.openai?.logprobs &&
+              options.providerOptions?.[providerKey]?.logprobs &&
               contentPart.logprobs
             ) {
               logprobs.push(contentPart.logprobs);
@@ -1443,7 +1445,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delta: value.delta,
               });
 
-              if (options.providerOptions?.openai?.logprobs && value.logprobs) {
+              if (
+                options.providerOptions?.[providerKey]?.logprobs &&
+                value.logprobs
+              ) {
                 logprobs.push(value.logprobs);
               }
             } else if (value.type === 'response.reasoning_summary_part.added') {
