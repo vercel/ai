@@ -5033,6 +5033,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": {
@@ -5328,6 +5329,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
@@ -5539,6 +5541,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -6242,6 +6245,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
+              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -7990,6 +7994,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
+              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
@@ -11355,6 +11360,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
+            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "providerMetadata": {
@@ -12598,6 +12604,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
+            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "providerMetadata": undefined,
@@ -14301,7 +14308,7 @@ describe('streamText', () => {
     });
   });
 
-  describe('tool execution context', () => {
+  describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
@@ -14354,6 +14361,41 @@ describe('streamText', () => {
       await result.consumeStream();
 
       // tool should be executed by client
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
+
+    it('should send context in onFinish callback', async () => {
+      let recordedContext: unknown | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, ' },
+              { type: 'text-delta', id: '1', delta: 'world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+        onFinish: ({ experimental_context }) => {
+          recordedContext = experimental_context;
+        },
+      });
+
+      await result.consumeStream();
+
       expect(recordedContext).toStrictEqual({
         context: 'test',
       });
