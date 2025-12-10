@@ -58,7 +58,8 @@ export type PrepareStepResult<
       model?: LanguageModel;
 
       /**
-       * Optionally set which tool the model must call, or provide tool call configuration.
+       * Optionally set which tool the model must call, or provide tool call configuration
+       * for this step.
        */
       toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
@@ -73,12 +74,16 @@ export type PrepareStepResult<
       system?: string | SystemModelMessage | Array<SystemModelMessage>;
 
       /**
-       * Optionally override the full set of messages sent to the model.
+       * Optionally override the full set of messages sent to the model
+       * for this step.
        */
       messages?: Array<ModelMessage>;
 
       /**
        * Context that is passed into tool execution. Experimental.
+       *
+       * Changing the context will affect the context in this step
+       * and all subsequent steps.
        */
       experimental_context?: unknown;
     }
