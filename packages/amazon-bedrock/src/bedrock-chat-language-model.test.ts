@@ -9,7 +9,7 @@ import {
   BedrockRedactedReasoningContentBlock,
   BedrockCitationsContentBlock,
 } from './bedrock-api-types';
-import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
+import { prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
 
@@ -1692,10 +1692,22 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 17,
-            "outputTokens": 227,
-            "totalTokens": 244,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "noCache": 17,
+              "total": 17,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 227,
+              "total": 227,
+            },
+            "raw": {
+              "inputTokens": 17,
+              "outputTokens": 227,
+              "totalTokens": 244,
+            },
           },
         },
       ]
