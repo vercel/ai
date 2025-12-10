@@ -134,6 +134,29 @@ export function convertToLanguageModelMessage({
         };
       }
 
+      // Collect tool approval requests to pass through to providers via providerOptions
+      const toolApprovalRequests = message.content
+        .filter(part => part.type === 'tool-approval-request')
+        .map(part => ({
+          approvalId: part.approvalId,
+          toolCallId: part.toolCallId,
+        }));
+
+      // Merge approval requests into providerOptions if any exist
+      const existingInternal =
+        (message.providerOptions as Record<string, unknown> | undefined)
+          ?.internal ?? {};
+      const providerOptions =
+        toolApprovalRequests.length > 0
+          ? {
+              ...message.providerOptions,
+              internal: {
+                ...(existingInternal as Record<string, unknown>),
+                toolApprovalRequests,
+              },
+            }
+          : message.providerOptions;
+
       return {
         role: 'assistant',
         content: message.content
@@ -155,7 +178,7 @@ export function convertToLanguageModelMessage({
               | ToolResultPart => part.type !== 'tool-approval-request',
           )
           .map(part => {
-            const providerOptions = part.providerOptions;
+            const partProviderOptions = part.providerOptions;
 
             switch (part.type) {
               case 'file': {
@@ -167,21 +190,21 @@ export function convertToLanguageModelMessage({
                   data,
                   filename: part.filename,
                   mediaType: mediaType ?? part.mediaType,
-                  providerOptions,
+                  providerOptions: partProviderOptions,
                 };
               }
               case 'reasoning': {
                 return {
                   type: 'reasoning',
                   text: part.text,
-                  providerOptions,
+                  providerOptions: partProviderOptions,
                 };
               }
               case 'text': {
                 return {
                   type: 'text' as const,
                   text: part.text,
-                  providerOptions,
+                  providerOptions: partProviderOptions,
                 };
               }
               case 'tool-call': {
@@ -191,7 +214,7 @@ export function convertToLanguageModelMessage({
                   toolName: part.toolName,
                   input: part.input,
                   providerExecuted: part.providerExecuted,
-                  providerOptions,
+                  providerOptions: partProviderOptions,
                 };
               }
               case 'tool-result': {
@@ -200,16 +223,40 @@ export function convertToLanguageModelMessage({
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                   output: mapToolResultOutput(part.output),
-                  providerOptions,
+                  providerOptions: partProviderOptions,
                 };
               }
             }
           }),
-        providerOptions: message.providerOptions,
+        providerOptions,
       };
     }
 
     case 'tool': {
+      // Collect approval responses to pass through to providers via providerOptions
+      const approvalResponses = message.content
+        .filter(part => part.type === 'tool-approval-response')
+        .map(part => ({
+          approvalId: part.approvalId,
+          approved: part.approved,
+          reason: part.reason,
+        }));
+
+      // Merge approval responses into providerOptions if any exist
+      const existingInternal =
+        (message.providerOptions as Record<string, unknown> | undefined)
+          ?.internal ?? {};
+      const providerOptions =
+        approvalResponses.length > 0
+          ? {
+              ...message.providerOptions,
+              internal: {
+                ...(existingInternal as Record<string, unknown>),
+                toolApprovalResponses: approvalResponses,
+              },
+            }
+          : message.providerOptions;
+
       return {
         role: 'tool',
         content: message.content
@@ -221,7 +268,7 @@ export function convertToLanguageModelMessage({
             output: mapToolResultOutput(part.output),
             providerOptions: part.providerOptions,
           })),
-        providerOptions: message.providerOptions,
+        providerOptions,
       };
     }
 

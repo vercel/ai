@@ -17,6 +17,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesShellCallOutput
   | OpenAIResponsesApplyPatchCall
   | OpenAIResponsesApplyPatchCallOutput
+  | OpenAIResponsesMcpApprovalResponse
   | OpenAIResponsesReasoning
   | OpenAIResponsesItemReference;
 
@@ -158,6 +159,16 @@ export type OpenAIResponsesApplyPatchCallOutput = {
   output?: string;
 };
 
+/**
+ * MCP approval response input item.
+ * Used to approve or deny an MCP tool call that requested approval.
+ */
+export type OpenAIResponsesMcpApprovalResponse = {
+  type: 'mcp_approval_response';
+  approval_request_id: string;
+  approve: boolean;
+};
+
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
@@ -295,8 +306,9 @@ export type OpenAIResponsesTool =
         | 'always'
         | 'never'
         | {
-            read_only?: boolean;
-            tool_names?: string[];
+            never?: {
+              tool_names?: string[];
+            };
           }
         | undefined;
       server_description: string | undefined;
@@ -623,7 +635,6 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             server_label: z.string(),
             name: z.string(),
             arguments: z.string(),
-            approval_request_id: z.string(),
           }),
           z.object({
             type: z.literal('apply_patch_call'),
@@ -1002,7 +1013,6 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               server_label: z.string(),
               name: z.string(),
               arguments: z.string(),
-              approval_request_id: z.string(),
             }),
             z.object({
               type: z.literal('apply_patch_call'),

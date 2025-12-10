@@ -58,7 +58,7 @@ export async function convertToOpenAIResponsesInput({
   const input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV3Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
@@ -327,10 +327,51 @@ export async function convertToOpenAIResponsesInput({
           }
         }
 
+        // Extract MCP approval requests from providerOptions and add item references
+        // so OpenAI knows which item the approval response refers to
+        const internalOptions = providerOptions?.internal as
+          | {
+              toolApprovalRequests?: Array<{
+                approvalId: string;
+                toolCallId: string;
+              }>;
+            }
+          | undefined;
+
+        if (store && internalOptions?.toolApprovalRequests) {
+          for (const approvalRequest of internalOptions.toolApprovalRequests) {
+            input.push({
+              type: 'item_reference',
+              id: approvalRequest.approvalId,
+            });
+          }
+        }
+
         break;
       }
 
       case 'tool': {
+        // Extract MCP approval responses from providerOptions and emit them
+        const internalOptions = providerOptions?.internal as
+          | {
+              toolApprovalResponses?: Array<{
+                approvalId: string;
+                approved: boolean;
+                reason?: string;
+              }>;
+            }
+          | undefined;
+
+        if (internalOptions?.toolApprovalResponses) {
+          for (const approvalResponse of internalOptions.toolApprovalResponses) {
+            input.push({
+              type: 'mcp_approval_response',
+              approval_request_id: approvalResponse.approvalId,
+              approve: approvalResponse.approved,
+            });
+          }
+        }
+
         for (const part of content) {
           const output = part.output;
 
