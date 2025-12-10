@@ -151,6 +151,8 @@ Here's the complete flow:
 After calling `generateText` or `streamText`, check `result.content` for `tool-approval-request` parts:
 
 ```ts
+import { type ModelMessage, generateText } from 'ai';
+
 const messages: ModelMessage[] = [
   { role: 'user', content: 'Remove the most recent file' },
 ];
@@ -173,7 +175,7 @@ for (const part of result.content) {
 To respond, create a `tool-approval-response` and add it to your messages:
 
 ```ts
-import { ToolApprovalResponse } from 'ai';
+import { type ToolApprovalResponse } from 'ai';
 
 const approvals: ToolApprovalResponse[] = [];
 
