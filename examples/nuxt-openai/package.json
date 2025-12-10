@@ -10,9 +10,9 @@
     "clean": "del-cli .nuxt"
   },
   "dependencies": {
-    "@ai-sdk/vue": "3.0.0-beta.141",
+    "@ai-sdk/vue": "3.0.0-beta.142",
     "@ai-sdk/openai": "3.0.0-beta.89",
-    "ai": "6.0.0-beta.141",
+    "ai": "6.0.0-beta.142",
     "zod": "3.25.76"
   },
   "devDependencies": {
