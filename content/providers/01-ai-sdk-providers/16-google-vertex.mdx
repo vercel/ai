@@ -61,7 +61,7 @@ const vertex = createVertex({
 });
 ```
 
-Google Vertex supports two different authentication implementations depending on your runtime environment.
+Google Vertex supports multiple authentication methods depending on your runtime environment and requirements.
 
 #### Node.js Runtime
 
@@ -228,6 +228,25 @@ You can use the following optional settings to customize the provider instance:
   Defaults to the global `fetch` function.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+#### Express Mode
+
+Express mode provides a simplified authentication method using an API key instead of OAuth or service account credentials. When using express mode, the `project` and `location` settings are not required.
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+
+const vertex = createVertex({
+  apiKey: process.env.GOOGLE_VERTEX_API_KEY,
+});
+```
+
+##### Optional Provider Settings
+
+- **apiKey** _string_
+
+  The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
+  It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
 
 ### Language Models
 
@@ -666,7 +685,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -680,7 +699,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
@@ -720,7 +739,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -732,14 +751,14 @@ console.log(
 
 #### Model Capabilities
 
-| Model                                     | Aspect Ratios             |
-| ----------------------------------------- | ------------------------- |
-| `imagen-3.0-generate-001`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-generate-002`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-fast-generate-001`            | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-generate-preview-06-06`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-fast-generate-preview-06-06`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-ultra-generate-preview-06-06` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                           | Aspect Ratios             |
+| ------------------------------- | ------------------------- |
+| `imagen-3.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 

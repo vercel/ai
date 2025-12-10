@@ -5,7 +5,6 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -24,6 +23,10 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  convertGoogleGenerativeAIUsage,
+  GoogleGenerativeAIUsageMetadata,
+} from './convert-google-generative-ai-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
@@ -291,13 +294,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         finishReason: candidate.finishReason,
         hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
-      usage: {
-        inputTokens: usageMetadata?.promptTokenCount ?? undefined,
-        outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
-        totalTokens: usageMetadata?.totalTokenCount ?? undefined,
-        reasoningTokens: usageMetadata?.thoughtsTokenCount ?? undefined,
-        cachedInputTokens: usageMetadata?.cachedContentTokenCount ?? undefined,
-      },
+      usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
       providerMetadata: {
         google: {
@@ -341,11 +338,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     const generateId = this.config.generateId;
@@ -386,14 +379,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
-              usage.inputTokens = usageMetadata.promptTokenCount ?? undefined;
-              usage.outputTokens =
-                usageMetadata.candidatesTokenCount ?? undefined;
-              usage.totalTokens = usageMetadata.totalTokenCount ?? undefined;
-              usage.reasoningTokens =
-                usageMetadata.thoughtsTokenCount ?? undefined;
-              usage.cachedInputTokens =
-                usageMetadata.cachedContentTokenCount ?? undefined;
+              usage = usageMetadata;
             }
 
             const candidate = value.candidates?.[0];
@@ -625,7 +611,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertGoogleGenerativeAIUsage(usage),
               providerMetadata,
             });
           },

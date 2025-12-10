@@ -30,7 +30,11 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  asLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
@@ -519,15 +523,18 @@ A function that attempts to repair a tool call that failed to parse.
                       ),
 
                       // TODO rename telemetry attributes to inputTokens and outputTokens
-                      'ai.usage.promptTokens': result.usage.inputTokens,
-                      'ai.usage.completionTokens': result.usage.outputTokens,
+                      'ai.usage.promptTokens': result.usage.inputTokens.total,
+                      'ai.usage.completionTokens':
+                        result.usage.outputTokens.total,
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                      'gen_ai.usage.input_tokens':
+                        result.usage.inputTokens.total,
+                      'gen_ai.usage.output_tokens':
+                        result.usage.outputTokens.total,
                     },
                   }),
                 );
@@ -661,7 +668,7 @@ A function that attempts to repair a tool call that failed to parse.
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
             finishReason: currentModelResponse.finishReason,
-            usage: currentModelResponse.usage,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: currentModelResponse.request ?? {},
@@ -711,9 +718,10 @@ A function that attempts to repair a tool call that failed to parse.
               ),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
+              'ai.usage.promptTokens':
+                currentModelResponse.usage.inputTokens.total,
               'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens,
+                currentModelResponse.usage.outputTokens.total,
             },
           }),
         );
