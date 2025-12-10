@@ -12,7 +12,16 @@ const context = {
   },
   usage: {
     inputTokens: 1,
+    inputTokenDetails: {
+      noCacheTokens: 1,
+      cacheReadTokens: undefined,
+      cacheWriteTokens: undefined,
+    },
     outputTokens: 2,
+    outputTokenDetails: {
+      reasoningTokens: undefined,
+      textTokens: 2,
+    },
     totalTokens: 3,
     reasoningTokens: undefined,
     cachedInputTokens: undefined,

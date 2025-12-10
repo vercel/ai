@@ -1,5 +1,22 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/openai@3.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [92c6241]
+  - @ai-sdk/openai@3.0.0-beta.88
+
 ## 3.0.0-beta.89
 
 ### Patch Changes

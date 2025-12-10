@@ -133,10 +133,25 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "inputTokens": 345,
-            "outputTokens": 538,
-            "reasoningTokens": 123,
-            "totalTokens": 883,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 345,
+              "total": 345,
+            },
+            "outputTokens": {
+              "reasoning": 123,
+              "text": 415,
+              "total": 538,
+            },
+            "raw": {
+              "input_tokens": 345,
+              "output_tokens": 538,
+              "output_tokens_details": {
+                "reasoning_tokens": 123,
+              },
+              "total_tokens": 883,
+            },
           }
         `);
       });

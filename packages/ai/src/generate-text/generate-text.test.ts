@@ -4,6 +4,7 @@ import {
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -40,12 +41,18 @@ vi.mock('../version', () => {
   };
 });
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
 
 const dummyResponseValues = {
@@ -884,8 +891,18 @@ describe('generateText', () => {
               },
               "usage": {
                 "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
                 "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
@@ -920,15 +937,34 @@ describe('generateText', () => {
           ],
           "totalUsage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -996,11 +1032,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1070,26 +1112,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1143,11 +1204,17 @@ describe('generateText', () => {
                   ],
                   finishReason: 'tool-calls',
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 5,
-                    totalTokens: 15,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
                   },
                   response: {
                     id: 'test-id-1-from-model',
@@ -1305,8 +1372,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1374,8 +1451,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1488,8 +1575,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1557,8 +1654,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1692,26 +1799,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1763,11 +1889,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1885,8 +2017,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1964,8 +2106,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -3452,9 +3604,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [
@@ -3587,9 +3747,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [
@@ -3737,8 +3905,20 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 10,
+                },
                 "inputTokens": 10,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 20,
+                },
                 "outputTokens": 20,
+                "raw": undefined,
+                "reasoningTokens": undefined,
                 "totalTokens": 30,
               },
               "warnings": [],

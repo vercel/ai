@@ -823,11 +823,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 642,
-      "outputTokens": 67,
-      "reasoningTokens": 0,
-      "totalTokens": 709,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 642,
+        "total": 642,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 67,
+        "total": 67,
+      },
+      "raw": {
+        "input_tokens": 642,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 67,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]
@@ -2899,11 +2915,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2944,
-      "inputTokens": 6047,
-      "outputTokens": 1623,
-      "reasoningTokens": 1408,
-      "totalTokens": 7670,
+      "inputTokens": {
+        "cacheRead": 2944,
+        "cacheWrite": undefined,
+        "noCache": 3103,
+        "total": 6047,
+      },
+      "outputTokens": {
+        "reasoning": 1408,
+        "text": 215,
+        "total": 1623,
+      },
+      "raw": {
+        "input_tokens": 6047,
+        "input_tokens_details": {
+          "cached_tokens": 2944,
+        },
+        "output_tokens": 1623,
+        "output_tokens_details": {
+          "reasoning_tokens": 1408,
+        },
+      },
     },
   },
 ]
@@ -3451,11 +3483,27 @@ providers and models, and which ones are available in the AI SDK.",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3748,
-      "outputTokens": 543,
-      "reasoningTokens": 448,
-      "totalTokens": 4291,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1444,
+        "total": 3748,
+      },
+      "outputTokens": {
+        "reasoning": 448,
+        "text": 95,
+        "total": 543,
+      },
+      "raw": {
+        "input_tokens": 3748,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 543,
+        "output_tokens_details": {
+          "reasoning_tokens": 448,
+        },
+      },
     },
   },
 ]
@@ -3976,11 +4024,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3737,
-      "outputTokens": 621,
-      "reasoningTokens": 512,
-      "totalTokens": 4358,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1433,
+        "total": 3737,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 109,
+        "total": 621,
+      },
+      "raw": {
+        "input_tokens": 3737,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 621,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
     },
   },
 ]
@@ -4070,11 +4134,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 1920,
-      "inputTokens": 2941,
-      "outputTokens": 1249,
-      "reasoningTokens": 1024,
-      "totalTokens": 4190,
+      "inputTokens": {
+        "cacheRead": 1920,
+        "cacheWrite": undefined,
+        "noCache": 1021,
+        "total": 2941,
+      },
+      "outputTokens": {
+        "reasoning": 1024,
+        "text": 225,
+        "total": 1249,
+      },
+      "raw": {
+        "input_tokens": 2941,
+        "input_tokens_details": {
+          "cached_tokens": 1920,
+        },
+        "output_tokens": 1249,
+        "output_tokens_details": {
+          "reasoning_tokens": 1024,
+        },
+      },
     },
   },
 ]
@@ -4133,11 +4213,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 407,
-      "outputTokens": 151,
-      "reasoningTokens": 128,
-      "totalTokens": 558,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 407,
+        "total": 407,
+      },
+      "outputTokens": {
+        "reasoning": 128,
+        "text": 23,
+        "total": 151,
+      },
+      "raw": {
+        "input_tokens": 407,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 151,
+        "output_tokens_details": {
+          "reasoning_tokens": 128,
+        },
+      },
     },
   },
 ]
@@ -6083,11 +6179,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 11791,
-      "outputTokens": 963,
-      "reasoningTokens": 512,
-      "totalTokens": 12754,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 11791,
+        "total": 11791,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 451,
+        "total": 963,
+      },
+      "raw": {
+        "input_tokens": 11791,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 963,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
     },
   },
 ]
@@ -6978,11 +7090,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 331,
-      "outputTokens": 166,
-      "reasoningTokens": 0,
-      "totalTokens": 497,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 331,
+        "total": 331,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 166,
+        "total": 166,
+      },
+      "raw": {
+        "input_tokens": 331,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 166,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]
@@ -7060,11 +7188,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 50,
-      "outputTokens": 25,
-      "reasoningTokens": 0,
-      "totalTokens": 75,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 50,
+        "total": 50,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 25,
+        "total": 25,
+      },
+      "raw": {
+        "input_tokens": 50,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 25,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]
@@ -7550,11 +7694,27 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 34560,
-      "inputTokens": 60093,
-      "outputTokens": 4080,
-      "reasoningTokens": 3648,
-      "totalTokens": 64173,
+      "inputTokens": {
+        "cacheRead": 34560,
+        "cacheWrite": undefined,
+        "noCache": 25533,
+        "total": 60093,
+      },
+      "outputTokens": {
+        "reasoning": 3648,
+        "text": 432,
+        "total": 4080,
+      },
+      "raw": {
+        "input_tokens": 60093,
+        "input_tokens_details": {
+          "cached_tokens": 34560,
+        },
+        "output_tokens": 4080,
+        "output_tokens_details": {
+          "reasoning_tokens": 3648,
+        },
+      },
     },
   },
 ]
