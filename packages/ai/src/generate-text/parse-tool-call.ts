@@ -148,6 +148,37 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
+  // For provider-executed tools, skip schema validation since the provider
+  // already executed the tool. Just parse the JSON input.
+  // This is needed for cases like programmatic tool calling where the
+  // provider returns a different input format than the tool's schema.
+  // We treat these as dynamic since we don't have type guarantees on the input.
+  if (toolCall.providerExecuted) {
+    const parseResult =
+      toolCall.input.trim() === ''
+        ? { success: true as const, value: {} }
+        : await safeParseJSON({ text: toolCall.input });
+
+    if (parseResult.success === false) {
+      throw new InvalidToolInputError({
+        toolName,
+        toolInput: toolCall.input,
+        cause: parseResult.error,
+      });
+    }
+
+    return {
+      type: 'tool-call',
+      toolCallId: toolCall.toolCallId,
+      toolName: toolCall.toolName,
+      input: parseResult.value,
+      providerExecuted: true,
+      providerMetadata: toolCall.providerMetadata,
+      dynamic: true,
+      title: tool.title,
+    };
+  }
+
   const schema = asSchema(tool.inputSchema);
 
   // when the tool call has no arguments, we try passing an empty object to the schema

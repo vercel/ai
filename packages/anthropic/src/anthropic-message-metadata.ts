@@ -1,5 +1,34 @@
 import { JSONObject } from '@ai-sdk/provider';
 
+export type AnthropicToolCallCaller =
+  | {
+      /**
+       * Direct invocation by Claude.
+       */
+      type: 'direct';
+    }
+  | {
+      /**
+       * Programmatic invocation from within code execution.
+       */
+      type: 'code_execution_20250825';
+      /**
+       * The ID of the code execution tool that made the programmatic call.
+       */
+      toolId: string;
+    };
+
+/**
+ * Anthropic-specific metadata for tool calls.
+ */
+export interface AnthropicToolCallMetadata {
+  /**
+   * Information about how the tool was called.
+   * Present when programmatic tool calling is used.
+   */
+  caller?: AnthropicToolCallCaller;
+}
+
 export interface AnthropicMessageMetadata {
   usage: JSONObject;
   // TODO remove cacheCreationInputTokens in AI SDK 6

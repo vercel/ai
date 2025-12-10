@@ -3066,6 +3066,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             {
               "result": {
+                "content": [],
                 "return_code": 0,
                 "stderr": "",
                 "stdout": "Hello, World!

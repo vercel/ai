@@ -9377,6 +9377,7 @@ describe('streamText', () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
+              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -9399,6 +9400,7 @@ describe('streamText', () => {
               "type": "tool-result",
             },
             {
+              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -9454,6 +9456,7 @@ describe('streamText', () => {
                 "type": "tool-input-end",
               },
               {
+                "dynamic": true,
                 "input": {
                   "value": "value",
                 },
@@ -9476,6 +9479,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
               {
+                "dynamic": true,
                 "input": {
                   "value": "value",
                 },

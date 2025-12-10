@@ -2464,6 +2464,7 @@ describe('citations', () => {
                 },
                 {
                   "cache_control": undefined,
+                  "caller": undefined,
                   "id": "weather-call-1",
                   "input": {
                     "location": "berlin",
@@ -2473,6 +2474,7 @@ describe('citations', () => {
                 },
                 {
                   "cache_control": undefined,
+                  "caller": undefined,
                   "id": "weather-call-2",
                   "input": {
                     "location": "london",
@@ -2482,6 +2484,7 @@ describe('citations', () => {
                 },
                 {
                   "cache_control": undefined,
+                  "caller": undefined,
                   "id": "weather-call-3",
                   "input": {
                     "location": "paris",
