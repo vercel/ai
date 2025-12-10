@@ -27,9 +27,12 @@ export interface ToolExecutionOptions {
   /**
    * User-defined context.
    *
-   * Treat this as read-only.
+   * Treat the context object as immutable inside tools.
    * Mutating the context object can lead to race conditions and unexpected results
    * when tools are called in parallel.
+   *
+   * If you need to mutate the context, analyze the tool calls and results
+   * in `prepareStep` and update it there.
    *
    * Experimental (can break in patch releases).
    */
