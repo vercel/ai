@@ -160,14 +160,23 @@ Callback that is set using the `onFinish` option.
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;
 
@@ -931,6 +940,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
+            experimental_context,
           });
 
           // Add response information to the root span:
