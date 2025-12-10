@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 2.0.110
+
+### Patch Changes
+
+- 52e8efe: Require minimal versions for RSC to address CVE-2025-55182
+
 ## 2.0.109
 
 ### Patch Changes
