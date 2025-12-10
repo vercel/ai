@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import {
-  generateText,
+  streamText,
   ModelMessage,
   stepCountIs,
   ToolApprovalResponse,
@@ -40,7 +40,7 @@ run(async () => {
 
     approvals = [];
 
-    const result = await generateText({
+    const result = streamText({
       model: openai.responses('gpt-5-mini'),
       system:
         'You are a helpful assistant that can search the web for information. ' +
@@ -59,7 +59,23 @@ run(async () => {
       stopWhen: stepCountIs(10),
     });
 
-    for (const part of result.content) {
+    let hasText = false;
+    for await (const delta of result.textStream) {
+      if (!hasText) {
+        process.stdout.write('\nAssistant:\n');
+        hasText = true;
+      }
+      process.stdout.write(delta);
+    }
+    if (hasText) {
+      process.stdout.write('\n');
+    }
+
+    // Get the final result to check for tool approval requests
+    const content = await result.content;
+    const response = await result.response;
+
+    for (const part of content) {
       if (part.type === 'tool-approval-request') {
         const answer = await terminal.question(
           `\nApprove MCP tool call? (y/n): `,
@@ -70,11 +86,9 @@ run(async () => {
           approved:
             answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
         });
-      } else if (part.type === 'text') {
-        console.log(`\nAssistant:\n${part.text}`);
       }
     }
 
-    messages.push(...result.response.messages);
+    messages.push(...response.messages);
   }
 });
