@@ -1,9 +1,15 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  ImageModelV3File,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -46,6 +52,8 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
@@ -65,6 +73,46 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    // Image editing mode - use form data and /images/edits endpoint
+    if (files != null && files.length > 0) {
+      const { value: response, responseHeaders } = await postFormDataToApi({
+        url: this.config.url({
+          path: '/images/edits',
+          modelId: this.modelId,
+        }),
+        headers: combineHeaders(this.config.headers(), headers),
+        formData: inputToFormData({
+          model: this.modelId,
+          prompt,
+          image: await Promise.all(files.map(file => fileToBlob(file))),
+          mask: mask != null ? await fileToBlob(mask) : undefined,
+          n,
+          size,
+          ...(providerOptions.openai ?? {}),
+        }),
+        failedResponseHandler: createJsonErrorResponseHandler(
+          this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
+        ),
+        successfulResponseHandler: createJsonResponseHandler(
+          openaiCompatibleImageResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      return {
+        images: response.data.map(item => item.b64_json),
+        warnings,
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
+    }
+
+    // Standard image generation mode - use JSON and /images/generations endpoint
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
@@ -106,3 +154,61 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 const openaiCompatibleImageResponseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string() })),
 });
+
+type FormDataInput = {
+  model: string;
+  prompt: string | undefined;
+  image: Blob | Blob[];
+  mask?: Blob;
+  n: number;
+  size: `${number}x${number}` | undefined;
+  [key: string]: unknown;
+};
+
+function inputToFormData(input: FormDataInput): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (value == null) {
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 1) {
+        formData.append(key, value[0] as string | Blob);
+        continue;
+      }
+
+      for (const item of value) {
+        formData.append(`${key}[]`, item as string | Blob);
+      }
+      continue;
+    }
+
+    formData.append(key, value as string | Blob);
+  }
+
+  return formData;
+}
+
+async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+  if (file.type === 'url') {
+    return downloadImageAsBlob(file.url);
+  }
+
+  const data =
+    file.data instanceof Uint8Array
+      ? file.data
+      : convertBase64ToUint8Array(file.data);
+
+  return new Blob([data as BlobPart], { type: file.mediaType });
+}
+
+async function downloadImageAsBlob(url: string): Promise<Blob> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download image from URL: ${url}. Status: ${response.status} ${response.statusText}`,
+    );
+  }
+  return await response.blob();
+}
