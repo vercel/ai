@@ -420,6 +420,7 @@ A function that attempts to repair a tool call that failed to parse.
             steps,
             stepNumber: steps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(

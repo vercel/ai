@@ -1197,6 +1197,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
