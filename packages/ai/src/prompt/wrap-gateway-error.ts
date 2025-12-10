@@ -12,7 +12,7 @@ export function wrapGatewayError(error: unknown): unknown {
     return new AISDKError({
       name: 'GatewayError',
       message:
-        'Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: https://v6.ai-sdk.dev/docs/getting-started/choosing-a-provider#ai-gateway',
+        'Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: https://vercel.link/unauthenticated-ai-gateway-v6',
       cause: error,
     });
   }
