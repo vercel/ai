@@ -3594,6 +3594,27 @@ describe('generateText', () => {
       });
     });
 
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
     it('should send context in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
@@ -5038,29 +5059,6 @@ describe('generateText', () => {
       `);
 
       expect(result.text).toBe('response from without-image-url-support');
-    });
-  });
-
-  describe('prepareStep with experimental_context', () => {
-    it('should pass experimental_context to prepareStep', async () => {
-      let capturedContext: unknown;
-
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          }),
-        }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
-          return undefined;
-        },
-        prompt: 'test',
-      });
-
-      expect(capturedContext).toEqual({ myData: 'test-value' });
     });
   });
 });
