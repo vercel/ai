@@ -3,7 +3,10 @@ import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
-import { anthropicMessagesChunkSchema, anthropicMessagesResponseSchema } from './anthropic-messages-api';
+import {
+  anthropicMessagesChunkSchema,
+  anthropicMessagesResponseSchema,
+} from './anthropic-messages-api';
 
 describe('prepareTools', () => {
   it('should return undefined tools and tool_choice when tools are null', async () => {
@@ -927,7 +930,6 @@ describe('webSearch_20250305OutputSchema', () => {
   });
 });
 
-
 describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
   it('should accept PDF response with base64 source', async () => {
     const pdfResponse = {
@@ -951,14 +953,14 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
                 data: 'JVBERi0xLjcNJeLjz9MNC',
               },
             },
-          }
-        }
+          },
+        },
       ],
       stop_reason: 'end_turn',
       usage: {
         input_tokens: 100,
         output_tokens: 50,
-      }
+      },
     };
 
     const schema = anthropicMessagesResponseSchema();
@@ -989,14 +991,14 @@ describe('anthropicMessagesResponseSchema - web_fetch_tool_result', () => {
                 data: 'content',
               },
             },
-          }
-        }
+          },
+        },
       ],
       stop_reason: 'end_turn',
       usage: {
         input_tokens: 100,
         output_tokens: 50,
-      }
+      },
     };
 
     const schema = anthropicMessagesResponseSchema();
@@ -1027,8 +1029,8 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
               data: 'JVBERi0xLjcNJeLjz9MNC',
             },
           },
-        }
-      }
+        },
+      },
     };
 
     const schema = anthropicMessagesChunkSchema();
@@ -1057,8 +1059,8 @@ describe('anthropicMessagesChunkSchema - web_fetch_tool_result', () => {
               data: 'content',
             },
           },
-        }
-      }
+        },
+      },
     };
 
     const schema = anthropicMessagesChunkSchema();
