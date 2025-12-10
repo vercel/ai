@@ -134,7 +134,9 @@ This is useful for tools that perform sensitive operations like executing comman
 
 ### How It Works
 
-When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. Your application collects user decisions, adds approval responses to the messages array, and calls the model again.
+When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
+
+Here's the complete flow:
 
 1. Call `generateText` with a tool that has `needsApproval: true`
 2. Model generates a tool call
