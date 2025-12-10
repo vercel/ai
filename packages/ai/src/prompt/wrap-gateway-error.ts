@@ -12,9 +12,7 @@ export function wrapGatewayError(error: unknown): unknown {
     return new AISDKError({
       name: 'GatewayError',
       message:
-        'Vercel AI Gateway access failed. ' +
-        'If you want to use AI SDK providers directly, use the providers, e.g. @ai-sdk/openai, ' +
-        'or register a different global default provider.',
+        'Missing AI Gateway Key. Get one here: https://vercel.link/4rcaGME',
       cause: error,
     });
   }
