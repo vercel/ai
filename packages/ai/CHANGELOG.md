@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
 ## 6.0.0-beta.143
 
 ### Patch Changes
