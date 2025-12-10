@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.141
+
+### Patch Changes
+
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+
 ## 6.0.0-beta.140
 
 ### Patch Changes
