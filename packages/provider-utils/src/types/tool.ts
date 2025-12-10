@@ -25,7 +25,11 @@ export interface ToolExecutionOptions {
   abortSignal?: AbortSignal;
 
   /**
-   * Additional context.
+   * User-defined context.
+   *
+   * Treat this as read-only.
+   * Mutating the context object can lead to race conditions and unexpected results
+   * when tools are called in parallel.
    *
    * Experimental (can break in patch releases).
    */
