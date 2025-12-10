@@ -1,15 +1,17 @@
-import path from "node:path";
-import fs from "node:fs";
+import path from 'node:path';
+import fs from 'node:fs';
 
-const DB_DIR = path.join(process.cwd(), ".devtools");
-const DB_PATH = path.join(DB_DIR, "generations.json");
-const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT) : 4983;
+const DB_DIR = path.join(process.cwd(), '.devtools');
+const DB_PATH = path.join(DB_DIR, 'generations.json');
+const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
+  ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
+  : 4983;
 
 /**
  * Notify the devtools server that data has changed.
  * Fire-and-forget: doesn't block, ignores errors if server isn't running.
  */
-const notifyServer = (event: "run" | "step" | "step-update" | "clear") => {
+const notifyServer = (event: 'run' | 'step' | 'step-update' | 'clear') => {
   notifyServerAsync(event);
 };
 
@@ -18,12 +20,12 @@ const notifyServer = (event: "run" | "step" | "step-update" | "clear") => {
  * Used during process cleanup to ensure notifications are sent before exit.
  */
 export const notifyServerAsync = async (
-  event: "run" | "step" | "step-update" | "clear"
+  event: 'run' | 'step' | 'step-update' | 'clear',
 ): Promise<void> => {
   try {
     await fetch(`http://localhost:${DEVTOOLS_PORT}/api/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, timestamp: Date.now() }),
     });
   } catch {
@@ -40,7 +42,7 @@ export interface Step {
   id: string;
   run_id: string;
   step_number: number;
-  type: "generate" | "stream";
+  type: 'generate' | 'stream';
   model_id: string;
   provider: string | null;
   started_at: string;
@@ -75,22 +77,22 @@ interface Database {
  * Only writes if .gitignore exists and doesn't already contain .devtools.
  */
 const ensureGitignore = (): void => {
-  const gitignorePath = path.join(process.cwd(), ".gitignore");
+  const gitignorePath = path.join(process.cwd(), '.gitignore');
 
   if (!fs.existsSync(gitignorePath)) {
     return;
   }
 
-  const content = fs.readFileSync(gitignorePath, "utf-8");
-  const lines = content.split("\n");
+  const content = fs.readFileSync(gitignorePath, 'utf-8');
+  const lines = content.split('\n');
 
   // Check if .devtools is already ignored (exact match or with trailing slash)
   const alreadyIgnored = lines.some(
-    (line) => line.trim() === ".devtools" || line.trim() === ".devtools/"
+    line => line.trim() === '.devtools' || line.trim() === '.devtools/',
   );
 
   if (!alreadyIgnored) {
-    const newContent = content.endsWith("\n")
+    const newContent = content.endsWith('\n')
       ? `${content}.devtools\n`
       : `${content}\n.devtools\n`;
     fs.writeFileSync(gitignorePath, newContent);
@@ -100,7 +102,7 @@ const ensureGitignore = (): void => {
 const readDb = (): Database => {
   try {
     if (fs.existsSync(DB_PATH)) {
-      const content = fs.readFileSync(DB_PATH, "utf-8");
+      const content = fs.readFileSync(DB_PATH, 'utf-8');
       return JSON.parse(content);
     }
   } catch {
@@ -148,7 +150,7 @@ export const createRun = async (id: string): Promise<Run> => {
   const started_at = new Date().toISOString();
 
   // Check if run already exists
-  const existing = db.runs.find((r) => r.id === id);
+  const existing = db.runs.find(r => r.id === id);
   if (existing) {
     return existing;
   }
@@ -156,15 +158,21 @@ export const createRun = async (id: string): Promise<Run> => {
   const run: Run = { id, started_at };
   db.runs.push(run);
   saveDb(db);
-  notifyServer("run");
+  notifyServer('run');
   return run;
 };
 
 export const createStep = async (
   step: Omit<
     Step,
-    "duration_ms" | "output" | "usage" | "error" | "raw_request" | "raw_response" | "raw_chunks"
-  >
+    | 'duration_ms'
+    | 'output'
+    | 'usage'
+    | 'error'
+    | 'raw_request'
+    | 'raw_response'
+    | 'raw_chunks'
+  >,
 ): Promise<void> => {
   const db = getDb();
   const newStep: Step = {
@@ -179,12 +187,15 @@ export const createStep = async (
   };
   db.steps.push(newStep);
   saveDb(db);
-  notifyServer("step");
+  notifyServer('step');
 };
 
-export const updateStepResult = async (stepId: string, result: StepResult): Promise<void> => {
+export const updateStepResult = async (
+  stepId: string,
+  result: StepResult,
+): Promise<void> => {
   const db = getDb();
-  const step = db.steps.find((s) => s.id === stepId);
+  const step = db.steps.find(s => s.id === stepId);
   if (step) {
     step.duration_ms = result.duration_ms;
     step.output = result.output;
@@ -194,7 +205,7 @@ export const updateStepResult = async (stepId: string, result: StepResult): Prom
     step.raw_response = result.raw_response ?? null;
     step.raw_chunks = result.raw_chunks ?? null;
     saveDb(db);
-    notifyServer("step-update");
+    notifyServer('step-update');
   }
 };
 
@@ -202,22 +213,23 @@ export const getRuns = async (): Promise<Run[]> => {
   const db = getDb();
   // Return runs sorted by started_at DESC
   return [...db.runs].sort(
-    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+    (a, b) =>
+      new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
   );
 };
 
 export const getStepsForRun = async (runId: string): Promise<Step[]> => {
   const db = getDb();
   return db.steps
-    .filter((s) => s.run_id === runId)
+    .filter(s => s.run_id === runId)
     .sort((a, b) => a.step_number - b.step_number);
 };
 
 export const getRunWithSteps = async (
-  runId: string
+  runId: string,
 ): Promise<{ run: Run; steps: Step[] } | null> => {
   const db = getDb();
-  const run = db.runs.find((r) => r.id === runId);
+  const run = db.runs.find(r => r.id === runId);
   if (!run) return null;
   const steps = await getStepsForRun(runId);
   return { run, steps };
@@ -226,5 +238,5 @@ export const getRunWithSteps = async (
 export const clearDatabase = async (): Promise<void> => {
   const db: Database = { runs: [], steps: [] };
   saveDb(db);
-  notifyServer("clear");
+  notifyServer('clear');
 };

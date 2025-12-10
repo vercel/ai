@@ -1,15 +1,26 @@
 import {
   type LanguageModelV3Middleware,
   type LanguageModelV3StreamPart,
-} from "@ai-sdk/provider";
-import { createRun, createStep, updateStepResult, notifyServerAsync } from "./db.js";
+} from '@ai-sdk/provider';
+import {
+  createRun,
+  createStep,
+  updateStepResult,
+  notifyServerAsync,
+} from './db.js';
 
 const generateId = () => crypto.randomUUID();
 
 // Track active streaming steps for cleanup on process exit
 const activeSteps = new Map<
   string,
-  { startTime: number; collectedOutput: unknown; request: unknown; fullStreamChunks: unknown[]; rawChunks: unknown[] }
+  {
+    startTime: number;
+    collectedOutput: unknown;
+    request: unknown;
+    fullStreamChunks: unknown[];
+    rawChunks: unknown[];
+  }
 >();
 
 // Handle process termination signals
@@ -28,27 +39,29 @@ const registerSignalHandlers = () => {
           duration_ms: durationMs,
           output: JSON.stringify(data.collectedOutput),
           usage: null,
-          error: "Request aborted",
+          error: 'Request aborted',
           raw_request:
-            data.request && typeof data.request === "object" && "body" in data.request
+            data.request &&
+            typeof data.request === 'object' &&
+            'body' in data.request
               ? JSON.stringify((data.request as { body: unknown }).body)
               : null,
           raw_response: JSON.stringify(data.fullStreamChunks),
           raw_chunks: JSON.stringify(data.rawChunks),
         });
-      }
+      },
     );
     await Promise.all(promises);
 
     // Wait for the server notification to complete before process exits
-    await notifyServerAsync("step-update");
+    await notifyServerAsync('step-update');
   };
 
-  process.on("SIGINT", () => {
+  process.on('SIGINT', () => {
     cleanup().then(() => process.exit(130));
   });
 
-  process.on("SIGTERM", () => {
+  process.on('SIGTERM', () => {
     cleanup().then(() => process.exit(143));
   });
 };
@@ -60,7 +73,7 @@ const generateRunId = (): string => {
   const now = new Date();
   const timestamp = now
     .toISOString()
-    .replace(/[-:T.Z]/g, "")
+    .replace(/[-:T.Z]/g, '')
     .slice(0, 17);
   const uniqueId = crypto.randomUUID().slice(0, 8);
   return `${timestamp}-${uniqueId}`;
@@ -83,10 +96,10 @@ const generateRunId = (): string => {
  * ```
  */
 export const devToolsMiddleware = (): LanguageModelV3Middleware => {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      "@ai-sdk/devtools should not be used in production. " +
-        "Remove devToolsMiddleware from your model configuration for production builds.",
+      '@ai-sdk/devtools should not be used in production. ' +
+        'Remove devToolsMiddleware from your model configuration for production builds.',
     );
   }
 
@@ -110,7 +123,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
   };
 
   return {
-    specificationVersion: "v3",
+    specificationVersion: 'v3',
 
     wrapGenerate: async ({ doGenerate, params, model }) => {
       const startTime = Date.now();
@@ -123,7 +136,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         id: stepId,
         run_id: runId,
         step_number: stepNumber,
-        type: "generate",
+        type: 'generate',
         model_id: model.modelId,
         // @ts-expect-error broken type
         provider: model.config?.provider,
@@ -197,7 +210,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         id: stepId,
         run_id: runId,
         step_number: stepNumber,
-        type: "stream",
+        type: 'stream',
         model_id: model.modelId,
         // @ts-expect-error broken type
         provider: model.config?.provider,
@@ -256,7 +269,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
         >({
           transform(chunk, controller) {
             // Separate raw provider chunks from other stream chunks
-            if (chunk.type === "raw") {
+            if (chunk.type === 'raw') {
               // Store just the unwrapped rawValue for cleaner data
               rawChunks.push(chunk.rawValue);
               // Only pass raw chunks through if user originally requested them
@@ -271,40 +284,40 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
 
             // Collect relevant data from stream
             switch (chunk.type) {
-              case "text-start":
-                currentText.set(chunk.id, "");
+              case 'text-start':
+                currentText.set(chunk.id, '');
                 break;
-              case "text-delta":
+              case 'text-delta':
                 currentText.set(
                   chunk.id,
-                  (currentText.get(chunk.id) ?? "") + chunk.delta,
+                  (currentText.get(chunk.id) ?? '') + chunk.delta,
                 );
                 break;
-              case "text-end":
+              case 'text-end':
                 collectedOutput.textParts.push({
                   id: chunk.id,
-                  text: currentText.get(chunk.id) ?? "",
+                  text: currentText.get(chunk.id) ?? '',
                 });
                 break;
-              case "reasoning-start":
-                currentReasoning.set(chunk.id, "");
+              case 'reasoning-start':
+                currentReasoning.set(chunk.id, '');
                 break;
-              case "reasoning-delta":
+              case 'reasoning-delta':
                 currentReasoning.set(
                   chunk.id,
-                  (currentReasoning.get(chunk.id) ?? "") + chunk.delta,
+                  (currentReasoning.get(chunk.id) ?? '') + chunk.delta,
                 );
                 break;
-              case "reasoning-end":
+              case 'reasoning-end':
                 collectedOutput.reasoningParts.push({
                   id: chunk.id,
-                  text: currentReasoning.get(chunk.id) ?? "",
+                  text: currentReasoning.get(chunk.id) ?? '',
                 });
                 break;
-              case "tool-call":
+              case 'tool-call':
                 collectedOutput.toolCalls.push(chunk);
                 break;
-              case "finish":
+              case 'finish':
                 collectedOutput.finishReason = chunk.finishReason;
                 collectedOutput.usage = chunk.usage;
                 break;
@@ -343,7 +356,7 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
               usage: collectedOutput.usage
                 ? JSON.stringify(collectedOutput.usage)
                 : null,
-              error: "Request aborted",
+              error: 'Request aborted',
               raw_request: request?.body ? JSON.stringify(request.body) : null,
               raw_response: JSON.stringify(fullStreamChunks),
               raw_chunks: JSON.stringify(rawChunks),

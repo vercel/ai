@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   ChevronRight,
   RefreshCw,
@@ -13,29 +13,29 @@ import {
   Settings,
   Brain,
   Loader2,
-} from "lucide-react";
-import { AISDKLogo } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+} from 'lucide-react';
+import { AISDKLogo } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from '@/components/ui/collapsible';
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer";
+} from '@/components/ui/drawer';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip';
 
 interface Run {
   id: string;
@@ -44,14 +44,14 @@ interface Run {
   firstMessage?: string;
   hasError?: boolean;
   isInProgress?: boolean;
-  type?: "generate" | "stream";
+  type?: 'generate' | 'stream';
 }
 
 interface Step {
   id: string;
   run_id: string;
   step_number: number;
-  type: "generate" | "stream";
+  type: 'generate' | 'stream';
   model_id: string;
   provider: string | null;
   started_at: string;
@@ -71,18 +71,19 @@ interface RunDetail {
   steps: Step[];
 }
 
-type StepType = "tool-calls" | "response" | "error";
+type StepType = 'tool-calls' | 'response' | 'error';
 
 interface StepSummary {
   type: StepType;
-  icon: "wrench" | "message" | "alert";
+  icon: 'wrench' | 'message' | 'alert';
   label: string;
   toolDetails?: string;
 }
 
-function summarizeToolCalls(
-  toolCalls: any[]
-): { label: string; details: string } {
+function summarizeToolCalls(toolCalls: any[]): {
+  label: string;
+  details: string;
+} {
   // Count occurrences of each tool
   const counts = toolCalls.reduce((acc: Record<string, number>, call: any) => {
     acc[call.toolName] = (acc[call.toolName] || 0) + 1;
@@ -103,7 +104,7 @@ function summarizeToolCalls(
   if (uniqueTools.length === 1 && uniqueTools[0]) {
     return {
       label: formatTool(uniqueTools[0]),
-      details: "", // No tooltip needed
+      details: '', // No tooltip needed
     };
   }
 
@@ -111,19 +112,19 @@ function summarizeToolCalls(
   if (uniqueTools.length === 2) {
     return {
       label: `${formatTool(uniqueTools[0])}, ${formatTool(uniqueTools[1])}`,
-      details: allToolsFormatted.join(", "),
+      details: allToolsFormatted.join(', '),
     };
   }
 
   // 3+ tools: show first two + ellipsis
   return {
     label: `${formatTool(uniqueTools[0])}, ${formatTool(uniqueTools[1])}, ...`,
-    details: allToolsFormatted.join(", "),
+    details: allToolsFormatted.join(', '),
   };
 }
 
 interface StepInputSummary {
-  type: "user" | "tool";
+  type: 'user' | 'tool';
   label: string;
   fullText?: string; // For tooltip on user messages
   toolDetails?: string; // For tooltip on tool results
@@ -131,24 +132,24 @@ interface StepInputSummary {
 
 function getStepInputSummary(
   input: any,
-  isFirstStep: boolean
+  isFirstStep: boolean,
 ): StepInputSummary | null {
   const prompt = input?.prompt;
   if (!Array.isArray(prompt)) return null;
 
   // For first step: always show the last user message (what kicked off this run)
   if (isFirstStep) {
-    const userMessages = prompt.filter((msg: any) => msg.role === "user");
+    const userMessages = prompt.filter((msg: any) => msg.role === 'user');
     const lastUserMessage = userMessages[userMessages.length - 1];
 
     if (lastUserMessage) {
       const content = lastUserMessage.content;
       let text: string | null = null;
 
-      if (typeof content === "string") {
+      if (typeof content === 'string') {
         text = content;
       } else if (Array.isArray(content)) {
-        const textPart = content.find((part: any) => part.type === "text");
+        const textPart = content.find((part: any) => part.type === 'text');
         if (textPart?.text) {
           text = textPart.text;
         }
@@ -156,7 +157,7 @@ function getStepInputSummary(
 
       if (text) {
         return {
-          type: "user",
+          type: 'user',
           label: `"${truncateText(text)}"`,
           fullText: text,
         };
@@ -166,7 +167,7 @@ function getStepInputSummary(
   }
 
   // For subsequent steps: show the last tool results
-  const toolMessages = prompt.filter((msg: any) => msg.role === "tool");
+  const toolMessages = prompt.filter((msg: any) => msg.role === 'tool');
   if (toolMessages.length > 0) {
     // Only get tool names from the last tool message (the most recent tool results)
     const lastToolMessage = toolMessages[toolMessages.length - 1];
@@ -175,7 +176,7 @@ function getStepInputSummary(
     const content = lastToolMessage.content;
     if (Array.isArray(content)) {
       for (const part of content) {
-        if (part.type === "tool-result" && part.toolName) {
+        if (part.type === 'tool-result' && part.toolName) {
           toolCounts[part.toolName] = (toolCounts[part.toolName] || 0) + 1;
         }
       }
@@ -183,7 +184,7 @@ function getStepInputSummary(
 
     const uniqueTools = Object.keys(toolCounts);
     if (uniqueTools.length === 0) {
-      return { type: "tool", label: "tool result" };
+      return { type: 'tool', label: 'tool result' };
     }
 
     // Format tool name with count if > 1
@@ -195,27 +196,27 @@ function getStepInputSummary(
     const allToolsFormatted = uniqueTools.map(formatTool);
 
     if (uniqueTools.length === 1) {
-      return { type: "tool", label: formatTool(uniqueTools[0]) };
+      return { type: 'tool', label: formatTool(uniqueTools[0]) };
     }
 
     if (uniqueTools.length === 2) {
       return {
-        type: "tool",
+        type: 'tool',
         label: `${formatTool(uniqueTools[0])}, ${formatTool(uniqueTools[1])}`,
-        toolDetails: allToolsFormatted.join(", "),
+        toolDetails: allToolsFormatted.join(', '),
       };
     }
 
     // 3+ tools: show first two + ellipsis
     return {
-      type: "tool",
+      type: 'tool',
       label: `${formatTool(uniqueTools[0])}, ${formatTool(uniqueTools[1])}, ...`,
-      toolDetails: allToolsFormatted.join(", "),
+      toolDetails: allToolsFormatted.join(', '),
     };
   }
 
   // Fall back to last user message
-  const userMessages = prompt.filter((msg: any) => msg.role === "user");
+  const userMessages = prompt.filter((msg: any) => msg.role === 'user');
   const lastUserMessage = userMessages[userMessages.length - 1];
 
   if (!lastUserMessage) return null;
@@ -224,10 +225,10 @@ function getStepInputSummary(
   const content = lastUserMessage.content;
   let text: string | null = null;
 
-  if (typeof content === "string") {
+  if (typeof content === 'string') {
     text = content;
   } else if (Array.isArray(content)) {
-    const textPart = content.find((part: any) => part.type === "text");
+    const textPart = content.find((part: any) => part.type === 'text');
     if (textPart?.text) {
       text = textPart.text;
     }
@@ -236,7 +237,7 @@ function getStepInputSummary(
   if (!text) return null;
 
   return {
-    type: "user",
+    type: 'user',
     label: `"${truncateText(text)}"`,
     fullText: text,
   };
@@ -244,29 +245,29 @@ function getStepInputSummary(
 
 function truncateText(text: string, maxLength: number = 30): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trim() + "…";
+  return text.slice(0, maxLength).trim() + '…';
 }
 
 function getStepSummary(output: any, error: string | null): StepSummary {
   if (error) {
-    return { type: "error", icon: "alert", label: "Error" };
+    return { type: 'error', icon: 'alert', label: 'Error' };
   }
 
-  if (output?.finishReason === "tool-calls") {
+  if (output?.finishReason === 'tool-calls') {
     const toolCalls =
       output?.toolCalls ||
-      output?.content?.filter((p: any) => p.type === "tool-call") ||
+      output?.content?.filter((p: any) => p.type === 'tool-call') ||
       [];
     const { label, details } = summarizeToolCalls(toolCalls);
     return {
-      type: "tool-calls",
-      icon: "wrench",
+      type: 'tool-calls',
+      icon: 'wrench',
       label,
       toolDetails: details || undefined,
     };
   }
 
-  return { type: "response", icon: "message", label: "Response" };
+  return { type: 'response', icon: 'message', label: 'Response' };
 }
 
 function App() {
@@ -276,14 +277,14 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   const fetchRuns = async () => {
-    const res = await fetch("/api/runs");
+    const res = await fetch('/api/runs');
     const data = await res.json();
     setRuns(data);
     setLoading(false);
   };
 
   const handleClear = async () => {
-    await fetch("/api/clear", { method: "POST" });
+    await fetch('/api/clear', { method: 'POST' });
     setRuns([]);
     setSelectedRun(null);
   };
@@ -299,20 +300,20 @@ function App() {
     let reconnectTimeout: NodeJS.Timeout | null = null;
 
     const connect = () => {
-      eventSource = new EventSource("/api/events");
+      eventSource = new EventSource('/api/events');
 
-      eventSource.addEventListener("connected", () => {
-        console.log("[DevTools] Connected to real-time updates");
+      eventSource.addEventListener('connected', () => {
+        console.log('[DevTools] Connected to real-time updates');
       });
 
-      eventSource.addEventListener("update", () => {
+      eventSource.addEventListener('update', () => {
         // Refresh the runs list when data changes
         fetchRuns();
         // Also refresh selected run if one is selected
         if (selectedRun) {
           fetch(`/api/runs/${selectedRun.run.id}`)
-            .then((res) => res.json())
-            .then((data) => {
+            .then(res => res.json())
+            .then(data => {
               if (data && !data.error) {
                 setSelectedRun(data);
               }
@@ -321,12 +322,12 @@ function App() {
         }
       });
 
-      eventSource.addEventListener("heartbeat", () => {
+      eventSource.addEventListener('heartbeat', () => {
         // Connection is alive
       });
 
       eventSource.onerror = () => {
-        console.log("[DevTools] SSE connection lost, reconnecting...");
+        console.log('[DevTools] SSE connection lost, reconnecting...');
         eventSource?.close();
         // Reconnect after 2 seconds
         reconnectTimeout = setTimeout(connect, 2000);
@@ -352,7 +353,7 @@ function App() {
   };
 
   const toggleStep = (stepId: string) => {
-    setExpandedSteps((prev) => {
+    setExpandedSteps(prev => {
       const next = new Set(prev);
       if (next.has(stepId)) {
         next.delete(stepId);
@@ -364,7 +365,7 @@ function App() {
   };
 
   const formatDuration = (ms: number | null) => {
-    if (ms === null) return "-";
+    if (ms === null) return '-';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
   };
@@ -380,21 +381,21 @@ function App() {
 
   const getFirstUserMessage = (steps: Step[]): string => {
     const firstStep = steps[0];
-    if (!firstStep) return "Empty run";
+    if (!firstStep) return 'Empty run';
     const input = parseJson(firstStep.input);
-    const userMsg = input?.prompt?.find((m: any) => m.role === "user");
+    const userMsg = input?.prompt?.find((m: any) => m.role === 'user');
     if (userMsg) {
       const content =
-        typeof userMsg.content === "string"
+        typeof userMsg.content === 'string'
           ? userMsg.content
-          : userMsg.content?.[0]?.text || "";
-      return content.slice(0, 50) + (content.length > 50 ? "..." : "");
+          : userMsg.content?.[0]?.text || '';
+      return content.slice(0, 50) + (content.length > 50 ? '...' : '');
     }
-    return "No user message";
+    return 'No user message';
   };
 
   const hasRunError = (steps: Step[]): boolean => {
-    return steps.some((s) => s.error);
+    return steps.some(s => s.error);
   };
 
   const getTotalDuration = (steps: Step[]): number => {
@@ -410,7 +411,7 @@ function App() {
           output: acc.output + (usage?.outputTokens ?? 0),
         };
       },
-      { input: 0, output: 0 }
+      { input: 0, output: 0 },
     );
   };
 
@@ -460,13 +461,13 @@ function App() {
               <p className="p-4 text-muted-foreground text-sm">No runs yet</p>
             ) : (
               <div>
-                {runs.map((run) => {
+                {runs.map(run => {
                   const isSelected = selectedRun?.run.id === run.id;
                   return (
                     <button
                       key={run.id}
                       className={`w-full text-left px-4 py-3 border-b border-border/50 transition-colors ${
-                        isSelected ? "bg-accent" : "hover:bg-accent/50"
+                        isSelected ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
                       onClick={() => selectRun(run.id)}
                     >
@@ -479,32 +480,33 @@ function App() {
                           <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                         )}
                         <span className="text-[13px] text-foreground leading-tight line-clamp-1 break-all">
-                          {run.firstMessage || "Loading..."}
+                          {run.firstMessage || 'Loading...'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 ml-5.5 text-[11px] text-muted-foreground">
                         {run.type && (
                           <span
                             className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              run.type === "stream"
-                                ? "bg-blue-500/15 text-blue-400"
-                                : "bg-emerald-500/15 text-emerald-400"
+                              run.type === 'stream'
+                                ? 'bg-blue-500/15 text-blue-400'
+                                : 'bg-emerald-500/15 text-emerald-400'
                             }`}
                           >
-                            {run.type === "stream" && (
+                            {run.type === 'stream' && (
                               <Zap className="size-2.5" />
                             )}
                             {run.type}
                           </span>
                         )}
                         <span>
-                          {run.stepCount} {run.stepCount === 1 ? "step" : "steps"}
+                          {run.stepCount}{' '}
+                          {run.stepCount === 1 ? 'step' : 'steps'}
                         </span>
                         <span>·</span>
                         <span className="font-mono">
                           {new Date(run.started_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
+                            hour: '2-digit',
+                            minute: '2-digit',
                           })}
                         </span>
                       </div>
@@ -532,7 +534,10 @@ function App() {
                       {getFirstUserMessage(selectedRun.steps)}
                     </h2>
                     {selectedRun.run.isInProgress && (
-                      <Badge variant="secondary" className="text-[10px] h-5 gap-1.5 bg-blue-500/15 text-blue-400 border-blue-500/30">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] h-5 gap-1.5 bg-blue-500/15 text-blue-400 border-blue-500/30"
+                      >
                         <Loader2 className="size-3 animate-spin" />
                         In Progress
                       </Badge>
@@ -551,9 +556,9 @@ function App() {
                     </span>
                     <span className="px-3 text-muted-foreground/30">·</span>
                     <span className="font-mono">
-                      input: {getTotalTokens(selectedRun.steps).input}{" "}
-                      <span className="text-muted-foreground/50">→</span> output:{" "}
-                      {getTotalTokens(selectedRun.steps).output}
+                      input: {getTotalTokens(selectedRun.steps).input}{' '}
+                      <span className="text-muted-foreground/50">→</span>{' '}
+                      output: {getTotalTokens(selectedRun.steps).output}
                     </span>
                     <span className="px-3 text-muted-foreground/30">·</span>
                     <span>
@@ -567,22 +572,28 @@ function App() {
                   {selectedRun.steps.map((step, index) => {
                     const isExpanded = expandedSteps.has(step.id);
                     const isLastStep = index === selectedRun.steps.length - 1;
-                    const isActiveStep = isLastStep && selectedRun.run.isInProgress;
+                    const isActiveStep =
+                      isLastStep && selectedRun.run.isInProgress;
                     const input = parseJson(step.input);
                     const output = parseJson(step.output);
                     const usage = parseJson(step.usage);
 
                     // Get tool results from next step's input
                     const nextStep = selectedRun.steps[index + 1];
-                    const nextInput = nextStep ? parseJson(nextStep.input) : null;
+                    const nextInput = nextStep
+                      ? parseJson(nextStep.input)
+                      : null;
                     const toolResults =
                       nextInput?.prompt
-                        ?.filter((msg: any) => msg.role === "tool")
+                        ?.filter((msg: any) => msg.role === 'tool')
                         ?.flatMap((msg: any) => msg.content) ?? [];
 
                     const summary = getStepSummary(output, step.error);
                     const isFirstStep = index === 0;
-                    const inputSummary = getStepInputSummary(input, isFirstStep);
+                    const inputSummary = getStepInputSummary(
+                      input,
+                      isFirstStep,
+                    );
 
                     return (
                       <Collapsible
@@ -590,12 +601,14 @@ function App() {
                         open={isExpanded}
                         onOpenChange={() => toggleStep(step.id)}
                       >
-                        <Card className={`overflow-hidden py-0 gap-0 ${isActiveStep ? "ring-2 ring-blue-500/50 ring-offset-1 ring-offset-background" : ""}`}>
+                        <Card
+                          className={`overflow-hidden py-0 gap-0 ${isActiveStep ? 'ring-2 ring-blue-500/50 ring-offset-1 ring-offset-background' : ''}`}
+                        >
                           {/* Step Header */}
                           <CollapsibleTrigger asChild>
                             <button
                               className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/50 ${
-                                isExpanded ? "border-b border-border" : ""
+                                isExpanded ? 'border-b border-border' : ''
                               }`}
                             >
                               <div className="flex items-center gap-3">
@@ -606,7 +619,7 @@ function App() {
                                   {/* Input side */}
                                   {inputSummary && (
                                     <>
-                                      {inputSummary.type === "user" ? (
+                                      {inputSummary.type === 'user' ? (
                                         <MessageSquare className="size-3.5 text-muted-foreground" />
                                       ) : (
                                         <Wrench className="size-3.5 text-muted-foreground" />
@@ -616,7 +629,7 @@ function App() {
                                         <Tooltip>
                                           <TooltipTrigger asChild>
                                             <span
-                                              className={`text-sm text-muted-foreground ${inputSummary.type === "tool" ? "font-mono" : ""}`}
+                                              className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
                                             >
                                               {inputSummary.label}
                                             </span>
@@ -631,7 +644,7 @@ function App() {
                                         </Tooltip>
                                       ) : (
                                         <span
-                                          className={`text-sm text-muted-foreground ${inputSummary.type === "tool" ? "font-mono" : ""}`}
+                                          className={`text-sm text-muted-foreground ${inputSummary.type === 'tool' ? 'font-mono' : ''}`}
                                         >
                                           {inputSummary.label}
                                         </span>
@@ -643,13 +656,13 @@ function App() {
                                   )}
 
                                   {/* Output side */}
-                                  {summary.icon === "wrench" && (
+                                  {summary.icon === 'wrench' && (
                                     <Wrench className="size-3.5 text-muted-foreground" />
                                   )}
-                                  {summary.icon === "message" && (
+                                  {summary.icon === 'message' && (
                                     <MessageSquare className="size-3.5 text-muted-foreground" />
                                   )}
-                                  {summary.icon === "alert" && (
+                                  {summary.icon === 'alert' && (
                                     <AlertCircle className="size-3.5 text-destructive" />
                                   )}
 
@@ -667,9 +680,9 @@ function App() {
                                   ) : (
                                     <span
                                       className={`text-sm font-medium ${
-                                        summary.icon === "wrench"
-                                          ? "font-mono"
-                                          : ""
+                                        summary.icon === 'wrench'
+                                          ? 'font-mono'
+                                          : ''
                                       }`}
                                     >
                                       {summary.label}
@@ -693,22 +706,22 @@ function App() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="text-[11px] font-mono text-muted-foreground">
-                                        {usage.inputTokens ?? 0}{" "}
+                                        {usage.inputTokens ?? 0}{' '}
                                         <span className="text-muted-foreground/50">
                                           →
-                                        </span>{" "}
+                                        </span>{' '}
                                         {usage.outputTokens ?? 0}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      Input: {usage.inputTokens ?? 0} · Output:{" "}
+                                      Input: {usage.inputTokens ?? 0} · Output:{' '}
                                       {usage.outputTokens ?? 0}
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
                                 <ChevronDown
                                   className={`size-4 text-muted-foreground transition-transform ${
-                                    isExpanded ? "rotate-180" : ""
+                                    isExpanded ? 'rotate-180' : ''
                                   }`}
                                 />
                               </div>
@@ -765,7 +778,7 @@ function App() {
                               rawRequest={step.raw_request}
                               rawResponse={step.raw_response}
                               rawChunks={step.raw_chunks}
-                              isStream={step.type === "stream"}
+                              isStream={step.type === 'stream'}
                             />
                           </CollapsibleContent>
                         </Card>
@@ -798,19 +811,19 @@ function StepConfigBar({
   // Collect parameters
   const params: { label: string; value: string }[] = [];
   if (input?.temperature != null)
-    params.push({ label: "temp", value: String(input.temperature) });
+    params.push({ label: 'temp', value: String(input.temperature) });
   if (input?.maxOutputTokens != null)
-    params.push({ label: "max tokens", value: String(input.maxOutputTokens) });
+    params.push({ label: 'max tokens', value: String(input.maxOutputTokens) });
   if (input?.topP != null)
-    params.push({ label: "topP", value: String(input.topP) });
+    params.push({ label: 'topP', value: String(input.topP) });
   if (input?.topK != null)
-    params.push({ label: "topK", value: String(input.topK) });
+    params.push({ label: 'topK', value: String(input.topK) });
   if (input?.toolChoice != null) {
     const choice =
-      typeof input.toolChoice === "string"
+      typeof input.toolChoice === 'string'
         ? input.toolChoice
         : input.toolChoice.type;
-    params.push({ label: "tool choice", value: choice });
+    params.push({ label: 'tool choice', value: choice });
   }
 
   return (
@@ -843,7 +856,7 @@ function StepConfigBar({
             <DrawerTrigger asChild>
               <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
                 <Wrench className="size-3" />
-                {toolCount} available {toolCount === 1 ? "tool" : "tools"}
+                {toolCount} available {toolCount === 1 ? 'tool' : 'tools'}
               </button>
             </DrawerTrigger>
             <DrawerContent className="h-full w-[800px] sm:max-w-[800px] overflow-hidden">
@@ -907,8 +920,8 @@ function InputPanel({ input }: { input: any }) {
             {/* Previous messages indicator */}
             {previousMessageCount > 0 && (
               <div className="text-[11px] text-muted-foreground/60 text-center py-1.5 rounded-md bg-muted/30">
-                + {previousMessageCount} previous{" "}
-                {previousMessageCount === 1 ? "message" : "messages"}
+                + {previousMessageCount} previous{' '}
+                {previousMessageCount === 1 ? 'message' : 'messages'}
               </div>
             )}
 
@@ -955,28 +968,28 @@ function InputMessagePreview({
   const content = message.content;
 
   const roleLabels: Record<string, string> = {
-    user: "User",
-    assistant: "Assistant",
-    system: "System",
-    tool: "Tool",
+    user: 'User',
+    assistant: 'Assistant',
+    system: 'System',
+    tool: 'Tool',
   };
 
   // Get text content
   const getTextContent = (content: any): string => {
-    if (typeof content === "string") return content;
+    if (typeof content === 'string') return content;
     if (Array.isArray(content)) {
       return content
-        .filter((p) => p.type === "text")
-        .map((p) => p.text)
-        .join("");
+        .filter(p => p.type === 'text')
+        .map(p => p.text)
+        .join('');
     }
-    return "";
+    return '';
   };
 
   // Get tool calls from assistant message
   const getToolCalls = (content: any): any[] => {
     if (Array.isArray(content)) {
-      return content.filter((p) => p.type === "tool-call");
+      return content.filter(p => p.type === 'tool-call');
     }
     return [];
   };
@@ -984,7 +997,7 @@ function InputMessagePreview({
   // Get tool results from tool message
   const getToolResults = (content: any): any[] => {
     if (Array.isArray(content)) {
-      return content.filter((p) => p.type === "tool-result");
+      return content.filter(p => p.type === 'tool-result');
     }
     return [];
   };
@@ -993,11 +1006,11 @@ function InputMessagePreview({
   const getReasoningContent = (content: any): string => {
     if (Array.isArray(content)) {
       return content
-        .filter((p) => p.type === "thinking" || p.type === "reasoning")
-        .map((p) => p.thinking || p.text || p.reasoning)
-        .join("");
+        .filter(p => p.type === 'thinking' || p.type === 'reasoning')
+        .map(p => p.thinking || p.text || p.reasoning)
+        .join('');
     }
-    return "";
+    return '';
   };
 
   const textContent = getTextContent(content);
@@ -1048,7 +1061,7 @@ function InputMessagePreview({
           {toolCalls.slice(0, 3).map((call: any, i: number) => {
             const args = call.args ?? call.input;
             const parsedArgs =
-              typeof args === "string" ? safeParseJson(args) : args;
+              typeof args === 'string' ? safeParseJson(args) : args;
             return (
               <div
                 key={i}
@@ -1060,8 +1073,8 @@ function InputMessagePreview({
           })}
           {toolCalls.length > 3 && (
             <div className="text-[11px] text-muted-foreground/60">
-              +{toolCalls.length - 3} more tool{" "}
-              {toolCalls.length - 3 === 1 ? "call" : "calls"}
+              +{toolCalls.length - 3} more tool{' '}
+              {toolCalls.length - 3 === 1 ? 'call' : 'calls'}
             </div>
           )}
         </div>
@@ -1078,14 +1091,14 @@ function InputMessagePreview({
                 key={i}
                 className="text-[11px] font-mono text-muted-foreground truncate"
               >
-                {result.toolName || "tool"}(…) =&gt; {resultPreview}
+                {result.toolName || 'tool'}(…) =&gt; {resultPreview}
               </div>
             );
           })}
           {toolResults.length > 3 && (
             <div className="text-[11px] text-muted-foreground/60">
-              +{toolResults.length - 3} more tool{" "}
-              {toolResults.length - 3 === 1 ? "result" : "results"}
+              +{toolResults.length - 3} more tool{' '}
+              {toolResults.length - 3 === 1 ? 'result' : 'results'}
             </div>
           )}
         </div>
@@ -1117,7 +1130,7 @@ function ToolItem({ tool }: { tool: any }) {
         {tool.parameters && (
           <ChevronRight
             className={`size-3 text-muted-foreground transition-transform ${
-              expanded ? "rotate-90" : ""
+              expanded ? 'rotate-90' : ''
             }`}
           />
         )}
@@ -1153,7 +1166,7 @@ function CollapsibleToolCall({
   data: any;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const parsedData = typeof data === "string" ? safeParseJson(data) : data;
+  const parsedData = typeof data === 'string' ? safeParseJson(data) : data;
 
   return (
     <div className="rounded-md border border-purple/30 overflow-hidden">
@@ -1163,7 +1176,7 @@ function CollapsibleToolCall({
       >
         <ChevronRight
           className={`size-3 text-purple transition-transform shrink-0 ${
-            expanded ? "rotate-90" : ""
+            expanded ? 'rotate-90' : ''
           }`}
         />
         <Wrench className="size-3 text-purple shrink-0" />
@@ -1209,7 +1222,7 @@ function CollapsibleToolResult({
       >
         <ChevronRight
           className={`size-3 text-success transition-transform shrink-0 ${
-            expanded ? "rotate-90" : ""
+            expanded ? 'rotate-90' : ''
           }`}
         />
         <span className="text-xs font-medium text-success">Result</span>
@@ -1238,33 +1251,33 @@ function MessageBubble({ message, index }: { message: any; index?: number }) {
   const content = message.content;
 
   const roleLabels: Record<string, string> = {
-    user: "User",
-    assistant: "Assistant",
-    system: "System",
-    tool: "Tool",
+    user: 'User',
+    assistant: 'Assistant',
+    system: 'System',
+    tool: 'Tool',
   };
 
   const getTextContent = (content: any): string => {
-    if (typeof content === "string") return content;
+    if (typeof content === 'string') return content;
     if (Array.isArray(content)) {
       return content
-        .filter((p) => p.type === "text")
-        .map((p) => p.text)
-        .join("");
+        .filter(p => p.type === 'text')
+        .map(p => p.text)
+        .join('');
     }
-    return "";
+    return '';
   };
 
   const getToolCalls = (content: any): any[] => {
     if (Array.isArray(content)) {
-      return content.filter((p) => p.type === "tool-call");
+      return content.filter(p => p.type === 'tool-call');
     }
     return [];
   };
 
   const getToolResults = (content: any): any[] => {
     if (Array.isArray(content)) {
-      return content.filter((p) => p.type === "tool-result");
+      return content.filter(p => p.type === 'tool-result');
     }
     return [];
   };
@@ -1272,11 +1285,11 @@ function MessageBubble({ message, index }: { message: any; index?: number }) {
   const getReasoningContent = (content: any): string => {
     if (Array.isArray(content)) {
       return content
-        .filter((p) => p.type === "thinking" || p.type === "reasoning")
-        .map((p) => p.thinking || p.text || p.reasoning)
-        .join("");
+        .filter(p => p.type === 'thinking' || p.type === 'reasoning')
+        .map(p => p.thinking || p.text || p.reasoning)
+        .join('');
     }
-    return "";
+    return '';
   };
 
   const textContent = getTextContent(content);
@@ -1317,9 +1330,11 @@ function MessageBubble({ message, index }: { message: any; index?: number }) {
         <TextBlock
           content={textContent}
           defaultExpanded={
-            !reasoningContent && toolCalls.length === 0 && toolResults.length === 0
+            !reasoningContent &&
+            toolCalls.length === 0 &&
+            toolResults.length === 0
           }
-          isSystem={role === "system"}
+          isSystem={role === 'system'}
         />
       )}
 
@@ -1377,24 +1392,24 @@ function OutputDisplay({
 
   const toolCalls =
     output?.toolCalls ||
-    output?.content?.filter((p: any) => p.type === "tool-call") ||
+    output?.content?.filter((p: any) => p.type === 'tool-call') ||
     [];
 
   const textParts =
     output?.textParts ||
-    output?.content?.filter((p: any) => p.type === "text") ||
+    output?.content?.filter((p: any) => p.type === 'text') ||
     [];
 
   // Get reasoning/thinking parts
   const reasoningParts =
     output?.reasoningParts ||
     output?.content?.filter(
-      (p: any) => p.type === "thinking" || p.type === "reasoning"
+      (p: any) => p.type === 'thinking' || p.type === 'reasoning',
     ) ||
     [];
 
-  const textContent = textParts.map((p: any) => p.text).join("");
-  const reasoningContent = reasoningParts.map((p: any) => p.text).join("");
+  const textContent = textParts.map((p: any) => p.text).join('');
+  const reasoningContent = reasoningParts.map((p: any) => p.text).join('');
 
   // Check if text is the only content
   const isTextOnly = textContent && !reasoningContent && toolCalls.length === 0;
@@ -1435,8 +1450,9 @@ function ToolCallCard({
   result?: any;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const parsedArgs = typeof args === "string" ? safeParseJson(args) : args;
-  const parsedResult = typeof result === "string" ? safeParseJson(result) : result;
+  const parsedArgs = typeof args === 'string' ? safeParseJson(args) : args;
+  const parsedResult =
+    typeof result === 'string' ? safeParseJson(result) : result;
 
   return (
     <div className="rounded-md border border-purple/30 overflow-hidden">
@@ -1447,7 +1463,7 @@ function ToolCallCard({
       >
         <ChevronRight
           className={`size-3 text-purple transition-transform shrink-0 ${
-            expanded ? "rotate-90" : ""
+            expanded ? 'rotate-90' : ''
           }`}
         />
         <Wrench className="size-3 text-purple shrink-0" />
@@ -1491,7 +1507,7 @@ function ReasoningBlock({ content }: { content: string }) {
 
   // Truncate preview to first 200 characters
   const previewContent =
-    content.length > 200 ? content.slice(0, 200) + "…" : content;
+    content.length > 200 ? content.slice(0, 200) + '…' : content;
 
   return (
     <div className="rounded-md border border-amber-500/30 overflow-hidden">
@@ -1501,7 +1517,7 @@ function ReasoningBlock({ content }: { content: string }) {
       >
         <ChevronRight
           className={`size-3 text-amber-500 transition-transform shrink-0 ${
-            expanded ? "rotate-90" : ""
+            expanded ? 'rotate-90' : ''
           }`}
         />
         <Brain className="size-3 text-amber-500 shrink-0" />
@@ -1538,13 +1554,13 @@ function TextBlock({
 
   // Truncate preview to first 200 characters
   const previewContent =
-    content.length > 200 ? content.slice(0, 200) + "…" : content;
+    content.length > 200 ? content.slice(0, 200) + '…' : content;
 
-  const borderColor = isSystem ? "border-blue-500/30" : "border-border";
-  const bgColor = isSystem ? "bg-blue-500/10" : "bg-muted/30";
-  const hoverBgColor = isSystem ? "hover:bg-blue-500/20" : "hover:bg-muted/50";
-  const iconColor = isSystem ? "text-blue-400" : "text-muted-foreground";
-  const labelColor = isSystem ? "text-blue-400" : "text-foreground";
+  const borderColor = isSystem ? 'border-blue-500/30' : 'border-border';
+  const bgColor = isSystem ? 'bg-blue-500/10' : 'bg-muted/30';
+  const hoverBgColor = isSystem ? 'hover:bg-blue-500/20' : 'hover:bg-muted/50';
+  const iconColor = isSystem ? 'text-blue-400' : 'text-muted-foreground';
+  const labelColor = isSystem ? 'text-blue-400' : 'text-foreground';
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1561,20 +1577,24 @@ function TextBlock({
       >
         <ChevronRight
           className={`size-3 ${iconColor} transition-transform shrink-0 ${
-            expanded ? "rotate-90" : ""
+            expanded ? 'rotate-90' : ''
           }`}
         />
         <MessageSquare className={`size-3 ${iconColor} shrink-0`} />
         <span className={`text-xs font-medium ${labelColor}`}>Text</span>
         {!expanded && (
-          <span className={`text-[11px] ${isSystem ? "text-blue-400/70" : "text-muted-foreground"} truncate ml-1`}>
+          <span
+            className={`text-[11px] ${isSystem ? 'text-blue-400/70' : 'text-muted-foreground'} truncate ml-1`}
+          >
             {previewContent}
           </span>
         )}
       </button>
 
       {expanded && (
-        <div className={`p-3 bg-card/50 border-t ${borderColor} group relative`}>
+        <div
+          className={`p-3 bg-card/50 border-t ${borderColor} group relative`}
+        >
           <button
             onClick={handleCopy}
             className="absolute top-1.5 right-1.5 p-1.5 rounded-md border border-border bg-background opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -1598,11 +1618,11 @@ function TextBlock({
 function JsonBlock({
   data,
   compact = false,
-  size = "sm",
+  size = 'sm',
 }: {
   data: any;
   compact?: boolean;
-  size?: "sm" | "base" | "lg";
+  size?: 'sm' | 'base' | 'lg';
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -1611,9 +1631,9 @@ function JsonBlock({
     compact && jsonString.length > 200 ? JSON.stringify(data) : jsonString;
 
   const sizeClasses = {
-    sm: "text-xs",
-    base: "text-sm",
-    lg: "text-base",
+    sm: 'text-xs',
+    base: 'text-sm',
+    lg: 'text-base',
   };
 
   const handleCopy = async () => {
@@ -1637,7 +1657,7 @@ function JsonBlock({
       </button>
       <pre
         className={`font-mono ${sizeClasses[size]} text-muted-foreground whitespace-pre-wrap wrap-break-words bg-background rounded p-2 ${
-          compact ? "max-h-20 overflow-hidden" : ""
+          compact ? 'max-h-20 overflow-hidden' : ''
         }`}
       >
         {displayString}
@@ -1658,7 +1678,7 @@ function RawDataSection({
   isStream: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [responseView, setResponseView] = useState<"parsed" | "raw">("parsed");
+  const [responseView, setResponseView] = useState<'parsed' | 'raw'>('parsed');
 
   if (!rawRequest && !rawResponse) return null;
 
@@ -1671,7 +1691,7 @@ function RawDataSection({
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 transition-transform ${expanded ? "rotate-90" : ""}`}
+          className={`size-3 transition-transform ${expanded ? 'rotate-90' : ''}`}
         />
         <span className="font-medium uppercase tracking-wider">
           Request / Response
@@ -1696,26 +1716,26 @@ function RawDataSection({
             <div className="flex flex-col">
               <div className="h-7 flex items-end justify-between mb-2">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                  {isStream ? "Stream" : "Response"}
+                  {isStream ? 'Stream' : 'Response'}
                 </span>
                 {hasRawChunks && (
                   <div className="inline-flex rounded-md border border-border bg-muted/30 p-0.5">
                     <button
-                      onClick={() => setResponseView("parsed")}
+                      onClick={() => setResponseView('parsed')}
                       className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                        responseView === "parsed"
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
+                        responseView === 'parsed'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       AI SDK
                     </button>
                     <button
-                      onClick={() => setResponseView("raw")}
+                      onClick={() => setResponseView('raw')}
                       className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                        responseView === "raw"
-                          ? "bg-background text-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
+                        responseView === 'raw'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       Provider
@@ -1726,9 +1746,9 @@ function RawDataSection({
               <div className="max-h-[400px] overflow-auto rounded-md border border-border">
                 <JsonBlock
                   data={safeParseJson(
-                    hasRawChunks && responseView === "raw"
+                    hasRawChunks && responseView === 'raw'
                       ? rawChunks
-                      : rawResponse
+                      : rawResponse,
                   )}
                 />
               </div>
@@ -1741,7 +1761,7 @@ function RawDataSection({
 }
 
 function safeParseJson(value: any): any {
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     try {
       return JSON.parse(value);
     } catch {
@@ -1755,21 +1775,21 @@ function safeParseJson(value: any): any {
  * Truncates tool call parameters for preview display.
  */
 function formatToolParams(args: any, maxLength = 40): string {
-  if (!args || typeof args !== "object") return "";
+  if (!args || typeof args !== 'object') return '';
 
   const entries = Object.entries(args);
-  if (entries.length === 0) return "";
+  if (entries.length === 0) return '';
 
   const formatValue = (value: any, maxLen = 20): string => {
-    if (value === null) return "null";
-    if (value === undefined) return "undefined";
-    if (typeof value === "object") {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'object') {
       if (Array.isArray(value)) {
         return `[${value.length}]`;
       }
-      return "{…}";
+      return '{…}';
     }
-    if (typeof value === "string") {
+    if (typeof value === 'string') {
       if (value.length > maxLen) {
         return `"${value.slice(0, maxLen)}…"`;
       }
@@ -1779,7 +1799,7 @@ function formatToolParams(args: any, maxLength = 40): string {
   };
 
   const firstEntry = entries[0];
-  if (!firstEntry) return "";
+  if (!firstEntry) return '';
 
   const [firstKey, firstValue] = firstEntry;
   const firstFormatted = `${firstKey}: ${formatValue(firstValue)}`;
@@ -1795,21 +1815,21 @@ function formatToolParams(args: any, maxLength = 40): string {
  * Formats tool params inline for JS-like syntax: { key: "value", … }
  */
 function formatToolParamsInline(args: any): string {
-  if (!args || typeof args !== "object") return "";
+  if (!args || typeof args !== 'object') return '';
 
   const entries = Object.entries(args);
-  if (entries.length === 0) return "";
+  if (entries.length === 0) return '';
 
   const formatValue = (value: any, maxLen = 20): string => {
-    if (value === null) return "null";
-    if (value === undefined) return "undefined";
-    if (typeof value === "object") {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'object') {
       if (Array.isArray(value)) {
         return `[${value.length}]`;
       }
-      return "{…}";
+      return '{…}';
     }
-    if (typeof value === "string") {
+    if (typeof value === 'string') {
       if (value.length > maxLen) {
         return `"${value.slice(0, maxLen)}…"`;
       }
@@ -1819,7 +1839,7 @@ function formatToolParamsInline(args: any): string {
   };
 
   const firstEntry = entries[0];
-  if (!firstEntry) return "";
+  if (!firstEntry) return '';
 
   const [firstKey, firstValue] = firstEntry;
   const firstFormatted = `${firstKey}: ${formatValue(firstValue)}`;
@@ -1835,10 +1855,10 @@ function formatToolParamsInline(args: any): string {
  * Formats tool result for preview display in JS-like syntax
  */
 function formatResultPreview(result: any): string {
-  if (result === null) return "null";
-  if (result === undefined) return "undefined";
+  if (result === null) return 'null';
+  if (result === undefined) return 'undefined';
 
-  if (typeof result === "string") {
+  if (typeof result === 'string') {
     if (result.length > 30) {
       return `"${result.slice(0, 30)}…"`;
     }
@@ -1849,21 +1869,21 @@ function formatResultPreview(result: any): string {
     return `[${result.length}]`;
   }
 
-  if (typeof result === "object") {
+  if (typeof result === 'object') {
     const entries = Object.entries(result);
-    if (entries.length === 0) return "{}";
+    if (entries.length === 0) return '{}';
 
     const firstEntry = entries[0];
-    if (!firstEntry) return "{…}";
+    if (!firstEntry) return '{…}';
 
     const [firstKey, firstValue] = firstEntry;
     let valueStr: string;
-    if (typeof firstValue === "string" && firstValue.length > 15) {
+    if (typeof firstValue === 'string' && firstValue.length > 15) {
       valueStr = `"${firstValue.slice(0, 15)}…"`;
-    } else if (typeof firstValue === "string") {
+    } else if (typeof firstValue === 'string') {
       valueStr = `"${firstValue}"`;
-    } else if (typeof firstValue === "object") {
-      valueStr = Array.isArray(firstValue) ? `[${firstValue.length}]` : "{…}";
+    } else if (typeof firstValue === 'object') {
+      valueStr = Array.isArray(firstValue) ? `[${firstValue.length}]` : '{…}';
     } else {
       valueStr = String(firstValue);
     }

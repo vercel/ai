@@ -1,11 +1,11 @@
-import { tool } from "ai";
-import { z } from "zod";
+import { tool } from 'ai';
+import { z } from 'zod';
 
 export const tools = {
   weather: tool({
-    description: "Get the weather in a location",
+    description: 'Get the weather in a location',
     inputSchema: z.object({
-      location: z.string().describe("The location to get the weather for"),
+      location: z.string().describe('The location to get the weather for'),
     }),
     execute: async ({ location }) => ({
       location,
@@ -13,13 +13,13 @@ export const tools = {
     }),
   }),
   convertTemperature: tool({
-    description: "Convert temperature between Fahrenheit and Celsius",
+    description: 'Convert temperature between Fahrenheit and Celsius',
     inputSchema: z.object({
-      temperature: z.number().describe("The temperature value to convert"),
+      temperature: z.number().describe('The temperature value to convert'),
       from: z
-        .enum(["fahrenheit", "celsius"])
-        .describe("The unit to convert from"),
-      to: z.enum(["fahrenheit", "celsius"]).describe("The unit to convert to"),
+        .enum(['fahrenheit', 'celsius'])
+        .describe('The unit to convert from'),
+      to: z.enum(['fahrenheit', 'celsius']).describe('The unit to convert to'),
     }),
     execute: async ({ temperature, from, to }) => {
       if (from === to) {
@@ -27,7 +27,7 @@ export const tools = {
       }
 
       let result: number;
-      if (from === "celsius" && to === "fahrenheit") {
+      if (from === 'celsius' && to === 'fahrenheit') {
         result = (temperature * 9) / 5 + 32;
       } else {
         result = ((temperature - 32) * 5) / 9;

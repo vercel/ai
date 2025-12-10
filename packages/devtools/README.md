@@ -22,8 +22,8 @@ pnpm add @ai-sdk/devtools
 ### 1. Add the middleware to your model
 
 ```typescript
-import { wrapLanguageModel } from "ai";
-import { devToolsMiddleware } from "@ai-sdk/devtools";
+import { wrapLanguageModel } from 'ai';
+import { devToolsMiddleware } from '@ai-sdk/devtools';
 
 const model = wrapLanguageModel({
   middleware: devToolsMiddleware,
