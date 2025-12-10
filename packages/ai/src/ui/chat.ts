@@ -81,6 +81,11 @@ export type ChatAddToolApproveResponseFunction = ({
    * Optional reason for the approval or denial.
    */
   reason?: string;
+
+  /**
+   * Optional request options to be used when sending the message
+   */
+  options?: ChatRequestOptions;
 }) => void | PromiseLike<void>;
 
 export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
@@ -433,6 +438,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id,
     approved,
     reason,
+    options
   }) =>
     this.jobExecutor.run(async () => {
       const messages = this.state.messages;
@@ -473,6 +479,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.makeRequest({
           trigger: 'submit-message',
           messageId: this.lastMessage?.id,
+          ...options
         });
       }
     });
