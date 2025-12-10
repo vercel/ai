@@ -112,6 +112,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Callback invoked after each agent step (LLM/tool call) completes.',
     },
     {
+      name: 'onFinish',
+      type: 'ToolLoopAgentOnFinishCallback',
+      isOptional: true,
+      description:
+        'Callback that is called when all agent steps are finished and the response is complete. Receives { steps, result, experimental_context }.',
+    },
+    {
       name: 'experimental_context',
       type: 'unknown',
       isOptional: true,
