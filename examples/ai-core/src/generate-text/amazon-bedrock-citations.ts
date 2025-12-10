@@ -29,11 +29,13 @@ async function main() {
     ],
   });
 
-  console.log('PDF Response:',result.text);
+  console.log('PDF Response:', result.text);
   console.log('PDF Sources', result.sources);
 
   if (result.text.length === 0) {
-    throw new Error('No response text provided, should have extracted citation content!');
+    throw new Error(
+      'No response text provided, should have extracted citation content!',
+    );
   }
 }
 
