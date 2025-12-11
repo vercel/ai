@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 2.0.0-beta.76
+
+### Patch Changes
+
+- 34ee8d0: feat (provider/gateway): add support for request-scoped byok
+
 ## 2.0.0-beta.75
 
 ### Patch Changes

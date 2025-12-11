@@ -201,7 +201,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     options: Parameters<LanguageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
-    const body = JSON.stringify(args);
 
     const mergedHeaders = combineHeaders(
       await resolve(this.config.headers),
@@ -329,7 +328,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           usageMetadata: usageMetadata ?? null,
         },
       },
-      request: { body },
+      request: { body: args },
       response: {
         // TODO timestamp, model id, id
         headers: responseHeaders,
@@ -343,7 +342,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
-    const body = JSON.stringify(args);
     const headers = combineHeaders(
       await resolve(this.config.headers),
       options.headers,
@@ -652,7 +650,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         }),
       ),
       response: { headers: responseHeaders },
-      request: { body },
+      request: { body: args },
     };
   }
 }

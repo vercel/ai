@@ -9,6 +9,7 @@ async function main() {
 
   console.log('Embedding:', result.embedding);
   console.log('Usage:', result.usage);
+  console.log('Warnings:', result.warnings);
 
   if (result.providerMetadata) {
     console.log('\nProvider Metadata:');
