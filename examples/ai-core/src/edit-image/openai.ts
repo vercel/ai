@@ -242,15 +242,14 @@ async function removeBackgroundAi() {
     },
   ]);
 
-  const prompt =
-    'do not change anything';
+  const prompt = 'do not change anything';
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
     model: openai.image('gpt-image-1'),
     prompt: {
       text: 'do not change anything',
-      images: [catImage]
+      images: [catImage],
     },
     providerOptions: {
       openai: {
@@ -259,8 +258,6 @@ async function removeBackgroundAi() {
       },
     },
   });
-
-
 
   console.log('OUTPUT IMAGE:');
   await presentImages(images);
@@ -334,8 +331,8 @@ async function combineImagesAi() {
   const dog = readFileSync('data/comic-dog.png') as BlobPart;
   const owl = readFileSync('data/comic-owl.png') as BlobPart;
   const bear = readFileSync('data/comic-bear.png') as BlobPart;
-  const animalsImages = [cat, dog, owl, bear].map(
-    img => new Blob([img], { type: 'image/png' }).arrayBuffer(),
+  const animalsImages = [cat, dog, owl, bear].map(img =>
+    new Blob([img], { type: 'image/png' }).arrayBuffer(),
   );
 
   const { images } = await generateImage({
@@ -399,7 +396,7 @@ async function outpaint() {
 
 async function outpaintAi() {
   const imageBuffer = readFileSync('data/comic-cat.png') as BlobPart;
-    const catImage = await new Blob([imageBuffer], {
+  const catImage = await new Blob([imageBuffer], {
     type: 'image/png',
   }).arrayBuffer();
 
@@ -447,9 +444,12 @@ function inputToFormData(input: Input): FormData {
   return formData;
 }
 
-async function sendRequestAndHandleResponse(input: Input, url = 'https://api.openai.com/v1/images/edits') {
+async function sendRequestAndHandleResponse(
+  input: Input,
+  url = 'https://api.openai.com/v1/images/edits',
+) {
   const formData = inputToFormData(input);
-  console.log(formData)
+  console.log(formData);
 
   const response = await fetch(url, {
     method: 'POST',

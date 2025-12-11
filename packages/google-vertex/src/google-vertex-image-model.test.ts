@@ -649,7 +649,7 @@ describe('GoogleVertexImageModel', () => {
         seed: undefined,
         providerOptions: {
           vertex: {
-            edit: {mode: 'EDIT_MODE_CONTROLLED_EDITING'},
+            edit: { mode: 'EDIT_MODE_CONTROLLED_EDITING' },
           } satisfies GoogleVertexImageProviderOptions,
         },
       });

@@ -140,7 +140,7 @@ async function bflEditImageAi() {
       ],
     },
   });
-  
+
   await presentImages(images);
 }
 

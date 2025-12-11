@@ -6,7 +6,10 @@ import { presentImages } from '../lib/present-image';
 
 import 'dotenv/config';
 import { experimental_generateImage as generateImage } from 'ai';
-import { GoogleVertexImageProviderOptions, vertex } from '@ai-sdk/google-vertex';
+import {
+  GoogleVertexImageProviderOptions,
+  vertex,
+} from '@ai-sdk/google-vertex';
 
 /* 
     see

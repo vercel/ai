@@ -388,7 +388,8 @@ describe('Image Editing', () => {
   });
 
   it('should send inpainting request with base64 string data', async () => {
-    const base64Image = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk';
+    const base64Image =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk';
 
     await model.doGenerate({
       prompt: 'Edit this image',

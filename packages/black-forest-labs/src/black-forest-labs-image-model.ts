@@ -91,29 +91,29 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
 
-    const inputImages: string[] = files?.map(file => {
-      if (file.type === 'url') {
-        return file.url;
-      }
+    const inputImages: string[] =
+      files?.map(file => {
+        if (file.type === 'url') {
+          return file.url;
+        }
 
-      if (typeof file.data === 'string') {
-        return file.data
-      }
+        if (typeof file.data === 'string') {
+          return file.data;
+        }
 
-      return Buffer.from(file.data).toString('base64')
-    }) || [];
+        return Buffer.from(file.data).toString('base64');
+      }) || [];
 
     if (inputImages.length > 10) {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
-    const inputImagesObj: Record<string, string> = inputImages.reduce<Record<string, string>>(
-      (acc, img, index) => {
-        acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
-        return acc;
-      },
-      {},
-    );
+    const inputImagesObj: Record<string, string> = inputImages.reduce<
+      Record<string, string>
+    >((acc, img, index) => {
+      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      return acc;
+    }, {});
 
     const body: Record<string, unknown> = {
       prompt,

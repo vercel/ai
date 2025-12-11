@@ -167,7 +167,10 @@ export class BedrockImageModel implements ImageModelV3 {
               ? { negativeText: providerOptions.bedrock.negativeText }
               : {}),
             ...(providerOptions?.bedrock?.similarityStrength != null
-              ? { similarityStrength: providerOptions.bedrock.similarityStrength }
+              ? {
+                  similarityStrength:
+                    providerOptions.bedrock.similarityStrength,
+                }
               : {}),
           };
 

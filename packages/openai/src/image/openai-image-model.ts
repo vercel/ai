@@ -79,21 +79,24 @@ export class OpenAIImageModel implements ImageModelV3 {
         formData: inputToFormData({
           model: this.modelId,
           prompt,
-          image: await Promise.all(files.map(
-            file =>
-              file.type === 'file' ? new Blob(
-                [
-                  file.data instanceof Uint8Array
-                    ? new Blob([file.data as BlobPart], {
-                        type: file.mediaType,
-                      })
-                    : new Blob([convertBase64ToUint8Array(file.data)], {
-                        type: file.mediaType,
-                      }),
-                ],
-                { type: file.mediaType },
-              ) : downloadImageAsBlob(file.url),
-          )),
+          image: await Promise.all(
+            files.map(file =>
+              file.type === 'file'
+                ? new Blob(
+                    [
+                      file.data instanceof Uint8Array
+                        ? new Blob([file.data as BlobPart], {
+                            type: file.mediaType,
+                          })
+                        : new Blob([convertBase64ToUint8Array(file.data)], {
+                            type: file.mediaType,
+                          }),
+                    ],
+                    { type: file.mediaType },
+                  )
+                : downloadImageAsBlob(file.url),
+            ),
+          ),
           n,
           size,
           ...(providerOptions.openai ?? {}),

@@ -167,7 +167,7 @@ Only applicable for HTTP-based providers.
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
       retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg)
+        const { prompt, files, mask } = normalizePrompt(promptArg);
 
         return model.doGenerate({
           prompt,
@@ -312,9 +312,7 @@ function normalizePrompt(
   return {
     prompt: prompt.text,
     files: prompt.images.map(toImageModelV3File),
-    mask: prompt.mask
-      ? toImageModelV3File(prompt.mask)
-      : undefined,
+    mask: prompt.mask ? toImageModelV3File(prompt.mask) : undefined,
   };
 }
 
