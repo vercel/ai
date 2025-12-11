@@ -254,7 +254,7 @@ export function zod4Schema<OBJECT>(
     () =>
       z4.toJSONSchema(zodSchema, {
         target: 'draft-7',
-        io: 'output',
+        io: 'input',
         reused: useReferences ? 'ref' : 'inline',
       }) as JSONSchema7,
     {
