@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, Output } from 'ai';
 import { z as z4 } from 'zod/v4';
 import { print } from '../lib/print';
@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5-nano'),
+    model: anthropic('claude-sonnet-4-5'),
     output: Output.object({
       schema: z4.object({
         recipe: z4.object({
