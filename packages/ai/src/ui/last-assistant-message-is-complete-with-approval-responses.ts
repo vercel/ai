@@ -24,10 +24,18 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
     return part.type === 'step-start' ? index : lastIndex;
   }, -1);
 
+  // Get tool invocations that need approval handling
+  // For non-provider-executed tools: check if they have approval states
+  // For provider-executed tools (like MCP): include them if they have approval
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
     .filter(isToolOrDynamicToolUIPart)
-    .filter(part => !part.providerExecuted);
+    .filter(
+      part =>
+        !part.providerExecuted ||
+        // Include provider-executed tools that have approval (e.g., MCP tools)
+        part.approval != null,
+    );
 
   return (
     // has at least one tool approval response

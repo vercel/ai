@@ -240,10 +240,14 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             });
 
             // check if there are tool invocations with results in the block
+            // Include provider-executed tools that have approval responses (e.g., MCP tools)
             const toolParts = block.filter(
               part =>
                 isToolOrDynamicToolUIPart(part) &&
-                part.providerExecuted !== true,
+                (part.providerExecuted !== true ||
+                  // Include provider-executed tools with approval responses
+                  // so their approval response gets sent (approved or denied)
+                  part.approval?.approved != null),
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
