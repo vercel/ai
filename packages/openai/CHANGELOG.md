@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.82
+
+### Patch Changes
+
+- e31dfa4: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
 ## 2.0.81
 
 ### Patch Changes
