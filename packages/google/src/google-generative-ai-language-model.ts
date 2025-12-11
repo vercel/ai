@@ -318,7 +318,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
-    const body = JSON.stringify(args);
     const headers = combineHeaders(
       await resolve(this.config.headers),
       options.headers,
@@ -617,7 +616,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         }),
       ),
       response: { headers: responseHeaders },
-      request: { body },
+      request: { body: args },
     };
   }
 }
