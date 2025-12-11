@@ -9,7 +9,7 @@ async function main() {
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {
-      openai: {
+      azure: {
         // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
         // reasoningSummary: 'auto', // 'detailed'
         reasoningSummary: 'auto',
