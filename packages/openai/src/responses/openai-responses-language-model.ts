@@ -7,6 +7,7 @@ import {
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   SharedV3ProviderMetadata,
+  LanguageModelV3ToolApprovalRequest,
   JSONValue,
 } from '@ai-sdk/provider';
 import {
@@ -388,6 +389,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
+    const approvalRequestIdToDummyToolCallIdFromPrompt: Record<string, string> =
+      {};
+    for (const message of options.prompt) {
+      if (message.role !== 'assistant') continue;
+      for (const part of message.content) {
+        if (part.type !== 'tool-call') continue;
+        const approvalRequestId = part.providerOptions?.openai
+          ?.approvalRequestId as string | undefined;
+        if (approvalRequestId != null) {
+          approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId] =
+            part.toolCallId;
+        }
+      }
+    }
+
     const {
       responseHeaders,
       value: response,
@@ -640,18 +656,33 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_call': {
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            input: JSON.stringify({}),
-            providerExecuted: true,
-          });
+          const toolCallId =
+            part.approval_request_id != null
+              ? (approvalRequestIdToDummyToolCallIdFromPrompt[
+                  part.approval_request_id
+                ] ?? part.id)
+              : part.id;
+
+          const toolName = `mcp.${part.name}`;
+
+          // If this call is associated with an approval request, the prompt already contains
+          // the tool call (created from mcp_approval_request). In that case, only emit the
+          // tool result (and alias it to the existing toolCallId) to keep a single invocation.
+          if (toolCallId === part.id) {
+            content.push({
+              type: 'tool-call',
+              toolCallId,
+              toolName,
+              input: part.arguments,
+              providerExecuted: true,
+              dynamic: true,
+            });
+          }
 
           content.push({
             type: 'tool-result',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
+            toolCallId,
+            toolName,
             result: {
               type: 'call',
               serverLabel: part.server_label,
@@ -667,18 +698,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_list_tools': {
+          const toolName = `mcp.listTools`;
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
+            toolName,
             input: JSON.stringify({}),
             providerExecuted: true,
+            dynamic: true,
           });
 
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
+            toolName,
             result: {
               type: 'listTools',
               serverLabel: part.server_label,
@@ -699,26 +732,35 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_approval_request': {
+          const dummyToolCallId = generateId();
+          const toolName = `mcp.${part.name}`;
+
           content.push({
             type: 'tool-call',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            input: JSON.stringify({}),
+            toolCallId: dummyToolCallId,
+            toolName,
+            input: part.arguments,
             providerExecuted: true,
+            dynamic: true,
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+                approvalRequestId: part.approval_request_id,
+              },
+            } satisfies SharedV3ProviderMetadata,
           });
 
           content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            result: {
-              type: 'approvalRequest',
-              serverLabel: part.server_label,
-              name: part.name,
-              arguments: part.arguments,
-              approvalRequestId: part.approval_request_id,
-            } satisfies InferSchema<typeof mcpOutputSchema>,
-          });
+            type: 'tool-approval-request',
+            approvalId: part.approval_request_id,
+            toolCallId: dummyToolCallId,
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+                approvalRequestId: part.approval_request_id,
+              },
+            } satisfies SharedV3ProviderMetadata,
+          } satisfies LanguageModelV3ToolApprovalRequest);
           break;
         }
 
@@ -880,6 +922,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const self = this;
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
+
+    const approvalRequestIdToDummyToolCallIdFromPrompt: Record<string, string> =
+      {};
+    for (const message of options.prompt) {
+      if (message.role !== 'assistant') continue;
+      for (const part of message.content) {
+        if (part.type !== 'tool-call') continue;
+        const approvalRequestId = part.providerOptions?.openai
+          ?.approvalRequestId as string | undefined;
+        if (approvalRequestId != null) {
+          approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId] =
+            part.toolCallId;
+        }
+      }
+    }
+
+    const approvalRequestIdToDummyToolCallIdFromStream = new Map<
+      string,
+      string
+    >();
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     let usage: OpenAIResponsesUsage | undefined = undefined;
@@ -1043,13 +1105,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 value.item.type === 'mcp_list_tools' ||
                 value.item.type === 'mcp_approval_request'
               ) {
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
-                  input: '{}',
-                  providerExecuted: true,
-                });
+                // Emit MCP tool-call/approval parts on output_item.done instead, so we can:
+                // - alias mcp_call IDs when an approval_request_id is present
+                // - emit a proper tool-approval-request part for MCP approvals
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = {
                   toolName: toolNameMapping.toCustomToolName('apply_patch'),
@@ -1225,10 +1283,37 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
+                const approvalRequestId =
+                  value.item.approval_request_id ?? undefined;
+                const aliasedToolCallId =
+                  approvalRequestId != null
+                    ? (approvalRequestIdToDummyToolCallIdFromStream.get(
+                        approvalRequestId,
+                      ) ??
+                      approvalRequestIdToDummyToolCallIdFromPrompt[
+                        approvalRequestId
+                      ] ??
+                      value.item.id)
+                    : value.item.id;
+
+                const toolName = `mcp.${value.item.name}`;
+
+                // If aliased, the tool-call was already emitted for the approval request.
+                if (aliasedToolCallId === value.item.id) {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: aliasedToolCallId,
+                    toolName,
+                    input: value.item.arguments,
+                    providerExecuted: true,
+                    dynamic: true,
+                  });
+                }
+
                 controller.enqueue({
                   type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
+                  toolCallId: aliasedToolCallId,
+                  toolName,
                   result: {
                     type: 'call',
                     serverLabel: value.item.server_label,
@@ -1245,10 +1330,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_list_tools') {
                 ongoingToolCalls[value.output_index] = undefined;
 
+                const toolName = `mcp.listTools`;
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName,
+                  input: JSON.stringify({}),
+                  providerExecuted: true,
+                  dynamic: true,
+                });
+
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
+                  toolName,
                   result: {
                     type: 'listTools',
                     serverLabel: value.item.server_label,
@@ -1289,17 +1384,40 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
+                const dummyToolCallId = generateId();
+                const approvalRequestId = value.item.approval_request_id;
+                approvalRequestIdToDummyToolCallIdFromStream.set(
+                  approvalRequestId,
+                  dummyToolCallId,
+                );
+
+                const toolName = `mcp.${value.item.name}`;
+
                 controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
-                  result: {
-                    type: 'approvalRequest',
-                    serverLabel: value.item.server_label,
-                    name: value.item.name,
-                    arguments: value.item.arguments,
-                    approvalRequestId: value.item.approval_request_id,
-                  } satisfies InferSchema<typeof mcpOutputSchema>,
+                  type: 'tool-call',
+                  toolCallId: dummyToolCallId,
+                  toolName,
+                  input: value.item.arguments,
+                  providerExecuted: true,
+                  dynamic: true,
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                      approvalRequestId,
+                    },
+                  },
+                });
+
+                controller.enqueue({
+                  type: 'tool-approval-request',
+                  approvalId: approvalRequestId,
+                  toolCallId: dummyToolCallId,
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                      approvalRequestId,
+                    },
+                  },
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;

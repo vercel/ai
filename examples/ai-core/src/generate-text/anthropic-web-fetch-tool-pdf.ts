@@ -4,10 +4,10 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-haiku-4-5'),
     prompt:
-      'What does this pdf say about AI?\n' +
-      'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf',
+      'Summarize this pdf.\n' +
+      'https://assets.unilogcorp.com/187/ITEM/DOC/Simpson_Strong_Tie_101860392_Specification_Sheet.pdf',
     tools: {
       web_fetch: anthropic.tools.webFetch_20250910(),
     },

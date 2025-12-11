@@ -9,6 +9,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolApprovalResponse,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -1095,6 +1096,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
+          const providerExecutedToolApprovals = [
+            ...approvedToolApprovals,
+            ...deniedToolApprovals,
+          ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+          const localApprovedToolApprovals = approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+          const localDeniedToolApprovals = deniedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+
+          const deniedProviderExecutedToolApprovals =
+            deniedToolApprovals.filter(
+              toolApproval => toolApproval.toolCall.providerExecuted,
+            );
+
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1109,7 +1127,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           self.addStream(toolExecutionStepStream);
 
           try {
-            for (const toolApproval of deniedToolApprovals) {
+            for (const toolApproval of [
+              ...localDeniedToolApprovals,
+              ...deniedProviderExecutedToolApprovals,
+            ]) {
               toolExecutionStepStreamController?.enqueue({
                 type: 'tool-output-denied',
                 toolCallId: toolApproval.toolCall.toolCallId,
@@ -1120,7 +1141,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
-              approvedToolApprovals.map(async toolApproval => {
+              localApprovedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
                   toolCall: toolApproval.toolCall,
                   tools,
@@ -1141,35 +1162,54 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
-            initialResponseMessages.push({
-              role: 'tool',
-              content: [
-                // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
-                  type: 'tool-result' as const,
-                  toolCallId: output.toolCallId,
-                  toolName: output.toolName,
-                  output: createToolModelOutput({
-                    tool: tools?.[output.toolName],
-                    output:
-                      output.type === 'tool-result'
-                        ? output.output
-                        : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                  }),
-                })),
-                // add execution denied tool results for denied tool approvals:
-                ...deniedToolApprovals.map(toolApproval => ({
-                  type: 'tool-result' as const,
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  toolName: toolApproval.toolCall.toolName,
-                  output: {
-                    type: 'execution-denied' as const,
-                    reason: toolApproval.approvalResponse.reason,
-                  },
-                })),
-              ],
-            });
+            // forward provider-executed approval responses to the provider (do not execute locally):
+            if (providerExecutedToolApprovals.length > 0) {
+              initialResponseMessages.push({
+                role: 'tool',
+                content: providerExecutedToolApprovals.map(
+                  toolApproval =>
+                    ({
+                      type: 'tool-approval-response',
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                      approved: toolApproval.approvalResponse.approved,
+                      reason: toolApproval.approvalResponse.reason,
+                    }) satisfies ToolApprovalResponse,
+                ),
+              });
+            }
+
+            // Local tool results (approved + denied) are sent as tool results:
+            if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+              initialResponseMessages.push({
+                role: 'tool',
+                content: [
+                  // add regular tool results for approved tool calls:
+                  ...toolOutputs.map(output => ({
+                    type: 'tool-result' as const,
+                    toolCallId: output.toolCallId,
+                    toolName: output.toolName,
+                    output: createToolModelOutput({
+                      tool: tools?.[output.toolName],
+                      output:
+                        output.type === 'tool-result'
+                          ? output.output
+                          : output.error,
+                      errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                    }),
+                  })),
+                  // add execution denied tool results for denied local tool approvals:
+                  ...localDeniedToolApprovals.map(toolApproval => ({
+                    type: 'tool-result' as const,
+                    toolCallId: toolApproval.toolCall.toolCallId,
+                    toolName: toolApproval.toolCall.toolName,
+                    output: {
+                      type: 'execution-denied' as const,
+                      reason: toolApproval.approvalResponse.reason,
+                    },
+                  })),
+                ],
+              });
+            }
           } finally {
             toolExecutionStepStreamController?.close();
           }

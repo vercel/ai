@@ -1,6 +1,7 @@
 import {
   LanguageModelV3,
   LanguageModelV3Content,
+  LanguageModelV3ToolApprovalRequest,
   LanguageModelV3ToolCall,
 } from '@ai-sdk/provider';
 import {
@@ -8,6 +9,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -356,12 +358,46 @@ A function that attempts to repair a tool call that failed to parse.
         const { approvedToolApprovals, deniedToolApprovals } =
           collectToolApprovals<TOOLS>({ messages: initialMessages });
 
+        const providerExecutedToolApprovals = [
+          ...approvedToolApprovals,
+          ...deniedToolApprovals,
+        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+        const localApprovedToolApprovals = approvedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+        const localDeniedToolApprovals = deniedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+
+        let pendingDeniedProviderExecutedToolApprovals =
+          deniedToolApprovals.filter(
+            toolApproval => toolApproval.toolCall.providerExecuted,
+          );
+
+        // Provider-executed tool approvals must be forwarded to the provider, not executed locally.
+        if (providerExecutedToolApprovals.length > 0) {
+          responseMessages.push({
+            role: 'tool',
+            content: providerExecutedToolApprovals.map(
+              toolApproval =>
+                ({
+                  type: 'tool-approval-response',
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: toolApproval.approvalResponse.approved,
+                  reason: toolApproval.approvalResponse.reason,
+                }) satisfies ToolApprovalResponse,
+            ),
+          });
+        }
+
+        // Local tool approvals keep existing behavior:
         if (
-          deniedToolApprovals.length > 0 ||
-          approvedToolApprovals.length > 0
+          localDeniedToolApprovals.length > 0 ||
+          localApprovedToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
+            toolCalls: localApprovedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
             ),
             tools: tools as TOOLS,
@@ -389,8 +425,8 @@ A function that attempts to repair a tool call that failed to parse.
                   errorMode: output.type === 'tool-error' ? 'json' : 'none',
                 }),
               })),
-              // add execution denied tool results for denied tool approvals:
-              ...deniedToolApprovals.map(toolApproval => ({
+              // add execution denied tool results for denied local tool approvals:
+              ...localDeniedToolApprovals.map(toolApproval => ({
                 type: 'tool-result' as const,
                 toolCallId: toolApproval.toolCall.toolCallId,
                 toolName: toolApproval.toolCall.toolName,
@@ -669,11 +705,41 @@ A function that attempts to repair a tool call that failed to parse.
             toolApprovalRequests: Object.values(toolApprovalRequests),
           });
 
+          // If a provider-executed approval was denied, add a UI-visible closure without
+          // persisting it into the returned response messages (so it is not sent to providers).
+          const excludedToolResultToolCallIds = new Set<string>();
+          if (pendingDeniedProviderExecutedToolApprovals.length > 0) {
+            for (const deniedApproval of pendingDeniedProviderExecutedToolApprovals) {
+              excludedToolResultToolCallIds.add(
+                deniedApproval.toolCall.toolCallId,
+              );
+              stepContent.push({
+                type: 'tool-result',
+                toolCallId: deniedApproval.toolCall.toolCallId,
+                toolName: deniedApproval.toolCall.toolName,
+                input: deniedApproval.toolCall.input,
+                output: {
+                  type: 'execution-denied',
+                  reason: deniedApproval.approvalResponse.reason,
+                },
+                providerExecuted: true,
+                dynamic: true,
+              });
+            }
+
+            // ensure we only emit this closure once:
+            pendingDeniedProviderExecutedToolApprovals = [];
+          }
+
           // append to messages for potential next step:
           responseMessages.push(
             ...toResponseMessages({
               content: stepContent,
               tools,
+              excludeToolResultToolCallIds:
+                excludedToolResultToolCallIds.size > 0
+                  ? excludedToolResultToolCallIds
+                  : undefined,
             }),
           );
 
@@ -988,6 +1054,25 @@ function asContent<TOOLS extends ToolSet>({
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
+          };
+        }
+
+        case 'tool-approval-request': {
+          const approval = part as LanguageModelV3ToolApprovalRequest;
+          const toolCall = toolCalls.find(
+            toolCall => toolCall.toolCallId === approval.toolCallId,
+          );
+
+          if (toolCall == null) {
+            throw new Error(
+              `Tool call ${approval.toolCallId} not found for approval request ${approval.approvalId}.`,
+            );
+          }
+
+          return {
+            type: 'tool-approval-request' as const,
+            approvalId: approval.approvalId,
+            toolCall,
           };
         }
 

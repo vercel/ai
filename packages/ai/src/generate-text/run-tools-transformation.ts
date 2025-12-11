@@ -144,6 +144,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of tool inputs for provider-side tool results
   const toolInputs = new Map<string, unknown>();
 
+  // keep track of parsed tool calls so provider-emitted approval requests can reference them
+  const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
+
   let canClose = false;
   let finishChunk:
     | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
@@ -217,6 +220,26 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'tool-approval-request': {
+          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
+          if (toolCall == null) {
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error: new Error(
+                `Tool call ${chunk.toolCallId} not found for approval request ${chunk.approvalId}.`,
+              ),
+            });
+            break;
+          }
+
+          controller.enqueue({
+            type: 'tool-approval-request',
+            approvalId: chunk.approvalId,
+            toolCall,
+          });
+          break;
+        }
+
         // process tool call:
         case 'tool-call': {
           try {
@@ -228,6 +251,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               messages,
             });
 
+            toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
             controller.enqueue(toolCall);
 
             if (toolCall.invalid) {

@@ -1,6 +1,6 @@
 import {
   LanguageModelV3Prompt,
-  LanguageModelV3ToolCallPart,
+  LanguageModelV3ToolApprovalResponsePart,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -332,6 +332,18 @@ export async function convertToOpenAIResponsesInput({
 
       case 'tool': {
         for (const part of content) {
+          if (part.type === 'tool-approval-response') {
+            const approvalResponse =
+              part as LanguageModelV3ToolApprovalResponsePart;
+
+            input.push({
+              type: 'mcp_approval_response',
+              approval_request_id: approvalResponse.approvalId,
+              approve: approvalResponse.approved,
+            });
+            continue;
+          }
+
           const output = part.output;
 
           const resolvedToolName = toolNameMapping.toProviderToolName(
