@@ -177,8 +177,6 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
        * @default 'in_memory'
        */
       promptCacheRetention: z.enum(['in_memory', '24h']).nullish(),
-<<<<<<< HEAD
-=======
 
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
@@ -190,7 +188,6 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
        * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
        * an error.
        */
->>>>>>> 5bf101a3c (feat(provider/openai): add support for OpenAI xhigh reasoning effort (#11056))
       reasoningEffort: z.string().nullish(),
       reasoningSummary: z.string().nullish(),
       safetyIdentifier: z.string().nullish(),
