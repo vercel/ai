@@ -986,7 +986,7 @@ describe('responses', () => {
         .doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: {
+            azure: {
               include: ['file_search_call.results'],
             },
           },
@@ -1158,7 +1158,7 @@ describe('responses', () => {
               },
             ],
             providerOptions: {
-              openai: {
+              azure: {
                 include: ['file_search_call.results'],
               },
             },
