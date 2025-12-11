@@ -108,58 +108,58 @@ Only applicable for HTTP-based providers.
     fn: async span => {
       const { embedding, usage, warnings, response, providerMetadata } =
         await retry(() =>
-        // nested spans to align with the embedMany telemetry data:
-        recordSpan({
-          name: 'ai.embed.doEmbed',
-          attributes: selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              ...assembleOperationName({
-                operationId: 'ai.embed.doEmbed',
-                telemetry,
-              }),
-              ...baseTelemetryAttributes,
-              // specific settings that only make sense on the outer level:
-              'ai.values': { input: () => [JSON.stringify(value)] },
+          // nested spans to align with the embedMany telemetry data:
+          recordSpan({
+            name: 'ai.embed.doEmbed',
+            attributes: selectTelemetryAttributes({
+              telemetry,
+              attributes: {
+                ...assembleOperationName({
+                  operationId: 'ai.embed.doEmbed',
+                  telemetry,
+                }),
+                ...baseTelemetryAttributes,
+                // specific settings that only make sense on the outer level:
+                'ai.values': { input: () => [JSON.stringify(value)] },
+              },
+            }),
+            tracer,
+            fn: async doEmbedSpan => {
+              const modelResponse = await model.doEmbed({
+                values: [value],
+                abortSignal,
+                headers: headersWithUserAgent,
+                providerOptions,
+              });
+
+              const embedding = modelResponse.embeddings[0];
+              const usage = modelResponse.usage ?? { tokens: NaN };
+
+              doEmbedSpan.setAttributes(
+                await selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    'ai.embeddings': {
+                      output: () =>
+                        modelResponse.embeddings.map(embedding =>
+                          JSON.stringify(embedding),
+                        ),
+                    },
+                    'ai.usage.tokens': usage.tokens,
+                  },
+                }),
+              );
+
+              return {
+                embedding,
+                usage,
+                warnings: modelResponse.warnings,
+                providerMetadata: modelResponse.providerMetadata,
+                response: modelResponse.response,
+              };
             },
           }),
-          tracer,
-          fn: async doEmbedSpan => {
-            const modelResponse = await model.doEmbed({
-              values: [value],
-              abortSignal,
-              headers: headersWithUserAgent,
-              providerOptions,
-            });
-
-            const embedding = modelResponse.embeddings[0];
-            const usage = modelResponse.usage ?? { tokens: NaN };
-
-            doEmbedSpan.setAttributes(
-              await selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  'ai.embeddings': {
-                    output: () =>
-                      modelResponse.embeddings.map(embedding =>
-                        JSON.stringify(embedding),
-                      ),
-                  },
-                  'ai.usage.tokens': usage.tokens,
-                },
-              }),
-            );
-
-            return {
-              embedding,
-              usage,
-              warnings: modelResponse.warnings,
-              providerMetadata: modelResponse.providerMetadata,
-              response: modelResponse.response,
-            };
-          },
-        }),
-      );
+        );
 
       span.setAttributes(
         await selectTelemetryAttributes({
