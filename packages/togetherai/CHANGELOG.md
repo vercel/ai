@@ -1,5 +1,30 @@
 # @ai-sdk/togetherai
 
+## 2.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/openai-compatible@2.0.0-beta.48
+
+## 2.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/openai-compatible@2.0.0-beta.47
+
+## 2.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/openai-compatible@2.0.0-beta.46
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 2.0.0-beta.46
 
 ### Patch Changes

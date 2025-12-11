@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- e9e157f: fix: generate zod4 json schema from input schema
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 81e29ab: chore: update docs
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+
 ## 4.0.0-beta.44
 
 ### Patch Changes

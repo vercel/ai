@@ -1,11 +1,10 @@
 import {
   APICallError,
   LanguageModelV3,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +22,7 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { convertOpenAICompatibleCompletionUsage } from './convert-openai-compatible-completion-usage';
 import { convertToOpenAICompatibleCompletionPrompt } from './convert-to-openai-compatible-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
@@ -197,11 +197,7 @@ export class OpenAICompatibleCompletionLanguageModel
 
     return {
       content,
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-      },
+      usage: convertOpenAICompatibleCompletionUsage(response.usage),
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       request: { body: args },
       response: {
@@ -244,11 +240,13 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage:
+      | {
+          prompt_tokens: number | undefined;
+          completion_tokens: number | undefined;
+          total_tokens: number | undefined;
+        }
+      | undefined = undefined;
     let isFirstChunk = true;
 
     return {
@@ -297,9 +295,7 @@ export class OpenAICompatibleCompletionLanguageModel
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
@@ -327,7 +323,7 @@ export class OpenAICompatibleCompletionLanguageModel
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAICompatibleCompletionUsage(usage),
             });
           },
         }),

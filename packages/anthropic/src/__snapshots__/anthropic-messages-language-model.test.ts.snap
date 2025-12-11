@@ -15,6 +15,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
         },
       ],
     },
+    "contextManagement": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -44,6 +45,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
       "skills": null,
     },
+    "contextManagement": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -290,6 +292,7 @@ Both files have been exported and are ready for download!",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
         "skills": null,
       },
+      "contextManagement": null,
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -615,10 +618,32 @@ Both files have been exported and are ready for download!",
     "modelId": "claude-sonnet-4-5-20250929",
   },
   "usage": {
-    "cachedInputTokens": 0,
-    "inputTokens": 12546,
-    "outputTokens": 1359,
-    "totalTokens": 13905,
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "noCache": 12546,
+      "total": 12546,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": undefined,
+      "total": 1359,
+    },
+    "raw": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0,
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 12546,
+      "output_tokens": 1359,
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0,
+      },
+      "service_tier": "standard",
+    },
   },
   "warnings": [],
 }
@@ -4885,6 +4910,7 @@ The presentation has",
             },
           ],
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -4905,10 +4931,23 @@ The presentation has",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2751,
-      "outputTokens": 5558,
-      "totalTokens": 8309,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2751,
+        "total": 2751,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 5558,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2751,
+        "output_tokens": 5558,
+      },
     },
   },
 ]
@@ -9928,6 +9967,7 @@ Both",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
           "skills": null,
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -9948,10 +9988,23 @@ Both",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2273,
-      "outputTokens": 2479,
-      "totalTokens": 4752,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2273,
+        "total": 2273,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 2479,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2273,
+        "output_tokens": 2479,
+      },
     },
   },
   {
@@ -11225,6 +11278,7 @@ The Fibonacci sequence starts with 0, ",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
           "skills": null,
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11245,10 +11299,23 @@ The Fibonacci sequence starts with 0, ",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2263,
-      "outputTokens": 771,
-      "totalTokens": 3034,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2263,
+        "total": 2263,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 771,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2263,
+        "output_tokens": 771,
+      },
     },
   },
 ]
@@ -11849,6 +11916,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11865,10 +11933,23 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 313,
-      "outputTokens": 305,
-      "totalTokens": 618,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 313,
+        "total": 313,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 305,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 313,
+        "output_tokens": 305,
+      },
     },
   },
 ]
@@ -11949,6 +12030,7 @@ It simply echoed back",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11969,10 +12051,23 @@ It simply echoed back",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 589,
-      "outputTokens": 83,
-      "totalTokens": 672,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 589,
+        "total": 589,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 83,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 589,
+        "output_tokens": 83,
+      },
     },
   },
 ]
@@ -12140,6 +12235,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12159,10 +12255,23 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 1040,
-      "outputTokens": 41,
-      "totalTokens": 1081,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 699,
+        "total": 699,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 158,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+      },
     },
   },
   {
@@ -12227,6 +12336,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12243,10 +12353,23 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 1040,
-      "outputTokens": 41,
-      "totalTokens": 1081,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1040,
+        "total": 1040,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 41,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+      },
     },
   },
 ]
@@ -12416,6 +12539,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12435,10 +12559,23 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 1071,
-      "outputTokens": 67,
-      "totalTokens": 1138,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 722,
+        "total": 722,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 163,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+      },
     },
   },
   {
@@ -12532,6 +12669,7 @@ The weather in",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12548,10 +12686,23 @@ The weather in",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 1071,
-      "outputTokens": 67,
-      "totalTokens": 1138,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1071,
+        "total": 1071,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 67,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+      },
     },
   },
 ]
@@ -12927,6 +13078,7 @@ The page also discusses",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12947,10 +13099,23 @@ The page also discusses",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 868,
-      "outputTokens": 446,
-      "totalTokens": 1314,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 868,
+        "total": 868,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 446,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 868,
+        "output_tokens": 446,
+      },
     },
   },
 ]
@@ -13661,6 +13826,7 @@ The main tech story today appears to be Apple's significant",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13681,10 +13847,23 @@ The main tech story today appears to be Apple's significant",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2037,
-      "outputTokens": 795,
-      "totalTokens": 2832,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2037,
+        "total": 2037,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 795,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2037,
+        "output_tokens": 795,
+      },
     },
   },
 ]

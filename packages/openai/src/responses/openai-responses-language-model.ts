@@ -6,7 +6,6 @@ import {
   LanguageModelV3FinishReason,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   JSONValue,
 } from '@ai-sdk/provider';
@@ -34,6 +33,10 @@ import { localShellInputSchema } from '../tool/local-shell';
 import { shellInputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
 import { mcpOutputSchema } from '../tool/mcp';
+import {
+  convertOpenAIResponsesUsage,
+  OpenAIResponsesUsage,
+} from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
@@ -832,15 +835,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         finishReason: response.incomplete_details?.reason,
         hasFunctionCall,
       }),
-      usage: {
-        inputTokens: usage.input_tokens,
-        outputTokens: usage.output_tokens,
-        totalTokens: usage.input_tokens + usage.output_tokens,
-        reasoningTokens:
-          usage.output_tokens_details?.reasoning_tokens ?? undefined,
-        cachedInputTokens:
-          usage.input_tokens_details?.cached_tokens ?? undefined,
-      },
+      usage: convertOpenAIResponsesUsage(usage),
       request: { body },
       response: {
         id: response.id,
@@ -887,11 +882,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: OpenAIResponsesUsage | undefined = undefined;
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
@@ -1535,17 +1526,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 finishReason: value.response.incomplete_details?.reason,
                 hasFunctionCall,
               });
-              usage.inputTokens = value.response.usage.input_tokens;
-              usage.outputTokens = value.response.usage.output_tokens;
-              usage.totalTokens =
-                value.response.usage.input_tokens +
-                value.response.usage.output_tokens;
-              usage.reasoningTokens =
-                value.response.usage.output_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.response.usage.input_tokens_details?.cached_tokens ??
-                undefined;
+              usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -1644,7 +1625,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAIResponsesUsage(usage),
               providerMetadata,
             });
           },
