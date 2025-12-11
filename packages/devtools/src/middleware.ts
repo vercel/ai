@@ -7,7 +7,71 @@ import {
   createStep,
   updateStepResult,
   notifyServerAsync,
+  setNotifyEndpoint,
+  setForwardData,
+  setFilePath,
 } from './db.js';
+
+/**
+ * Configuration options for the devtools middleware.
+ */
+export interface DevToolsMiddlewareOptions {
+  /**
+   * Custom file path for storing devtools data (Node.js only).
+   *
+   * By default, data is stored in `.devtools/generations.json` in the current
+   * working directory.
+   *
+   * @example
+   * ```typescript
+   * devToolsMiddleware({
+   *   filePath: './my-devtools-data.json',
+   * })
+   * ```
+   */
+  filePath?: string;
+
+  /**
+   * Remote devtools server URL for sending data.
+   *
+   * When set, data is forwarded to this endpoint instead of (or in addition to)
+   * local storage. This is useful when running in environments like Cloudflare
+   * Workers where you want to send data to a local devtools server via a tunnel.
+   *
+   * @example
+   * ```typescript
+   * // Cloudflare Workers - forward to local dev server via tunnel
+   * devToolsMiddleware({
+   *   notifyEndpoint: 'https://your-tunnel.ngrok.io',
+   * })
+   * ```
+   */
+  notifyEndpoint?: string;
+
+  /**
+   * Allow devtools to run in production environments.
+   *
+   * By default, devToolsMiddleware throws an error when NODE_ENV is 'production'
+   * to prevent accidental use in production builds. Set this to true to bypass
+   * this check (e.g., for debugging production issues in a controlled environment).
+   *
+   * @default false
+   */
+  allowProduction?: boolean;
+
+  /**
+   * Skip local file storage and only forward data to the remote endpoint.
+   *
+   * When true, data is only sent to `notifyEndpoint` and not written to the
+   * local filesystem. This is useful in non-Node.js environments or when you
+   * want the remote server to be the sole source of truth.
+   *
+   * Requires `notifyEndpoint` to be set.
+   *
+   * @default false
+   */
+  remoteOnly?: boolean;
+}
 
 const generateId = () => crypto.randomUUID();
 
@@ -23,10 +87,17 @@ const activeSteps = new Map<
   }
 >();
 
-// Handle process termination signals
+// Handle process termination signals (Node.js only)
 let signalHandlersRegistered = false;
 const registerSignalHandlers = () => {
-  if (signalHandlersRegistered) return;
+  // Only register in Node.js environments with process.on available
+  if (
+    typeof process === 'undefined' ||
+    typeof process.on !== 'function' ||
+    signalHandlersRegistered
+  ) {
+    return;
+  }
   signalHandlersRegistered = true;
 
   const cleanup = async () => {
@@ -84,8 +155,9 @@ const generateRunId = (): string => {
  * Each call generates a unique run ID, so all steps within a single
  * streamText/generateText call share the same run.
  *
- * Usage:
- * ```ts
+ * @example
+ * ```typescript
+ * // Basic usage (Node.js) - stores in .devtools/generations.json
  * const result = streamText({
  *   model: wrapLanguageModel({
  *     middleware: devToolsMiddleware(),
@@ -93,17 +165,64 @@ const generateRunId = (): string => {
  *   }),
  *   prompt: "...",
  * });
+ *
+ * // Remote environment (Workers, Edge) - forward to local server
+ * const result = streamText({
+ *   model: wrapLanguageModel({
+ *     middleware: devToolsMiddleware({
+ *       notifyEndpoint: 'https://your-tunnel.ngrok.io',
+ *     }),
+ *     model: yourModel,
+ *   }),
+ *   prompt: "...",
+ * });
  * ```
  */
-export const devToolsMiddleware = (): LanguageModelV3Middleware => {
-  if (process.env.NODE_ENV === 'production') {
+export const devToolsMiddleware = (
+  options: DevToolsMiddlewareOptions = {},
+): LanguageModelV3Middleware => {
+  const {
+    filePath,
+    notifyEndpoint,
+    allowProduction = false,
+    remoteOnly = false,
+  } = options;
+
+  // Check for production environment
+  const isProduction =
+    typeof process !== 'undefined' && process.env?.NODE_ENV === 'production';
+
+  if (isProduction && !allowProduction) {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
-        'Remove devToolsMiddleware from your model configuration for production builds.',
+        'Remove devToolsMiddleware from your model configuration for production builds. ' +
+        'If you need to debug in production, pass { allowProduction: true }.',
     );
   }
 
-  // Register signal handlers once for cleanup on process exit
+  // Validate remoteOnly requires notifyEndpoint
+  if (remoteOnly && !notifyEndpoint) {
+    throw new Error(
+      'remoteOnly requires notifyEndpoint to be set. ' +
+        'Provide a notifyEndpoint URL to forward data to.',
+    );
+  }
+
+  // Configure file path if provided
+  if (filePath) {
+    setFilePath(filePath);
+  }
+
+  // Configure notify endpoint if provided
+  if (notifyEndpoint) {
+    setNotifyEndpoint(notifyEndpoint);
+  }
+
+  // Enable data forwarding when remoteOnly is set
+  // This skips local filesystem writes and only sends to the remote endpoint
+  setForwardData(remoteOnly);
+
+  // Register signal handlers for cleanup on process exit (Node.js only)
   registerSignalHandlers();
 
   const runId = generateRunId();

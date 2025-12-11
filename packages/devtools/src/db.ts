@@ -1,37 +1,11 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-const DB_DIR = path.join(process.cwd(), '.devtools');
-const DB_PATH = path.join(DB_DIR, 'generations.json');
-const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
-  ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
-  : 4983;
+const DEFAULT_DEVTOOLS_PORT = 4983;
 
-/**
- * Notify the devtools server that data has changed.
- * Fire-and-forget: doesn't block, ignores errors if server isn't running.
- */
-const notifyServer = (event: 'run' | 'step' | 'step-update' | 'clear') => {
-  notifyServerAsync(event);
-};
-
-/**
- * Notify the devtools server and wait for the request to complete.
- * Used during process cleanup to ensure notifications are sent before exit.
- */
-export const notifyServerAsync = async (
-  event: 'run' | 'step' | 'step-update' | 'clear',
-): Promise<void> => {
-  try {
-    await fetch(`http://localhost:${DEVTOOLS_PORT}/api/notify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, timestamp: Date.now() }),
-    });
-  } catch {
-    // Ignore errors - server might not be running
-  }
-};
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface Run {
   id: string;
@@ -67,17 +41,67 @@ export interface StepResult {
   raw_chunks?: string | null;
 }
 
+export type StepInput = Omit<
+  Step,
+  | 'duration_ms'
+  | 'output'
+  | 'usage'
+  | 'error'
+  | 'raw_request'
+  | 'raw_response'
+  | 'raw_chunks'
+>;
+
 interface Database {
   runs: Run[];
   steps: Step[];
 }
 
+// ============================================================================
+// Configuration
+// ============================================================================
+
+let notifyEndpoint: string | null = null;
+let forwardData = false;
+let customFilePath: string | null = null;
+
+// In-memory cache for filesystem storage
+let dbCache: Database | null = null;
+
+export function setNotifyEndpoint(endpoint: string | null): void {
+  notifyEndpoint = endpoint;
+}
+
+export function setForwardData(enabled: boolean): void {
+  forwardData = enabled;
+}
+
+export function setFilePath(filePath: string | null): void {
+  customFilePath = filePath;
+}
+
+// ============================================================================
+// Filesystem Storage (Node.js only)
+// ============================================================================
+
+function getDbPath(): string {
+  if (customFilePath) {
+    return customFilePath;
+  }
+  const dbDir = path.join(process.cwd(), '.devtools');
+  return path.join(dbDir, 'generations.json');
+}
+
+function getDbDir(): string {
+  return path.dirname(getDbPath());
+}
+
 /**
  * Ensure .devtools is in .gitignore.
- * Only writes if .gitignore exists and doesn't already contain .devtools.
  */
-const ensureGitignore = (): void => {
-  const gitignorePath = path.join(process.cwd(), '.gitignore');
+function ensureGitignore(): void {
+  const dbDir = getDbDir();
+  const gitignorePath = path.join(path.dirname(dbDir), '.gitignore');
 
   if (!fs.existsSync(gitignorePath)) {
     return;
@@ -85,97 +109,148 @@ const ensureGitignore = (): void => {
 
   const content = fs.readFileSync(gitignorePath, 'utf-8');
   const lines = content.split('\n');
+  const dirName = path.basename(dbDir);
 
-  // Check if .devtools is already ignored (exact match or with trailing slash)
   const alreadyIgnored = lines.some(
-    line => line.trim() === '.devtools' || line.trim() === '.devtools/',
+    line => line.trim() === dirName || line.trim() === `${dirName}/`,
   );
 
   if (!alreadyIgnored) {
     const newContent = content.endsWith('\n')
-      ? `${content}.devtools\n`
-      : `${content}\n.devtools\n`;
+      ? `${content}${dirName}\n`
+      : `${content}\n${dirName}\n`;
     fs.writeFileSync(gitignorePath, newContent);
   }
-};
+}
 
-const readDb = (): Database => {
+function readDb(): Database {
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const content = fs.readFileSync(DB_PATH, 'utf-8');
+    const dbPath = getDbPath();
+    if (fs.existsSync(dbPath)) {
+      const content = fs.readFileSync(dbPath, 'utf-8');
       return JSON.parse(content);
     }
   } catch {
     // If file is corrupted, start fresh
   }
   return { runs: [], steps: [] };
-};
+}
 
-const writeDb = (db: Database): void => {
-  const isFirstRun = !fs.existsSync(DB_DIR);
+function writeDb(db: Database): void {
+  const dbDir = getDbDir();
+  const dbPath = getDbPath();
+  const isFirstRun = !fs.existsSync(dbDir);
 
   if (isFirstRun) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-    ensureGitignore();
+    fs.mkdirSync(dbDir, { recursive: true });
+    // Only manage gitignore for default .devtools directory
+    if (!customFilePath) {
+      ensureGitignore();
+    }
   }
 
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
-};
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+}
 
-// In-memory cache for performance
-let dbCache: Database | null = null;
-
-const getDb = (): Database => {
+function getDb(): Database {
   if (!dbCache) {
     dbCache = readDb();
   }
   return dbCache;
-};
+}
 
-const saveDb = (db: Database): void => {
+function saveDb(db: Database): void {
   dbCache = db;
   writeDb(db);
+}
+
+function isNodeEnvironment(): boolean {
+  return typeof process !== 'undefined' && !!process.versions?.node;
+}
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+function getDevToolsPort(): number {
+  if (typeof process !== 'undefined' && process.env?.AI_SDK_DEVTOOLS_PORT) {
+    return parseInt(process.env.AI_SDK_DEVTOOLS_PORT, 10);
+  }
+  return DEFAULT_DEVTOOLS_PORT;
+}
+
+function getNotifyEndpoint(): string {
+  if (notifyEndpoint) {
+    return notifyEndpoint;
+  }
+  const port = getDevToolsPort();
+  return `http://localhost:${port}`;
+}
+
+interface NotifyPayload {
+  event: 'run' | 'step' | 'step-update' | 'clear';
+  timestamp: number;
+  data?: {
+    run?: Run;
+    step?: Step;
+  };
+}
+
+const notifyServer = (
+  event: NotifyPayload['event'],
+  data?: NotifyPayload['data'],
+) => {
+  notifyServerAsync(event, data);
 };
 
-/**
- * Reload the database from disk.
- * Used by the viewer server to pick up changes made by the middleware.
- */
-export const reloadDb = async (): Promise<void> => {
-  dbCache = readDb();
+export const notifyServerAsync = async (
+  event: NotifyPayload['event'],
+  data?: NotifyPayload['data'],
+): Promise<void> => {
+  try {
+    const endpoint = getNotifyEndpoint();
+    const payload: NotifyPayload = { event, timestamp: Date.now() };
+
+    if (forwardData && data) {
+      payload.data = data;
+    }
+
+    await fetch(`${endpoint}/api/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // Ignore errors - server might not be running
+  }
 };
+
+// ============================================================================
+// Database Operations
+// ============================================================================
 
 export const createRun = async (id: string): Promise<Run> => {
-  const db = getDb();
   const started_at = new Date().toISOString();
+  const run: Run = { id, started_at };
 
-  // Check if run already exists
-  const existing = db.runs.find(r => r.id === id);
-  if (existing) {
-    return existing;
+  // Only write to filesystem in Node.js when not using remote-only mode
+  if (isNodeEnvironment() && !forwardData) {
+    const db = getDb();
+    const existing = db.runs.find(r => r.id === id);
+    if (existing) {
+      notifyServer('run', { run: existing });
+      return existing;
+    }
+    db.runs.push(run);
+    saveDb(db);
   }
 
-  const run: Run = { id, started_at };
-  db.runs.push(run);
-  saveDb(db);
-  notifyServer('run');
+  notifyServer('run', { run });
   return run;
 };
 
-export const createStep = async (
-  step: Omit<
-    Step,
-    | 'duration_ms'
-    | 'output'
-    | 'usage'
-    | 'error'
-    | 'raw_request'
-    | 'raw_response'
-    | 'raw_chunks'
-  >,
-): Promise<void> => {
-  const db = getDb();
-  const newStep: Step = {
+export const createStep = async (step: StepInput): Promise<void> => {
+  const fullStep: Step = {
     ...step,
     duration_ms: null,
     output: null,
@@ -185,33 +260,64 @@ export const createStep = async (
     raw_response: null,
     raw_chunks: null,
   };
-  db.steps.push(newStep);
-  saveDb(db);
-  notifyServer('step');
+
+  // Only write to filesystem in Node.js when not using remote-only mode
+  if (isNodeEnvironment() && !forwardData) {
+    const db = getDb();
+    db.steps.push(fullStep);
+    saveDb(db);
+  }
+
+  notifyServer('step', { step: fullStep });
 };
 
 export const updateStepResult = async (
   stepId: string,
   result: StepResult,
 ): Promise<void> => {
-  const db = getDb();
-  const step = db.steps.find(s => s.id === stepId);
-  if (step) {
-    step.duration_ms = result.duration_ms;
-    step.output = result.output;
-    step.usage = result.usage;
-    step.error = result.error;
-    step.raw_request = result.raw_request ?? null;
-    step.raw_response = result.raw_response ?? null;
-    step.raw_chunks = result.raw_chunks ?? null;
-    saveDb(db);
-    notifyServer('step-update');
+  // Only write to filesystem in Node.js when not using remote-only mode
+  if (isNodeEnvironment() && !forwardData) {
+    const db = getDb();
+    const step = db.steps.find(s => s.id === stepId);
+    if (step) {
+      step.duration_ms = result.duration_ms;
+      step.output = result.output;
+      step.usage = result.usage;
+      step.error = result.error;
+      step.raw_request = result.raw_request ?? null;
+      step.raw_response = result.raw_response ?? null;
+      step.raw_chunks = result.raw_chunks ?? null;
+      saveDb(db);
+    }
   }
+
+  notifyServer('step-update', {
+    step: {
+      id: stepId,
+      run_id: '',
+      step_number: 0,
+      type: 'stream',
+      model_id: '',
+      provider: null,
+      started_at: '',
+      input: '',
+      provider_options: null,
+      duration_ms: result.duration_ms,
+      output: result.output,
+      usage: result.usage,
+      error: result.error,
+      raw_request: result.raw_request ?? null,
+      raw_response: result.raw_response ?? null,
+      raw_chunks: result.raw_chunks ?? null,
+    },
+  });
 };
 
 export const getRuns = async (): Promise<Run[]> => {
+  if (!isNodeEnvironment()) {
+    return [];
+  }
   const db = getDb();
-  // Return runs sorted by started_at DESC
   return [...db.runs].sort(
     (a, b) =>
       new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
@@ -219,6 +325,9 @@ export const getRuns = async (): Promise<Run[]> => {
 };
 
 export const getStepsForRun = async (runId: string): Promise<Step[]> => {
+  if (!isNodeEnvironment()) {
+    return [];
+  }
   const db = getDb();
   return db.steps
     .filter(s => s.run_id === runId)
@@ -228,15 +337,28 @@ export const getStepsForRun = async (runId: string): Promise<Step[]> => {
 export const getRunWithSteps = async (
   runId: string,
 ): Promise<{ run: Run; steps: Step[] } | null> => {
+  if (!isNodeEnvironment()) {
+    return null;
+  }
   const db = getDb();
   const run = db.runs.find(r => r.id === runId);
   if (!run) return null;
-  const steps = await getStepsForRun(runId);
+  const steps = db.steps
+    .filter(s => s.run_id === runId)
+    .sort((a, b) => a.step_number - b.step_number);
   return { run, steps };
 };
 
 export const clearDatabase = async (): Promise<void> => {
-  const db: Database = { runs: [], steps: [] };
-  saveDb(db);
+  if (isNodeEnvironment()) {
+    const db: Database = { runs: [], steps: [] };
+    saveDb(db);
+  }
   notifyServer('clear');
+};
+
+export const reloadDb = async (): Promise<void> => {
+  if (isNodeEnvironment()) {
+    dbCache = readDb();
+  }
 };

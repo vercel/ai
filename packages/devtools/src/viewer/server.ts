@@ -12,6 +12,11 @@ import {
   getStepsForRun,
   clearDatabase,
   reloadDb,
+  createRun,
+  createStep,
+  updateStepResult,
+  type Step,
+  type StepResult,
 } from '../db.js';
 
 // SSE client management
@@ -184,7 +189,34 @@ app.get('/api/events', c => {
 // Notification endpoint (called by middleware)
 app.post('/api/notify', async c => {
   const body = await c.req.json();
-  // Reload database from disk to pick up changes from middleware
+
+  if (body.data) {
+    // Data forwarded from remote middleware - store locally
+    if (body.data.run) {
+      await createRun(body.data.run.id);
+    }
+    if (body.data.step) {
+      if (body.event === 'step') {
+        // New step - create it
+        await createStep(body.data.step);
+      } else if (body.event === 'step-update') {
+        // Step update - merge the result fields
+        const stepUpdate = body.data.step as Step;
+        const result: StepResult = {
+          duration_ms: stepUpdate.duration_ms ?? 0,
+          output: stepUpdate.output,
+          usage: stepUpdate.usage,
+          error: stepUpdate.error,
+          raw_request: stepUpdate.raw_request,
+          raw_response: stepUpdate.raw_response,
+          raw_chunks: stepUpdate.raw_chunks,
+        };
+        await updateStepResult(stepUpdate.id, result);
+      }
+    }
+  }
+
+  // Always reload to pick up any changes
   await reloadDb();
   broadcastToClients('update', body);
   return c.json({ success: true });
