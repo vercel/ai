@@ -54,7 +54,7 @@ run(async () => {
     ],
   });
 
-  for await (const chunk of result.fullStream){
+  for await (const chunk of result.fullStream) {
     switch (chunk.type) {
       case 'reasoning-start':
         process.stdout.write('\x1b[34m');
@@ -67,7 +67,7 @@ run(async () => {
       case 'reasoning-end':
         process.stdout.write('\x1b[0m');
         process.stdout.write('\n');
-        console.log("providerMetadata:",chunk.providerMetadata);
+        console.log('providerMetadata:', chunk.providerMetadata);
         process.stdout.write('\n');
         break;
 
