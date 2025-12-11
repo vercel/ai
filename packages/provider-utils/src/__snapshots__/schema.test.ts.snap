@@ -58,23 +58,26 @@ exports[`standardSchema > valibot > should create a schema with simple types 1`]
 }
 `;
 
-exports[`zodSchema > zod/v4 > json schema conversion > nullable > should support nullable 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > .literal and .enum 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
-    "location": {
-      "anyOf": [
-        {
-          "type": "string",
-        },
-        {
-          "type": "null",
-        },
+    "number": {
+      "enum": [
+        "one",
+        "two",
+        "three",
       ],
+      "type": "string",
+    },
+    "text": {
+      "const": "hello",
+      "type": "string",
     },
   },
   "required": [
-    "location",
+    "text",
+    "number",
   ],
   "type": "object",
 }
@@ -161,6 +164,28 @@ exports[`zodSchema > zod/v4 > json schema conversion > should support arrays 1`]
   },
   "required": [
     "items",
+  ],
+  "type": "object",
+}
+`;
+
+exports[`zodSchema > zod/v4 > json schema conversion > should support nullable 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "location": {
+      "anyOf": [
+        {
+          "type": "string",
+        },
+        {
+          "type": "null",
+        },
+      ],
+    },
+  },
+  "required": [
+    "location",
   ],
   "type": "object",
 }
@@ -328,31 +353,6 @@ exports[`zodSchema > zod/v4 > json schema conversion > should use references whe
   "required": [
     "group1",
     "group2",
-  ],
-  "type": "object",
-}
-`;
-
-exports[`zodSchema > zod/v4 > json schema conversion > z4 schema > generates correct JSON SChema for z4 and .literal and .enum 1`] = `
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "properties": {
-    "number": {
-      "enum": [
-        "one",
-        "two",
-        "three",
-      ],
-      "type": "string",
-    },
-    "text": {
-      "const": "hello",
-      "type": "string",
-    },
-  },
-  "required": [
-    "text",
-    "number",
   ],
   "type": "object",
 }
