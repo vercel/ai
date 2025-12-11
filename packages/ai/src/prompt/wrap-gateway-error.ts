@@ -1,6 +1,4 @@
-import {
-  GatewayAuthenticationError
-} from '@ai-sdk/gateway';
+import { GatewayAuthenticationError } from '@ai-sdk/gateway';
 import { AISDKError } from '@ai-sdk/provider';
 
 export function wrapGatewayError(error: unknown): unknown {
