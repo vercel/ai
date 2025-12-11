@@ -1,4 +1,4 @@
-import { azure ,OpenAIResponsesProviderOptions} from '@ai-sdk/azure';
+import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
 
 import {
   convertToModelMessages,
