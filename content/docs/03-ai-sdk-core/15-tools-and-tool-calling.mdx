@@ -112,10 +112,6 @@ By default, tools with an `execute` function run automatically as the model call
 ```ts highlight="13"
 import { tool } from 'ai';
 import { z } from 'zod';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
 
 const runCommand = tool({
   description: 'Run a shell command',
@@ -124,8 +120,7 @@ const runCommand = tool({
   }),
   needsApproval: true,
   execute: async ({ command }) => {
-    const { stdout, stderr } = await execAsync(command);
-    return { stdout, stderr };
+    // your command execution logic here
   },
 });
 ```
