@@ -411,9 +411,13 @@ function App() {
     return steps.reduce(
       (acc, s) => {
         const usage = parseJson(s.usage);
+        const inputTokens =
+          typeof usage?.inputTokens === 'number' ? usage.inputTokens : 0;
+        const outputTokens =
+          typeof usage?.outputTokens === 'number' ? usage.outputTokens : 0;
         return {
-          input: acc.input + (usage?.inputTokens ?? 0),
-          output: acc.output + (usage?.outputTokens ?? 0),
+          input: acc.input + inputTokens,
+          output: acc.output + outputTokens,
         };
       },
       { input: 0, output: 0 },
@@ -711,16 +715,26 @@ function App() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="text-[11px] font-mono text-muted-foreground">
-                                        {usage.inputTokens ?? 0}{' '}
+                                        {typeof usage.inputTokens === 'number'
+                                          ? usage.inputTokens
+                                          : 0}{' '}
                                         <span className="text-muted-foreground/50">
                                           →
                                         </span>{' '}
-                                        {usage.outputTokens ?? 0}
+                                        {typeof usage.outputTokens === 'number'
+                                          ? usage.outputTokens
+                                          : 0}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      Input: {usage.inputTokens ?? 0} · Output:{' '}
-                                      {usage.outputTokens ?? 0}
+                                      Input:{' '}
+                                      {typeof usage.inputTokens === 'number'
+                                        ? usage.inputTokens
+                                        : 0}{' '}
+                                      · Output:{' '}
+                                      {typeof usage.outputTokens === 'number'
+                                        ? usage.outputTokens
+                                        : 0}
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
