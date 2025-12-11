@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+
 ## 3.0.0-beta.94
 
 ### Patch Changes
