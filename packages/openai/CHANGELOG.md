@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
 ## 3.0.0-beta.93
 
 ### Patch Changes
