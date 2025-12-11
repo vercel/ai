@@ -17,6 +17,7 @@ export interface DeepSeekSystemMessage {
 export interface DeepSeekUserMessage {
   role: 'user';
   content: string;
+  name?: string;
 }
 
 export interface DeepSeekAssistantMessage {
@@ -24,6 +25,7 @@ export interface DeepSeekAssistantMessage {
   content?: string | null;
   reasoning_content?: string;
   tool_calls?: Array<DeepSeekMessageToolCall>;
+  name?: string;
 }
 
 export interface DeepSeekMessageToolCall {

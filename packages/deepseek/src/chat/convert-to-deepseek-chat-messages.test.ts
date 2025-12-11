@@ -329,4 +329,45 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
   });
+
+  it('passes through openai name on user messages', () => {
+    const { messages, warnings } = convertToDeepSeekChatMessages({
+      prompt: [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: { openai: { name: 'alice' } },
+      },
+    ],
+    responseFormat: undefined,
+  });
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      { role: 'user', content: 'Hello', name: 'alice' },
+    ]);
+  });
+
+  it('passes through openai name on assistant messages', () => {
+    const { messages, warnings } = convertToDeepSeekChatMessages({
+      prompt: [
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi' }],
+        providerOptions: { deepseek: { name: 'deepseek-bot' } },
+      },
+    ],
+    responseFormat: undefined,
+    });
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'assistant',
+        content: 'Hi',
+        tool_calls: undefined,
+        name: 'deepseek-bot',
+      },
+    ]);
+  });
 });

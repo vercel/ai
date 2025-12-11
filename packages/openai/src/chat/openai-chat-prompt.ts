@@ -20,6 +20,7 @@ export interface ChatCompletionDeveloperMessage {
 export interface ChatCompletionUserMessage {
   role: 'user';
   content: string | Array<ChatCompletionContentPart>;
+  name?: string;
 }
 
 export type ChatCompletionContentPart =
@@ -52,6 +53,7 @@ export interface ChatCompletionAssistantMessage {
   role: 'assistant';
   content?: string | null;
   tool_calls?: Array<ChatCompletionMessageToolCall>;
+  name?: string;
 }
 
 export interface ChatCompletionMessageToolCall {
