@@ -699,5 +699,115 @@ describe('runToolsTransformation', () => {
         ]
       `);
     });
+
+    it('should emit tool-approval-request for MCP approval requests from provider-executed tools', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'mcpr_123',
+            toolName: 'mcp',
+            input: `{}`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'mcpr_123',
+            toolName: 'mcp',
+            providerExecuted: true,
+            result: {
+              type: 'approvalRequest',
+              serverLabel: 'exa',
+              name: 'web_search_exa',
+              arguments: '{"query":"test"}',
+              approvalRequestId: 'mcpr_123',
+            },
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {},
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      expect(
+        await convertReadableStreamToArray(transformedStream),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": true,
+            "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'mcp'. Available tools: .],
+            "input": {},
+            "invalid": true,
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcpr_123",
+            "toolName": "mcp",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": true,
+            "error": "Model tried to call unavailable tool 'mcp'. Available tools: .",
+            "input": {},
+            "title": undefined,
+            "toolCallId": "mcpr_123",
+            "toolName": "mcp",
+            "type": "tool-error",
+          },
+          {
+            "approvalId": "mcpr_123",
+            "toolCall": {
+              "dynamic": true,
+              "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'mcp'. Available tools: .],
+              "input": {},
+              "invalid": true,
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcpr_123",
+              "toolName": "mcp",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
   });
 });
