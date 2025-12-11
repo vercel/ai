@@ -14,9 +14,7 @@ const MOCK_MODEL = new MockLanguageModelV3();
 describe('addToolInputExamplesMiddleware', () => {
   describe('transformParams', () => {
     it('should append examples to tool description', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -66,9 +64,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should handle tool without existing description', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -114,7 +110,7 @@ describe('addToolInputExamplesMiddleware', () => {
   describe('examplesPrefix', () => {
     it('should use provided examplesPrefix as header', async () => {
       const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Here are some example inputs:',
+        prefix: 'Here are some example inputs:',
       });
 
       const result = await middleware.transformParams!({
@@ -148,9 +144,7 @@ describe('addToolInputExamplesMiddleware', () => {
 
   describe('formatExample', () => {
     it('should use default JSON.stringify format', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -178,15 +172,14 @@ describe('addToolInputExamplesMiddleware', () => {
       expect((result.tools![0] as any).description).toMatchInlineSnapshot(`
         "Search for items
 
-        Examples:
+        Input Examples:
         {"query":"test","limit":10}"
       `);
     });
 
-    it('should use custom formatExample function', async () => {
+    it('should use custom format function', async () => {
       const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Examples:',
-        formatExample: (example: { input: JSONObject }, index: number) =>
+        format: (example: { input: JSONObject }, index: number) =>
           `${index + 1}. ${JSON.stringify(example.input)}`,
       });
 
@@ -216,7 +209,7 @@ describe('addToolInputExamplesMiddleware', () => {
       expect((result.tools![0] as any).description).toMatchInlineSnapshot(`
         "Get the weather
 
-        Examples:
+        Input Examples:
         1. {"location":"Paris"}
         2. {"location":"Tokyo"}"
       `);
@@ -225,9 +218,7 @@ describe('addToolInputExamplesMiddleware', () => {
 
   describe('removeInputExamples', () => {
     it('should remove inputExamples by default', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -252,10 +243,9 @@ describe('addToolInputExamplesMiddleware', () => {
       expect((result.tools![0] as any).inputExamples).toBeUndefined();
     });
 
-    it('should keep inputExamples when removeInputExamples is false', async () => {
+    it('should keep inputExamples when remove is false', async () => {
       const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-        removeInputExamples: false,
+        remove: false,
       });
 
       const result = await middleware.transformParams!({
@@ -292,9 +282,7 @@ describe('addToolInputExamplesMiddleware', () => {
 
   describe('edge cases', () => {
     it('should pass through tools without inputExamples', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -335,9 +323,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should pass through tools with empty inputExamples array', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -363,9 +349,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should pass through provider tools unchanged', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -398,9 +382,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should handle multiple tools with mixed examples', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -468,9 +450,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should handle empty tools array', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',
@@ -482,9 +462,7 @@ describe('addToolInputExamplesMiddleware', () => {
     });
 
     it('should handle undefined tools', async () => {
-      const middleware = addToolInputExamplesMiddleware({
-        examplesPrefix: 'Input Examples:',
-      });
+      const middleware = addToolInputExamplesMiddleware();
 
       const result = await middleware.transformParams!({
         type: 'generate',

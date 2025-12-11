@@ -1,5 +1,48 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 49e2b6a: fix(google): return request as object
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
 ## 3.0.0-beta.65
 
 ### Patch Changes
