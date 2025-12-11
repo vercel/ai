@@ -268,6 +268,11 @@ const model = azure('your-deployment-name');
 Further configuration can be done using OpenAI provider options.
 You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
 
+<Note>
+  In the Responses API, use `azure` as the provider name in `providerOptions`
+  instead of `openai`.
+</Note>
+
 ```ts
 import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
 import { generateText } from 'ai';
@@ -275,7 +280,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: azure('your-deployment-name'),
   providerOptions: {
-    openai: {
+    azure: {
       parallelToolCalls: false,
       store: false,
       user: 'user_123',
