@@ -394,7 +394,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
                 url: z.string().nullish(),
               }),
               z.object({
-                type: z.literal('find'),
+                type: z.literal('find_in_page'),
                 url: z.string().nullish(),
                 pattern: z.string().nullish(),
               }),
@@ -634,7 +634,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
                   url: z.string().nullish(),
                 }),
                 z.object({
-                  type: z.literal('find'),
+                  type: z.literal('find_in_page'),
                   url: z.string().nullish(),
                   pattern: z.string().nullish(),
                 }),

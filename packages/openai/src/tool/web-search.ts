@@ -41,7 +41,7 @@ export const webSearchOutputSchema = lazySchema(() =>
           url: z.string().nullish(),
         }),
         z.object({
-          type: z.literal('find'),
+          type: z.literal('findInPage'),
           url: z.string().nullish(),
           pattern: z.string().nullish(),
         }),
@@ -58,12 +58,83 @@ export const webSearchOutputSchema = lazySchema(() =>
   ),
 );
 
+<<<<<<< HEAD
 export const webSearchToolFactory =
   createProviderDefinedToolFactoryWithOutputSchema<
     {
       // Web search doesn't take input parameters - it's controlled by the prompt
     },
     {
+=======
+export const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+  {
+    // Web search doesn't take input parameters - it's controlled by the prompt
+  },
+  {
+    /**
+     * An object describing the specific action taken in this web search call.
+     * Includes details on how the model used the web (search, open_page, find_in_page).
+     */
+    action:
+      | {
+          /**
+           * Action type "search" - Performs a web search query.
+           */
+          type: 'search';
+
+          /**
+           * The search query.
+           */
+          query?: string;
+        }
+      | {
+          /**
+           * Action type "openPage" - Opens a specific URL from search results.
+           */
+          type: 'openPage';
+
+          /**
+           * The URL opened by the model.
+           */
+          url?: string | null;
+        }
+      | {
+          /**
+           * Action type "findInPage": Searches for a pattern within a loaded page.
+           */
+          type: 'findInPage';
+
+          /**
+           * The URL of the page searched for the pattern.
+           */
+          url?: string | null;
+
+          /**
+           * The pattern or text to search for within the page.
+           */
+          pattern?: string | null;
+        };
+
+    /**
+     * Optional sources cited by the model for the web search call.
+     */
+    sources?: Array<
+      { type: 'url'; url: string } | { type: 'api'; name: string }
+    >;
+  },
+  {
+    /**
+     * Whether to use external web access for fetching live content.
+     * - true: Fetch live web content (default)
+     * - false: Use cached/indexed results
+     */
+    externalWebAccess?: boolean;
+
+    /**
+     * Filters for the search.
+     */
+    filters?: {
+>>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
       /**
        * An object describing the specific action taken in this web search call.
        * Includes details on how the model used the web (search, open_page, find).
