@@ -329,6 +329,7 @@ export async function convertToOpenAIResponsesInput({
 
         // Extract MCP approval requests from providerOptions and add item references
         // so OpenAI knows which item the approval response refers to
+        // otherwise leads to item reasoning id="xyz" not being found
         const internalOptions = providerOptions?.internal as
           | {
               toolApprovalRequests?: Array<{

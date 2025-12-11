@@ -245,8 +245,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               part =>
                 isToolOrDynamicToolUIPart(part) &&
                 (part.providerExecuted !== true ||
-                  // Include provider-executed tools with approval responses
-                  // so their approval response gets sent (approved or denied)
+                  // Include provider-executed tools that have approval responses (e.g., MCP tools)
                   part.approval?.approved != null),
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>

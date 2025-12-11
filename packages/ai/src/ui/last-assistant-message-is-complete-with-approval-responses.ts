@@ -33,7 +33,6 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
     .filter(
       part =>
         !part.providerExecuted ||
-        // Include provider-executed tools that have approval (e.g., MCP tools)
         part.approval != null,
     );
 

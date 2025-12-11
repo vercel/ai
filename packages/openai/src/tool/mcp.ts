@@ -111,9 +111,6 @@ type McpArgs = {
   headers?: Record<string, string>;
   /**
    * Which tools require approval before execution.
-   * - 'always': All MCP tool calls require approval.
-   * - 'never': No MCP tool calls require approval (default).
-   * - `{ never: { toolNames?: string[] } }`: Skip approval for the specified tool names.
    */
   requireApproval?:
     | 'always'
