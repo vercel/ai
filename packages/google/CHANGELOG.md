@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 49e2b6a: fix(google): return request as object
+
 ## 3.0.0-beta.70
 
 ### Patch Changes
