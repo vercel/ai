@@ -1,4 +1,5 @@
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -105,7 +106,8 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const { embedding, usage, response, providerMetadata } = await retry(() =>
+      const { embedding, usage, warnings, response, providerMetadata } =
+        await retry(() =>
         // nested spans to align with the embedMany telemetry data:
         recordSpan({
           name: 'ai.embed.doEmbed',
@@ -151,6 +153,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
+              warnings: modelResponse.warnings,
               providerMetadata: modelResponse.providerMetadata,
               response: modelResponse.response,
             };
@@ -168,10 +171,13 @@ Only applicable for HTTP-based providers.
         }),
       );
 
+      logWarnings({ warnings, provider: model.provider, model: model.modelId });
+
       return new DefaultEmbedResult({
         value,
         embedding,
         usage,
+        warnings,
         providerMetadata,
         response,
       });
@@ -183,6 +189,7 @@ class DefaultEmbedResult implements EmbedResult {
   readonly value: EmbedResult['value'];
   readonly embedding: EmbedResult['embedding'];
   readonly usage: EmbedResult['usage'];
+  readonly warnings: EmbedResult['warnings'];
   readonly providerMetadata: EmbedResult['providerMetadata'];
   readonly response: EmbedResult['response'];
 
@@ -190,12 +197,14 @@ class DefaultEmbedResult implements EmbedResult {
     value: EmbedResult['value'];
     embedding: EmbedResult['embedding'];
     usage: EmbedResult['usage'];
+    warnings: EmbedResult['warnings'];
     providerMetadata?: EmbedResult['providerMetadata'];
     response?: EmbedResult['response'];
   }) {
     this.value = options.value;
     this.embedding = options.embedding;
     this.usage = options.usage;
+    this.warnings = options.warnings;
     this.providerMetadata = options.providerMetadata;
     this.response = options.response;
   }
