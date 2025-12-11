@@ -158,6 +158,22 @@ describe('zodSchema', () => {
 
         expect(schema.jsonSchema).toMatchSnapshot();
       });
+
+      it('should generate JSON schema for input when transform is used', async () => {
+        const schema = zodSchema(
+          z4.object({
+            user: z4.object({
+              id: z4
+                .string()
+                .transform(val => parseInt(val, 10))
+                .pipe(z4.number()),
+              name: z4.string(),
+            }),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchSnapshot();
+      });
     });
 
     describe('output validation', () => {
