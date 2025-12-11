@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.19
+
+### Patch Changes
+
+- 51bbaa1: feat (provider/gateway): add support for request-scoped byok
+
 ## 2.0.18
 
 ### Patch Changes
