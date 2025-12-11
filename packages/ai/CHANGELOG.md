@@ -1,5 +1,27 @@
 # ai
 
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
+## 6.0.0-beta.143
+
+### Patch Changes
+
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/gateway@2.0.0-beta.75
+
 ## 6.0.0-beta.142
 
 ### Patch Changes

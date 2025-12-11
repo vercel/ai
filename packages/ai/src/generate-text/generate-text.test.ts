@@ -1174,9 +1174,11 @@ describe('generateText', () => {
       let onStepFinishResults: StepResult<any>[];
       let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
+        modelId: string;
         stepNumber: number;
         steps: Array<StepResult<any>>;
         messages: Array<ModelMessage>;
+        experimental_context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -1256,16 +1258,30 @@ describe('generateText', () => {
               },
             }),
           },
+          experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          prepareStep: async ({ model, stepNumber, steps, messages }) => {
-            prepareStepCalls.push({ stepNumber, steps, messages });
+          prepareStep: async ({
+            model,
+            stepNumber,
+            steps,
+            messages,
+            experimental_context,
+          }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps,
+              messages,
+              experimental_context,
+            });
 
             if (stepNumber === 0) {
               expect(steps).toStrictEqual([]);
+
               return {
                 model: trueModel,
                 toolChoice: {
@@ -1279,6 +1295,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { context: 'state2' },
               };
             }
 
@@ -1288,6 +1305,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { context: 'state3' },
               };
             }
           },
@@ -1298,12 +1316,16 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
+              "experimental_context": {
+                "context": "state1",
+              },
               "messages": [
                 {
                   "content": "test-input",
                   "role": "user",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -1472,6 +1494,9 @@ describe('generateText', () => {
               ],
             },
             {
+              "experimental_context": {
+                "context": "state2",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -1507,6 +1532,7 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -3594,6 +3620,27 @@ describe('generateText', () => {
       });
     });
 
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
     it('should send context in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
@@ -5038,29 +5085,6 @@ describe('generateText', () => {
       `);
 
       expect(result.text).toBe('response from without-image-url-support');
-    });
-  });
-
-  describe('prepareStep with experimental_context', () => {
-    it('should pass experimental_context to prepareStep', async () => {
-      let capturedContext: unknown;
-
-      const result = await generateText({
-        model: new MockLanguageModelV3({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          }),
-        }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
-          return undefined;
-        },
-        prompt: 'test',
-      });
-
-      expect(capturedContext).toEqual({ myData: 'test-value' });
     });
   });
 });

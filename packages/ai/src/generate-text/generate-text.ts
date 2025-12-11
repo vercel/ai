@@ -436,6 +436,9 @@ A function that attempts to repair a tool call that failed to parse.
             download,
           });
 
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({
               tools,
