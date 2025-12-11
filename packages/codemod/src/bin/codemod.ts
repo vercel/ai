@@ -3,7 +3,7 @@
 import debug from 'debug';
 import { Command } from 'commander';
 import { transform } from '../lib/transform';
-import { upgrade, upgradeV4, upgradeV5 } from '../lib/upgrade';
+import { upgrade, upgradeV4, upgradeV5, upgradeV6 } from '../lib/upgrade';
 import { TransformOptions } from '../lib/transform-options';
 
 const log = debug('codemod');
@@ -69,6 +69,17 @@ addTransformOptions(
     upgradeV5(options);
   } catch (err: any) {
     error(`Error applying v5 codemods: ${err}`);
+    process.exit(1);
+  }
+});
+
+addTransformOptions(
+  program.command('v6').description('Apply v6 codemods (v5 → v6 migration)'),
+).action((options: TransformOptions) => {
+  try {
+    upgradeV6(options);
+  } catch (err: any) {
+    error(`Error applying v6 codemods: ${err}`);
     process.exit(1);
   }
 });

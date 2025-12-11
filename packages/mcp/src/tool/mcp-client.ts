@@ -4,7 +4,7 @@ import {
   jsonSchema,
   Tool,
   tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -371,7 +371,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolCallOptions;
+    options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -513,7 +513,7 @@ class DefaultMCPClient implements MCPClient {
 
         const execute = async (
           args: any,
-          options: ToolCallOptions,
+          options: ToolExecutionOptions,
         ): Promise<CallToolResult> => {
           options?.abortSignal?.throwIfAborted();
           return self.callTool({ name, args, options });

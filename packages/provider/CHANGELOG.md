@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- 53f3368: feat(provider): support embedding model call warnings in specification
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+
 ## 3.0.0-beta.23
 
 ### Patch Changes

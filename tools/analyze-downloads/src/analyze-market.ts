@@ -21,6 +21,8 @@ async function main() {
     LlamaIndex: ['llamaindex'],
     Instructor: ['@instructor-ai/instructor'],
     TogetherAI: ['together-ai'],
+    'Effect AI': ['@effect/ai'],
+    'TanStack AI': ['@tanstack/ai'],
     xsai: [
       '@xsai/generate-text',
       '@xsai/generate-object',

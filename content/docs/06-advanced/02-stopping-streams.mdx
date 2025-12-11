@@ -17,14 +17,14 @@ You would use this if you want to cancel a stream from the server side to the LL
 forwarding the `abortSignal` from the request.
 
 ```tsx highlight="10,11,12-16"
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     prompt,
     // forward the abort signal:
     abortSignal: req.signal,
@@ -91,9 +91,10 @@ Unlike `onFinish`, which is called when a stream completes normally, `onAbort` i
 
 ```tsx highlight="8-12"
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   prompt: 'Write a long story...',
   abortSignal: controller.signal,
   onAbort: ({ steps }) => {
@@ -148,12 +149,13 @@ import {
   streamText,
   UIMessage,
 } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
     abortSignal: req.signal,
   });

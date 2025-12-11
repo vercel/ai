@@ -6,7 +6,7 @@ This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.j
 
 Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=ai-sdk-example):
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-google-vertex-edge&env=GOOGLE_API_KEY&project-name=ai-sdk-vertex-edge&repository-name=ai-sdk-vertex-edge)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai%2Ftree%2Fmain%2Fexamples%2Fnext-google-vertex-edge&env=GOOGLE_VERTEX_API_KEY&project-name=ai-sdk-vertex-edge&repository-name=ai-sdk-vertex-edge)
 
 ## How to use
 
@@ -20,10 +20,21 @@ To run the example locally you need to:
 
 1. Set up a [Google Cloud Project](https://cloud.google.com/resource-manager/docs/creating-managing-projects)
 2. Enable the [Vertex AI API](https://cloud.google.com/vertex-ai/docs/start/cloud-console)
-3. Create a [service account and download credentials](https://cloud.google.com/docs/authentication/getting-started)
-4. Set the required environment variables as shown in `.env.local.example`
-5. `pnpm install` to install the required dependencies
-6. `pnpm dev` to launch the development server
+3. Choose one of the following authentication methods:
+
+   **Option A: API Key (Express Mode - Recommended for getting started)**
+
+   - Get an API key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Set `GOOGLE_VERTEX_API_KEY` in your environment
+
+   **Option B: Service Account (OAuth)**
+
+   - Create a [service account and download credentials](https://cloud.google.com/docs/authentication/getting-started)
+   - Set `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, and optionally `GOOGLE_PRIVATE_KEY_ID`
+   - Set `GOOGLE_VERTEX_PROJECT` and `GOOGLE_VERTEX_LOCATION`
+
+4. `pnpm install` to install the required dependencies
+5. `pnpm dev` to launch the development server
 
 ## Learn More
 

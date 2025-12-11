@@ -1,5 +1,119 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [49e2b6a]
+  - @ai-sdk/google@3.0.0-beta.71
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/anthropic@3.0.0-beta.82
+  - @ai-sdk/google@3.0.0-beta.70
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/anthropic@3.0.0-beta.81
+  - @ai-sdk/google@3.0.0-beta.69
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [05d5b9a]
+  - @ai-sdk/anthropic@3.0.0-beta.80
+
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 024e778: feat(provider/vertext): add express mode support
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/anthropic@3.0.0-beta.79
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/google@3.0.0-beta.68
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 4.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [9e1e758]
+  - @ai-sdk/anthropic@3.0.0-beta.78
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+- Updated dependencies [4d2e88e]
+  - @ai-sdk/google@3.0.0-beta.67
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [b2dbfbf]
+  - @ai-sdk/anthropic@3.0.0-beta.77
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/anthropic@3.0.0-beta.76
+  - @ai-sdk/google@3.0.0-beta.66
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [0ae783e]
+  - @ai-sdk/anthropic@3.0.0-beta.75
+
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/anthropic@3.0.0-beta.74
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/google@3.0.0-beta.65
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/anthropic@3.0.0-beta.73
+  - @ai-sdk/google@3.0.0-beta.64
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [a5f77a6]
+  - @ai-sdk/anthropic@3.0.0-beta.72
+
 ## 4.0.0-beta.97
 
 ### Patch Changes

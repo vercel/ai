@@ -1,5 +1,128 @@
 # ai
 
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
+## 6.0.0-beta.143
+
+### Patch Changes
+
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/gateway@2.0.0-beta.75
+
+## 6.0.0-beta.142
+
+### Patch Changes
+
+- 7169511: feat(agent): support context in onFinish callback
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+
+## 6.0.0-beta.141
+
+### Patch Changes
+
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+
+## 6.0.0-beta.140
+
+### Patch Changes
+
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+
+## 6.0.0-beta.139
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/gateway@2.0.0-beta.74
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 6.0.0-beta.138
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/gateway@2.0.0-beta.73
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 6.0.0-beta.137
+
+### Patch Changes
+
+- 9ba4324: feat(ai): support SystemModelMessage[] in system and instructions properties
+
+## 6.0.0-beta.136
+
+### Patch Changes
+
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+
+## 6.0.0-beta.135
+
+### Patch Changes
+
+- afe7093: feat: add middleware for tool input examples
+
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
+## 6.0.0-beta.133
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/gateway@2.0.0-beta.72
+
+## 6.0.0-beta.132
+
+### Patch Changes
+
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+
+## 6.0.0-beta.131
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/gateway@2.0.0-beta.71
+
 ## 6.0.0-beta.130
 
 ### Patch Changes

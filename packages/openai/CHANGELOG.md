@@ -1,5 +1,81 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 92c6241: feat(openai): additional settings for file search tool
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- 0153bfa: fix(openai): fix parameter exclusion logic
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- 78f813e: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
 ## 3.0.0-beta.81
 
 ### Patch Changes

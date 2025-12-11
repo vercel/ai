@@ -1,5 +1,45 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- e9e157f: fix: generate zod4 json schema from input schema
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 81e29ab: chore: update docs
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
 ## 4.0.0-beta.41
 
 ### Patch Changes
