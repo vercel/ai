@@ -83,7 +83,7 @@ export class BedrockImageModel implements ImageModelV3 {
 
     if (hasFiles) {
       // Check if mask is actually provided (has valid data, not just an empty object)
-      const hasMask = mask != null && mask.data != null;
+      const hasMask = mask?.type != null;
       const hasMaskPrompt = providerOptions?.bedrock?.maskPrompt != null;
 
       // Determine task type from provider options, or infer from mask presence

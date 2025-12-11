@@ -493,7 +493,6 @@ describe('Image Editing', () => {
           {
             type: 'url',
             url: 'https://example.com/image.png',
-            mediaType: 'image/png',
           },
         ],
         mask: undefined,
