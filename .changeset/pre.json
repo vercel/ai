@@ -73,9 +73,11 @@
     "@ai-sdk/test-server": "0.0.0",
     "@ai-sdk/huggingface": "0.0.1",
     "@ai-sdk/mcp": "0.0.0",
-    "@ai-sdk/black-forest-labs": "0.0.0"
+    "@ai-sdk/black-forest-labs": "0.0.0",
+    "@ai-sdk/devtools": "0.0.0"
   },
   "changesets": [
+    "angry-ants-mix",
     "angry-cobras-care",
     "angry-hats-cry",
     "angry-lamps-repair",
