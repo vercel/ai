@@ -47,7 +47,7 @@ export async function convertToOpenAIResponsesInput({
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
-  providerKey:string;
+  providerKey: string;
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
@@ -258,7 +258,7 @@ export async function convertToOpenAIResponsesInput({
 
             case 'reasoning': {
               const providerOptions = await parseProviderOptions({
-                provider: 'openai',
+                provider: providerKey,
                 providerOptions: part.providerOptions,
                 schema: openaiResponsesReasoningProviderOptionsSchema,
               });
