@@ -733,6 +733,32 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      it('should send xhigh reasoningEffort for codex-max model', async () => {
+        const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'xhigh',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.1-codex-max',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'xhigh',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it.each(nonReasoningModelIds)(
         'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
         async modelId => {
