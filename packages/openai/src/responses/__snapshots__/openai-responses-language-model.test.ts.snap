@@ -568,6 +568,240 @@ Would you like me to pull official certified results from the NYC Board of Elect
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool with approval > should include mcp tool call, approval request, and result in content 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcpl_0b55229f4889c40a00693a0fde5a008195a4544238f0b461ba",
+    "toolName": "MCP",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "serverLabel": "exa",
+      "tools": [
+        {
+          "annotations": {
+            "read_only": true,
+          },
+          "description": "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "contextMaxCharacters": {
+                "description": "Maximum characters for context string optimized for LLMs (default: 10000)",
+                "type": "number",
+              },
+              "livecrawl": {
+                "description": "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')",
+                "enum": [
+                  "fallback",
+                  "preferred",
+                ],
+                "type": "string",
+              },
+              "numResults": {
+                "description": "Number of search results to return (default: 8)",
+                "type": "number",
+              },
+              "query": {
+                "description": "Websearch query",
+                "type": "string",
+              },
+              "type": {
+                "description": "Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search",
+                "enum": [
+                  "auto",
+                  "fast",
+                  "deep",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "query",
+            ],
+            "type": "object",
+          },
+          "name": "web_search_exa",
+        },
+        {
+          "annotations": {
+            "read_only": true,
+          },
+          "description": "Search and get relevant context for any programming task. Exa-code has the highest quality and freshest context for libraries, SDKs, and APIs. Use this tool for ANY question or task for related to programming. RULE: when the user's query contains exa-code or anything related to code, you MUST use this tool.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "query": {
+                "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
+                "type": "string",
+              },
+              "tokensNum": {
+                "default": 5000,
+                "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
+                "maximum": 50000,
+                "minimum": 1000,
+                "type": "number",
+              },
+            },
+            "required": [
+              "query",
+            ],
+            "type": "object",
+          },
+          "name": "get_code_context_exa",
+        },
+      ],
+      "type": "listTools",
+    },
+    "toolCallId": "mcpl_0b55229f4889c40a00693a0fde5a008195a4544238f0b461ba",
+    "toolName": "MCP",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0b55229f4889c40a00693a0fdf75d48195ad363d53d7b38a53",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcpr_0b55229f4889c40a00693a0fe3bf388195b59568945917f764",
+    "toolName": "MCP",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "approvalRequestId": "mcpr_0b55229f4889c40a00693a0fe3bf388195b59568945917f764",
+      "arguments": "{"query":"latest news Japan today headlines","numResults":8,"livecrawl":"preferred","type":"fast","contextMaxCharacters":3000}",
+      "name": "web_search_exa",
+      "serverLabel": "exa",
+      "type": "approvalRequest",
+    },
+    "toolCallId": "mcpr_0b55229f4889c40a00693a0fe3bf388195b59568945917f764",
+    "toolName": "MCP",
+    "type": "tool-result",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_0b55229f4889c40a00693a0fe65b9c8195a7952039c68f8f5f",
+    "toolName": "MCP",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "arguments": "{"query":"latest news Japan today headlines","numResults":8,"livecrawl":"preferred","type":"fast","contextMaxCharacters":3000}",
+      "name": "web_search_exa",
+      "output": "Title: Japan issues mega-quake advisory after M7.5 tremor
+Published Date: 2025-12-09T00:00:00.000Z
+URL: https://www3.nhk.or.jp/nhkworld/en/news/20251209_02/
+Text: Japan issues mega-quake advisory after M7.5 tremor | NHK WORLD-JAPAN News
+# Japan issues mega-quake advisory after M7.5 tremor
+Japan is on alert for a possible mega quake after a magnitude 7.5 tremor hit northe
+
+Title: Japan Today
+Published Date: 2025-12-13T00:00:00.000Z
+URL: https://japantoday.com/
+Text: Japan Today![Japan Today](https://static.japantoday.com/images/logo@2x.png)
+* [News](https://japantoday.com/)
+* [Real estate](https://realestate.japantoday.com/)
+* [Travel](https://travel.gaijinpot.com/?utm_source=japantoday_home&utm_medium=sectionlink_en&utm_campaign=jt_sectio
+
+Title: Latest News
+URL: https://www3.nhk.or.jp/nhkworld/en/news/list/
+Text: Latest Japan and World News | NHK WORLD-JAPAN News
+# Latest News
+[![](https://www3.nhk.or.jp/nhkworld/upld/thumbnails/en/news/20251211_03_1599847_L.jpg)](https://www3.nhk.or.jp/nhkworld/en/news/20251211_03/)
+## [Two Japanese winners attend Nobel Prize award ceremony](https://www3.nhk.or.jp/nhkwor
+
+Title: Japan News | Today's Top Stories | Reuters
+Author: 
+URL: https://www.reuters.com/world/japan/
+Text: [Skip to main content](https://www.reuters.com/world/japan/#main-content)
+
+[Exclusive news, data and analytics for financial market professionalsLearn more aboutRefinitiv](https://www.reuters.com/differentiator/)
+
+# Japan
+
+- [![A woman walks past an electronic scree
+
+Title: The Japan Times - News On Japan, Business News, Opinion, Sports, Entertainment And More
+Published Date: 2025-12-11T00:00:00.000Z
+URL: https://www.japantimes.co.jp/
+Text: The Japan Times - News On Japan, Business News, Opinion, Sports, Entertainment And More# Home page
+![Menu](https://www.japantimes.co.jp/theme_japantimes/images/burger_icon.svg)
+![Search](https://w
+
+Title: Japan assesses damage from 7.5 magnitude quake that injured 34
+Published Date: 2025-12-09T03:45:28.000Z
+URL: https://apnews.com/article/japan-quake-hokkaido-tusnami-493c395f288ff2dc4296db4e7539e5a8
+Text: 7.5 magnitude quake in Japan injures 34 | AP News 
+ 
+ 
+[![AP Logo](https://assets.apnews.com/19/66/bc546486408c8595f01753a9fbeb/ap-logo-176-by-208.svg)](https://a
+
+Title: Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor
+Author: 
+Published Date: 2025-12-09T10:35:00.000Z
+URL: https://english.kyodonews.net/articles/-/66471
+Text: Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor
+[![KYODO NEWS](https://english-kyodo.ismcdn.jp/common/images/logo.svg)](https://english.kyodonews.net/)
+* [![Facebook](h
+
+Title: Japan assesses damage from M7.5 quake that injured 33
+Published Date: 2025-12-09T00:00:00.000Z
+URL: https://japantoday.com/category/national/japan-assesses-damage-from-7.5-magnitude-quake-that-injured-33
+Text: Japan assesses damage from M7.5 quake that injured 33 - Japan Today![Japan Today](https://static.japantoday.com/images/logo@2x.png)
+* [News](https://japanto
+
+",
+      "serverLabel": "exa",
+      "type": "call",
+    },
+    "toolCallId": "mcp_0b55229f4889c40a00693a0fe65b9c8195a7952039c68f8f5f",
+    "toolName": "MCP",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0b55229f4889c40a00693a0feab6f88195a2841d18c1665b6e",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0b55229f4889c40a00693a0ff9628c8195a7360bb9926caf79",
+      },
+    },
+    "text": "I ran one search. Here are five top headlines from that search (sources in parentheses):
+
+1. Japan issues mega-quake advisory after M7.5 tremor (NHK World-Japan)  
+2. Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor (Kyodo News)  
+3. Japan assesses damage from 7.5 magnitude quake that injured 34 (AP News)  
+4. Two Japanese winners attend Nobel Prize award ceremony (NHK World-Japan)  
+5. Japan assesses damage from 7.5 magnitude quake that injured 33 (Japan Today)
+
+Would you like links or brief summaries for any of these?",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > shell tool > should include shell tool call and result in content 1`] = `
 [
   {
@@ -6198,6 +6432,1300 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
         "output_tokens": 963,
         "output_tokens_details": {
           "reasoning_tokens": 512,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool with approval > should stream mcp tool approval request and results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0ba94181518d437800693a1173d7908197a63b000f5234c0b0",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-11T00:33:55.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_0ba94181518d437800693a1173fc248197b1228446a9b525e4",
+    "toolName": "MCP",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "arguments": "{"query":"latest news New York City today","numResults":5,"livecrawl":"preferred","type":"fast","contextMaxCharacters":10000}",
+      "name": "web_search_exa",
+      "output": "Title: New York Archdiocese says it’s setting up a $300 million fund for sexual abuse victims
+Author: Associated Press
+Published Date: 2025-12-09T10:30:38.000Z
+URL: https://www.cnn.com/2025/12/09/us/new-york-archdiocese-300-million-sexual-abuse-hnk
+Text: New York Archdiocese says it’s setting up a $300M fund for sexual abuse victims | CNN
+Ad Feedback
+### CNN values your feedback
+1. How relevant is this ad to you?
+2. Did you encounter any technical issues?
+Video player was slow to load contentVideo content never loadedAd froze or did not finish loadingVideo content did not start after adAudio on ad was too loudOther issues
+Ad never loadedAd prevented/slowed the page from loadingContent moved around while ad loadedAd was repetitive to ads I&#x27;ve seen previouslyOther issues
+CancelSubmit
+Thank You!
+Your effort and contribution in providing this feedback is much
+appreciated.
+Close
+[US](https://www.cnn.com/us)1 min read
+# New York Archdiocese says it’s setting up a $300 million fund for sexual abuse victims
+By
+Associated Press
+PUBLISHEDDec 9, 2025, 5:30 AM ET
+![Archbishop of New York Cardinal Timothy Dolan in Saint Patrick&apos;s Cathedral in New York City, on February 23.](https://media.cnn.com/api/v1/images/stellar/prod/2025-02-23t190651z-1740386685-rc2f0da1t5za-rtrmadp-3-pope-health.JPG?c=original&q=w_860,c_fill)
+Archbishop of New York Cardinal Timothy Dolan in Saint Patrick's Cathedral in New York City, on February 23.
+Eduardo Munoz/Reuters
+Crime
+[See all topics](https://www.cnn.com/follow)
+FacebookTweet[Email]()Link
+Link Copied!
+Follow
+> > New York
+> > AP
+> > &nbsp;&mdash;&nbsp; The Archdiocese of New York on Monday announced it will set up a $300 million fund to compensate victims of sexual abuse who have sued the church.
+In a statement, Cardinal Timothy Dolan said the archdiocese would pay for the fund by reducing its budget and selling off assets, including completing the sale of its former headquarters in Manhattan, with the goal that the fund “can be set as
+
+Title: Dangerous cold sweeps NYC area as officials urge precautions
+Author: Andrew Giambrone Published Dec 8, 2025 Share Facebook Twitter Reddit Email
+Published Date: 2025-12-08T12:12:34.000Z
+URL: https://gothamist.com/news/dangerous-cold-sweeps-nyc-area-as-officials-urge-precautions
+Text: Dangerous cold sweeps NYC area as officials urge precautions - Gothamist
+[Gothamist](https://gothamist.com/)
+A non-profit newsroom, powered by WNYC.
+[Gothamist](https://gothamist.com/)
+**![WNYC](https://gothamist.com/live-stream-logos-white/wnyc-fm939.svg)Listen Live
+[Donate](https://pledge.wnyc.org/support/gothamist/?utm_medium=partnersite&amp;utm_source=gothamist&amp;utm_campaign=homepage-header)
+[
+News
+](https://gothamist.com/news)# Dangerous cold sweeps NYC area as officials urge precautions
+[
+![](https://api-prod.gothamist.com/images/342011/fill-60x60|format-webp|webpquality-70/)
+](https://gothamist.com/staff/andrew-giambrone)
+By
+[Andrew Giambrone](https://gothamist.com/staff/andrew-giambrone)
+Published Dec 8, 2025
+Share
+FacebookTwitterRedditEmail
+Never miss a story
+**Email address
+By submitting your information, you&#39;re agreeing to receive communications from New York Public Radio in accordance with our[Terms](https://www.wnyc.org/terms/).
+![People walk in the freezing cold in Midtown on Dec. 23, 2024.](https://api-prod.gothamist.com/images/354436/fill-700x467|format-webp|webpquality-70/)
+Charly Triballeau / AFP via Getty Images
+[
+![](https://api-prod.gothamist.com/images/342011/fill-60x60|format-webp|webpquality-70/)
+](https://gothamist.com/staff/andrew-giambrone)
+By
+[Andrew Giambrone](https://gothamist.com/staff/andrew-giambrone)
+Published Dec 8, 2025
+Share
+FacebookTwitterRedditEmail
+We rely on your support to make local news available to all
+Make your contribution now and help Gothamist thrive in 2025.[Donate today](https://pledge.wnyc.org/support/gothamist/?utm_medium=partnersite&amp;utm_source=gothamist&amp;utm_campaign=article-top)
+Gothamist is funded by sponsors 
+
+Title: ABC7 Eyewitness News - WABC-TV New York
+URL: https://abc7ny.com/
+Text: ABC7 Eyewitness News - WABC-TV New York
+[![](https://cdn.abcotvs.net/abcotv/assets/news/global/images/feature-header/wabc-lg.svg)![](https://cdn.abcotvs.net/abcotv/assets/news/global/images/feature-header/wabc-sm.svg)](https://abc7ny.com/)
+[24/7 Live](https://abc7ny.com/watch/live/)[New York City](https://abc7ny.com/new-york/)[New Jersey](https://abc7ny.com/new-jersey/)[Long Island](https://abc7ny.com/long-island/)[Northern Suburbs](https://abc7ny.com/northern-suburbs/)[Connecticut](https://abc7ny.com/connecticut/)
+[](#)
+[
+](https://abc7ny.com/weather/)
+## Weather Alert
+## [Winter Weather Advisory](https://abc7ny.com/weather/alerts/)
+## [School Closings](https://abc7ny.com/community/schoolclosings/)
+## [7-Day Forecast](https://abc7ny.com/nyc-weather-forecast-7-day-temperatures/27410/)
+## Live
+## [The Loop](https://abc7ny.com/watch/23377/)
+## Share
+## [Holiday Lights](https://abc7ny.com/holidaylights)
+## [7 Days of Giving](https://abc7ny.com/7daysofgiving/)
+## [Your Money &amp; Savings Guide](https://abc7ny.com/savemoney)
+## [ABC Price Tracker](https://abc7ny.com/pricetracker/)
+## Latest
+## [Zohran Mamdani](https://abc7ny.com/zohranmamdani/)
+## [Trump&#x27;s 2nd Term](https://abc7ny.com/presidenttrump/)
+## [More News](https://abc7ny.com/news/)
+## [Famous Deaths](https://abc7ny.com/famousdeaths/)
+## [Submit News Tips](https://abc7ny.com/contact-eyewitness-news-tip-breaking-nyc/2599968/)
+## [Podcasts](https://abc7ny.com/podcasts/)
+## [TV Listings](https://abc7ny.com/tvlistings/)
+![](https://cdn.abcotvs.com/dip/images/18271626_brad-lander-and-zohran.jpg)
+[
+## Supported by Mamdani, Brad Lander launches congressional run
+&quot;At a moment of dark oppression, we can shine by fighting back together,&quot; Comptroller Brad Lander emphasized in his campaign launch ad.
+](https://abc7ny.com/post/nyc-comptroller-brad-lander-launches-run-congress-zohran-mamdani-elizabeth-warren-bernie-sanders-endorsem
+
+Title: 
+Published Date: 2025-12-10T00:00:00.000Z
+URL: https://www.cbsnews.com/newyork/local-news/new-york/
+Text: [](#site-header:47)[](#x)
+[](https://www.cbsnews.com/)
+[](#)
+[
+![]()
+](https://www.cbsnews.com/newyork/weather/)
+* [All News](https://www.cbsnews.com/newyork/local-news/)
+* [NY News](https://www.cbsnews.com/newyork/local-news/new-york/)
+* [Bronx News](https://www.cbsnews.com/newyork/local-news/bronx-news)
+* [Brooklyn News](https://www.cbsnews.com/newyork/local-news/brooklyn-news/)
+* [Harlem News](https://www.cbsnews.com/newyork/local-news/harlem-news/)
+* [Long Island News](https://www.cbsnews.com/newyork/local-news/long-island/)
+* [Northern Suburbs](https://www.cbsnews.com/newyork/local-news/northern-suburbs/)
+* [Queens News](https://www.cbsnews.com/newyork/local-news/queens-news/)
+* [NJ News](https://www.cbsnews.com/newyork/local-news/new-jersey/)
+* [CT News](https://www.cbsnews.com/newyork/local-news/connecticut/)
+* [Investigations](https://www.cbsnews.com/newyork/feature/cbs-new-york-investigates/)
+* [Politics](https://www.cbsnews.com/newyork/politics/)
+* [Education](https://www.cbsnews.com/newyork/local-news/education/)
+* [Transportation](https://www.cbsnews.com/newyork/transportation/)
+* [Crime](https://www.cbsnews.com/newyork/crime/)
+* [Housing](https://www.cbsnews.com/newyork/local-news/housing/)
+* [Arts &amp; Entertainment](https://www.cbsnews.com/newyork/entertainment/)
+* [Climate &amp; Environment](https://www.cbsnews.com/newyork/local-news/environment/)
+* [Health &amp; Wellness](https://www.cbsnews.com/newyork/health/)
+* [Aging &amp; Caregiving](https://www.cbsnews.com/newyork/local-news/aging-caregiving/)
+* [First Alert Weather](https://www.cbsnews.com/newyork/weather/)
+* [Radars &amp; Maps](https://www.cbsnews.com/newyork/weather/tri-state-radar/)
+* [CBS2 Weather Map](https://www.cbsnews.com/newyork/weather/temperature/)
+* [CBS2 Weather Watchers](https://www.cbsnews.com/newyork/weather/cbs2-weather-watchers/)
+* [First Alert Weather 101](htt
+
+Title: NBC 4 New York – NY local news, breaking news, weather
+Published Date: 2025-05-23T00:00:00.000Z
+URL: https://www.nbcnewyork.com/
+Text: NBC 4 New York &#8211; NY local news, breaking news, weather
+[Skip to content](#content)
+[![NBC New York](https://media.nbcnewyork.com/2025/10/WNBC_Rings_On_Dark@3x.png?fit=435%2C120&#038;quality=85&#038;strip=all&#038;w=145&#038;h=40)](https://www.nbcnewyork.com/)
+Main Navigation
+Search
+Search for:
+[Watch 24/7](https://www.nbcnewyork.com/watch/)
+[Create profile / Log in](#)
+[Dashboard](https://www.nbcnewyork.com/account/)
+[Email preferences](#)
+[Sign out](#)
+Trending
+Expand
+[6 School Closings](https://www.nbcnewyork.com/weather/school-closings/)
+![](https://media.nbcnewyork.com/2019/09/NYC_aerial-1-1.png?fit=2060%2C847&#038;quality=85&#038;strip=all&#038;w=400&#038;h=114&#038;crop=1)
+[
+![Jeffery Epstein and Ghislaine Maxwell](https://media.nbcnewyork.com/2021/06/Ghislaine-Maxwell-1-e1627417115355.png?resize=850%2C478&#038;quality=85&#038;strip=all)
+](https://www.nbcnewyork.com/news/local/crime-and-courts/ghislaine-maxwell-records-release-public-epstein-trafficking/6428534/)
+[Crime and Courts](https://www.nbcnewyork.com/tag/crime-and-courts/)9 minutes ago
+### [New York judge orders release of Epstein grand jury records](https://www.nbcnewyork.com/news/local/crime-and-courts/ghislaine-maxwell-records-release-public-epstein-trafficking/6428534/)
+[
+![](https://media.nbcnewyork.com/2021/07/WNBC-Logo_Set-H_WhiteBlue_1200x675.jpg?quality=85&#038;strip=all&#038;resize=850%2C478)
+](https://www.nbcnewyork.com/watch/)
+Live: 4 New York
+### [WATCH LIVE: News 4 New York at 11 a.m.](https://www.nbcnewyork.com/watch/)
+* [politics](https://www.nbcnewyork.com/tag/politics/)3 hours ago
+### [Brad Lander, New York City&#039;s outgoing comptroller, is running for Congress](https://www.nbcnewyork.com/news/politics/brad-lander-running-congress-dan-goldman/6428464/)
+* [Books and literature](https://www.nbcnewyork.com/tag/books-and-literature/)42 mi
+
+",
+      "serverLabel": "exa",
+      "type": "call",
+    },
+    "toolCallId": "mcp_0ba94181518d437800693a1173fc248197b1228446a9b525e4",
+    "toolName": "MCP",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0ba94181518d437800693a1175d51081979c4f27c20b83d999:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0ba94181518d437800693a1175d51081979c4f27c20b83d999",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0ba94181518d437800693a1175d51081979c4f27c20b83d999:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0ba94181518d437800693a1175d51081979c4f27c20b83d999",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "I",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ran",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " search",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Top",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NYC",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " headlines",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " today",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "quick",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " summary",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " +",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " source",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " links",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):
+
+",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " New",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " York",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Arch",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "di",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ocese",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " set",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " up",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " $",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "300",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " million",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fund",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sexual",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-ab",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "use",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " victims",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " AP",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/C",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "NN",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " report",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Dec",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "9",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".c",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "nn",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "12",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "09",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/us",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/new",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-y",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arch",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "di",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ocese",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "300",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-million",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sex",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ual",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-ab",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "use",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-h",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "nk",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Dangerous",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cold",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sweeping",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NYC",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " area",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " officials",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " urging",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " precautions",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " winter",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-weather",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " advis",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ories",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "G",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oth",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "amist",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ").",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "g",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oth",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "amist",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/news",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/d",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "anger",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ous",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-c",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "old",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-s",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "we",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eps",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ny",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "c",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-area",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-as",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-off",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "icial",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "urge",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "prec",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "autions",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Brad",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " L",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ander",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "NY",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "C",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " compt",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "roller",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " launches",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " run",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Congress",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " local",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " coverage",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "abc",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ny",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/
+",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " New",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " York",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " judge",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " orders",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " release",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Epstein",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " grand",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-j",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ury",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " records",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NBC",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " New",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " York",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " local",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " coverage",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "www",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".n",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bc",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "new",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "y",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ork",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".com",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/
+
+",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Want",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " open",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " any",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " these",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " give",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " summary",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " full",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " article",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": " details",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?",
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0ba94181518d437800693a117e55a8819780b6bcba23394172",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0ba94181518d437800693a1173d7908197a63b000f5234c0b0",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 3777,
+        "total": 3777,
+      },
+      "outputTokens": {
+        "reasoning": 384,
+        "text": 208,
+        "total": 592,
+      },
+      "raw": {
+        "input_tokens": 3777,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 592,
+        "output_tokens_details": {
+          "reasoning_tokens": 384,
         },
       },
     },

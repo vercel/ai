@@ -2225,4 +2225,227 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('mcp approval', () => {
+    it('should convert MCP approval requests in assistant messages to item references with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcpr_123',
+                toolName: 'mcp',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcpr_123',
+                toolName: 'mcp',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'approvalRequest',
+                    serverLabel: 'exa',
+                    name: 'web_search_exa',
+                    arguments: '{"query":"test"}',
+                    approvalRequestId: 'mcpr_123',
+                  },
+                },
+              },
+            ],
+            providerOptions: {
+              internal: {
+                toolApprovalRequests: [
+                  {
+                    approvalId: 'mcpr_123',
+                    toolCallId: 'mcpr_123',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcpr_123",
+            "type": "item_reference",
+          },
+          {
+            "id": "mcpr_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should not add item references for MCP approval requests with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'mcpr_123',
+                toolName: 'mcp',
+                input: {},
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'mcpr_123',
+                toolName: 'mcp',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'approvalRequest',
+                    serverLabel: 'exa',
+                    name: 'web_search_exa',
+                    arguments: '{"query":"test"}',
+                    approvalRequestId: 'mcpr_123',
+                  },
+                },
+              },
+            ],
+            providerOptions: {
+              internal: {
+                toolApprovalRequests: [
+                  {
+                    approvalId: 'mcpr_123',
+                    toolCallId: 'mcpr_123',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        systemMessageMode: 'system',
+        store: false,
+      });
+
+      // With store: false, item references are not added
+      expect(result.input).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should convert MCP approval responses in tool messages to mcp_approval_response', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [],
+            providerOptions: {
+              internal: {
+                toolApprovalResponses: [
+                  {
+                    approvalId: 'mcpr_123',
+                    approved: true,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcpr_123",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert denied MCP approval responses in tool messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [],
+            providerOptions: {
+              internal: {
+                toolApprovalResponses: [
+                  {
+                    approvalId: 'mcpr_456',
+                    approved: false,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcpr_456",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert multiple MCP approval responses in a single tool message', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [],
+            providerOptions: {
+              internal: {
+                toolApprovalResponses: [
+                  {
+                    approvalId: 'mcpr_123',
+                    approved: true,
+                  },
+                  {
+                    approvalId: 'mcpr_456',
+                    approved: false,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcpr_123",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "approval_request_id": "mcpr_456",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+  });
 });
