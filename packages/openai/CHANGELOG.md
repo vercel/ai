@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.83
+
+### Patch Changes
+
+- edc807f: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+
 ## 2.0.82
 
 ### Patch Changes
