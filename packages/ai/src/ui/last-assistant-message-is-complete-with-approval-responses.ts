@@ -30,11 +30,7 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
     .filter(isToolOrDynamicToolUIPart)
-    .filter(
-      part =>
-        !part.providerExecuted ||
-        part.approval != null,
-    );
+    .filter(part => !part.providerExecuted || part.approval != null);
 
   return (
     // has at least one tool approval response

@@ -743,9 +743,8 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      expect(
-        await convertReadableStreamToArray(transformedStream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(transformedStream))
+        .toMatchInlineSnapshot(`
         [
           {
             "dynamic": true,
