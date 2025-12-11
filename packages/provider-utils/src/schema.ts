@@ -1,8 +1,16 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+<<<<<<< HEAD
 import { Validator, validatorSymbol, type ValidationResult } from './validator';
 import { zodSchema } from './zod-schema';
+=======
+import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
+import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
+import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
+import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
+import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
+>>>>>>> e9e157f3d (fix: generate zod4 json schema from input schema (#11078))
 
 /**
  * Used to mark schemas so we can support both Zod and custom schemas.
@@ -118,7 +126,174 @@ export function asSchema<OBJECT>(
       })
     : isSchema(schema)
       ? schema
+<<<<<<< HEAD
       : typeof schema === 'function'
         ? schema()
         : zodSchema(schema);
+=======
+      : '~standard' in schema
+        ? standardSchema(schema)
+        : schema();
+}
+
+export function standardSchema<OBJECT>(
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
+): Schema<OBJECT> {
+  const vendor = standardSchema['~standard'].vendor;
+
+  switch (vendor) {
+    case 'zod': {
+      return zodSchema(
+        standardSchema as
+          | z4.core.$ZodType<any, any>
+          | z3.Schema<any, z3.ZodTypeDef, any>,
+      );
+    }
+
+    case 'arktype': {
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        arktypeToJsonSchema,
+      );
+    }
+
+    case 'effect': {
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        effectToJsonSchema,
+      );
+    }
+
+    case 'valibot': {
+      return standardSchemaWithJsonSchemaResolver(
+        standardSchema,
+        valibotToJsonSchema,
+      );
+    }
+
+    default: {
+      return standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
+        throw new Error(`Unsupported standard schema vendor: ${vendor}`);
+      });
+    }
+  }
+}
+
+function standardSchemaWithJsonSchemaResolver<OBJECT>(
+  standardSchema: StandardSchemaV1<unknown, OBJECT>,
+  jsonSchemaResolver: (
+    schema: StandardSchemaV1<unknown, OBJECT>,
+  ) => () => JSONSchema7 | PromiseLike<JSONSchema7>,
+): Schema<OBJECT> {
+  return jsonSchema(jsonSchemaResolver(standardSchema), {
+    validate: async value => {
+      const result = await standardSchema['~standard'].validate(value);
+      return 'value' in result
+        ? { success: true, value: result.value }
+        : {
+            success: false,
+            error: new TypeValidationError({
+              value,
+              cause: result.issues,
+            }),
+          };
+    },
+  });
+}
+
+export function zod3Schema<OBJECT>(
+  zodSchema: z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  options?: {
+    /**
+     * Enables support for references in the schema.
+     * This is required for recursive schemas, e.g. with `z.lazy`.
+     * However, not all language models and providers support such references.
+     * Defaults to `false`.
+     */
+    useReferences?: boolean;
+  },
+): Schema<OBJECT> {
+  // default to no references (to support openapi conversion for google)
+  const useReferences = options?.useReferences ?? false;
+
+  return jsonSchema(
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
+    () =>
+      zod3ToJsonSchema(zodSchema, {
+        $refStrategy: useReferences ? 'root' : 'none',
+      }) as JSONSchema7,
+    {
+      validate: async value => {
+        const result = await zodSchema.safeParseAsync(value);
+        return result.success
+          ? { success: true, value: result.data }
+          : { success: false, error: result.error };
+      },
+    },
+  );
+}
+
+export function zod4Schema<OBJECT>(
+  zodSchema: z4.core.$ZodType<OBJECT, any>,
+  options?: {
+    /**
+     * Enables support for references in the schema.
+     * This is required for recursive schemas, e.g. with `z.lazy`.
+     * However, not all language models and providers support such references.
+     * Defaults to `false`.
+     */
+    useReferences?: boolean;
+  },
+): Schema<OBJECT> {
+  // default to no references (to support openapi conversion for google)
+  const useReferences = options?.useReferences ?? false;
+
+  return jsonSchema(
+    // defer json schema creation to avoid unnecessary computation when only validation is needed
+    () =>
+      addAdditionalPropertiesToJsonSchema(
+        z4.toJSONSchema(zodSchema, {
+          target: 'draft-7',
+          io: 'input',
+          reused: useReferences ? 'ref' : 'inline',
+        }) as JSONSchema7,
+      ),
+    {
+      validate: async value => {
+        const result = await z4.safeParseAsync(zodSchema, value);
+        return result.success
+          ? { success: true, value: result.data }
+          : { success: false, error: result.error };
+      },
+    },
+  );
+}
+
+export function isZod4Schema(
+  zodSchema: z4.core.$ZodType<any, any> | z3.Schema<any, z3.ZodTypeDef, any>,
+): zodSchema is z4.core.$ZodType<any, any> {
+  // https://zod.dev/library-authors?id=how-to-support-zod-3-and-zod-4-simultaneously
+  return '_zod' in zodSchema;
+}
+
+export function zodSchema<OBJECT>(
+  zodSchema:
+    | z4.core.$ZodType<OBJECT, any>
+    | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
+  options?: {
+    /**
+     * Enables support for references in the schema.
+     * This is required for recursive schemas, e.g. with `z.lazy`.
+     * However, not all language models and providers support such references.
+     * Defaults to `false`.
+     */
+    useReferences?: boolean;
+  },
+): Schema<OBJECT> {
+  if (isZod4Schema(zodSchema)) {
+    return zod4Schema(zodSchema, options);
+  } else {
+    return zod3Schema(zodSchema, options);
+  }
+>>>>>>> e9e157f3d (fix: generate zod4 json schema from input schema (#11078))
 }
