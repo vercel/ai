@@ -1,5 +1,11 @@
 # @ai-sdk/vue
 
+## 3.0.0-beta.148
+
+### Patch Changes
+
+- ai@6.0.0-beta.148
+
 ## 3.0.0-beta.147
 
 ### Patch Changes
