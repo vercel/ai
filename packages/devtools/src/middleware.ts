@@ -371,6 +371,8 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
           ...rest,
         };
       } catch (error) {
+        activeSteps.delete(stepId);
+
         const durationMs = Date.now() - startTime;
         await updateStepResult(stepId, {
           duration_ms: durationMs,
