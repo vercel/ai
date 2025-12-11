@@ -43,6 +43,9 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.1-codex-mini',
   'gpt-5.1-codex',
   'gpt-5.1-codex-max',
+  'gpt-5.2',
+  'gpt-5.2-chat-latest',
+  'gpt-5.2-pro',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -108,6 +111,9 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.1-codex-mini'
   | 'gpt-5.1-codex'
   | 'gpt-5.1-codex-max'
+  | 'gpt-5.2'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
