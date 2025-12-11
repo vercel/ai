@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.19
+
+### Patch Changes
+
+- ef6d784: fix: generate zod4 json schema from input schema
+
 ## 3.0.18
 
 ### Patch Changes
