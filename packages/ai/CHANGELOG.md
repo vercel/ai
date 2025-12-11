@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
 ## 6.0.0-beta.146
 
 ### Patch Changes
