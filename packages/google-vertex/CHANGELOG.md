@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+- Updated dependencies [ee8cd23]
+  - @ai-sdk/google@3.0.0-beta.72
+
 ## 4.0.0-beta.111
 
 ### Patch Changes
