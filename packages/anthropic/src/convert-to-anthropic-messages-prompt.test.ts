@@ -287,6 +287,108 @@ describe('user messages', () => {
       }),
     ).rejects.toThrow('media type: video/mp4');
   });
+
+  it('should convert custom container_upload parts', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Edit this document',
+            },
+            {
+              type: 'custom',
+              providerOptions: {
+                anthropic: {
+                  type: 'container_upload',
+                  fileId: 'file_123abc',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Edit this document',
+              },
+              {
+                type: 'container_upload',
+                file_id: 'file_123abc',
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should throw error for custom container_upload without fileId', async () => {
+    await expect(
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'custom',
+                providerOptions: {
+                  anthropic: {
+                    type: 'container_upload',
+                    // missing fileId
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow('container_upload requires a fileId');
+  });
+
+  it('should throw error for unsupported custom content type', async () => {
+    await expect(
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'custom',
+                providerOptions: {
+                  anthropic: {
+                    type: 'unknown_type',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow('custom content type: unknown_type');
+  });
 });
 
 describe('tool messages', () => {
