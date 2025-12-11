@@ -1,10 +1,20 @@
 import {
   SharedV3Warning,
+  SharedV3ProviderOptions,
   LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import { XaiChatPrompt } from './xai-chat-prompt';
+
+function getXaiMessageName(
+  providerOptions?: SharedV3ProviderOptions,
+): string | undefined {
+  const name = providerOptions?.xai?.name;
+  return typeof name === 'string' && name.trim().length > 0
+    ? name
+    : undefined;
+}
 
 export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
   messages: XaiChatPrompt;
@@ -13,7 +23,8 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
   const messages: XaiChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
+    const name = getXaiMessageName(providerOptions);
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content });
@@ -22,7 +33,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
 
       case 'user': {
         if (content.length === 1 && content[0].type === 'text') {
-          messages.push({ role: 'user', content: content[0].text });
+          messages.push({ role: 'user', content: content[0].text, ...(name ? { name: name } : {}) });
           break;
         }
 
@@ -57,6 +68,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
               }
             }
           }),
+          ...(name ? { name: name } : {}),
         });
 
         break;
@@ -94,6 +106,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
           role: 'assistant',
           content: text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(name ? { name: name } : {}),
         });
 
         break;
