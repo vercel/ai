@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
 ## 3.0.0-beta.91
 
 ### Patch Changes
