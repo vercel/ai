@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { getToolName, isToolUIPart } from 'ai';
 import { GeistMono } from 'geist/font/mono';
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 
 export default function Page() {
   const [input, setInput] = useState('');
@@ -20,7 +21,7 @@ export default function Page() {
             <div className="flex flex-col gap-2">
               {message.parts.map((part, index) => {
                 if (part.type === 'text') {
-                  return <div key={index}>{part.text}</div>;
+                  return <Streamdown key={index}>{part.text}</Streamdown>;
                 } else if (isToolUIPart(part)) {
                   return (
                     <div

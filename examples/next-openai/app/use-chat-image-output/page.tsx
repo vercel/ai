@@ -3,6 +3,7 @@
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import { Streamdown } from 'streamdown';
 
 export default function Chat() {
   const { status, sendMessage, messages } = useChat({
@@ -16,7 +17,7 @@ export default function Chat() {
           {message.role === 'user' ? 'User: ' : 'AI: '}
           {message.parts.map((part, index) => {
             if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
+              return <Streamdown key={index}>{part.text}</Streamdown>;
             } else if (
               part.type === 'file' &&
               part.mediaType.startsWith('image/')

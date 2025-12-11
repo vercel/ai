@@ -5,6 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { upload } from '@vercel/blob/client';
 import { FileUIPart } from 'ai';
 import { useRef, useState } from 'react';
+import { Streamdown } from 'streamdown';
 
 export default function Page() {
   const [input, setInput] = useState('');
@@ -24,7 +25,7 @@ export default function Page() {
             <div className="flex flex-col gap-2">
               {message.parts.map((part, index) => {
                 if (part.type === 'text') {
-                  return <div key={index}>{part.text}</div>;
+                  return <Streamdown key={index}>{part.text}</Streamdown>;
                 }
                 if (
                   part.type === 'file' &&

@@ -8,6 +8,7 @@ import {
 import ChatInput from '@/components/chat-input';
 import { WeatherWithApprovalAgentUIMessage } from '@/agent/weather-with-approval-agent';
 import WeatherWithApprovalView from '@/components/tool/weather-with-approval-view';
+import { Streamdown } from 'streamdown';
 
 export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
@@ -29,7 +30,7 @@ export default function TestToolApproval() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-weather':
                 return (
                   <WeatherWithApprovalView

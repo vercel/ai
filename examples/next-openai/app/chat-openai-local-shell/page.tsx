@@ -8,6 +8,7 @@ import {
 import ChatInput from '@/components/chat-input';
 import { OpenAILocalShellMessage } from '@/agent/openai-local-shell-agent';
 import LocalShellView from '@/components/tool/openai-local-shell-view';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIWebSearch() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
@@ -34,7 +35,7 @@ export default function TestOpenAIWebSearch() {
             {message.parts.map((part, index) => {
               switch (part.type) {
                 case 'text':
-                  return <div key={index}>{part.text}</div>;
+                  return <Streamdown key={index}>{part.text}</Streamdown>;
                 case 'tool-shell':
                   return (
                     <LocalShellView

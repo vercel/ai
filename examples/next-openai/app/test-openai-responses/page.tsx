@@ -3,6 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIResponses() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({
@@ -22,7 +23,7 @@ export default function TestOpenAIResponses() {
           </div>
           {m.parts.map((part, index) => {
             if (part.type === 'text') {
-              return <div key={index}>{part.text}</div>;
+              return <Streamdown key={index}>{part.text}</Streamdown>;
             } else if (part.type === 'reasoning') {
               return (
                 <div

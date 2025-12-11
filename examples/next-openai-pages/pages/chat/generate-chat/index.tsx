@@ -1,5 +1,6 @@
 import { ModelMessage } from 'ai';
 import { useState } from 'react';
+import { Streamdown } from 'streamdown';
 
 export default function Page() {
   const [input, setInput] = useState('');
@@ -18,7 +19,7 @@ export default function Page() {
                     .filter(part => part.type === 'text')
                     .map((part, partIndex) => (
                       // @ts-ignore
-                      <div key={partIndex}>{part.text}</div>
+                      <Streamdown key={partIndex}>{part.text}</Streamdown>
                     ))}
             </div>
           </div>

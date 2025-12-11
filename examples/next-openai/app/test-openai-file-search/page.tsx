@@ -5,6 +5,7 @@ import FileSearchView from '@/components/tool/openai-file-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { OpenAIFileSearchMessage } from '../api/chat-openai-file-search/route';
+import { Streamdown } from 'streamdown';
 
 export default function TestOpenAIFileSearch() {
   const { status, sendMessage, messages } = useChat<OpenAIFileSearchMessage>({
@@ -23,7 +24,7 @@ export default function TestOpenAIFileSearch() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <Streamdown key={index}>{part.text}</Streamdown>;
               case 'tool-file_search':
                 return <FileSearchView key={index} invocation={part} />;
             }
