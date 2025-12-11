@@ -171,11 +171,12 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
-              // item references reduce the payload size
-              if (store && id != null) {
-                input.push({ type: 'item_reference', id });
-                break;
-              }
+              // NOTE: We intentionally don't use item_reference here for client-executed tools
+              // because the corresponding function_call_output uses toolCallId (call_...)
+              // not itemId (fc_...), which causes a mismatch error from OpenAI.
+              // Provider-executed tools (handled above) don't have this issue since both
+              // the call and result are stored on OpenAI's side.
+              // See: https://github.com/vercel/ai/issues/8216
 
               if (hasLocalShellTool && part.toolName === 'local_shell') {
                 const parsedInput = await validateTypes({
@@ -199,12 +200,14 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              // NOTE: We don't include the `id` field here for client-executed tools.
+              // Including it can cause issues when store=true because OpenAI may
+              // interpret it as referencing a stored item rather than defining a new one.
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
-                id,
               });
               break;
             }
