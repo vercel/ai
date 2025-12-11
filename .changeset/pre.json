@@ -73,9 +73,11 @@
     "@ai-sdk/test-server": "0.0.0",
     "@ai-sdk/huggingface": "0.0.1",
     "@ai-sdk/mcp": "0.0.0",
-    "@ai-sdk/black-forest-labs": "0.0.0"
+    "@ai-sdk/black-forest-labs": "0.0.0",
+    "@ai-sdk/devtools": "0.0.0"
   },
   "changesets": [
+    "angry-ants-mix",
     "angry-cobras-care",
     "angry-hats-cry",
     "angry-lamps-repair",
@@ -174,6 +176,7 @@
     "friendly-otters-sin",
     "fruity-webs-return",
     "funny-olives-reply",
+    "funny-trainers-press",
     "fuzzy-buckets-deny",
     "fuzzy-cherries-fail",
     "fuzzy-rats-hear",
@@ -403,6 +406,7 @@
     "tough-apes-taste",
     "tough-games-pretend",
     "tricky-grapes-rush",
+    "twelve-pets-juggle",
     "twelve-tables-divide",
     "twenty-bees-tell",
     "twenty-frogs-tap",
@@ -419,6 +423,7 @@
     "violet-otters-compete",
     "violet-ties-float",
     "violet-zoos-do",
+    "warm-fireants-arrive",
     "warm-horses-cover",
     "warm-oranges-smash",
     "weak-ants-happen",
