@@ -522,6 +522,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort xhigh setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.1-codex-max');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'xhigh' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.1-codex-max',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'xhigh',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
     prepareJsonResponse({ content: '' });
 
