@@ -2604,7 +2604,6 @@ describe('OpenAIResponsesLanguageModel', () => {
             "model": "gpt-5-mini",
             "tools": [
               {
-                "require_approval": "never",
                 "server_description": "A web-search API for AI agents",
                 "server_label": "dmcp",
                 "server_url": "https://mcp.exa.ai/mcp",

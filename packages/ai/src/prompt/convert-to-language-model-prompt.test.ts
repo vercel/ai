@@ -941,7 +941,16 @@ describe('convertToLanguageModelPrompt', () => {
                 "type": "tool-call",
               },
             ],
-            "providerOptions": undefined,
+            "providerOptions": {
+              "internal": {
+                "toolApprovalRequests": [
+                  {
+                    "approvalId": "approvalId",
+                    "toolCallId": "toolCallId",
+                  },
+                ],
+              },
+            },
             "role": "assistant",
           },
           {
@@ -959,7 +968,17 @@ describe('convertToLanguageModelPrompt', () => {
                 "type": "tool-result",
               },
             ],
-            "providerOptions": undefined,
+            "providerOptions": {
+              "internal": {
+                "toolApprovalResponses": [
+                  {
+                    "approvalId": "approvalId",
+                    "approved": true,
+                    "reason": undefined,
+                  },
+                ],
+              },
+            },
             "role": "tool",
           },
         ]
