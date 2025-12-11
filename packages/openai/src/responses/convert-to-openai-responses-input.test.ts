@@ -273,6 +273,45 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should read image detail from providerOptions when providerKey is azure', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                providerOptions: {
+                  azure: {
+                    imageDetail: 'low',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerKey: 'azure',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+              detail: 'low',
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert messages with PDF file parts', async () => {
       const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
 
