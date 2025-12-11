@@ -420,6 +420,7 @@ A function that attempts to repair a tool call that failed to parse.
             steps,
             stepNumber: steps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
@@ -434,6 +435,9 @@ A function that attempts to repair a tool call that failed to parse.
             supportedUrls: await stepModel.supportedUrls,
             download,
           });
+
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({

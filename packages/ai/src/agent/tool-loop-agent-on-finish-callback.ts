@@ -10,13 +10,22 @@ Callback that is set using the `onFinish` option.
 export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool calls.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context?: unknown;
   },
 ) => PromiseLike<void> | void;

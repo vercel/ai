@@ -551,6 +551,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       description:
                         'The messages that will be sent to the model for the current step.',
                     },
+                    {
+                      name: 'experimental_context',
+                      type: 'unknown',
+                      isOptional: true,
+                      description:
+                        'The context passed via the experimental_context setting (experimental).',
+                    },
                   ],
                 },
               ],
@@ -566,31 +573,43 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'model',
               type: 'LanguageModel',
               isOptional: true,
-              description: 'Change the model for this step.',
+              description:
+                'Optionally override which LanguageModel instance is used for this step.',
             },
             {
               name: 'toolChoice',
               type: 'ToolChoice<TOOLS>',
               isOptional: true,
-              description: 'Change the tool choice strategy for this step.',
+              description:
+                'Optionally set which tool the model must call, or provide tool call configuration for this step.',
             },
             {
               name: 'activeTools',
               type: 'Array<keyof TOOLS>',
               isOptional: true,
-              description: 'Change which tools are active for this step.',
+              description:
+                'If provided, only these tools are enabled/available for this step.',
             },
             {
-              name: 'system | SystemModelMessage | SystemModelMessage[]',
-              type: 'string',
+              name: 'system',
+              type: 'string | SystemModelMessage | SystemModelMessage[]',
               isOptional: true,
-              description: 'Change the system prompt for this step.',
+              description:
+                'Optionally override the system message(s) sent to the model for this step.',
             },
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
               isOptional: true,
-              description: 'Modify the input messages for this step.',
+              description:
+                'Optionally override the full set of messages sent to the model for this step.',
+            },
+            {
+              name: 'experimental_context',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
             },
           ],
         },
