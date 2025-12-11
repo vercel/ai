@@ -2,6 +2,7 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3Prompt,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
@@ -133,9 +134,15 @@ export function convertToDeepSeekChatMessages({
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool approval responses',
+            });
+          }
+
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue = '';
           switch (output.type) {
             case 'text':
             case 'error-text':

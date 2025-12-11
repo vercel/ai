@@ -121,32 +121,6 @@ export default function OpenAIMCPView({
               </div>
             );
           }
-          case 'approvalRequest': {
-            return (
-              <div className="mb-4 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400 shadow">
-                <div className="flex items-center font-semibold text-yellow-700">
-                  <span className="inline-block mr-2 bg-yellow-200 text-yellow-900 rounded px-2 py-0.5 text-xs font-mono tracking-wider">
-                    MCP
-                  </span>
-                  Approval requested
-                </div>
-                <div className="mt-2 pl-5 text-sm text-yellow-800">
-                  <div className="mb-2">
-                    <span className="font-semibold">Tool:</span>{' '}
-                    <span className="font-mono">{output.name}</span>
-                  </div>
-                  {output.arguments && (
-                    <div className="mb-2">
-                      <span className="font-semibold">Arguments:</span>
-                      <pre className="mt-1 text-xs overflow-auto bg-white p-2 rounded border border-yellow-100">
-                        {output.arguments}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
           default: {
             // Fallback for unknown output types
             return (

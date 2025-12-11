@@ -433,10 +433,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
 exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include mcp tool call and result in content 1`] = `
 [
   {
+    "dynamic": true,
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "MCP",
+    "toolName": "mcp.listTools",
     "type": "tool-call",
   },
   {
@@ -500,7 +501,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "listTools",
     },
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "MCP",
+    "toolName": "mcp.listTools",
     "type": "tool-result",
   },
   {
@@ -514,10 +515,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "type": "reasoning",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"NYC mayoral election results 2025 latest","numResults":5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
@@ -529,7 +531,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "call",
     },
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {
@@ -4252,10 +4254,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "response-metadata",
   },
   {
+    "dynamic": true,
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "MCP",
+    "toolName": "mcp.listTools",
     "type": "tool-call",
   },
   {
@@ -4319,7 +4322,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "listTools",
     },
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "MCP",
+    "toolName": "mcp.listTools",
     "type": "tool-result",
   },
   {
@@ -4343,10 +4346,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "reasoning-end",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"2025 New York City mayoral election results Nov 2025 latest results", "numResults": 5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
@@ -4358,7 +4362,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {
@@ -4382,10 +4386,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "reasoning-end",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "numResults":5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
@@ -4397,7 +4402,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {

@@ -145,6 +145,12 @@ export function convertToGoogleGenerativeAIMessages(
         const parts: GoogleGenerativeAIContentPart[] = [];
 
         for (const part of content) {
+          if (part.type === 'tool-approval-response') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool approval responses',
+            });
+          }
+
           const output = part.output;
 
           if (output.type === 'content') {

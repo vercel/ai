@@ -1,4 +1,8 @@
-import { SharedV3Warning, LanguageModelV3Message } from '@ai-sdk/provider';
+import {
+  SharedV3Warning,
+  LanguageModelV3Message,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { XaiResponsesInput } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
@@ -127,6 +131,12 @@ export async function convertToXaiResponsesInput({
 
       case 'tool': {
         for (const part of message.content) {
+          if (part.type === 'tool-approval-response') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool approval responses',
+            });
+          }
+
           const output = part.output;
 
           let outputValue: string;
@@ -152,10 +162,6 @@ export async function convertToXaiResponsesInput({
                 })
                 .join('');
               break;
-            default: {
-              const _exhaustiveCheck: never = output;
-              outputValue = '';
-            }
           }
 
           input.push({
