@@ -277,10 +277,15 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   const fetchRuns = async () => {
-    const res = await fetch('/api/runs');
-    const data = await res.json();
-    setRuns(data);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/runs');
+      const data = await res.json();
+      setRuns(data);
+    } catch (error) {
+      console.error('Failed to fetch runs:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClear = async () => {
