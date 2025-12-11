@@ -1,7 +1,7 @@
 import {
+  CustomPart,
   FilePart,
   ImagePart,
-  ProviderOptions,
   ReasoningPart,
   TextPart,
   ToolApprovalRequest,
@@ -13,6 +13,9 @@ import { z } from 'zod/v4';
 import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { dataContentSchema } from './data-content';
+
+// Re-export CustomPart for use by consumers
+export type { CustomPart } from '@ai-sdk/provider-utils';
 
 /**
 @internal
@@ -41,6 +44,14 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   data: z.union([dataContentSchema, z.instanceof(URL)]),
   filename: z.string().optional(),
   mediaType: z.string(),
+  providerOptions: providerMetadataSchema.optional(),
+});
+
+/**
+@internal
+ */
+export const customPartSchema: z.ZodType<CustomPart> = z.object({
+  type: z.literal('custom'),
   providerOptions: providerMetadataSchema.optional(),
 });
 

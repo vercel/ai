@@ -251,6 +251,34 @@ export async function convertToAnthropicMessagesPrompt({
 
                     break;
                   }
+
+                  case 'custom': {
+                    // Handle provider-specific content types (e.g., container_upload for skills)
+                    const anthropicOptions = part.providerOptions?.anthropic as
+                      | { type?: string; fileId?: string }
+                      | undefined;
+
+                    if (anthropicOptions?.type === 'container_upload') {
+                      if (!anthropicOptions.fileId) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality:
+                            'container_upload requires a fileId in providerOptions.anthropic',
+                        });
+                      }
+
+                      anthropicContent.push({
+                        type: 'container_upload',
+                        file_id: anthropicOptions.fileId,
+                        cache_control: cacheControl,
+                      });
+
+                      break;
+                    }
+
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `custom content type: ${anthropicOptions?.type ?? 'unknown'}`,
+                    });
+                  }
                 }
               }
 

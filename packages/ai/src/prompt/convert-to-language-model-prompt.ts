@@ -1,4 +1,5 @@
 import {
+  LanguageModelV3CustomPart,
   LanguageModelV3FilePart,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
@@ -6,6 +7,7 @@ import {
   LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  CustomPart,
   DataContent,
   FilePart,
   ImagePart,
@@ -308,16 +310,23 @@ async function downloadAssets(
  * @returns The converted part.
  */
 function convertPartToLanguageModelPart(
-  part: TextPart | ImagePart | FilePart,
+  part: TextPart | ImagePart | FilePart | CustomPart,
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >,
-): LanguageModelV3TextPart | LanguageModelV3FilePart {
+): LanguageModelV3TextPart | LanguageModelV3FilePart | LanguageModelV3CustomPart {
   if (part.type === 'text') {
     return {
       type: 'text',
       text: part.text,
+      providerOptions: part.providerOptions,
+    };
+  }
+
+  if (part.type === 'custom') {
+    return {
+      type: 'custom',
       providerOptions: part.providerOptions,
     };
   }

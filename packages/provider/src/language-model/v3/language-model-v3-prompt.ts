@@ -13,6 +13,14 @@ user-facing prompt types such as chat or instruction prompts to this format.
  */
 export type LanguageModelV3Prompt = Array<LanguageModelV3Message>;
 
+/**
+ * Custom content part for provider-specific content types.
+ */
+export interface LanguageModelV3CustomPart {
+  type: 'custom';
+  providerOptions?: SharedV3ProviderOptions;
+}
+
 export type LanguageModelV3Message =
   // Note: there could be additional parts for each role in the future,
   // e.g. when the assistant can return images or the user can share files
@@ -24,7 +32,11 @@ export type LanguageModelV3Message =
       }
     | {
         role: 'user';
-        content: Array<LanguageModelV3TextPart | LanguageModelV3FilePart>;
+        content: Array<
+          | LanguageModelV3TextPart
+          | LanguageModelV3FilePart
+          | LanguageModelV3CustomPart
+        >;
       }
     | {
         role: 'assistant';

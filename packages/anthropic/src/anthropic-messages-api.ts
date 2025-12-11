@@ -20,6 +20,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicContainerUploadContent
     | AnthropicToolResultContent
   >;
 }
@@ -94,6 +95,12 @@ export interface AnthropicDocumentContent {
   title?: string;
   context?: string;
   citations?: { enabled: boolean };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicContainerUploadContent {
+  type: 'container_upload';
+  file_id: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 

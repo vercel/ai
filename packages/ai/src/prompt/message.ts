@@ -8,6 +8,7 @@ import {
 import { z } from 'zod/v4';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import {
+  customPartSchema,
   filePartSchema,
   imagePartSchema,
   reasoningPartSchema,
@@ -30,7 +31,7 @@ export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   role: z.literal('user'),
   content: z.union([
     z.string(),
-    z.array(z.union([textPartSchema, imagePartSchema, filePartSchema])),
+    z.array(z.union([textPartSchema, imagePartSchema, filePartSchema, customPartSchema])),
   ]),
   providerOptions: providerMetadataSchema.optional(),
 });

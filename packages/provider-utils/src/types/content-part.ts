@@ -85,6 +85,22 @@ functionality that can be fully encapsulated in the provider.
 }
 
 /**
+ * Custom content part for provider-specific content types.
+ * This can be used to pass provider-specific content that isn't
+ * part of the standard schema.
+ */
+export interface CustomPart {
+  type: 'custom';
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+ */
+  providerOptions?: ProviderOptions;
+}
+
+/**
  * Reasoning content part of a prompt. It contains a reasoning.
  */
 export interface ReasoningPart {

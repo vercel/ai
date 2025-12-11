@@ -1,4 +1,4 @@
-import { FilePart, ImagePart, TextPart } from './content-part';
+import { CustomPart, FilePart, ImagePart, TextPart } from './content-part';
 import { ProviderOptions } from './provider-options';
 
 /**
@@ -17,6 +17,9 @@ export type UserModelMessage = {
 };
 
 /**
-  Content of a user message. It can be a string or an array of text and image parts.
+  Content of a user message. It can be a string or an array of text, image, file,
+  or custom provider-specific parts.
    */
-export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
+export type UserContent =
+  | string
+  | Array<TextPart | ImagePart | FilePart | CustomPart>;
