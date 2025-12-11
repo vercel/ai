@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.84
+
+### Patch Changes
+
+- 041a4fc: feat(openai): add gpt-5.2 models
+
 ## 2.0.83
 
 ### Patch Changes
