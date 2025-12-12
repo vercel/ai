@@ -10,8 +10,7 @@ export function wrapGatewayError(error: unknown): unknown {
   if (isProductionEnv) {
     return new AISDKError({
       name: 'GatewayError',
-      message:
-        `Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: ${moreInfoURL}`,
+      message: `Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: ${moreInfoURL}`,
     });
   }
 
