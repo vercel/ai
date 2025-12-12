@@ -1,4 +1,8 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  ImageModelV3File,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -9,8 +13,9 @@ import {
 import { FireworksImageModelId } from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
-  urlFormat: 'workflows' | 'image_generation';
+  urlFormat: 'workflows' | 'workflows_edit' | 'image_generation';
   supportsSize?: boolean;
+  supportsEditing?: boolean;
 }
 
 const modelToBackendConfig: Partial<
@@ -21,6 +26,14 @@ const modelToBackendConfig: Partial<
   },
   'accounts/fireworks/models/flux-1-schnell-fp8': {
     urlFormat: 'workflows',
+  },
+  'accounts/fireworks/models/flux-kontext-pro': {
+    urlFormat: 'workflows_edit',
+    supportsEditing: true,
+  },
+  'accounts/fireworks/models/flux-kontext-max': {
+    urlFormat: 'workflows_edit',
+    supportsEditing: true,
   },
   'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
     urlFormat: 'image_generation',
@@ -47,12 +60,23 @@ const modelToBackendConfig: Partial<
 function getUrlForModel(
   baseUrl: string,
   modelId: FireworksImageModelId,
+  hasInputImage: boolean,
 ): string {
-  switch (modelToBackendConfig[modelId]?.urlFormat) {
+  const config = modelToBackendConfig[modelId];
+
+  switch (config?.urlFormat) {
     case 'image_generation':
       return `${baseUrl}/image_generation/${modelId}`;
+    case 'workflows_edit':
+      // Kontext models: use base URL for editing (no suffix)
+      return `${baseUrl}/workflows/${modelId}`;
     case 'workflows':
     default:
+      // Standard FLUX models: use text_to_image for generation,
+      // but if input_image provided, some models may support editing
+      if (hasInputImage && config?.supportsEditing) {
+        return `${baseUrl}/workflows/${modelId}`;
+      }
       return `${baseUrl}/workflows/${modelId}/text_to_image`;
   }
 }
@@ -89,6 +113,8 @@ export class FireworksImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
@@ -114,16 +140,43 @@ export class FireworksImageModel implements ImageModelV3 {
       });
     }
 
+    // Handle files for image editing
+    const hasInputImage = files != null && files.length > 0;
+    let inputImage: string | undefined;
+
+    if (hasInputImage) {
+      inputImage = fileToDataUri(files[0]);
+
+      if (files.length > 1) {
+        warnings.push({
+          type: 'other',
+          message:
+            'Fireworks only supports a single input image. Additional images are ignored.',
+        });
+      }
+    }
+
+    // Warn about mask - Fireworks Kontext models don't support explicit masks
+    if (mask != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'mask',
+        details:
+          'Fireworks Kontext models do not support explicit masks. Use the prompt to describe the areas to edit.',
+      });
+    }
+
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
-      url: getUrlForModel(this.config.baseURL, this.modelId),
+      url: getUrlForModel(this.config.baseURL, this.modelId, hasInputImage),
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         prompt,
         aspect_ratio: aspectRatio,
         seed,
         samples: n,
+        ...(inputImage && { input_image: inputImage }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(providerOptions.fireworks ?? {}),
       },
@@ -143,4 +196,32 @@ export class FireworksImageModel implements ImageModelV3 {
       },
     };
   }
+}
+
+/**
+ * Converts an ImageModelV3File to a data URI string or URL.
+ */
+function fileToDataUri(file: ImageModelV3File): string {
+  if (file.type === 'url') {
+    return file.url;
+  }
+
+  const mediaType = file.mediaType ?? 'image/png';
+
+  if (typeof file.data === 'string') {
+    // Already base64 string
+    return `data:${mediaType};base64,${file.data}`;
+  }
+
+  // Uint8Array - convert to base64
+  const base64 = uint8ArrayToBase64(file.data);
+  return `data:${mediaType};base64,${base64}`;
+}
+
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }

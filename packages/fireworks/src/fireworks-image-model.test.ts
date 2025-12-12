@@ -390,4 +390,240 @@ describe('FireworksImageModel', () => {
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
+
+  describe('Image Editing', () => {
+    const editServer = createTestServer({
+      'https://api.edit.example.com/*': {
+        response: {
+          type: 'binary',
+          body: Buffer.from('edited-image-data'),
+        },
+      },
+    });
+
+    function createKontextModel() {
+      return new FireworksImageModel(
+        'accounts/fireworks/models/flux-kontext-pro',
+        {
+          provider: 'fireworks',
+          baseURL: 'https://api.edit.example.com',
+          headers: () => ({ 'api-key': 'test-key' }),
+        },
+      );
+    }
+
+    it('should send edit request with files as data URI', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
+
+      await createKontextModel().doGenerate({
+        prompt: 'Turn the cat into a dog',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await editServer.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "input_image": "data:image/png;base64,iVBORw==",
+          "prompt": "Turn the cat into a dog",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should use correct URL for Kontext model (no text_to_image suffix)', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createKontextModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(editServer.calls[0].requestUrl).toBe(
+        'https://api.edit.example.com/workflows/accounts/fireworks/models/flux-kontext-pro',
+      );
+    });
+
+    it('should send edit request with URL-based file', async () => {
+      await createKontextModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await editServer.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "input_image": "https://example.com/input.png",
+          "prompt": "Edit this image",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should send edit request with base64 string data', async () => {
+      await createKontextModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: 'iVBORw0KGgoAAAANSUhEUgAAAAE=',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await editServer.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "input_image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=",
+          "prompt": "Edit this image",
+          "samples": 1,
+        }
+      `);
+    });
+
+    it('should warn when multiple files are provided', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await createKontextModel().doGenerate({
+        prompt: 'Edit images',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'other',
+        message:
+          'Fireworks only supports a single input image. Additional images are ignored.',
+      });
+    });
+
+    it('should warn when mask is provided', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+      const maskData = new Uint8Array([255, 255, 255, 0]);
+
+      const result = await createKontextModel().doGenerate({
+        prompt: 'Edit with mask',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskData,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'mask',
+        details:
+          'Fireworks Kontext models do not support explicit masks. Use the prompt to describe the areas to edit.',
+      });
+    });
+
+    it('should pass provider options with edit request', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createKontextModel().doGenerate({
+        prompt: 'Edit with options',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: 42,
+        providerOptions: {
+          fireworks: {
+            output_format: 'jpeg',
+            safety_tolerance: 2,
+          },
+        },
+      });
+
+      const requestBody = await editServer.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "aspect_ratio": "16:9",
+          "input_image": "data:image/png;base64,iVBORw==",
+          "output_format": "jpeg",
+          "prompt": "Edit with options",
+          "safety_tolerance": 2,
+          "samples": 1,
+          "seed": 42,
+        }
+      `);
+    });
+  });
 });

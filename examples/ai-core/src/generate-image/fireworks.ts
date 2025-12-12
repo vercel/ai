@@ -1,7 +1,14 @@
-import { fireworks } from '@ai-sdk/fireworks';
+import { createFireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
+
+const fireworks = createFireworks({
+  fetch: (url, options) => {
+    console.dir({url, options})
+    return fetch(url, options)
+  }
+});
 
 async function main() {
   const result = await generateImage({
