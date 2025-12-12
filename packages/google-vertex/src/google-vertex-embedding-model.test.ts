@@ -138,6 +138,27 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
   });
 
+  it('should accept vertex as provider options key', async () => {
+    prepareJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { vertex: mockProviderOptions },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: mockProviderOptions.taskType,
+        title: mockProviderOptions.title,
+      })),
+      parameters: {
+        outputDimensionality: mockProviderOptions.outputDimensionality,
+        autoTruncate: mockProviderOptions.autoTruncate,
+      },
+    });
+  });
+
   it('should pass the taskType setting in instances', async () => {
     prepareJsonResponse();
 

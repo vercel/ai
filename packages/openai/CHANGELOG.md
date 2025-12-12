@@ -1,5 +1,72 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- d2039d7: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 92c6241: feat(openai): additional settings for file search tool
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- 0153bfa: fix(openai): fix parameter exclusion logic
+
 ## 3.0.0-beta.85
 
 ### Patch Changes

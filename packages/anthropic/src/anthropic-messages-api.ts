@@ -165,7 +165,7 @@ export interface AnthropicWebSearchToolResultContent {
   tool_use_id: string;
   content: Array<{
     url: string;
-    title: string;
+    title: string | null;
     page_age: string | null;
     encrypted_content: string;
     type: string;
@@ -394,6 +394,68 @@ export type AnthropicContainer = {
   }> | null;
 };
 
+export type AnthropicInputTokensTrigger = {
+  type: 'input_tokens';
+  value: number;
+};
+
+export type AnthropicToolUsesTrigger = {
+  type: 'tool_uses';
+  value: number;
+};
+
+export type AnthropicContextManagementTrigger =
+  | AnthropicInputTokensTrigger
+  | AnthropicToolUsesTrigger;
+
+export type AnthropicClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  trigger?: AnthropicContextManagementTrigger;
+  keep?: {
+    type: 'tool_uses';
+    value: number;
+  };
+  clear_at_least?: {
+    type: 'input_tokens';
+    value: number;
+  };
+  clear_tool_inputs?: boolean;
+  exclude_tools?: string[];
+};
+
+export type AnthropicClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  keep?: 'all' | { type: 'thinking_turns'; value: number };
+};
+
+export type AnthropicContextManagementEdit =
+  | AnthropicClearToolUsesEdit
+  | AnthropicClearThinkingBlockEdit;
+
+export type AnthropicContextManagementConfig = {
+  edits: AnthropicContextManagementEdit[];
+};
+
+export type AnthropicResponseClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  cleared_tool_uses: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  cleared_thinking_turns: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseContextManagementEdit =
+  | AnthropicResponseClearToolUsesEdit
+  | AnthropicResponseClearThinkingBlockEdit;
+
+export type AnthropicResponseContextManagement = {
+  applied_edits: AnthropicResponseContextManagementEdit[];
+};
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesResponseSchema = lazySchema(() =>
@@ -488,11 +550,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -638,6 +707,24 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             .nullish(),
         })
         .nullish(),
+      context_management: z
+        .object({
+          applied_edits: z.array(
+            z.union([
+              z.object({
+                type: z.literal('clear_tool_uses_20250919'),
+                cleared_tool_uses: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('clear_thinking_20251015'),
+                cleared_thinking_turns: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+            ]),
+          ),
+        })
+        .nullish(),
     }),
   ),
 );
@@ -716,11 +803,18 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -925,6 +1019,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   }),
                 )
                 .nullish(),
+            })
+            .nullish(),
+          context_management: z
+            .object({
+              applied_edits: z.array(
+                z.union([
+                  z.object({
+                    type: z.literal('clear_tool_uses_20250919'),
+                    cleared_tool_uses: z.number(),
+                    cleared_input_tokens: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('clear_thinking_20251015'),
+                    cleared_thinking_turns: z.number(),
+                    cleared_input_tokens: z.number(),
+                  }),
+                ]),
+              ),
             })
             .nullish(),
         }),

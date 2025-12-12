@@ -1,5 +1,91 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.151
+
+### Patch Changes
+
+- ai@6.0.0-beta.148
+
+## 3.0.0-beta.150
+
+### Patch Changes
+
+- Updated dependencies [637eaa4]
+  - ai@6.0.0-beta.147
+
+## 3.0.0-beta.149
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - ai@6.0.0-beta.146
+
+## 3.0.0-beta.148
+
+### Patch Changes
+
+- ai@6.0.0-beta.145
+
+## 3.0.0-beta.147
+
+### Patch Changes
+
+- Updated dependencies [ab6f01a]
+  - ai@6.0.0-beta.144
+
+## 3.0.0-beta.146
+
+### Patch Changes
+
+- c388279: force update of vulnerable react versions through peer dependency range
+
+## 3.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - ai@6.0.0-beta.143
+
+## 3.0.0-beta.144
+
+### Patch Changes
+
+- Updated dependencies [7169511]
+- Updated dependencies [bbdcb81]
+  - ai@6.0.0-beta.142
+
+## 3.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [b1405bf]
+  - ai@6.0.0-beta.141
+
+## 3.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [7fdd89d]
+  - ai@6.0.0-beta.140
+
+## 3.0.0-beta.141
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - ai@6.0.0-beta.139
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.140
+
+### Patch Changes
+
+- ai@6.0.0-beta.138
+- @ai-sdk/provider-utils@4.0.0-beta.44
+
 ## 3.0.0-beta.139
 
 ### Patch Changes

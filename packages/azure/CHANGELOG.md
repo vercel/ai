@@ -1,5 +1,82 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [40dc7fa]
+  - @ai-sdk/openai@3.0.0-beta.95
+
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/openai@3.0.0-beta.94
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [d2039d7]
+  - @ai-sdk/openai@3.0.0-beta.93
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [5bf101a]
+  - @ai-sdk/openai@3.0.0-beta.92
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/openai@3.0.0-beta.91
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/openai@3.0.0-beta.90
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/openai@3.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [92c6241]
+  - @ai-sdk/openai@3.0.0-beta.88
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/openai@3.0.0-beta.87
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [0153bfa]
+  - @ai-sdk/openai@3.0.0-beta.86
+
 ## 3.0.0-beta.87
 
 ### Patch Changes
