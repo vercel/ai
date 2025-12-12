@@ -394,13 +394,8 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -419,30 +414,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
           "type": "url",
           "url": "https://www.wired.com/story/the-big-interview-2025-recap",
         },
-<<<<<<< HEAD
-      ],
-    },
-    "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "providerExecuted": true,
-    "result": {
-      "action": {
-        "query": undefined,
-        "type": "search",
-      },
-      "sources": [
-=======
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
         {
           "type": "url",
           "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
@@ -501,24 +472,15 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
     "providerMetadata": {
       "openai": {
-<<<<<<< HEAD
-        "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
-=======
         "itemId": "rs_0953eda47ee17412006933306a4f188195b2870a804561da54",
         "reasoningEncryptedContent": null,
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
       },
     },
     "text": "",
@@ -528,10 +490,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "type": "openPage",
@@ -539,7 +502,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
       },
     },
     "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -556,10 +519,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "Vercel",
@@ -568,7 +532,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
       },
     },
     "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -584,78 +548,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should in
   {
     "providerMetadata": {
       "openai": {
-        "annotations": [
-          {
-            "end_index": 517,
-            "start_index": 426,
-            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-            "type": "url_citation",
-            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-          },
-          {
-            "end_index": 778,
-            "start_index": 647,
-            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-            "type": "url_citation",
-            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-          },
-          {
-            "end_index": 1047,
-            "start_index": 907,
-            "title": "5 Things to Know Before the Stock Market Opens",
-            "type": "url_citation",
-            "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
-          },
-          {
-            "end_index": 1343,
-            "start_index": 1295,
-            "title": "Towards the AI Cloud: Our Series F - Vercel",
-            "type": "url_citation",
-            "url": "https://vercel.com/blog/series-f",
-          },
-          {
-            "end_index": 1594,
-            "start_index": 1489,
-            "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
-            "type": "url_citation",
-            "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
-          },
-          {
-            "end_index": 1926,
-            "start_index": 1835,
-            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
-            "type": "url_citation",
-            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
-          },
-          {
-            "end_index": 2080,
-            "start_index": 2009,
-            "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
-            "type": "url_citation",
-            "url": "https://www.wired.com/story/the-big-interview-2025-recap",
-          },
-          {
-            "end_index": 2341,
-            "start_index": 2210,
-            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
-            "type": "url_citation",
-            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
-          },
-          {
-            "end_index": 2635,
-            "start_index": 2502,
-            "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
-            "type": "url_citation",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
-          },
-          {
-            "end_index": 2822,
-            "start_index": 2774,
-            "title": "Towards the AI Cloud: Our Series F - Vercel",
-            "type": "url_citation",
-            "url": "https://vercel.com/blog/series-f",
-          },
-        ],
         "itemId": "msg_0953eda47ee17412006933308e32f08195bdfb73a410a2abfc",
       },
     },
@@ -4164,13 +4056,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -4223,13 +4110,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4265,13 +4147,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -4328,13 +4205,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         },
       ],
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4370,13 +4242,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -4387,13 +4254,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
       },
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4429,13 +4291,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "input": "{}",
     "providerExecuted": true,
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
@@ -4447,13 +4304,8 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
         "url": "https://www.wired.com/story/the-big-interview-2025-recap",
       },
     },
-<<<<<<< HEAD
-    "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
-=======
     "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
-    "toolName": "webSearch",
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4479,7 +4331,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4490,10 +4342,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "Vercel",
@@ -4502,7 +4355,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -4528,7 +4381,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
   {
     "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
     "providerExecuted": true,
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-input-start",
   },
   {
@@ -4539,10 +4392,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-call",
   },
   {
+    "providerExecuted": true,
     "result": {
       "action": {
         "pattern": "vercel",
@@ -4551,7 +4405,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
       },
     },
     "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
-    "toolName": "webSearch",
+    "toolName": "web_search",
     "type": "tool-result",
   },
   {
@@ -5400,35 +5254,11 @@ Would you like",
     },
     "type": "finish",
     "usage": {
-<<<<<<< HEAD
-      "cachedInputTokens": 34560,
-      "inputTokens": 60093,
-      "outputTokens": 4080,
-      "reasoningTokens": 3648,
-      "totalTokens": 64173,
-=======
-      "inputTokens": {
-        "cacheRead": 3712,
-        "cacheWrite": undefined,
-        "noCache": 27361,
-        "total": 31073,
-      },
-      "outputTokens": {
-        "reasoning": 3712,
-        "text": 704,
-        "total": 4416,
-      },
-      "raw": {
-        "input_tokens": 31073,
-        "input_tokens_details": {
-          "cached_tokens": 3712,
-        },
-        "output_tokens": 4416,
-        "output_tokens_details": {
-          "reasoning_tokens": 3712,
-        },
-      },
->>>>>>> 40dc7fa5e (fix(openai): change find action type to find_in_page action type (#10885))
+      "cachedInputTokens": 3712,
+      "inputTokens": 31073,
+      "outputTokens": 4416,
+      "reasoningTokens": 3712,
+      "totalTokens": 35489,
     },
   },
 ]
