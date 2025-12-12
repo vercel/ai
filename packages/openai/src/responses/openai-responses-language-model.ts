@@ -665,19 +665,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
           const toolName = `mcp.${part.name}`;
 
-          // If this call is associated with an approval request, the prompt already contains
-          // the tool call (created from mcp_approval_request). In that case, only emit the
-          // tool result (and alias it to the existing toolCallId) to keep a single invocation.
-          if (toolCallId === part.id) {
-            content.push({
-              type: 'tool-call',
-              toolCallId,
-              toolName,
-              input: part.arguments,
-              providerExecuted: true,
-              dynamic: true,
-            });
-          }
+          content.push({
+            type: 'tool-call',
+            toolCallId,
+            toolName,
+            input: part.arguments,
+            providerExecuted: true,
+            dynamic: true,
+          });
 
           content.push({
             type: 'tool-result',
@@ -693,6 +688,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ? { error: part.error as unknown as JSONValue }
                 : {}),
             } satisfies InferSchema<typeof mcpOutputSchema>,
+            providerMetadata: {
+              [providerKey]: {
+                itemId: part.id,
+              },
+            },
           });
           break;
         }
@@ -732,6 +732,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_approval_request': {
+          const approvalRequestId = part.approval_request_id ?? part.id;
           const dummyToolCallId = generateId();
           const toolName = `mcp.${part.name}`;
 
@@ -745,19 +746,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
-                approvalRequestId: part.approval_request_id,
+                approvalRequestId,
               },
             } satisfies SharedV3ProviderMetadata,
           });
 
           content.push({
             type: 'tool-approval-request',
-            approvalId: part.approval_request_id,
+            approvalId: approvalRequestId,
             toolCallId: dummyToolCallId,
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
-                approvalRequestId: part.approval_request_id,
+                approvalRequestId,
               },
             } satisfies SharedV3ProviderMetadata,
           } satisfies LanguageModelV3ToolApprovalRequest);
@@ -1298,17 +1299,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
                 const toolName = `mcp.${value.item.name}`;
 
-                // If aliased, the tool-call was already emitted for the approval request.
-                if (aliasedToolCallId === value.item.id) {
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: aliasedToolCallId,
-                    toolName,
-                    input: value.item.arguments,
-                    providerExecuted: true,
-                    dynamic: true,
-                  });
-                }
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: aliasedToolCallId,
+                  toolName,
+                  input: value.item.arguments,
+                  providerExecuted: true,
+                  dynamic: true,
+                });
 
                 controller.enqueue({
                   type: 'tool-result',
@@ -1326,6 +1324,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       ? { error: value.item.error as unknown as JSONValue }
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                    },
+                  },
                 });
               } else if (value.item.type === 'mcp_list_tools') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1385,7 +1388,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 const dummyToolCallId = generateId();
-                const approvalRequestId = value.item.approval_request_id;
+                const approvalRequestId =
+                  value.item.approval_request_id ?? value.item.id;
                 approvalRequestIdToDummyToolCallIdFromStream.set(
                   approvalRequestId,
                   dummyToolCallId,

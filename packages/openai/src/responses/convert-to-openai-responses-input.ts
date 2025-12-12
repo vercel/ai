@@ -169,15 +169,19 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
+              const id = (part.providerOptions?.openai?.itemId ??
+                (
+                  part as {
+                    providerMetadata?: { openai?: { itemId?: string } };
+                  }
+                ).providerMetadata?.openai?.itemId) as string | undefined;
               if (part.providerExecuted) {
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                }
                 break;
               }
 
-              const id = part.providerOptions?.openai?.itemId as
-                | string
-                | undefined;
-
-              // item references reduce the payload size
               if (store && id != null) {
                 input.push({ type: 'item_reference', id });
                 break;
@@ -242,8 +246,13 @@ export async function convertToOpenAIResponsesInput({
             // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
               if (store) {
-                // use item references to refer to tool results from built-in tools
-                input.push({ type: 'item_reference', id: part.toolCallId });
+                const itemId =
+                  (
+                    part as {
+                      providerMetadata?: { openai?: { itemId?: string } };
+                    }
+                  ).providerMetadata?.openai?.itemId ?? part.toolCallId;
+                input.push({ type: 'item_reference', id: itemId });
               } else {
                 warnings.push({
                   type: 'other',

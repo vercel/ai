@@ -631,7 +631,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             server_label: z.string(),
             name: z.string(),
             arguments: z.string(),
-            approval_request_id: z.string(),
+            approval_request_id: z.string().optional(),
           }),
           z.object({
             type: z.literal('apply_patch_call'),
@@ -1011,7 +1011,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               server_label: z.string(),
               name: z.string(),
               arguments: z.string(),
-              approval_request_id: z.string(),
+              approval_request_id: z.string().optional(),
             }),
             z.object({
               type: z.literal('apply_patch_call'),

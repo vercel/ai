@@ -358,11 +358,6 @@ A function that attempts to repair a tool call that failed to parse.
         const { approvedToolApprovals, deniedToolApprovals } =
           collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-        const providerExecutedToolApprovals = [
-          ...approvedToolApprovals,
-          ...deniedToolApprovals,
-        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
         const localApprovedToolApprovals = approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
         );
@@ -374,22 +369,6 @@ A function that attempts to repair a tool call that failed to parse.
           deniedToolApprovals.filter(
             toolApproval => toolApproval.toolCall.providerExecuted,
           );
-
-        // Provider-executed tool approvals must be forwarded to the provider, not executed locally.
-        if (providerExecutedToolApprovals.length > 0) {
-          responseMessages.push({
-            role: 'tool',
-            content: providerExecutedToolApprovals.map(
-              toolApproval =>
-                ({
-                  type: 'tool-approval-response',
-                  approvalId: toolApproval.approvalResponse.approvalId,
-                  approved: toolApproval.approvalResponse.approved,
-                  reason: toolApproval.approvalResponse.reason,
-                }) satisfies ToolApprovalResponse,
-            ),
-          });
-        }
 
         // Local tool approvals keep existing behavior:
         if (
