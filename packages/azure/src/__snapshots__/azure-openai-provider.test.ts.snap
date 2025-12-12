@@ -2107,6 +2107,1297 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
+exports[`responses > doStream > should stream with reasoning encrypted content 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0ca3f598125653cf01693c1f21bf8c819596a078608d16a52d",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T13:56:49.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+        "reasoningEncryptedContent": "gAAAAABpPB8iV8e6-ZyQ0LAGthckz-lo-wcp8cJ3hT5Dvwal0razJ1VDX6_3ryBjz6JNPGT0ZhlkA4zkYRP_IQ-QbBZGHVIHJvTcF4JamMk5gJ1oyGOxNw1BEeHH_hDB3B4Kym1VUfAH5qsC4CjXr7hrwWQ23sUVlCuKc1yW1LloSICMx8MjhO6ZbtPvdmH3XEQ5rXTa5H23VoO3QqFGxXYm5ZiCCuVU-pieo1X2zRxsfy84WGp13yi82OboY2aRCQrpGS3ztZ7pZw6Qc4GS_2ExPBAk3JP49hohoAy-i8IC_R7BWnxiYr6tHon4Z2qRSPT04g6J9E9lHlBi3dnBE4jIxh3361n6lv9-gmuLEDPt9KfrENXgrM-ihpYF_hTwr_KgdobejvLUb7XQQK4lArVJMv10r_mCRIdmz8JCIpQI26Lf_b7PdN9fkDIwDjXKgFlH3vjdVfVkY7j6ZEw46rkcGmm-X4sZNGWClQ8qc-UQC6AatDtzErwLrfl_JTVjf-KktmFRBqJjbwI9JkWOKAnoxOtNazN1bvN904D_Y4lcikUzjSTV3Ny0BNmW26f5QedB_t2knWe67JasQ99I9dBRLQ9RGLjrreUoRJqSUH7NT6ff9q5RPhCeXmUpJ7mnAWf4t6lzKaBViz2zHb5AJTG6cNV9IOTEAkGJT00Oyj70R-669Qdzv3qOhhxGQ1Pg-Zih35kFpvuou_PGtSs0IEU8pHT-WWJ_MOwJAVUdS_dfpoc_Zhf1GH8KNcSvfLqO_d-bt7o6E0qeEOj0zv8eqibdavdCXcia8CKdxytjXGOjgvwzhX7VMy4=",
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "**Calcul",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "ating",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " in",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " steps",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "**
+
+I",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " carry",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " out",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multiple",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " steps",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " for",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calculation",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ":",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " first",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I'll",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " add",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 12",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 7",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " then",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " take",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " that",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " result",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multiply",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " it",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " by",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 3",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " finally",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multiply",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " that",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " by",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 10",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I'm",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " thinking",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " about",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " whether",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " use",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " parallel",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " or",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sequential",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calls",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " The",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " instructions",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " suggest",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calling",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " separately",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " for",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " each",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " step",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " so",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "’ll",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " go",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " with",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sequential",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calls",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " using",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calculator",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " function",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I'll",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " start",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " with",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " addition",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " then",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " proceed",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " with",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multip",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "lications",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0ca3f598125653cf01693c1f22e2d08195b4275856d2c3bd9f",
+        "reasoningEncryptedContent": "gAAAAABpPB8lj5jDwSDjgg4doGal-A1-o1dwK_eoUcHEsBpMA6e268pKdh2njU-sFZNscnrM2hzsPYrkc8nnZTcAzBkwH9BGh3ZcYkz1YvILlUfdIJKdsj0_BRusJDP2Nw0ZNc3nyJ215DVbP5N7VK0Tg1EezC6xmKoQa5JC41_tPaJQGPNM1jMfooYqwEwYUnhZgeK-uNWkfYozoNbSWIAR9BwAJTy4pQ4Hk9cH_GdcEOc1vrd_uzRZu8jWbCmulXB-i6U8io2axTaNjDPVg6clN60FsC0TtM1-0ugz839vERweA9pNgkAAtrPqopIyD4T_mRKfISevn5ehg6_1FRK_wMXlREv6i-ytyXL18ittKvxXTUTcKurA0iRnIHJMKizyLypbogws90LubOpAgWr_jKFxibwz8cqoQe5ydpmSUFCRUXa0mgP_YV1BtxnAIP0zK7MzeQnkHopTgXrJ4BgYnmWHOo0OMDYgJH6lIRN6WbcYQtK2XHi2CfgX65DYUTx9TBOiBh2lrYUGS8V4REnTkl6xtM7KwNzosXcWEg0Jee2XF_gI0f1uvrYFk3vUwnhL3KVAla0WBOy-Yo61O0V5-jiNPrNcBOhghPAkQ0mlfR6dOSoUhwNnXny7ZEztwJWDZ9CmOiOH51JsjvQmn5hLbYjDkraUGkKgpWRGTGPloYV9lkqfaaVkUksBlS9GzvSvGhVtDzODT3_wMUkqUT3ilFSXu5oAo3LGysEvmj4fFX4iM4WHFXL1TMIwcjj84sOaogPTWNb1cYnj3G2fFVnm2lKQoQzFsnli8hgR2NLUASJhePp-CgAiavgyISGg2yrIcmk3rMYzbb71gI6HiSc2DsD_vSxGbTjVGiaoWZ-Q77laWuYtIzgzxxx47dayQL2gaeFZH96oeWIIN1CkpipfCfBfAgde0haJaCb_T0gP7RY334yxP-cWOA6squC2EGxVPZLG0Z-A-asOPkx56paQR3OlvMDU766xJpECrRmC5bT6vXbepey5r9avw_lfMFrHx9q79iKqJqoLS5oI0dVb72XwPwWRmCZps2KBlqZVY8xbs7AOYOjD0BDR8XjjFACuFZp-ga5KuUEogqZkNF8Gj9wpdaXTavEnpNeDO1eE7BK-QklHVJzsNI3c8ralFZynom1OzCPmCNXVp8SNhxOBxBcNflrwsw==",
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "12",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "7",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "add",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":12,"b":7,"op":"add"}",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "fc_0ca3f598125653cf01693c1f25167881959e4d4741c31622ce",
+      },
+    },
+    "toolCallId": "call_UdvUeOElp5zdU0DKr6IoyhjE",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_0ca3f598125653cf01693c1f2686188195adf328026135e433",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T13:56:54.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "19",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "3",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "multiply",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":19,"b":3,"op":"multiply"}",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "fc_0ca3f598125653cf01693c1f2808c48195b40a751e71a7167d",
+      },
+    },
+    "toolCallId": "call_Qm7RkNSRinyfYLyTUPXLrgH5",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_0ca3f598125653cf01693c1f28ad348195a1daf61cc1aa6381",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T13:56:56.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "57",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "10",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "multiply",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_axaLIcwBQwyb49kT8613pJxW",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":57,"b":10,"op":"multiply"}",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "fc_0ca3f598125653cf01693c1f2a3eb8819590a66d296c0d4edf",
+      },
+    },
+    "toolCallId": "call_axaLIcwBQwyb49kT8613pJxW",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_0ca3f598125653cf01693c1f2ae8a081959804dec902c996c2",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T13:56:58.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": " final",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": "570",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0ca3f598125653cf01693c1f2ba6408195b1f9ddd95d7d331c",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "azure": {
+        "responseId": "resp_0ca3f598125653cf01693c1f2ae8a081959804dec902c996c2",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 315,
+        "total": 315,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 315,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
 exports[`responses > file search tool > should stream file search results with results include 1`] = `
 [
   {
