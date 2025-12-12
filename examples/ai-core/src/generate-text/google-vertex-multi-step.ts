@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { text } = await generateText({
-    model: vertex('gemini-1.5-flash'),
+    model: vertex('gemini-2.5-flash'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

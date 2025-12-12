@@ -170,7 +170,7 @@ You can use the standard `topK` setting instead.
 
 ```ts filename="AI SDK 3.4"
 const result = await generateText({
-  model: google('gemini-1.5-flash', {
+  model: google('gemini-2.5-flash', {
     topK: 0.5,
   }),
 });
@@ -178,7 +178,7 @@ const result = await generateText({
 
 ```ts filename="AI SDK 4.0"
 const result = await generateText({
-  model: google('gemini-1.5-flash'),
+  model: google('gemini-2.5-flash'),
   topK: 0.5,
 });
 ```
@@ -197,7 +197,7 @@ You can use the standard `topK` setting instead.
 
 ```ts filename="AI SDK 3.4"
 const result = await generateText({
-  model: vertex('gemini-1.5-flash', {
+  model: vertex('gemini-2.5-flash', {
     topK: 0.5,
   }),
 });
@@ -205,7 +205,7 @@ const result = await generateText({
 
 ```ts filename="AI SDK 4.0"
 const result = await generateText({
-  model: vertex('gemini-1.5-flash'),
+  model: vertex('gemini-2.5-flash'),
   topK: 0.5,
 });
 ```
