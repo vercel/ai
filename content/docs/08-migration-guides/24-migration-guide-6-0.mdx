@@ -80,6 +80,12 @@ import { convertToModelMessages, type ModelMessage } from 'ai';
 const modelMessages = convertToModelMessages(messages); // ModelMessage[]
 ```
 
+<Note>
+  Use the `rename-core-message-to-model-message` and
+  `rename-converttocoremessages-to-converttomodelmessages` codemods to
+  automatically update your codebase.
+</Note>
+
 ### `generateObject` and `streamObject` Deprecation
 
 `generateObject` and `streamObject` have been deprecated ([PR #10754](https://github.com/vercel/ai/pull/10754)).
@@ -189,6 +195,11 @@ and `reasoningTokens` with `outputTokenDetails.reasoningTokens`.
 
 The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
 and is now deprecated.
+
+<Note>
+  Use the `rename-tool-call-options-to-tool-execution-options` codemod to
+  automatically update your codebase.
+</Note>
 
 ### Per-Tool Strict Mode
 
@@ -320,6 +331,11 @@ const { embedding } = await embed({
   value: 'sunny day at the beach',
 });
 ```
+
+<Note>
+  Use the `rename-text-embedding-to-embedding` codemod to automatically update
+  your codebase.
+</Note>
 
 ### Warning Logger
 
@@ -525,6 +541,11 @@ const result = await generateText({
 console.log(result.providerMetadata?.vertex?.safetyRatings);
 ```
 
+<Note>
+  Use the `rename-vertex-provider-metadata-key` codemod to automatically update
+  your codebase.
+</Note>
+
 ## `ai/test`
 
 ### Mock Classes
@@ -552,3 +573,7 @@ import {
   MockTranscriptionModelV3,
 } from 'ai/test';
 ```
+
+<Note>
+  Use the `rename-mock-v2-to-v3` codemod to automatically update your codebase.
+</Note>
