@@ -89,6 +89,37 @@ describe('Output.object', () => {
       const result = await object1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "content",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should include name and description when provided', async () => {
+      const objectWithNameAndDesc = object({
+        schema: z.object({ content: z.string() }),
+        name: 'test-name',
+        description: 'test description',
+      });
+      const result = await objectWithNameAndDesc.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "description": "test description",
+          "name": "test-name",
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -211,6 +242,49 @@ describe('Output.array', () => {
       const result = await array1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should include name and description when provided', async () => {
+      const arrayWithNameAndDesc = array({
+        element: z.object({ content: z.string() }),
+        name: 'test-array-name',
+        description: 'test array description',
+      });
+      const result = await arrayWithNameAndDesc.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "description": "test array description",
+          "name": "test-array-name",
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -354,6 +428,42 @@ describe('Output.choice', () => {
       const result = await choice1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "aaa",
+                  "aab",
+                  "ccc",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should include name and description when provided', async () => {
+      const choiceWithNameAndDesc = choice({
+        options: ['aaa', 'aab', 'ccc'],
+        name: 'test-choice-name',
+        description: 'test choice description',
+      });
+      const result = await choiceWithNameAndDesc.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "description": "test choice description",
+          "name": "test-choice-name",
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -516,6 +626,23 @@ describe('Output.json', () => {
       const result = await json1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
+          "description": undefined,
+          "name": undefined,
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should include name and description when provided', async () => {
+      const jsonWithNameAndDesc = json({
+        name: 'test-json-name',
+        description: 'test json description',
+      });
+      const result = await jsonWithNameAndDesc.responseFormat;
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "description": "test json description",
+          "name": "test-json-name",
           "type": "json",
         }
       `);
