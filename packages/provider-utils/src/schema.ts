@@ -2,6 +2,7 @@ import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
 import { StandardSchemaV1 } from '@standard-schema/spec';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
+import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
 import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
 import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
@@ -252,11 +253,13 @@ export function zod4Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      z4.toJSONSchema(zodSchema, {
-        target: 'draft-7',
-        io: 'output',
-        reused: useReferences ? 'ref' : 'inline',
-      }) as JSONSchema7,
+      addAdditionalPropertiesToJsonSchema(
+        z4.toJSONSchema(zodSchema, {
+          target: 'draft-7',
+          io: 'input',
+          reused: useReferences ? 'ref' : 'inline',
+        }) as JSONSchema7,
+      ),
     {
       validate: async value => {
         const result = await z4.safeParseAsync(zodSchema, value);

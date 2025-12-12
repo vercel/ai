@@ -1,5 +1,31 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 49e2b6a: fix(google): return request as object
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
 ## 3.0.0-beta.68
 
 ### Patch Changes
