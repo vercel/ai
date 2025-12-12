@@ -768,7 +768,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should NOT include beta header when using tools with strict: false on supported model', async () => {
+      it('should include beta header when using tools with strict: false on supported model', async () => {
         prepareJsonResponse({
           content: [
             {
@@ -799,6 +799,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
+            "anthropic-beta": "structured-outputs-2025-11-13",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -806,7 +807,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should NOT include beta header when using tools without strict on supported model', async () => {
+      it('should include beta header when using tools without strict on supported model', async () => {
         prepareJsonResponse({
           content: [
             {
@@ -836,6 +837,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
           {
+            "anthropic-beta": "structured-outputs-2025-11-13",
             "anthropic-version": "2023-06-01",
             "content-type": "application/json",
             "x-api-key": "test-api-key",
@@ -2529,7 +2531,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "advanced-tool-use-2025-11-20",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
@@ -2635,7 +2637,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "advanced-tool-use-2025-11-20",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",

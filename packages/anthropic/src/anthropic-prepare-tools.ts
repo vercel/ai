@@ -81,8 +81,7 @@ export async function prepareTools({
             : {}),
         });
 
-        // Add structured-outputs beta when using strict tools
-        if (supportsStructuredOutput === true && tool.strict === true) {
+        if (supportsStructuredOutput === true) {
           betas.add('structured-outputs-2025-11-13');
         }
 

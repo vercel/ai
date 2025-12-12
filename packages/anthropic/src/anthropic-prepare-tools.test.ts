@@ -83,6 +83,7 @@ describe('prepareTools', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "betas": Set {
+          "structured-outputs-2025-11-13",
           "advanced-tool-use-2025-11-20",
         },
         "toolChoice": undefined,
@@ -153,7 +154,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict when strict is undefined even if supportsStructuredOutput is true', async () => {
+    it('should include beta but not strict property when strict is undefined and supportsStructuredOutput is true', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -169,7 +170,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -222,7 +225,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include beta when strict is false', async () => {
+    it('should include beta when strict is false and supportsStructuredOutput is true', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -239,7 +242,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -597,7 +602,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -635,7 +642,9 @@ describe('prepareTools', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {},
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+          },
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
