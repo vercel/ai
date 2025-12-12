@@ -523,6 +523,11 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
+      },
+    },
     "result": {
       "arguments": "{"query":"NYC mayoral election results 2025 latest","numResults":5}",
       "name": "web_search_exa",
@@ -4525,6 +4530,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
+      },
+    },
     "result": {
       "arguments": "{"query":"2025 New York City mayoral election results Nov 2025 latest results", "numResults": 5}",
       "name": "web_search_exa",
@@ -4565,6 +4575,11 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
+      },
+    },
     "result": {
       "arguments": "{"query":"NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "numResults":5}",
       "name": "web_search_exa",
