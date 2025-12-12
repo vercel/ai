@@ -1302,6 +1302,57 @@ describe('doGenerate', () => {
     expect(result.warnings).toStrictEqual([]);
   });
 
+  it('should allow overriding systemMessageMode via providerOptions', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        openai: {
+          systemMessageMode: 'developer',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should use default systemMessageMode when not overridden', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
   it('should return the reasoning tokens in the provider metadata', async () => {
     prepareJsonResponse({
       usage: {

@@ -148,7 +148,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       await convertToOpenAIResponsesInput({
         prompt,
         toolNameMapping,
-        systemMessageMode: modelCapabilities.systemMessageMode,
+        systemMessageMode:
+          openaiOptions?.systemMessageMode ??
+          modelCapabilities.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
