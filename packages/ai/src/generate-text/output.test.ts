@@ -89,8 +89,6 @@ describe('Output.object', () => {
       const result = await object1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
-          "description": undefined,
-          "name": undefined,
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -242,8 +240,6 @@ describe('Output.array', () => {
       const result = await array1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
-          "description": undefined,
-          "name": undefined,
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -428,8 +424,6 @@ describe('Output.choice', () => {
       const result = await choice1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
-          "description": undefined,
-          "name": undefined,
           "schema": {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "additionalProperties": false,
@@ -626,8 +620,6 @@ describe('Output.json', () => {
       const result = await json1.responseFormat;
       expect(result).toMatchInlineSnapshot(`
         {
-          "description": undefined,
-          "name": undefined,
           "type": "json",
         }
       `);

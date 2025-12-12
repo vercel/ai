@@ -94,8 +94,8 @@ export const object = <OBJECT>({
     responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
       type: 'json' as const,
       schema: jsonSchema,
-      name,
-      description,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     })),
 
     async parseCompleteOutput(
@@ -205,8 +205,8 @@ export const array = <ELEMENT>({
           required: ['elements'],
           additionalProperties: false,
         },
-        name,
-        description,
+        ...(name != null && { name }),
+        ...(description != null && { description }),
       };
     }),
 
@@ -360,8 +360,8 @@ export const choice = <CHOICE extends string>({
         required: ['result'],
         additionalProperties: false,
       },
-      name,
-      description,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     } as const),
 
     async parseCompleteOutput(
@@ -481,8 +481,8 @@ export const json = ({
   return {
     responseFormat: Promise.resolve({
       type: 'json' as const,
-      name,
-      description,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     }),
 
     async parseCompleteOutput(
