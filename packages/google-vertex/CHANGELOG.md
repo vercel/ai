@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.91
+
+### Patch Changes
+
+- 97c861d: Remove duplicate gemini-1.0-pro-001 model ID
+
 ## 3.0.90
 
 ### Patch Changes

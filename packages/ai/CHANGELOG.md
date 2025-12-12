@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.113
+
+### Patch Changes
+
+- 7e6fb4d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
 ## 5.0.112
 
 ### Patch Changes
