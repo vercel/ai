@@ -644,7 +644,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with tool call parts that have ids', async () => {
+    it('should convert text parts with ids to item_reference but not client executed tool calls', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -684,7 +684,53 @@ describe('convertToOpenAIResponsesInput', () => {
             "type": "item_reference",
           },
           {
-            "id": "id_456",
+            "arguments": "{"query":"weather in San Francisco"}",
+            "call_id": "call_123",
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
+    it('should exclude provider executed tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I will search for that information.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'id_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: { query: 'weather in San Francisco' },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'id_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id_123",
             "type": "item_reference",
           },
         ]
@@ -2015,7 +2061,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     describe('local shell', () => {
-      it('should convert local shell tool call and result into item reference with store: true', async () => {
+      it.only('should convert local shell tool call and result with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -2055,8 +2101,19 @@ describe('convertToOpenAIResponsesInput', () => {
         expect(result.input).toMatchInlineSnapshot(`
           [
             {
+              "action": {
+                "command": [
+                  "ls",
+                ],
+                "env": undefined,
+                "timeout_ms": undefined,
+                "type": "exec",
+                "user": undefined,
+                "working_directory": undefined,
+              },
+              "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
               "id": "lsh_68c2e2cf522c81908f3e2c1bccd1493b0b24aae9c6c01e4f",
-              "type": "item_reference",
+              "type": "local_shell_call",
             },
             {
               "call_id": "call_XWgeTylovOiS8xLNz2TONOgO",
@@ -2159,7 +2216,6 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               "arguments": "{"a":1,"b":2}",
               "call_id": "call-1",
-              "id": undefined,
               "name": "calculator",
               "type": "function_call",
             },

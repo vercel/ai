@@ -166,6 +166,7 @@ export async function convertToOpenAIResponsesInput({
                 const itemId = part.providerOptions?.openai?.itemId as
                   | string
                   | undefined;
+
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
