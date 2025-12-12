@@ -4881,7 +4881,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
-      it('should stream with encrypted content include reasoning-delta part',async ()=>{
+      it('should stream with encrypted content include reasoning-delta part', async () => {
         prepareChunksFixtureResponse('openai-reasoning-encrypted-content.1');
         const { stream } = await createModel('gpt-5.1-codex-max').doStream({
           prompt: TEST_PROMPT,
@@ -4891,8 +4891,12 @@ describe('OpenAIResponsesLanguageModel', () => {
               name: 'calculator',
               inputSchema: {
                 type: 'object',
-                properties: { a: { type: 'number' },b:{type:'number'},op:{type:'string'}},
-                required: ['city'],
+                properties: {
+                  a: { type: 'number' },
+                  b: { type: 'number' },
+                  op: { type: 'string' },
+                },
+                required: ['a', 'b'],
                 additionalProperties: false,
               },
             },
@@ -4909,7 +4913,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-      })
+      });
 
       it('should handle encrypted content with empty summary', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {

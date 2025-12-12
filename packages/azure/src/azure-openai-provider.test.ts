@@ -1233,6 +1233,45 @@ describe('responses', () => {
         expect(result.content).toMatchSnapshot();
       });
     });
+
+    describe('reasoning', async () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-reasoning-encrypted-content.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  a: { type: 'number' },
+                  b: { type: 'number' },
+                  op: { type: 'string' },
+                },
+                required: ['a', 'b'],
+                additionalProperties: false,
+              },
+            },
+          ],
+          providerOptions: {
+            azure: {
+              reasoningEffort: 'high',
+              maxCompletionTokens: 32_000,
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningSummary: 'auto',
+            },
+          },
+        });
+      });
+      it('should generate with reasoning encrypted content', async () => {
+        expect(result).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
@@ -1673,7 +1712,7 @@ describe('responses', () => {
       ).toMatchSnapshot();
     });
 
-    it('should stream with reasoning encrypted content',async () =>{
+    it('should stream with reasoning encrypted content include reasoning-delta part', async () => {
       prepareChunksFixtureResponse('azure-reasoning-encrypted-content.1');
 
       const result = await createModel('test-deployment').doStream({
@@ -1684,8 +1723,12 @@ describe('responses', () => {
             name: 'calculator',
             inputSchema: {
               type: 'object',
-              properties: { a: { type: 'number' },b:{type:'number'},op:{type:'string'}},
-              required: ['city'],
+              properties: {
+                a: { type: 'number' },
+                b: { type: 'number' },
+                op: { type: 'string' },
+              },
+              required: ['a', 'b'],
               additionalProperties: false,
             },
           },
@@ -1704,7 +1747,7 @@ describe('responses', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
-    })
+    });
   });
   describe('file search tool', () => {
     it('should stream file search results without results include', async () => {

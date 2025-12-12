@@ -257,6 +257,232 @@ exports[`responses > doGenerate > file search tool > without results include > s
 ]
 `;
 
+exports[`responses > doGenerate > reasoning > should generate with reasoning encrypted content 1`] = `
+{
+  "content": [
+    {
+      "providerMetadata": {
+        "azure": {
+          "itemId": "msg_04014e83fc5fea6001693c13b13138819384dfefdecf415da7",
+        },
+      },
+      "text": "The final result is **570**.",
+      "type": "text",
+    },
+  ],
+  "finishReason": "stop",
+  "providerMetadata": {
+    "azure": {
+      "responseId": "resp_04014e83fc5fea6001693c13b09f1c8193adf986e690643d7c",
+      "serviceTier": "default",
+    },
+  },
+  "request": {
+    "body": {
+      "conversation": undefined,
+      "include": [
+        "reasoning.encrypted_content",
+      ],
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "max_tool_calls": undefined,
+      "metadata": undefined,
+      "model": "test-deployment",
+      "parallel_tool_calls": undefined,
+      "previous_response_id": undefined,
+      "prompt_cache_key": undefined,
+      "prompt_cache_retention": undefined,
+      "reasoning": {
+        "effort": "high",
+        "summary": "auto",
+      },
+      "safety_identifier": undefined,
+      "service_tier": undefined,
+      "store": false,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": [
+        {
+          "description": undefined,
+          "name": "calculator",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "type": "number",
+              },
+              "b": {
+                "type": "number",
+              },
+              "op": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "a",
+              "b",
+            ],
+            "type": "object",
+          },
+          "type": "function",
+        },
+      ],
+      "top_logprobs": undefined,
+      "top_p": undefined,
+      "truncation": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "content_filters": null,
+      "created_at": 1765544880,
+      "error": null,
+      "id": "resp_04014e83fc5fea6001693c13b09f1c8193adf986e690643d7c",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "gpt-5.1-codex-max",
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "The final result is **570**.",
+              "type": "output_text",
+            },
+          ],
+          "id": "msg_04014e83fc5fea6001693c13b13138819384dfefdecf415da7",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "high",
+        "summary": "detailed",
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": "medium",
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "A minimal calculator for basic arithmetic. Call it once per step.",
+          "name": "calculator",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "description": "First operand.",
+                "type": "number",
+              },
+              "b": {
+                "description": "Second operand.",
+                "type": "number",
+              },
+              "op": {
+                "default": "add",
+                "description": "Arithmetic operation to perform.",
+                "enum": [
+                  "add",
+                  "subtract",
+                  "multiply",
+                  "divide",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "a",
+              "b",
+              "op",
+            ],
+            "type": "object",
+          },
+          "strict": true,
+          "type": "function",
+        },
+      ],
+      "top_logprobs": 0,
+      "top_p": 0.985,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 297,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 12,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 309,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "1583",
+      "content-type": "application/json",
+    },
+    "id": "resp_04014e83fc5fea6001693c13b09f1c8193adf986e690643d7c",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T13:08:00.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 297,
+      "total": 297,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 12,
+      "total": 12,
+    },
+    "raw": {
+      "input_tokens": 297,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 12,
+      "output_tokens_details": {
+        "reasoning_tokens": 0,
+      },
+    },
+  },
+  "warnings": [],
+}
+`;
+
 exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
 [
   {
@@ -2107,7 +2333,7 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
-exports[`responses > doStream > should stream with reasoning encrypted content 1`] = `
+exports[`responses > doStream > should stream with reasoning encrypted content include reasoning-delta part 1`] = `
 [
   {
     "type": "stream-start",
