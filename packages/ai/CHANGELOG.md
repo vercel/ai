@@ -1,5 +1,77 @@
 # ai
 
+## 6.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/gateway@2.0.0-beta.78
+
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
+## 6.0.0-beta.143
+
+### Patch Changes
+
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/gateway@2.0.0-beta.75
+
+## 6.0.0-beta.142
+
+### Patch Changes
+
+- 7169511: feat(agent): support context in onFinish callback
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+
+## 6.0.0-beta.141
+
+### Patch Changes
+
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+
+## 6.0.0-beta.140
+
+### Patch Changes
+
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+
+## 6.0.0-beta.139
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/gateway@2.0.0-beta.74
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
 ## 6.0.0-beta.138
 
 ### Patch Changes

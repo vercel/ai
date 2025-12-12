@@ -364,11 +364,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "candidatesTokenCount": 5,
+          "promptTokenCount": 20,
+          "totalTokenCount": 25,
+        },
       }
     `);
   });
@@ -2124,11 +2135,23 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 10,
-        "outputTokens": 15,
-        "reasoningTokens": 8,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 10,
+          "total": 10,
+        },
+        "outputTokens": {
+          "reasoning": 8,
+          "text": 15,
+          "total": 23,
+        },
+        "raw": {
+          "candidatesTokenCount": 15,
+          "promptTokenCount": 10,
+          "thoughtsTokenCount": 8,
+          "totalTokenCount": 25,
+        },
       }
     `);
   });
@@ -2153,6 +2176,194 @@ describe('doGenerate', () => {
           thinkingLevel: 'high',
         },
       },
+    });
+  });
+
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello!' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                webSearchQueries: ['test query'],
+              },
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toHaveProperty('vertex');
+      expect(providerMetadata).not.toHaveProperty('google');
+      expect(providerMetadata?.vertex).toMatchObject({
+        promptFeedback: expect.any(Object),
+        groundingMetadata: expect.any(Object),
+        safetyRatings: expect.any(Array),
+      });
+    });
+
+    it('should use "google" as providerMetadata key when provider does not include "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello!' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                webSearchQueries: ['test query'],
+              },
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        //should default to 'google'
+      });
+
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toHaveProperty('google');
+      expect(providerMetadata).not.toHaveProperty('vertex');
+      expect(providerMetadata?.google).toMatchObject({
+        promptFeedback: expect.any(Object),
+        groundingMetadata: expect.any(Object),
+        safetyRatings: expect.any(Array),
+      });
+    });
+
+    it('should use "vertex" as providerMetadata key in thoughtSignature content when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'thinking...',
+                    thought: true,
+                    thoughtSignature: 'sig123',
+                  },
+                  { text: 'Final answer' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const reasoningPart = content.find(part => part.type === 'reasoning');
+      expect(reasoningPart?.providerMetadata).toHaveProperty('vertex');
+      expect(reasoningPart?.providerMetadata).not.toHaveProperty('google');
+      expect(reasoningPart?.providerMetadata?.vertex).toMatchObject({
+        thoughtSignature: 'sig123',
+      });
+    });
+
+    it('should use "vertex" as providerMetadata key in tool call content when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'test' },
+                    },
+                    thoughtSignature: 'tool_sig',
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const toolCallPart = content.find(part => part.type === 'tool-call');
+      expect(toolCallPart?.providerMetadata).toHaveProperty('vertex');
+      expect(toolCallPart?.providerMetadata).not.toHaveProperty('google');
+      expect(toolCallPart?.providerMetadata?.vertex).toMatchObject({
+        thoughtSignature: 'tool_sig',
+      });
     });
   });
 });
@@ -2423,11 +2634,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
         },
       ]
@@ -2892,11 +3114,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
         },
       ]
@@ -3252,11 +3485,23 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 14,
-            "outputTokens": 18,
-            "reasoningTokens": 142,
-            "totalTokens": 174,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 14,
+              "total": 14,
+            },
+            "outputTokens": {
+              "reasoning": 142,
+              "text": 18,
+              "total": 160,
+            },
+            "raw": {
+              "candidatesTokenCount": 18,
+              "promptTokenCount": 14,
+              "thoughtsTokenCount": 142,
+              "totalTokenCount": 174,
+            },
           },
         },
       ]
@@ -3392,9 +3637,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -3513,6 +3767,197 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+  });
+
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key in finish event when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ' World!' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+                groundingMetadata: {
+                  webSearchQueries: ['test query'],
+                },
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(finishEvent?.type === 'finish').toBe(true);
+      if (finishEvent?.type === 'finish') {
+        expect(finishEvent.providerMetadata).toHaveProperty('vertex');
+        expect(finishEvent.providerMetadata?.vertex).toMatchObject({
+          promptFeedback: null,
+          groundingMetadata: expect.any(Object),
+          safetyRatings: expect.any(Array),
+        });
+      }
+    });
+
+    it('should use "google" as providerMetadata key in finish event when provider does not include "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ' World!' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+                groundingMetadata: {
+                  webSearchQueries: ['test query'],
+                },
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(finishEvent?.type === 'finish').toBe(true);
+      if (finishEvent?.type === 'finish') {
+        expect(finishEvent.providerMetadata).toHaveProperty('google');
+        expect(finishEvent.providerMetadata).not.toHaveProperty('vertex');
+        expect(finishEvent.providerMetadata?.google).toMatchObject({
+          promptFeedback: null,
+          groundingMetadata: expect.any(Object),
+          safetyRatings: expect.any(Array),
+        });
+      }
+    });
+
+    it('should use "vertex" as providerMetadata key in streaming reasoning events when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: 'thinking...',
+                      thought: true,
+                      thoughtSignature: 'stream_sig',
+                    },
+                  ],
+                  role: 'model',
+                },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Final answer' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      const reasoningStartEvent = events.find(
+        event => event.type === 'reasoning-start',
+      );
+      expect(reasoningStartEvent?.type === 'reasoning-start').toBe(true);
+      if (reasoningStartEvent?.type === 'reasoning-start') {
+        expect(reasoningStartEvent.providerMetadata).toHaveProperty('vertex');
+        expect(reasoningStartEvent.providerMetadata).not.toHaveProperty(
+          'google',
+        );
+        expect(reasoningStartEvent.providerMetadata?.vertex).toMatchObject({
+          thoughtSignature: 'stream_sig',
+        });
+      }
+
+      const reasoningDeltaEvent = events.find(
+        event => event.type === 'reasoning-delta',
+      );
+      expect(reasoningDeltaEvent?.type === 'reasoning-delta').toBe(true);
+      if (reasoningDeltaEvent?.type === 'reasoning-delta') {
+        expect(reasoningDeltaEvent.providerMetadata).toHaveProperty('vertex');
+        expect(reasoningDeltaEvent.providerMetadata).not.toHaveProperty(
+          'google',
+        );
+      }
     });
   });
 });

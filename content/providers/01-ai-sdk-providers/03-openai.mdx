@@ -189,13 +189,14 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
   The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-  models. Setting `reasoningEffort` to 'none' with other models will result in
-  an error.
+  models. Also, the 'xhigh' type for `reasoningEffort` is only available for
+  OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or
+  'xhigh' with unsupported models will result in an error.
 </Note>
 
 - **reasoningSummary** _'auto' | 'detailed'_
@@ -875,7 +876,7 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
@@ -1438,6 +1439,9 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-codex-mini`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

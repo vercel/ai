@@ -1,7 +1,6 @@
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
-import { prepareRetries } from '../util/prepare-retries';
-import { splitArray } from '../util/split-array';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import { logWarnings } from '../logger/log-warnings';
+import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -9,7 +8,9 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
-import { resolveEmbeddingModel } from '../model/resolve-model';
+import { Warning } from '../types/warning';
+import { prepareRetries } from '../util/prepare-retries';
+import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
@@ -130,8 +131,8 @@ Only applicable for HTTP-based providers.
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
-        const { embeddings, usage, response, providerMetadata } = await retry(
-          () => {
+        const { embeddings, usage, warnings, response, providerMetadata } =
+          await retry(() => {
             // nested spans to align with the embedMany telemetry data:
             return recordSpan({
               name: 'ai.embedMany.doEmbed',
@@ -179,13 +180,13 @@ Only applicable for HTTP-based providers.
                 return {
                   embeddings,
                   usage,
+                  warnings: modelResponse.warnings,
                   providerMetadata: modelResponse.providerMetadata,
                   response: modelResponse.response,
                 };
               },
             });
-          },
-        );
+          });
 
         span.setAttributes(
           await selectTelemetryAttributes({
@@ -200,10 +201,17 @@ Only applicable for HTTP-based providers.
           }),
         );
 
+        logWarnings({
+          warnings,
+          provider: model.provider,
+          model: model.modelId,
+        });
+
         return new DefaultEmbedManyResult({
           values,
           embeddings,
           usage,
+          warnings,
           providerMetadata,
           responses: [response],
         });
@@ -214,6 +222,7 @@ Only applicable for HTTP-based providers.
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
+      const warnings: Array<Warning> = [];
       const responses: Array<
         | {
             headers?: Record<string, string>;
@@ -280,6 +289,7 @@ Only applicable for HTTP-based providers.
                   return {
                     embeddings,
                     usage,
+                    warnings: modelResponse.warnings,
                     providerMetadata: modelResponse.providerMetadata,
                     response: modelResponse.response,
                   };
@@ -291,6 +301,7 @@ Only applicable for HTTP-based providers.
 
         for (const result of results) {
           embeddings.push(...result.embeddings);
+          warnings.push(...result.warnings);
           responses.push(result.response);
           tokens += result.usage.tokens;
           if (result.providerMetadata) {
@@ -323,10 +334,17 @@ Only applicable for HTTP-based providers.
         }),
       );
 
+      logWarnings({
+        warnings,
+        provider: model.provider,
+        model: model.modelId,
+      });
+
       return new DefaultEmbedManyResult({
         values,
         embeddings,
         usage: { tokens },
+        warnings,
         providerMetadata: providerMetadata,
         responses,
       });
@@ -338,6 +356,7 @@ class DefaultEmbedManyResult implements EmbedManyResult {
   readonly values: EmbedManyResult['values'];
   readonly embeddings: EmbedManyResult['embeddings'];
   readonly usage: EmbedManyResult['usage'];
+  readonly warnings: EmbedManyResult['warnings'];
   readonly providerMetadata: EmbedManyResult['providerMetadata'];
   readonly responses: EmbedManyResult['responses'];
 
@@ -345,12 +364,14 @@ class DefaultEmbedManyResult implements EmbedManyResult {
     values: EmbedManyResult['values'];
     embeddings: EmbedManyResult['embeddings'];
     usage: EmbedManyResult['usage'];
+    warnings: EmbedManyResult['warnings'];
     providerMetadata?: EmbedManyResult['providerMetadata'];
     responses?: EmbedManyResult['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
     this.usage = options.usage;
+    this.warnings = options.warnings;
     this.providerMetadata = options.providerMetadata;
     this.responses = options.responses;
   }
