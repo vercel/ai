@@ -1,5 +1,39 @@
 # ai
 
+## 6.0.0-beta.149
+
+### Patch Changes
+
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
+## 6.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/gateway@2.0.0-beta.78
+
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
 ## 6.0.0-beta.144
 
 ### Patch Changes
