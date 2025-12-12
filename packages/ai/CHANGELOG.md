@@ -1,5 +1,26 @@
 # ai
 
+## 6.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/gateway@2.0.0-beta.78
+
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
 ## 6.0.0-beta.145
 
 ### Patch Changes
