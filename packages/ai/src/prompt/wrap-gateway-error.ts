@@ -14,9 +14,8 @@ export function wrapGatewayError(error: unknown): unknown {
     });
   }
 
-  const devEnvironmentError = new AISDKError({
-    name: 'GatewayError',
-    message: `
+  throw Object.assign(
+    new Error(`
 \u001b[1m\u001b[31mError: Unauthenticated request to AI Gateway.\u001b[0m
 
 To authenticate, set the \u001b[33mAI_GATEWAY_API_KEY\u001b[0m environment variable with your API key.
@@ -24,16 +23,9 @@ To authenticate, set the \u001b[33mAI_GATEWAY_API_KEY\u001b[0m environment varia
 Alternatively, you can configure and use a provider module instead of the AI Gateway.
 
 Learn more: \u001b[34m${moreInfoURL}\u001b[0m
-`,
-  });
 
-  // prune the stack to 5 lines for clarity
-  if (devEnvironmentError.stack) {
-    devEnvironmentError.stack = devEnvironmentError.stack
-      .split('\n')
-      .slice(0, 6)
-      .join('\n');
-  }
 
-  throw devEnvironmentError;
+`),
+    { name: 'GatewayAuthenticationError' },
+  );
 }
