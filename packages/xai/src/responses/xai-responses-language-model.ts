@@ -66,6 +66,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     topP,
     stopSequences,
     seed,
+    responseFormat,
     providerOptions,
     tools,
     toolChoice,
@@ -111,6 +112,19 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     });
     warnings.push(...toolWarnings);
 
+    // Build text.format for structured output
+    const textFormat =
+      responseFormat?.type === 'json'
+        ? responseFormat.schema != null
+          ? {
+              type: 'json_schema' as const,
+              schema: responseFormat.schema,
+              name: responseFormat.name ?? 'response',
+              strict: true,
+            }
+          : { type: 'json_object' as const }
+        : undefined;
+
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
@@ -118,6 +132,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       seed,
+      ...(textFormat != null && {
+        text: { format: textFormat },
+      }),
       ...(options.reasoningEffort != null && {
         reasoning: { effort: options.reasoningEffort },
       }),
@@ -196,7 +213,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'code_execution_call' ||
         part.type === 'view_image_call' ||
         part.type === 'view_x_video_call' ||
-        part.type === 'custom_tool_call'
+        part.type === 'custom_tool_call' ||
+        part.type === 'mcp_call'
       ) {
         let toolName = part.name ?? '';
         if (webSearchSubTools.includes(part.name ?? '')) {
@@ -211,7 +229,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         const toolInput =
           part.type === 'custom_tool_call'
             ? (part.input ?? '')
-            : (part.arguments ?? '');
+            : part.type === 'mcp_call'
+              ? (part.arguments ?? '')
+              : (part.arguments ?? '');
 
         content.push({
           type: 'tool-call',
@@ -312,7 +332,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' }> = {};
+    const contentBlocks: Record<string, { type: 'text'; ended: boolean }> = {};
     const seenToolCalls = new Set<string>();
 
     const self = this;
@@ -387,7 +407,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const blockId = `text-${event.item_id}`;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                contentBlocks[blockId] = { type: 'text', ended: false };
                 controller.enqueue({
                   type: 'text-start',
                   id: blockId,
@@ -468,7 +488,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 part.type === 'code_execution_call' ||
                 part.type === 'view_image_call' ||
                 part.type === 'view_x_video_call' ||
-                part.type === 'custom_tool_call'
+                part.type === 'custom_tool_call' ||
+                part.type === 'mcp_call'
               ) {
                 if (!seenToolCalls.has(part.id)) {
                   seenToolCalls.add(part.id);
@@ -498,7 +519,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   const toolInput =
                     part.type === 'custom_tool_call'
                       ? (part.input ?? '')
-                      : (part.arguments ?? '');
+                      : part.type === 'mcp_call'
+                        ? (part.arguments ?? '')
+                        : (part.arguments ?? '');
 
                   controller.enqueue({
                     type: 'tool-input-start',
@@ -530,25 +553,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
 
               if (part.type === 'message') {
+                const blockId = `text-${part.id}`;
+
+                // Emit text-end to signal completion (like OpenAI pattern)
+                // Text content was already streamed via response.output_text.delta events
+                if (contentBlocks[blockId] != null && !contentBlocks[blockId].ended) {
+                  contentBlocks[blockId].ended = true;
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: blockId,
+                  });
+                }
+
+                // Handle annotations from done event
                 for (const contentPart of part.content) {
-                  if (contentPart.text && contentPart.text.length > 0) {
-                    const blockId = `text-${part.id}`;
-
-                    if (contentBlocks[blockId] == null) {
-                      contentBlocks[blockId] = { type: 'text' };
-                      controller.enqueue({
-                        type: 'text-start',
-                        id: blockId,
-                      });
-                    }
-
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: blockId,
-                      delta: contentPart.text,
-                    });
-                  }
-
                   if (contentPart.annotations) {
                     for (const annotation of contentPart.annotations) {
                       if (
@@ -599,8 +617,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            // Emit text-end for any blocks that weren't ended by response.output_item.done
             for (const [blockId, block] of Object.entries(contentBlocks)) {
-              if (block.type === 'text') {
+              if (block.type === 'text' && !block.ended) {
                 controller.enqueue({
                   type: 'text-end',
                   id: blockId,

@@ -3735,28 +3735,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "text-delta",
   },
   {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran cuisine originates from the state of Sonora in northwest Mexico, blending indigenous, Spanish, and American influences due to its proximity to the U.S. border and arid desert environment. It's notably rustic, flavorful, and fusion-oriented, often featuring grilled meats, fresh produce, and bold spices adapted to the region's hot, dry climate. Unlike coastal Mexican cuisines, it emphasizes hearty, protein-heavy dishes with influences from the American Southwest, such as flour tortillas and cheese.
-
-### Key Ingredients and Techniques
-- **Meats and Proteins**: Grilled or roasted meats like beef (carne asada), pork, and chicken are central, often seasoned with simple marinades of lime, garlic, and chili. Machaca (dried, shredded beef) is a hallmark preservation technique for the desert.
-- **Chiles and Spices**: Local chiles (e.g., Sonora's chiltepin, a tiny, potent pepper) add heat, while cumin, oregano, and cilantro provide earthy flavors. Beans (frijoles) and corn are staples, often prepared simply to highlight natural tastes.
-- **Tortillas and Breads**: Flour tortillas dominate, reflecting American influence, unlike corn tortillas in many other Mexican regions. Baking and grilling are common, with an emphasis on fresh, unprocessed ingredients.
-- **Regional Staples**: Desert elements like nopales (cactus pads), nopalitos, and wild herbs are incorporated for texture and nutrition, showcasing indigenous roots.
-
-### Signature Dishes
-- **Carne Asada Tacos**: Thinly sliced, grilled skirt steak served on flour tortillas with salsa, onions, and cilantro—often eaten with beans and rice.
-- **Sonoran Hot Dogs**: A fusion dish where a hot dog is wrapped in bacon, grilled, and topped with pinto beans, onions, tomatoes, mayo, mustard, and cheese in a sliced bolillo roll. This originated in border towns and highlights Mexican-American crossover.
-- **Chimichangas**: Deep-fried burritos filled with meat, cheese, and beans, served with guacamole and sour cream—a nod to Tex-Mex influences.
-- **Ceviche and Seafood**: Coastal Sonoran areas feature fresh ceviche (citrus-marinated fish) and shrimp dishes, contrasting the land-based inland cuisine.
-- **Other Notables**: Guaymas-style tamales (with meat and sauce) and caldillo (a beef stew with potatoes) emphasize slow-cooked comfort foods.
-
-### Cultural and Historical Influences
-Sonora's style emerged from indigenous Yaqui and Mayo tribes, who used desert foraging, combined with Spanish colonial methods like cattle ranching. Post-Mexican-American War migration boosted American elements, creating dishes like flour-based tacos. Today, it's celebrated in cities like Hermosillo and Tucson (Arizona), influencing Southwestern U.S. cuisine. Festivals like the Sonora International Gastronomic Festival highlight its evolution, and it's known for its focus on quality ingredients over elaborate preparations, making it accessible and flavorful for everyday meals. If you're exploring, local markets (tianguis) are the best places to experience authentic flavors.",
-    "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
-    "type": "text-delta",
-  },
-  {
     "id": "text-msg_769f3302-64f9-4c72-2b48-860c87fd9b2a",
     "type": "text-end",
   },
@@ -7048,29 +7026,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
   },
   {
     "delta": ".",
-    "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
-    "type": "text-delta",
-  },
-  {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran cuisine originates from the Sonora region in northwestern Mexico, characterized by its simplicity, fresh ingredients, and emphasis on grilling and bold flavors. Unlike spicier Mexican cuisines from other regions, it's notably milder, relying on the region's abundant desert produce and livestock. This style blends indigenous influences (e.g., from Yaqui and Mayo peoples) with Spanish colonial elements, resulting in hearty, straightforward dishes that highlight natural tastes over complex preparations.
-
-### Key Ingredients and Flavors
-- **Mild Chilies and Heat**: The signature is the Mexican Sonora chile (a mild, fruity pepper), often used fresh or roasted. Unlike hotter varieties in Yucatán or Oaxaca, Sonoran food avoids excessive spice, focusing on subtle sweetness and smokiness.
-- **Desert and Local Produce**: Staples include nopales (cactus pads), beans, corn, tomatoes, and onions. The arid climate favors grilled or fresh preparations, with minimal sauces.
-- **Proteins**: Beef, especially in carne asada (grilled skirt steak), is dominant, reflecting Sonora's cattle ranching history. Other meats like pork or chicken are common, often seasoned simply with garlic, lime, and herbs.
-- **Influence of the Sea and Land**: Coastal areas incorporate seafood (e.g., shrimp or fish), while inland focuses on ranch-raised meats. Dairy is rare, emphasizing Mexican crema or cheese sparingly.
-
-### Notable Dishes and Preparation Styles
-- **Grilling as a Core Technique**: Many dishes are cooked over open flames or on a comal, imparting a charred, smoky flavor. This is seen in carne asada, served with tortillas, guacamole, and pico de gallo.
-- **Iconic Foods**: 
-  - **Machaca**: Shredded, dried beef slow-cooked with eggs, onions, and chilies— a breakfast staple that's simple yet flavorful.
-  - **Tamales**: Steamed corn masa filled with meat or cheese, often wrapped in corn husks; Sonoran versions are less sauced than those in central Mexico.
-  - **Chimichangas**: Fried burritos, a Sonora-influenced Tex-Mex creation, highlighting the region's border proximity to Arizona.
-- **Beverages**: Agua fresca (fruit waters) from local fruits like watermelon or hibiscus, and horchata, a rice-based drink, complement meals.
-
-### Cultural and Regional Context
-Sonoran's style is practical for its hot, dry climate—dishes are quick to prepare and preserve well. It's less ornate than Yucatecan or Jaliscan cuisines, prioritizing sustenance over elaboration. In the U.S., especially Arizona, Sonoran influences appear in fusion foods like Mexican hot dogs (bacon-wrapped with beans and salsa). This cuisine's notable restraint in spice and focus on grilling make it distinct, emphasizing the desert's bounty for authentic, approachable meals.",
     "id": "text-msg_0b824fe9-3250-2588-0bbf-0810402fc822",
     "type": "text-delta",
   },
@@ -10490,26 +10445,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "type": "text-delta",
   },
   {
-    "delta": "### Overview of Sonoran Cuisine
-Sonoran food originates from the Sonoran Desert region, spanning parts of northern Mexico (especially Sonora state) and southern Arizona. It's a rustic, resourceful style shaped by the arid environment, blending Indigenous, Spanish, and Mexican influences. Unlike the more complex, mole-heavy cuisines of central Mexico, Sonoran fare emphasizes simplicity, fresh local ingredients, and bold, smoky flavors from grilling and chiles. It's practical for desert living, focusing on sustenance with minimal processing.
-
-### Key Ingredients and Characteristics
-- **Local Produce and Staples**: Heavily reliant on desert-sourced items like nopales (prickly pear cactus pads), which are grilled or sautéed for their tangy, crisp texture. Beans (pinto or black), corn, and chiles (e.g., chili pequin or jalapeños) are ubiquitous, often used fresh or dried. Tomatoes, onions, and herbs like cilantro add freshness.
-- **Proteins**: Beef, pork, and chicken dominate, with grilling (asado) as a core technique, infusing meats with smoky char. Seafood appears in coastal Sonoran areas, like shrimp or fish tacos.
-- **Bold Flavors and Simplicity**: Dishes avoid heavy sauces; instead, they rely on spices, lime, and chiles for heat and acidity. Tortillas (corn or flour) serve as the base, with minimal elaboration—think of it as "desert pragmatism" where food is hearty yet straightforward to prepare in hot climates.
-
-### Signature Dishes
-- **Carne Asada**: Grilled skirt or flank steak marinated in lime, garlic, and cumin, served with tortillas, salsa, and beans. It's the region's barbecue staple, often enjoyed at family gatherings.
-- **Sonoran Hot Dogs**: A fusion delight where a bacon-wrapped hot dog is topped with pinto beans, salsa, onions, and mustard in a bun. Originating in Hermosillo, Mexico, it's a street food icon, blending American and Mexican influences.
-- **Tacos and Tamales**: Tacos are filled with grilled meats, nopales, or cheese, while tamales use corn masa wrapped in corn husks and steamed, often stuffed with pork or chicken.
-- **Chimichangas**: Deep-fried burritos, more associated with Arizona's Mexican-American adaptations, filled with meat, cheese, and beans.
-
-### Cultural and Regional Notes
-Sonoran cuisine reflects Indigenous roots from tribes like the Tohono O'odham and Yaqui, who taught Europeans to use desert plants for survival. Spanish colonialists added wheat flour and livestock. In Mexico's Sonora, it's more traditional and seafood-influenced near the Gulf of California, while in Arizona, it incorporates Tex-Mex elements like flour tortillas and cheese. This style stands out for its resilience and adaptability, making it distinct from coastal Mexican seafood or Yucatecan spice profiles. For authentic experiences, try spots like food trucks in Tucson or markets in Hermosillo.",
-    "id": "text-msg_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
-    "type": "text-delta",
-  },
-  {
     "id": "text-msg_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
     "type": "text-end",
   },
@@ -11922,17 +11857,8 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "url": "https://x.ai/",
   },
   {
-    "delta": "xAI is an American artificial intelligence company founded by Elon Musk in July 2023. Its mission is to "understand the true nature of the universe" by advancing scientific discovery through AI. The company is based in the San Francisco Bay Area and focuses on developing advanced AI models, including the Grok chatbot (integrated with the X platform, formerly Twitter).
-
-Key points:
-- **Founders and Team**: Led by Elon Musk, with a team of engineers and researchers from companies like OpenAI, Google DeepMind, and Tesla.
-- **Products**: xAI has released Grok-1 (an open-source large language model) and subsequent versions like Grok-1.5 and Grok-2, which power conversational AI tools.
-- **Funding**: Raised significant venture capital, including a $6 billion Series B round in 2024, valuing the company at around $24 billion.
-- **Philosophy**: Emphasizes curiosity-driven AI development, with a focus on truth-seeking and avoiding overly restrictive safety measures compared to competitors.
-
-Note: "XAI" can also refer to "Explainable AI," a field in machine learning that makes AI decisions transparent and interpretable to humans. If that's what you meant, let me know for more details! For the latest updates, check x.ai.",
     "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
-    "type": "text-delta",
+    "type": "text-end",
   },
   {
     "id": "id-5",
@@ -11968,10 +11894,6 @@ Note: "XAI" can also refer to "Explainable AI," a field in machine learning that
     "title": "https://x.ai/",
     "type": "source",
     "url": "https://x.ai/",
-  },
-  {
-    "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
-    "type": "text-end",
   },
   {
     "finishReason": "stop",
