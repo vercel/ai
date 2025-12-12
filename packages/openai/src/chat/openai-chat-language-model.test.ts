@@ -168,10 +168,12 @@ describe('doGenerate', () => {
     };
     annotations?: Array<{
       type: 'url_citation';
-      start_index: number;
-      end_index: number;
-      url: string;
-      title: string;
+      url_citation: {
+        start_index: number;
+        end_index: number;
+        url: string;
+        title: string;
+      };
     }>;
     logprobs?: {
       content:
@@ -730,10 +732,12 @@ describe('doGenerate', () => {
       annotations: [
         {
           type: 'url_citation',
-          start_index: 24,
-          end_index: 29,
-          url: 'https://example.com/doc1.pdf',
-          title: 'Document 1',
+          url_citation: {
+            start_index: 24,
+            end_index: 29,
+            url: 'https://example.com/doc1.pdf',
+            title: 'Document 1',
+          },
         },
       ],
     });
@@ -1988,7 +1992,7 @@ describe('doStream', () => {
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","url_citation":{"start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}}]},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
