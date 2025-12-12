@@ -10,7 +10,7 @@ export function wrapGatewayError(error: unknown): unknown {
   if (isProductionEnv) {
     return new AISDKError({
       name: 'GatewayError',
-      message: `Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: ${moreInfoURL}`,
+      message: `Unauthenticated. Configure AI_GATEWAY_API_KEY or use a provider module. Learn more: ${moreInfoURL}`,
     });
   }
 
@@ -20,7 +20,7 @@ export function wrapGatewayError(error: unknown): unknown {
 
 To authenticate, set the \u001b[33mAI_GATEWAY_API_KEY\u001b[0m environment variable with your API key.
 
-Alternatively, you can configure and use a provider module instead of the AI Gateway.
+Alternatively, you can use a provider module instead of the AI Gateway.
 
 Learn more: \u001b[34m${moreInfoURL}\u001b[0m
 
