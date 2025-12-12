@@ -2061,7 +2061,7 @@ describe('convertToOpenAIResponsesInput', () => {
     });
 
     describe('local shell', () => {
-      it.only('should convert local shell tool call and result with store: true', async () => {
+      it('should convert local shell tool call and result with store: true', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
