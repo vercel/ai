@@ -23,7 +23,6 @@ Alternatively, you can use a provider module instead of the AI Gateway.
 
 Learn more: \u001b[34m${moreInfoURL}\u001b[0m
 
-
 `),
     { name: 'GatewayAuthenticationError' },
   );
