@@ -1,7 +1,6 @@
 import {
   LanguageModelV2CallWarning,
   LanguageModelV2Prompt,
-  LanguageModelV2ToolCallPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -14,7 +13,6 @@ import {
   localShellInputSchema,
   localShellOutputSchema,
 } from '../tool/local-shell';
-import { webSearchOutputSchema } from '../tool/web-search';
 import {
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
@@ -137,7 +135,6 @@ export async function convertToOpenAIResponsesInput({
 
       case 'assistant': {
         const reasoningMessages: Record<string, OpenAIResponsesReasoning> = {};
-        const toolCallParts: Record<string, LanguageModelV2ToolCallPart> = {};
 
         for (const part of content) {
           switch (part.type) {
@@ -161,24 +158,14 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              toolCallParts[part.toolCallId] = part;
-
               if (part.providerExecuted) {
                 break;
               }
 
-              const id = part.providerOptions?.openai?.itemId as
-                | string
-                | undefined;
-
-              // NOTE: We intentionally don't use item_reference here for client-executed tools
-              // because the corresponding function_call_output uses toolCallId (call_...)
-              // not itemId (fc_...), which causes a mismatch error from OpenAI.
-              // Provider-executed tools (handled above) don't have this issue since both
-              // the call and result are stored on OpenAI's side.
-              // See: https://github.com/vercel/ai/issues/8216
-
               if (hasLocalShellTool && part.toolName === 'local_shell') {
+                const itemId = part.providerOptions?.openai?.itemId as
+                  | string
+                  | undefined;
                 const parsedInput = await validateTypes({
                   value: part.input,
                   schema: localShellInputSchema,
@@ -186,7 +173,7 @@ export async function convertToOpenAIResponsesInput({
                 input.push({
                   type: 'local_shell_call',
                   call_id: part.toolCallId,
-                  id: id!,
+                  id: itemId!,
                   action: {
                     type: 'exec',
                     command: parsedInput.action.command,
@@ -200,9 +187,6 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              // NOTE: We don't include the `id` field here for client-executed tools.
-              // Including it can cause issues when store=true because OpenAI may
-              // interpret it as referencing a stored item rather than defining a new one.
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
