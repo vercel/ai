@@ -5,12 +5,13 @@ export function wrapGatewayError(error: unknown): unknown {
   if (!GatewayAuthenticationError.isInstance(error)) return error;
 
   const isProductionEnv = process?.env.NODE_ENV === 'production';
+  const moreInfoURL = 'https://vercel.link/unauthenticated-ai-gateway-v6';
 
   if (isProductionEnv) {
     return new AISDKError({
       name: 'GatewayError',
       message:
-        'Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: https://vercel.link/unauthenticated-ai-gateway-v6',
+        `Unauthenticated. Configure AI_GATEWAY_API_KEY or configure and use a provider module. Learn more: ${moreInfoURL}`,
     });
   }
 
@@ -23,7 +24,7 @@ To authenticate, set the \u001b[33mAI_GATEWAY_API_KEY\u001b[0m environment varia
 
 Alternatively, you can configure and use a provider module instead of the AI Gateway.
 
-Learn more: \u001b[34mhttps://vercel.link/unauthenticated-ai-gateway-v6\u001b[0m
+Learn more: \u001b[34m${moreInfoURL}\u001b[0m
 `,
   });
 
