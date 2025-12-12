@@ -200,7 +200,7 @@ import { DefaultChatTransport } from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
-  const { messages, sendMessage, error, reload } = useChat({
+  const { messages, sendMessage, error, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/chat',
     }),
@@ -221,7 +221,7 @@ export default function Chat() {
       {error && (
         <>
           <div>An error occurred.</div>
-          <button type="button" onClick={() => reload()}>
+          <button type="button" onClick={() => regenerate()}>
             Retry
           </button>
         </>
