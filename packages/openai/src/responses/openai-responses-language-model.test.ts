@@ -4881,6 +4881,36 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should stream with encrypted content include reasoning-delta part',async ()=>{
+        prepareChunksFixtureResponse('openai-reasoning-encrypted-content.1');
+        const { stream } = await createModel('gpt-5.1-codex-max').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              inputSchema: {
+                type: 'object',
+                properties: { a: { type: 'number' },b:{type:'number'},op:{type:'string'}},
+                required: ['city'],
+                additionalProperties: false,
+              },
+            },
+          ],
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+              maxCompletionTokens: 32_000,
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningSummary: 'auto',
+            },
+          },
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      })
+
       it('should handle encrypted content with empty summary', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
