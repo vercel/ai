@@ -14,7 +14,7 @@ export function wrapGatewayError(error: unknown): unknown {
     });
   }
 
-  throw Object.assign(
+  return Object.assign(
     new Error(`
 \u001b[1m\u001b[31mError: Unauthenticated request to AI Gateway.\u001b[0m
 
