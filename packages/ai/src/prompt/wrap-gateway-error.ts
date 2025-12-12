@@ -5,7 +5,7 @@ export function wrapGatewayError(error: unknown): unknown {
   if (!GatewayAuthenticationError.isInstance(error)) return error;
 
   const isProductionEnv = process?.env.NODE_ENV === 'production';
-  const moreInfoURL = 'https://vercel.link/unauthenticated-ai-gateway-v6';
+  const moreInfoURL = 'http://v6.ai-sdk.dev/unauthenticated-ai-gateway';
 
   if (isProductionEnv) {
     return new AISDKError({
