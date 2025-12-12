@@ -416,27 +416,59 @@ function App() {
         const usage = parseJson(s.usage);
         const inputBreakdown = getInputTokenBreakdown(usage?.inputTokens);
         const outputBreakdown = getOutputTokenBreakdown(usage?.outputTokens);
-        return {
-          input: {
-            total: acc.input.total + inputBreakdown.total,
-            noCache: (acc.input.noCache ?? 0) + (inputBreakdown.noCache ?? 0),
-            cacheRead:
-              (acc.input.cacheRead ?? 0) + (inputBreakdown.cacheRead ?? 0),
-            cacheWrite:
-              (acc.input.cacheWrite ?? 0) + (inputBreakdown.cacheWrite ?? 0),
-          },
-          output: {
-            total: acc.output.total + outputBreakdown.total,
-            text: (acc.output.text ?? 0) + (outputBreakdown.text ?? 0),
-            reasoning:
-              (acc.output.reasoning ?? 0) + (outputBreakdown.reasoning ?? 0),
-          },
+
+        const input: InputTokenBreakdown = {
+          total: acc.input.total + inputBreakdown.total,
         };
+
+        // Only add breakdown properties if they exist in either accumulator or current breakdown
+        if (
+          acc.input.noCache !== undefined ||
+          inputBreakdown.noCache !== undefined
+        ) {
+          input.noCache =
+            (acc.input.noCache ?? 0) + (inputBreakdown.noCache ?? 0);
+        }
+        if (
+          acc.input.cacheRead !== undefined ||
+          inputBreakdown.cacheRead !== undefined
+        ) {
+          input.cacheRead =
+            (acc.input.cacheRead ?? 0) + (inputBreakdown.cacheRead ?? 0);
+        }
+        if (
+          acc.input.cacheWrite !== undefined ||
+          inputBreakdown.cacheWrite !== undefined
+        ) {
+          input.cacheWrite =
+            (acc.input.cacheWrite ?? 0) + (inputBreakdown.cacheWrite ?? 0);
+        }
+
+        const output: OutputTokenBreakdown = {
+          total: acc.output.total + outputBreakdown.total,
+        };
+
+        // Only add breakdown properties if they exist in either accumulator or current breakdown
+        if (
+          acc.output.text !== undefined ||
+          outputBreakdown.text !== undefined
+        ) {
+          output.text = (acc.output.text ?? 0) + (outputBreakdown.text ?? 0);
+        }
+        if (
+          acc.output.reasoning !== undefined ||
+          outputBreakdown.reasoning !== undefined
+        ) {
+          output.reasoning =
+            (acc.output.reasoning ?? 0) + (outputBreakdown.reasoning ?? 0);
+        }
+
+        return { input, output };
       },
       {
-        input: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-        output: { total: 0, text: 0, reasoning: 0 },
-      },
+        input: { total: 0 },
+        output: { total: 0 },
+      } as { input: InputTokenBreakdown; output: OutputTokenBreakdown },
     );
   };
 
@@ -1980,7 +2012,7 @@ function TokenBreakdownTooltip({
           </div>
         )}
       </div>
-      {raw && (
+      {raw !== undefined && (
         <div className="pt-1 border-t border-border mt-1">
           <div className="text-muted-foreground/70 font-mono text-[10px] max-w-[200px] truncate">
             Raw: {JSON.stringify(raw)}
@@ -2026,12 +2058,20 @@ function getInputTokenBreakdown(
 ): InputTokenBreakdown {
   if (tokens == null) return { total: 0 };
   if (typeof tokens === 'number') return { total: tokens };
-  if (typeof tokens === 'object' && 'total' in tokens) {
+  if (typeof tokens === 'object') {
+    // Handle case where total might be missing or not a number
+    const total =
+      'total' in tokens && typeof tokens.total === 'number' ? tokens.total : 0;
     return {
-      total: tokens.total ?? 0,
-      noCache: tokens.noCache,
-      cacheRead: tokens.cacheRead,
-      cacheWrite: tokens.cacheWrite,
+      total,
+      // Only include cache fields if they are actual numbers
+      ...(typeof tokens.noCache === 'number' && { noCache: tokens.noCache }),
+      ...(typeof tokens.cacheRead === 'number' && {
+        cacheRead: tokens.cacheRead,
+      }),
+      ...(typeof tokens.cacheWrite === 'number' && {
+        cacheWrite: tokens.cacheWrite,
+      }),
     };
   }
   return { total: 0 };
@@ -2042,11 +2082,17 @@ function getOutputTokenBreakdown(
 ): OutputTokenBreakdown {
   if (tokens == null) return { total: 0 };
   if (typeof tokens === 'number') return { total: tokens };
-  if (typeof tokens === 'object' && 'total' in tokens) {
+  if (typeof tokens === 'object') {
+    // Handle case where total might be missing or not a number
+    const total =
+      'total' in tokens && typeof tokens.total === 'number' ? tokens.total : 0;
     return {
-      total: tokens.total ?? 0,
-      text: tokens.text,
-      reasoning: tokens.reasoning,
+      total,
+      // Only include text/reasoning if they are actual numbers
+      ...(typeof tokens.text === 'number' && { text: tokens.text }),
+      ...(typeof tokens.reasoning === 'number' && {
+        reasoning: tokens.reasoning,
+      }),
     };
   }
   return { total: 0 };
