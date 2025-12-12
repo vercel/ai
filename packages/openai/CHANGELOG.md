@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- 817e601: fix(openai); fix url_citation schema in chat api
+- 59561f8: fix(openai); fix url_citation schema in chat api
+
 ## 3.0.0-beta.95
 
 ### Patch Changes
