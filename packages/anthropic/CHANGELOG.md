@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.56
+
+### Patch Changes
+
+- 3716d34: fix(anthropic): support pdf responses in web_fetch_tool_result schema validation
+
 ## 2.0.55
 
 ### Patch Changes
