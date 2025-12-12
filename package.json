@@ -35,7 +35,7 @@
     "eslint-config-vercel-ai": "workspace:*",
     "husky": "^8.0.0",
     "lint-staged": "15.2.10",
-    "next": "15.0.5",
+    "next": "15.0.7",
     "playwright": "^1.44.1",
     "prettier": "3.5.3",
     "prettier-plugin-svelte": "^3.3.3",
