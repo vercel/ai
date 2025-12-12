@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.78
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
 ## 2.0.0-beta.77
 
 ### Patch Changes
