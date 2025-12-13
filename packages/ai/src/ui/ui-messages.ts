@@ -498,3 +498,53 @@ export type InferUIMessagePart<UI_MESSAGE extends UIMessage> = UIMessagePart<
   InferUIMessageData<UI_MESSAGE>,
   InferUIMessageTools<UI_MESSAGE>
 >;
+
+/**
+ * Get all text parts from a message.
+ */
+export function getTextParts(message: UIMessage): TextUIPart[] {
+  return message.parts.filter(isTextUIPart);
+}
+
+/**
+ * Get joined text content from a message.
+ */
+export function getTextContent(message: UIMessage): string {
+  return getTextParts(message)
+    .map(part => part.text)
+    .join('');
+}
+
+/**
+ * Get all reasoning parts from a message.
+ */
+export function getReasoningParts(message: UIMessage): ReasoningUIPart[] {
+  return message.parts.filter(isReasoningUIPart);
+}
+
+/**
+ * Get joined reasoning text from a message.
+ */
+export function getReasoningContent(message: UIMessage): string {
+  return getReasoningParts(message)
+    .map(part => part.text)
+    .join('');
+}
+
+/**
+ * Check if reasoning is currently streaming in a message.
+ */
+export function isReasoningStreaming(message: UIMessage): boolean {
+  return message.parts.some(
+    part => isReasoningUIPart(part) && part.state === 'streaming',
+  );
+}
+
+/**
+ * Check if text is currently streaming in a message.
+ */
+export function isTextStreaming(message: UIMessage): boolean {
+  return message.parts.some(
+    part => isTextUIPart(part) && part.state === 'streaming',
+  );
+}
