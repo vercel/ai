@@ -4,7 +4,7 @@ import {
   ToolExecutionOptions,
   ToolSet,
   UIMessageStreamWriter,
-  getToolName,
+  getStaticToolName,
   isStaticToolUIPart,
 } from 'ai';
 import { HumanInTheLoopUIMessage } from './types';
@@ -64,7 +64,7 @@ export async function processToolCalls<
       // Only process tool invocations parts
       if (!isStaticToolUIPart(part)) return part;
 
-      const toolName = getToolName(part);
+      const toolName = getStaticToolName(part);
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'result' state
       if (!(toolName in executeFunctions) || part.state !== 'output-available')

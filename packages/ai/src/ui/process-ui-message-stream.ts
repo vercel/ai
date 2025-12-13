@@ -14,7 +14,7 @@ import { UIDataTypesToSchemas } from './chat';
 import {
   DataUIPart,
   DynamicToolUIPart,
-  getToolName,
+  getStaticToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
@@ -566,7 +566,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
+                  toolName: getStaticToolName(toolInvocation),
                   state: 'output-available',
                   input: (toolInvocation as any).input,
                   output: chunk.output,
@@ -596,7 +596,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
+                  toolName: getStaticToolName(toolInvocation),
                   state: 'output-error',
                   input: (toolInvocation as any).input,
                   rawInput: (toolInvocation as any).rawInput,

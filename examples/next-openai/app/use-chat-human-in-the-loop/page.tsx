@@ -1,7 +1,11 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, getToolName, isStaticToolUIPart } from 'ai';
+import {
+  DefaultChatTransport,
+  getStaticToolName,
+  isStaticToolUIPart,
+} from 'ai';
 import { tools } from '../api/use-chat-human-in-the-loop/tools';
 import {
   APPROVAL,
@@ -29,7 +33,7 @@ export default function Chat() {
       part =>
         isStaticToolUIPart(part) &&
         part.state === 'input-available' &&
-        toolsRequiringConfirmation.includes(getToolName(part)),
+        toolsRequiringConfirmation.includes(getStaticToolName(part)),
     ),
   );
 
@@ -44,7 +48,7 @@ export default function Chat() {
             }
             if (isStaticToolUIPart<MyTools>(part)) {
               const toolInvocation = part;
-              const toolName = getToolName(toolInvocation);
+              const toolName = getStaticToolName(toolInvocation);
               const toolCallId = toolInvocation.toolCallId;
               const dynamicInfoStyles = 'font-mono bg-zinc-100 p-1 text-sm';
 

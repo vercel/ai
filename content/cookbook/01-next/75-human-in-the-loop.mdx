@@ -189,7 +189,11 @@ You can check if the tool requiring confirmation has been called and, if so, pre
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, isStaticToolUIPart, getToolName } from 'ai';
+import {
+  DefaultChatTransport,
+  isStaticToolUIPart,
+  getStaticToolName,
+} from 'ai';
 import { useState } from 'react';
 
 export default function Chat() {
@@ -211,7 +215,7 @@ export default function Chat() {
                 return <div key={i}>{part.text}</div>;
               }
               if (isStaticToolUIPart(part)) {
-                const toolName = getToolName(part);
+                const toolName = getStaticToolName(part);
                 const toolCallId = part.toolCallId;
 
                 // render confirmation tool (client-side tool with user interaction)
@@ -296,7 +300,7 @@ import {
   convertToModelMessages,
   stepCountIs,
   isStaticToolUIPart,
-  getToolName,
+  getStaticToolName,
   UIMessage,
 } from 'ai';
 import { z } from 'zod';
@@ -316,7 +320,7 @@ export async function POST(req: Request) {
           if (!isStaticToolUIPart(part)) {
             return part;
           }
-          const toolName = getToolName(part);
+          const toolName = getStaticToolName(part);
           // return if tool isn't weather tool or in a output-available state
           if (
             toolName !== 'getWeatherInformation' ||
@@ -454,7 +458,7 @@ import {
   ToolExecutionOptions,
   ToolSet,
   UIMessageStreamWriter,
-  getToolName,
+  getStaticToolName,
   isStaticToolUIPart,
 } from 'ai';
 import { HumanInTheLoopUIMessage } from './types';
@@ -514,7 +518,7 @@ export async function processToolCalls<
       // Only process tool invocations parts
       if (!isStaticToolUIPart(part)) return part;
 
-      const toolName = getToolName(part);
+      const toolName = getStaticToolName(part);
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'output-available' state
       if (!(toolName in executeFunctions) || part.state !== 'output-available')
@@ -655,7 +659,11 @@ Finally, update the frontend to use the new `getToolsRequiringConfirmation` func
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, getToolName, isStaticToolUIPart } from 'ai';
+import {
+  DefaultChatTransport,
+  getStaticToolName,
+  isStaticToolUIPart,
+} from 'ai';
 import { tools } from '../api/chat/tools';
 import { APPROVAL, getToolsRequiringConfirmation } from '../api/chat/utils';
 import { useState } from 'react';
@@ -678,7 +686,7 @@ export default function Chat() {
       part =>
         isStaticToolUIPart(part) &&
         part.state === 'input-available' &&
-        toolsRequiringConfirmation.includes(getToolName(part)),
+        toolsRequiringConfirmation.includes(getStaticToolName(part)),
     ),
   );
 
@@ -692,7 +700,7 @@ export default function Chat() {
               return <div key={i}>{part.text}</div>;
             }
             if (isStaticToolUIPart<MyTools>(part)) {
-              const toolName = getToolName(part);
+              const toolName = getStaticToolName(part);
               const toolCallId = part.toolCallId;
               const dynamicInfoStyles = 'font-mono bg-zinc-100 p-1 text-sm';
 

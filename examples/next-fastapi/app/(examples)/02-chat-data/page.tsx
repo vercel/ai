@@ -2,7 +2,7 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
-import { getToolName, isStaticToolUIPart } from 'ai';
+import { getStaticToolName, isStaticToolUIPart } from 'ai';
 import { GeistMono } from 'geist/font/mono';
 import { useState } from 'react';
 
@@ -27,7 +27,7 @@ export default function Page() {
                       key={index}
                       className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
                     >
-                      {`${getToolName(part)}(${JSON.stringify(
+                      {`${getStaticToolName(part)}(${JSON.stringify(
                         part.input,
                         null,
                         2,
