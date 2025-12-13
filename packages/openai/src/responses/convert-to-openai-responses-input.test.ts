@@ -14,7 +14,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -26,7 +26,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'developer',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -38,7 +38,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'remove',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -57,7 +57,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -83,7 +83,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -117,7 +117,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -150,7 +150,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -183,7 +183,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
         store: true,
       });
@@ -217,7 +217,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -255,7 +255,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -273,7 +273,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should read image detail from providerOptions when providerKey is azure', async () => {
+    it('should read image detail from providerOptions when providerOptionsName is azure', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -294,7 +294,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'azure',
+        providerOptionsName: 'azure',
         store: true,
       });
 
@@ -331,7 +331,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -365,7 +365,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
         store: true,
       });
@@ -401,7 +401,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -438,7 +438,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
@@ -460,7 +460,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -494,7 +494,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-'],
           store: true,
         });
@@ -528,7 +528,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-'],
           store: true,
         });
@@ -567,7 +567,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-', 'file-'],
           store: true,
         });
@@ -613,7 +613,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           // fileIdPrefixes intentionally omitted
           store: true,
         });
@@ -652,7 +652,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           fileIdPrefixes: [], // Empty array should disable file ID detection
           store: true,
         });
@@ -680,7 +680,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -710,7 +710,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -764,7 +764,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -805,7 +805,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -847,7 +847,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -889,7 +889,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -931,7 +931,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -974,7 +974,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1011,7 +1011,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1056,7 +1056,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1117,7 +1117,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1173,7 +1173,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1258,7 +1258,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: true,
           });
 
@@ -1369,7 +1369,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1543,7 +1543,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1642,7 +1642,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1680,7 +1680,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
-            providerKey: 'openai',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1720,7 +1720,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1755,7 +1755,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1795,7 +1795,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1841,7 +1841,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1889,7 +1889,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1946,7 +1946,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -2001,7 +2001,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -2052,7 +2052,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -2114,7 +2114,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: false,
       });
 
@@ -2187,7 +2187,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           store: true,
           hasLocalShellTool: true,
         });
@@ -2241,7 +2241,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
-          providerKey: 'openai',
+          providerOptionsName: 'openai',
           store: false,
           hasLocalShellTool: true,
         });
@@ -2293,7 +2293,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
-        providerKey: 'openai',
+        providerOptionsName: 'openai',
         store: true,
       });
 
