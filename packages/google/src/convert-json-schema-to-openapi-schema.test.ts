@@ -626,3 +626,31 @@ it('should convert type arrays without null to anyOf', () => {
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
+
+it('should set min and max items', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      list: {
+        type: 'array',
+        minItems: 2,
+        maxItems: 5,
+        items: { type: 'string' },
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      list: {
+        type: 'array',
+        minItems: 2,
+        maxItems: 5,
+        items: { type: 'string' },
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
