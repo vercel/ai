@@ -619,6 +619,30 @@ A function that attempts to repair a tool call that failed to parse.
             }
           }
 
+          // Detect MCP approval requests from provider-executed tool results:
+          for (const part of currentModelResponse.content) {
+            if (part.type === 'tool-result') {
+              const result = part.result as Record<string, unknown> | undefined;
+              if (
+                result != null &&
+                typeof result === 'object' &&
+                result.type === 'approvalRequest' &&
+                typeof result.approvalRequestId === 'string'
+              ) {
+                const toolCall = stepToolCalls.find(
+                  tc => tc.toolCallId === part.toolCallId,
+                );
+                if (toolCall != null) {
+                  toolApprovalRequests[part.toolCallId] = {
+                    type: 'tool-approval-request',
+                    approvalId: result.approvalRequestId,
+                    toolCall,
+                  };
+                }
+              }
+            }
+          }
+
           // insert error tool outputs for invalid tool calls:
           // TODO AI SDK 6: invalid inputs should not require output parts
           const invalidToolCalls = stepToolCalls.filter(
@@ -974,62 +998,75 @@ function asContent<TOOLS extends ToolSet>({
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
 }): Array<ContentPart<TOOLS>> {
   return [
-    ...content.map(part => {
-      switch (part.type) {
-        case 'text':
-        case 'reasoning':
-        case 'source':
-          return part;
+    ...content
+      .map(part => {
+        switch (part.type) {
+          case 'text':
+          case 'reasoning':
+          case 'source':
+            return part;
 
-        case 'file': {
-          return {
-            type: 'file' as const,
-            file: new DefaultGeneratedFile(part),
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-          };
-        }
-
-        case 'tool-call': {
-          return toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
-        }
-
-        case 'tool-result': {
-          const toolCall = toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
-
-          if (toolCall == null) {
-            throw new Error(`Tool call ${part.toolCallId} not found.`);
+          case 'file': {
+            return {
+              type: 'file' as const,
+              file: new DefaultGeneratedFile(part),
+              ...(part.providerMetadata != null
+                ? { providerMetadata: part.providerMetadata }
+                : {}),
+            };
           }
 
-          if (part.isError) {
+          case 'tool-call': {
+            return toolCalls.find(
+              toolCall => toolCall.toolCallId === part.toolCallId,
+            )!;
+          }
+
+          case 'tool-result': {
+            // Skip MCP approval requests - they are handled separately
+            const result = part.result as Record<string, unknown> | undefined;
+            if (
+              result != null &&
+              typeof result === 'object' &&
+              result.type === 'approvalRequest' &&
+              typeof result.approvalRequestId === 'string'
+            ) {
+              return null; // will be filtered out below
+            }
+
+            const toolCall = toolCalls.find(
+              toolCall => toolCall.toolCallId === part.toolCallId,
+            )!;
+
+            if (toolCall == null) {
+              throw new Error(`Tool call ${part.toolCallId} not found.`);
+            }
+
+            if (part.isError) {
+              return {
+                type: 'tool-error' as const,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName as keyof TOOLS & string,
+                input: toolCall.input,
+                error: part.result,
+                providerExecuted: true,
+                dynamic: toolCall.dynamic,
+              } as TypedToolError<TOOLS>;
+            }
+
             return {
-              type: 'tool-error' as const,
+              type: 'tool-result' as const,
               toolCallId: part.toolCallId,
               toolName: part.toolName as keyof TOOLS & string,
               input: toolCall.input,
-              error: part.result,
+              output: part.result,
               providerExecuted: true,
               dynamic: toolCall.dynamic,
-            } as TypedToolError<TOOLS>;
+            } as TypedToolResult<TOOLS>;
           }
-
-          return {
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            output: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-          } as TypedToolResult<TOOLS>;
         }
-      }
-    }),
+      })
+      .filter((part): part is NonNullable<typeof part> => part != null),
     ...toolOutputs,
     ...toolApprovalRequests,
   ];

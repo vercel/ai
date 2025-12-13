@@ -16209,7 +16209,16 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalRequests": [
+                      {
+                        "approvalId": "id-1",
+                        "toolCallId": "call-1",
+                      },
+                    ],
+                  },
+                },
                 "role": "assistant",
               },
               {
@@ -16225,7 +16234,17 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalResponses": [
+                      {
+                        "approvalId": "id-1",
+                        "approved": true,
+                        "reason": undefined,
+                      },
+                    ],
+                  },
+                },
                 "role": "tool",
               },
             ],
@@ -16501,7 +16520,16 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalRequests": [
+                      {
+                        "approvalId": "id-1",
+                        "toolCallId": "call-1",
+                      },
+                    ],
+                  },
+                },
                 "role": "assistant",
               },
               {
@@ -16517,7 +16545,17 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalResponses": [
+                      {
+                        "approvalId": "id-1",
+                        "approved": true,
+                        "reason": undefined,
+                      },
+                    ],
+                  },
+                },
                 "role": "tool",
               },
             ],
@@ -16832,7 +16870,16 @@ describe('streamText', () => {
                     "type": "tool-call",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalRequests": [
+                      {
+                        "approvalId": "id-1",
+                        "toolCallId": "call-1",
+                      },
+                    ],
+                  },
+                },
                 "role": "assistant",
               },
               {
@@ -16848,7 +16895,17 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "providerOptions": undefined,
+                "providerOptions": {
+                  "internal": {
+                    "toolApprovalResponses": [
+                      {
+                        "approvalId": "id-1",
+                        "approved": false,
+                        "reason": undefined,
+                      },
+                    ],
+                  },
+                },
                 "role": "tool",
               },
             ],

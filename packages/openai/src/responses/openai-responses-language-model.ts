@@ -716,7 +716,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               serverLabel: part.server_label,
               name: part.name,
               arguments: part.arguments,
-              approvalRequestId: part.approval_request_id,
+              approvalRequestId: part.id,
             } satisfies InferSchema<typeof mcpOutputSchema>,
           });
           break;
@@ -1298,7 +1298,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     serverLabel: value.item.server_label,
                     name: value.item.name,
                     arguments: value.item.arguments,
-                    approvalRequestId: value.item.approval_request_id,
+                    approvalRequestId: value.item.id,
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'local_shell_call') {

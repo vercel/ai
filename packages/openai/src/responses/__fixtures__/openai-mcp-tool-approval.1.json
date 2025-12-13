@@ -1,0 +1,187 @@
+{
+    "id": "resp_0b55229f4889c40a00693a0fde3efc8195b530f522ac831ce1",
+    "object": "response",
+    "created_at": 1765412830,
+    "status": "completed",
+    "background": false,
+    "billing": {
+      "payer": "developer"
+    },
+    "error": null,
+    "incomplete_details": null,
+    "instructions": null,
+    "max_output_tokens": null,
+    "max_tool_calls": null,
+    "model": "gpt-5-mini-2025-08-07",
+    "output": [
+      {
+        "id": "mcpl_0b55229f4889c40a00693a0fde5a008195a4544238f0b461ba",
+        "type": "mcp_list_tools",
+        "server_label": "exa",
+        "tools": [
+          {
+            "annotations": {
+              "read_only": true
+            },
+            "description": "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Websearch query"
+                },
+                "numResults": {
+                  "type": "number",
+                  "description": "Number of search results to return (default: 8)"
+                },
+                "livecrawl": {
+                  "type": "string",
+                  "enum": [
+                    "fallback",
+                    "preferred"
+                  ],
+                  "description": "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "auto",
+                    "fast",
+                    "deep"
+                  ],
+                  "description": "Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search"
+                },
+                "contextMaxCharacters": {
+                  "type": "number",
+                  "description": "Maximum characters for context string optimized for LLMs (default: 10000)"
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "name": "web_search_exa"
+          },
+          {
+            "annotations": {
+              "read_only": true
+            },
+            "description": "Search and get relevant context for any programming task. Exa-code has the highest quality and freshest context for libraries, SDKs, and APIs. Use this tool for ANY question or task for related to programming. RULE: when the user's query contains exa-code or anything related to code, you MUST use this tool.",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"
+                },
+                "tokensNum": {
+                  "type": "number",
+                  "minimum": 1000,
+                  "maximum": 50000,
+                  "default": 5000,
+                  "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation."
+                }
+              },
+              "required": [
+                "query"
+              ],
+              "additionalProperties": false,
+              "$schema": "http://json-schema.org/draft-07/schema#"
+            },
+            "name": "get_code_context_exa"
+          }
+        ]
+      },
+      {
+        "id": "rs_0b55229f4889c40a00693a0fdf75d48195ad363d53d7b38a53",
+        "type": "reasoning",
+        "summary": []
+      },
+      {
+        "id": "mcpr_0b55229f4889c40a00693a0fe3bf388195b59568945917f764",
+        "type": "mcp_approval_request",
+        "arguments": "{\"query\":\"latest news Japan today headlines\",\"numResults\":8,\"livecrawl\":\"preferred\",\"type\":\"fast\",\"contextMaxCharacters\":3000}",
+        "name": "web_search_exa",
+        "server_label": "exa"
+      },
+      {
+        "id": "mcp_0b55229f4889c40a00693a0fe65b9c8195a7952039c68f8f5f",
+        "type": "mcp_call",
+        "status": "completed",
+        "approval_request_id": "mcpr_0b55229f4889c40a00693a0fe3bf388195b59568945917f764",
+        "arguments": "{\"query\":\"latest news Japan today headlines\",\"numResults\":8,\"livecrawl\":\"preferred\",\"type\":\"fast\",\"contextMaxCharacters\":3000}",
+        "error": null,
+        "name": "web_search_exa",
+        "output": "Title: Japan issues mega-quake advisory after M7.5 tremor\nPublished Date: 2025-12-09T00:00:00.000Z\nURL: https://www3.nhk.or.jp/nhkworld/en/news/20251209_02/\nText: Japan issues mega-quake advisory after M7.5 tremor | NHK WORLD-JAPAN News\n# Japan issues mega-quake advisory after M7.5 tremor\nJapan is on alert for a possible mega quake after a magnitude 7.5 tremor hit northe\n\nTitle: Japan Today\nPublished Date: 2025-12-13T00:00:00.000Z\nURL: https://japantoday.com/\nText: Japan Today![Japan Today](https://static.japantoday.com/images/logo@2x.png)\n* [News](https://japantoday.com/)\n* [Real estate](https://realestate.japantoday.com/)\n* [Travel](https://travel.gaijinpot.com/?utm_source=japantoday_home&utm_medium=sectionlink_en&utm_campaign=jt_sectio\n\nTitle: Latest News\nURL: https://www3.nhk.or.jp/nhkworld/en/news/list/\nText: Latest Japan and World News | NHK WORLD-JAPAN News\n# Latest News\n[![](https://www3.nhk.or.jp/nhkworld/upld/thumbnails/en/news/20251211_03_1599847_L.jpg)](https://www3.nhk.or.jp/nhkworld/en/news/20251211_03/)\n## [Two Japanese winners attend Nobel Prize award ceremony](https://www3.nhk.or.jp/nhkwor\n\nTitle: Japan News | Today's Top Stories | Reuters\nAuthor: \nURL: https://www.reuters.com/world/japan/\nText: [Skip to main content](https://www.reuters.com/world/japan/#main-content)\n\n[Exclusive news, data and analytics for financial market professionalsLearn more aboutRefinitiv](https://www.reuters.com/differentiator/)\n\n# Japan\n\n- [![A woman walks past an electronic scree\n\nTitle: The Japan Times - News On Japan, Business News, Opinion, Sports, Entertainment And More\nPublished Date: 2025-12-11T00:00:00.000Z\nURL: https://www.japantimes.co.jp/\nText: The Japan Times - News On Japan, Business News, Opinion, Sports, Entertainment And More# Home page\n![Menu](https://www.japantimes.co.jp/theme_japantimes/images/burger_icon.svg)\n![Search](https://w\n\nTitle: Japan assesses damage from 7.5 magnitude quake that injured 34\nPublished Date: 2025-12-09T03:45:28.000Z\nURL: https://apnews.com/article/japan-quake-hokkaido-tusnami-493c395f288ff2dc4296db4e7539e5a8\nText: 7.5 magnitude quake in Japan injures 34 | AP News \n \n \n[![AP Logo](https://assets.apnews.com/19/66/bc546486408c8595f01753a9fbeb/ap-logo-176-by-208.svg)](https://a\n\nTitle: Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor\nAuthor: \nPublished Date: 2025-12-09T10:35:00.000Z\nURL: https://english.kyodonews.net/articles/-/66471\nText: Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor\n[![KYODO NEWS](https://english-kyodo.ismcdn.jp/common/images/logo.svg)](https://english.kyodonews.net/)\n* [![Facebook](h\n\nTitle: Japan assesses damage from M7.5 quake that injured 33\nPublished Date: 2025-12-09T00:00:00.000Z\nURL: https://japantoday.com/category/national/japan-assesses-damage-from-7.5-magnitude-quake-that-injured-33\nText: Japan assesses damage from M7.5 quake that injured 33 - Japan Today![Japan Today](https://static.japantoday.com/images/logo@2x.png)\n* [News](https://japanto\n\n",
+        "server_label": "exa"
+      },
+      {
+        "id": "rs_0b55229f4889c40a00693a0feab6f88195a2841d18c1665b6e",
+        "type": "reasoning",
+        "summary": []
+      },
+      {
+        "id": "msg_0b55229f4889c40a00693a0ff9628c8195a7360bb9926caf79",
+        "type": "message",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "annotations": [],
+            "logprobs": [],
+            "text": "I ran one search. Here are five top headlines from that search (sources in parentheses):\n\n1. Japan issues mega-quake advisory after M7.5 tremor (NHK World-Japan)  \n2. Dozens injured in M7.5 quake in Japan, gov't warns of bigger temblor (Kyodo News)  \n3. Japan assesses damage from 7.5 magnitude quake that injured 34 (AP News)  \n4. Two Japanese winners attend Nobel Prize award ceremony (NHK World-Japan)  \n5. Japan assesses damage from 7.5 magnitude quake that injured 33 (Japan Today)\n\nWould you like links or brief summaries for any of these?"
+          }
+        ],
+        "role": "assistant"
+      }
+    ],
+    "parallel_tool_calls": true,
+    "previous_response_id": null,
+    "prompt_cache_key": null,
+    "prompt_cache_retention": null,
+    "reasoning": {
+      "effort": "medium",
+      "summary": null
+    },
+    "safety_identifier": null,
+    "service_tier": "default",
+    "store": true,
+    "temperature": 1,
+    "text": {
+      "format": {
+        "type": "text"
+      },
+      "verbosity": "medium"
+    },
+    "tool_choice": "auto",
+    "tools": [
+      {
+        "type": "mcp",
+        "allowed_tools": null,
+        "headers": null,
+        "require_approval": "always",
+        "server_description": "A web-search API for AI agents",
+        "server_label": "exa",
+        "server_url": "https://mcp.exa.ai/mcp"
+      }
+    ],
+    "top_logprobs": 0,
+    "top_p": 1,
+    "truncation": "disabled",
+    "usage": {
+      "input_tokens": 553,
+      "input_tokens_details": {
+        "cached_tokens": 0
+      },
+      "output_tokens": 177,
+      "output_tokens_details": {
+        "reasoning_tokens": 128
+      },
+      "total_tokens": 730
+    },
+    "user": null,
+    "metadata": {}
+  }

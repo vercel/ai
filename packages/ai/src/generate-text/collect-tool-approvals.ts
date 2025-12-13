@@ -83,10 +83,18 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       continue;
     }
 
+    const toolCall = toolCallsByToolCallId[approvalRequest!.toolCallId];
+
+    // Skip provider-executed tool calls (e.g., MCP tools) - they are handled
+    // by the provider and approval responses are passed through via providerOptions
+    if (toolCall?.providerExecuted) {
+      continue;
+    }
+
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
       approvalResponse,
-      toolCall: toolCallsByToolCallId[approvalRequest!.toolCallId],
+      toolCall,
     };
 
     if (approvalResponse.approved) {

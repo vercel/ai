@@ -2075,6 +2075,229 @@ describe('convertToModelMessages', () => {
         ]
       `);
     });
+
+    it('should convert provider-executed tool with approval response (MCP)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'Search for news about AI',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'mcpr_123',
+              },
+              input: {},
+              state: 'approval-responded',
+              toolCallId: 'mcpr_123',
+              type: 'tool-mcp',
+              providerExecuted: true,
+            },
+          ],
+          role: 'assistant',
+        },
+      ] as any);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Search for news about AI",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "toolCallId": "mcpr_123",
+                "toolName": "mcp",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcpr_123",
+                "toolCallId": "mcpr_123",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "mcpr_123",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert denied provider-executed tool with approval response (MCP)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'Search for news about AI',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: false,
+                id: 'mcpr_456',
+                reason: 'User denied the search',
+              },
+              input: {},
+              state: 'approval-responded',
+              toolCallId: 'mcpr_456',
+              type: 'tool-mcp',
+              providerExecuted: true,
+            },
+          ],
+          role: 'assistant',
+        },
+      ] as any);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Search for news about AI",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "toolCallId": "mcpr_456",
+                "toolName": "mcp",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcpr_456",
+                "toolCallId": "mcpr_456",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "mcpr_456",
+                "approved": false,
+                "reason": "User denied the search",
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should skip provider-executed tools without approval response', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'Search for news about AI',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              input: {},
+              output: { result: 'search results' },
+              state: 'output-available',
+              toolCallId: 'mcp_123',
+              type: 'tool-mcp',
+              providerExecuted: true,
+            },
+            {
+              type: 'text',
+              text: 'Here are the search results.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      // Provider-executed tools without approval should only appear in assistant content,
+      // not generate a separate tool message
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Search for news about AI",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": true,
+                "toolCallId": "mcp_123",
+                "toolName": "mcp",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "result": "search results",
+                  },
+                },
+                "toolCallId": "mcp_123",
+                "toolName": "mcp",
+                "type": "tool-result",
+              },
+              {
+                "text": "Here are the search results.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
   });
 
   describe('data part conversion', () => {

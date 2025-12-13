@@ -481,4 +481,128 @@ describe('collectToolApprovals', () => {
       }
     `);
   });
+
+  it('should skip provider-executed tool calls (MCP tools)', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp',
+              input: {},
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'mcp-approval-id-1',
+              toolCallId: 'mcp-call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'mcp-approval-id-1',
+              approved: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    // Provider-executed tool calls should be skipped from approval collection
+    // They are handled by the provider via providerOptions
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "approvedToolApprovals": [],
+        "deniedToolApprovals": [],
+      }
+    `);
+  });
+
+  it('should skip provider-executed tool calls but process regular tool calls', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            // Provider-executed MCP tool call
+            {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp',
+              input: {},
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'mcp-approval-id-1',
+              toolCallId: 'mcp-call-1',
+            },
+            // Regular tool call
+            {
+              type: 'tool-call',
+              toolCallId: 'regular-call-1',
+              toolName: 'regular-tool',
+              input: { query: 'test' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'regular-approval-id-1',
+              toolCallId: 'regular-call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'mcp-approval-id-1',
+              approved: true,
+            },
+            {
+              type: 'tool-approval-response',
+              approvalId: 'regular-approval-id-1',
+              approved: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    // Only regular tool calls should be collected
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "approvedToolApprovals": [
+          {
+            "approvalRequest": {
+              "approvalId": "regular-approval-id-1",
+              "toolCallId": "regular-call-1",
+              "type": "tool-approval-request",
+            },
+            "approvalResponse": {
+              "approvalId": "regular-approval-id-1",
+              "approved": true,
+              "type": "tool-approval-response",
+            },
+            "toolCall": {
+              "input": {
+                "query": "test",
+              },
+              "toolCallId": "regular-call-1",
+              "toolName": "regular-tool",
+              "type": "tool-call",
+            },
+          },
+        ],
+        "deniedToolApprovals": [],
+      }
+    `);
+  });
 });

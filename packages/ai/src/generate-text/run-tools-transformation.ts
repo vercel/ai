@@ -144,6 +144,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   // keep track of tool inputs for provider-side tool results
   const toolInputs = new Map<string, unknown>();
 
+  // keep track of parsed tool calls for provider-executed tool approval requests
+  const parsedToolCalls = new Map<string, TypedToolCall<TOOLS>>();
+
   let canClose = false;
   let finishChunk:
     | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
@@ -230,6 +233,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue(toolCall);
 
+            // Store parsed tool calls for provider-executed tool approval lookups
+            parsedToolCalls.set(toolCall.toolCallId, toolCall);
+
             if (toolCall.invalid) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-error',
@@ -313,6 +319,26 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
         case 'tool-result': {
           const toolName = chunk.toolName as keyof TOOLS & string;
+
+          // Check if this is an MCP approval request (provider-executed tool)
+          const result = chunk.result as Record<string, unknown> | undefined;
+          if (
+            result != null &&
+            typeof result === 'object' &&
+            result.type === 'approvalRequest' &&
+            typeof result.approvalRequestId === 'string'
+          ) {
+            // Emit a tool-approval-request for MCP approval requests
+            const toolCall = parsedToolCalls.get(chunk.toolCallId);
+            if (toolCall != null) {
+              toolResultsStreamController!.enqueue({
+                type: 'tool-approval-request',
+                approvalId: result.approvalRequestId,
+                toolCall,
+              });
+            }
+            break;
+          }
 
           if (chunk.isError) {
             toolResultsStreamController!.enqueue({

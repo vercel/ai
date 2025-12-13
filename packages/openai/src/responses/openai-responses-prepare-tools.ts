@@ -189,7 +189,16 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              require_approval: 'never',
+              require_approval:
+                args.requireApproval == null
+                  ? undefined
+                  : typeof args.requireApproval === 'string'
+                    ? args.requireApproval
+                    : {
+                        never: args.requireApproval.never
+                          ? { tool_names: args.requireApproval.never.toolNames }
+                          : undefined,
+                      },
               server_description: args.serverDescription,
               server_url: args.serverUrl,
             });
