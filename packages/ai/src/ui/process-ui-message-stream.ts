@@ -20,7 +20,7 @@ import {
   InferUIMessageToolCall,
   InferUIMessageTools,
   isStaticToolUIPart,
-  isToolOrDynamicToolUIPart,
+  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
@@ -101,9 +101,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function getToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(
-              isToolOrDynamicToolUIPart,
-            );
+            const toolInvocations = state.message.parts.filter(isToolUIPart);
 
             const toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,

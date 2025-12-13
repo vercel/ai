@@ -459,12 +459,23 @@ export function isDynamicToolUIPart(
   return part.type === 'dynamic-tool';
 }
 
-// TODO AI SDK 6: rename to isToolUIPart
-export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
+/**
+ * Check if a message part is a tool part.
+ *
+ * Tool parts are either static or dynamic tools.
+ *
+ * Use `isStaticToolUIPart` or `isDynamicToolUIPart` to check the type of the tool.
+ */
+export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
+
+/**
+ * @deprecated Use isToolUIPart instead.
+ */
+export const isToolOrDynamicToolUIPart = isToolUIPart;
 
 // TODO AI SDK 6: rename to getStaticToolName
 export function getToolName<TOOLS extends UITools>(
