@@ -100,7 +100,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: modelCapabilities.systemMessageMode,
+        systemMessageMode:
+          openaiOptions.systemMessageMode ??
+          modelCapabilities.systemMessageMode,
       },
     );
 

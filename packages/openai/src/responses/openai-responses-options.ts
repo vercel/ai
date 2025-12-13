@@ -282,6 +282,16 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
        * @see https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids
        */
       user: z.string().nullish(),
+
+      /**
+       * Override the system message mode for this model.
+       * - 'system': Use the 'system' role for system messages (default for most models)
+       * - 'developer': Use the 'developer' role for system messages (used by reasoning models)
+       * - 'remove': Remove system messages entirely
+       *
+       * If not specified, the mode is automatically determined based on the model.
+       */
+      systemMessageMode: z.enum(['system', 'developer', 'remove']).optional(),
     }),
   ),
 );
