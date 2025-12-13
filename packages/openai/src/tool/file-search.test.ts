@@ -3,7 +3,7 @@ import { fileSearchArgsSchema } from './file-search';
 
 describe('file-search filter schema', () => {
   describe('comparison filter operators', () => {
-    it('should validate "eq" operator with string value', () => {
+    it('should validate "eq" operator with string value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -13,11 +13,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "ne" operator with number value', () => {
+    it('should validate "ne" operator with number value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -27,11 +27,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "gt" operator with number value', () => {
+    it('should validate "gt" operator with number value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -41,11 +41,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "in" operator with string array value', () => {
+    it('should validate "in" operator with string array value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -55,11 +55,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "in" operator with number array value', () => {
+    it('should validate "in" operator with number array value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -69,11 +69,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "nin" operator with string array value', () => {
+    it('should validate "nin" operator with string array value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -83,11 +83,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate "nin" operator with number array value', () => {
+    it('should validate "nin" operator with number array value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -97,13 +97,13 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
   });
 
   describe('compound filters', () => {
-    it('should validate compound filter with "in" operator', () => {
+    it('should validate compound filter with "in" operator', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -123,11 +123,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
 
-    it('should validate nested compound filter with "nin" operator', () => {
+    it('should validate nested compound filter with "nin" operator', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -157,13 +157,13 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(true);
     });
   });
 
   describe('invalid filters', () => {
-    it('should reject invalid operator type', () => {
+    it('should reject invalid operator type', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -173,11 +173,11 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(false);
     });
 
-    it('should reject object value', () => {
+    it('should reject object value', async () => {
       const args = {
         vectorStoreIds: ['vs_test'],
         filters: {
@@ -187,7 +187,7 @@ describe('file-search filter schema', () => {
         },
       };
 
-      const result = fileSearchArgsSchema.validate(args);
+      const result = await fileSearchArgsSchema().validate!(args);
       expect(result.success).toBe(false);
     });
   });
