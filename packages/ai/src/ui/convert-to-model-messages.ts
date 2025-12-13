@@ -14,14 +14,14 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
-  getToolOrDynamicToolName,
+  getToolName,
   InferUIMessageData,
   InferUIMessageTools,
   isDataUIPart,
   isFileUIPart,
   isReasoningUIPart,
   isTextUIPart,
-  isToolOrDynamicToolUIPart,
+  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
@@ -56,7 +56,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
       ...message,
       parts: message.parts.filter(
         part =>
-          !isToolOrDynamicToolUIPart(part) ||
+          !isToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
             part.state !== 'input-available'),
       ),
@@ -169,8 +169,8 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   text: part.text,
                   providerOptions: part.providerMetadata,
                 });
-              } else if (isToolOrDynamicToolUIPart(part)) {
-                const toolName = getToolOrDynamicToolName(part);
+              } else if (isToolUIPart(part)) {
+                const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
                   content.push({
@@ -241,9 +241,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
             // check if there are tool invocations with results in the block
             const toolParts = block.filter(
-              part =>
-                isToolOrDynamicToolUIPart(part) &&
-                part.providerExecuted !== true,
+              part => isToolUIPart(part) && part.providerExecuted !== true,
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
@@ -274,7 +272,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
-                          toolName: getToolOrDynamicToolName(toolPart),
+                          toolName: getToolName(toolPart),
                           output: {
                             type: 'error-text' as const,
                             value:
@@ -291,7 +289,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                       case 'output-error':
                       case 'output-available': {
-                        const toolName = getToolOrDynamicToolName(toolPart);
+                        const toolName = getToolName(toolPart);
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
@@ -330,7 +328,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               isTextUIPart(part) ||
               isReasoningUIPart(part) ||
               isFileUIPart(part) ||
-              isToolOrDynamicToolUIPart(part) ||
+              isToolUIPart(part) ||
               isDataUIPart(part)
             ) {
               block.push(part as (typeof block)[number]);
