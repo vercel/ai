@@ -1400,6 +1400,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1412,6 +1413,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1480,6 +1482,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1492,6 +1495,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1565,6 +1569,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1577,6 +1582,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1660,6 +1666,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1672,6 +1679,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1748,6 +1756,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1760,6 +1769,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1837,6 +1847,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1849,6 +1860,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "override": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1932,6 +1944,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -1944,6 +1957,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -2036,6 +2050,7 @@ describe('convertToModelMessages', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "approval-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -2048,6 +2063,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "override": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -2071,6 +2087,177 @@ describe('convertToModelMessages', () => {
               },
             ],
             "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should convert approved tool approval with override (static tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                override: { input: { city: 'Paris' } },
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "allowsInputEditing": undefined,
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "override": {
+                  "input": {
+                    "city": "Paris",
+                  },
+                },
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert approved tool approval with override (dynamic tool)', () => {
+      const result = convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                override: { input: { city: 'London' } },
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "allowsInputEditing": undefined,
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "override": {
+                  "input": {
+                    "city": "London",
+                  },
+                },
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
           },
         ]
       `);
