@@ -947,6 +947,12 @@ describe('convertToLanguageModelPrompt', () => {
           {
             "content": [
               {
+                "approvalId": "approvalId",
+                "approved": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+              {
                 "output": {
                   "type": "json",
                   "value": {

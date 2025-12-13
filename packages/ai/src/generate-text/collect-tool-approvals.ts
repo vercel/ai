@@ -79,14 +79,23 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
     const approvalRequest =
       toolApprovalRequestsByApprovalId[approvalResponse.approvalId];
 
-    if (toolResults[approvalRequest!.toolCallId] != null) {
+    if (approvalRequest == null) {
+      continue;
+    }
+
+    if (toolResults[approvalRequest.toolCallId] != null) {
+      continue;
+    }
+
+    const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
+    if (toolCall == null) {
       continue;
     }
 
     const approval: CollectedToolApprovals<TOOLS> = {
       approvalRequest,
       approvalResponse,
-      toolCall: toolCallsByToolCallId[approvalRequest!.toolCallId],
+      toolCall,
     };
 
     if (approvalResponse.approved) {

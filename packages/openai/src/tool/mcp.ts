@@ -35,16 +35,18 @@ export const mcpArgsSchema = lazySchema(() =>
         connectorId: z.string().optional(),
         headers: z.record(z.string(), z.string()).optional(),
 
-        // TODO: Integrate this MCP tool approval with our SDK's existing tool approval architecture
-        // requireApproval: z
-        //   .union([
-        //     z.enum(['always', 'never']),
-        //     z.object({
-        //       readOnly: z.boolean().optional(),
-        //       toolNames: z.array(z.string()).optional(),
-        //     }),
-        //   ])
-        //   .optional(),
+        requireApproval: z
+          .union([
+            z.enum(['always', 'never']),
+            z.object({
+              never: z
+                .object({
+                  toolNames: z.array(z.string()).optional(),
+                })
+                .optional(),
+            }),
+          ])
+          .optional(),
         serverDescription: z.string().optional(),
         serverUrl: z.string().optional(),
       })
@@ -81,13 +83,6 @@ export const mcpOutputSchema = lazySchema(() =>
         ),
         error: z.union([z.string(), jsonValueSchema]).optional(),
       }),
-      z.object({
-        type: z.literal('approvalRequest'),
-        serverLabel: z.string(),
-        name: z.string(),
-        arguments: z.string(),
-        approvalRequestId: z.string(),
-      }),
     ]),
   ),
 );
@@ -108,14 +103,17 @@ type McpArgs = {
   connectorId?: string;
   /** Optional HTTP headers to send to the MCP server. */
   headers?: Record<string, string>;
-  // /** Which tools require approval: 'always' | 'never' | filter object. */
-  // requireApproval?:
-  //   | 'always'
-  //   | 'never'
-  //   | {
-  //       readOnly?: boolean;
-  //       toolNames?: string[];
-  //     };
+  /**
+   * Which tools require approval before execution.
+   */
+  requireApproval?:
+    | 'always'
+    | 'never'
+    | {
+        never?: {
+          toolNames?: string[];
+        };
+      };
   /** Optional description of the MCP server. */
   serverDescription?: string;
   /** URL for the MCP server. One of serverUrl or connectorId must be provided. */
@@ -142,13 +140,6 @@ export const mcpToolFactory = createProviderToolFactoryWithOutputSchema<
         annotations?: unknown;
       }>;
       error?: JSONValue;
-    }
-  | {
-      type: 'approvalRequest';
-      serverLabel: string;
-      name: string;
-      arguments: string;
-      approvalRequestId: string;
     },
   McpArgs
 >({

@@ -4542,6 +4542,12 @@ describe('generateText', () => {
               {
                 "content": [
                   {
+                    "approvalId": "id-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                  {
                     "output": {
                       "type": "text",
                       "value": "result1",
@@ -4700,6 +4706,12 @@ describe('generateText', () => {
               },
               {
                 "content": [
+                  {
+                    "approvalId": "id-1",
+                    "approved": false,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
                   {
                     "output": {
                       "reason": undefined,
@@ -4885,6 +4897,18 @@ describe('generateText', () => {
               },
               {
                 "content": [
+                  {
+                    "approvalId": "id-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "approvalId": "id-2",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
                   {
                     "output": {
                       "type": "text",

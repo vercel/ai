@@ -14,14 +14,27 @@ Converts the result of a `generateText` or `streamText` call to a list of respon
 export function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
   tools,
+  excludeToolResultToolCallIds,
 }: {
   content: Array<ContentPart<TOOLS>>;
   tools: TOOLS | undefined;
+  excludeToolResultToolCallIds?: Set<string>;
 }): Array<AssistantModelMessage | ToolModelMessage> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
+  const excluded = excludeToolResultToolCallIds;
+
   const content: AssistantContent = inputContent
     .filter(part => part.type !== 'source')
+    .filter(
+      part =>
+        (part.type !== 'tool-result' ||
+          excluded == null ||
+          !excluded.has(part.toolCallId)) &&
+        (part.type !== 'tool-error' ||
+          excluded == null ||
+          !excluded.has(part.toolCallId)),
+    )
     .filter(
       part =>
         (part.type !== 'tool-result' || part.providerExecuted) &&

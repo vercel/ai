@@ -106,9 +106,15 @@ export function convertToGroqChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'tool approval responses',
+            });
+          }
+
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue = '';
           switch (output.type) {
             case 'text':
             case 'error-text':

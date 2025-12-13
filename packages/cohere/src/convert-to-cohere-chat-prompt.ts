@@ -115,9 +115,15 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV3Prompt): {
       case 'tool': {
         messages.push(
           ...content.map(toolResult => {
+            if (toolResult.type === 'tool-approval-response') {
+              throw new UnsupportedFunctionalityError({
+                functionality: 'tool approval responses',
+              });
+            }
+
             const output = toolResult.output;
 
-            let contentValue: string;
+            let contentValue = '';
             switch (output.type) {
               case 'text':
               case 'error-text':

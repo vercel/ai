@@ -3,6 +3,7 @@ import {
   LanguageModelV3Message,
   LanguageModelV3Prompt,
   LanguageModelV3TextPart,
+  LanguageModelV3ToolApprovalResponsePart,
   LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
@@ -212,15 +213,27 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content
-          .filter(part => part.type !== 'tool-approval-response')
-          .map(part => ({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: mapToolResultOutput(part.output),
-            providerOptions: part.providerOptions,
-          })),
+        content: message.content.map(part => {
+          switch (part.type) {
+            case 'tool-result': {
+              return {
+                type: 'tool-result' as const,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName,
+                output: mapToolResultOutput(part.output),
+                providerOptions: part.providerOptions,
+              };
+            }
+            case 'tool-approval-response': {
+              return {
+                type: 'tool-approval-response' as const,
+                approvalId: part.approvalId,
+                approved: part.approved,
+                reason: part.reason,
+              } satisfies LanguageModelV3ToolApprovalResponsePart;
+            }
+          }
+        }),
         providerOptions: message.providerOptions,
       };
     }
