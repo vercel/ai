@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- 32044aa: feat(codemods): add codemods for providerMetadata key change
+
 ## 3.0.0-beta.4
 
 ### Patch Changes

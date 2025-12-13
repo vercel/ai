@@ -60,6 +60,7 @@ every file.
 | `rename-tool-call-options-to-tool-execution-options`     | Renames the `ToolCallOptions` type to `ToolExecutionOptions`                                       |
 | `rename-core-message-to-model-message`                   | Renames the `CoreMessage` type to `ModelMessage`                                                   |
 | `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
+| `rename-vertex-provider-metadata-key`                    | Renames `google` to `vertex` in `providerMetadata` and `providerOptions` for Google Vertex files   |
 
 ## AI SDK Core
 
@@ -520,6 +521,52 @@ const result = await generateObject({
     } satisfies AnthropicProviderOptions,
   },
 });
+```
+
+### Google Vertex
+
+#### `providerMetadata` and `providerOptions` Key
+
+The `@ai-sdk/google-vertex` provider now uses `vertex` as the key for `providerMetadata` and `providerOptions` instead of `google`. The `google` key is still supported for `providerOptions` input, but resulting `providerMetadata` output now uses `vertex`.
+
+```tsx filename="AI SDK 5"
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  providerOptions: {
+    google: {
+      safetySettings: [
+        /* ... */
+      ],
+    }, // Used 'google' key
+  },
+  prompt: 'Hello',
+});
+
+// Accessed metadata via 'google' key
+console.log(result.providerMetadata?.google?.safetyRatings);
+```
+
+```tsx filename="AI SDK 6"
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  providerOptions: {
+    vertex: {
+      safetySettings: [
+        /* ... */
+      ],
+    }, // Now uses 'vertex' key
+  },
+  prompt: 'Hello',
+});
+
+// Access metadata via 'vertex' key
+console.log(result.providerMetadata?.vertex?.safetyRatings);
 ```
 
 ## `ai/test`
