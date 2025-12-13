@@ -446,12 +446,9 @@ const responsesModel = azure.responses('gpt-4o');
   `azure.chat()` and audit your configuration.
 </Note>
 
-#### Responses API `providerOptions` Key Changed from `openai` to `azure`
+#### Responses API `providerMetadata` and `providerOptions` Key
 
-In AI SDK 5, the Azure Responses integration reused the OpenAI Responses provider options, so you had to pass options under the `openai` key.
-In AI SDK 6, when you call the **Responses API** via `azure()` or `azure.responses()`, you must instead pass those options under the `azure` key.
-
-This change only applies to the **Responses API**. Other Azure model types that use the OpenAI-compatible surface (for example, `azure.chat()` or `azure.embedding()`) continue to use the `openai` key for `providerOptions`.
+For the **Responses API**, the `@ai-sdk/azure` provider now uses `azure` as the key for `providerMetadata` and `providerOptions` instead of `openai`. The `openai` key is still supported for `providerOptions` input, but resulting `providerMetadata` output now uses `azure`.
 
 ```tsx filename="AI SDK 5"
 import { azure } from '@ai-sdk/azure';
@@ -459,9 +456,7 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   model: azure.responses('gpt-5-mini'), // use your own deployment
-  system: 'You are a helpful assistant.',
-  prompt:
-    'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
+  prompt: 'Hello',
   providerOptions: {
     openai: {
       // AI SDK 5: use `openai` key for Responses API options
@@ -469,6 +464,9 @@ const result = await generateText({
     },
   },
 });
+
+// Accessed metadata via 'openai' key
+console.log(result.providerMetadata?.openai?.responseId);
 ```
 
 ```tsx filename="AI SDK 6"
@@ -478,9 +476,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   // azure() now uses the Responses API by default
   model: azure('gpt-5-mini'), // use your own deployment
-  system: 'You are a helpful assistant.',
-  prompt:
-    'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
+  prompt: 'Hello',
   providerOptions: {
     azure: {
       // AI SDK 6: use `azure` key for Responses API options
@@ -488,6 +484,9 @@ const result = await generateText({
     },
   },
 });
+
+// Access metadata via 'azure' key
+console.log(result.providerMetadata?.azure?.responseId);
 ```
 
 ### Anthropic
