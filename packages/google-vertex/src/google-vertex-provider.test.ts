@@ -32,6 +32,7 @@ vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
   googleTools: {
     googleSearch: vi.fn(),
+    googleMaps: vi.fn(),
     urlContext: vi.fn(),
     fileSearch: vi.fn(),
     codeExecution: vi.fn(),
