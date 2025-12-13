@@ -2,9 +2,19 @@ import {
   SharedV3Warning,
   LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
+  SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
+
+function getOpenAIMessageName(
+  providerOptions?: SharedV3ProviderOptions,
+): string | undefined {
+  const name = providerOptions?.openai?.name;
+  return typeof name === 'string' && name.trim().length > 0
+    ? name
+    : undefined;
+}
 
 export function convertToOpenAIChatMessages({
   prompt,
@@ -19,7 +29,8 @@ export function convertToOpenAIChatMessages({
   const messages: OpenAIChatPrompt = [];
   const warnings: Array<SharedV3Warning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
+    const name = getOpenAIMessageName(providerOptions);
     switch (role) {
       case 'system': {
         switch (systemMessageMode) {
@@ -140,6 +151,7 @@ export function convertToOpenAIChatMessages({
               }
             }
           }),
+          ...(name ? { name: name } : {}),
         });
 
         break;
@@ -177,6 +189,7 @@ export function convertToOpenAIChatMessages({
           role: 'assistant',
           content: text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(name ? { name: name } : {}),
         });
 
         break;

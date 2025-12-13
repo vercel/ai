@@ -513,4 +513,41 @@ describe('tool calls', () => {
       ]
     `);
   });
+
+  it('passes through openai name on user messages', () => {
+    const { messages, warnings } = convertToOpenAIChatMessages({
+      prompt: [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: { openai: { name: 'alice' } },
+      },
+    ]});
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      { role: 'user', content: 'Hello', name: 'alice' },
+    ]);
+  });
+
+  it('passes through openai name on assistant messages', () => {
+    const { messages, warnings } = convertToOpenAIChatMessages({
+      prompt: [
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi' }],
+        providerOptions: { openai: { name: 'openai-bot' } },
+      },
+    ]});
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'assistant',
+        content: 'Hi',
+        tool_calls: undefined,
+        name: 'openai-bot',
+      },
+    ]);
+  });
 });
