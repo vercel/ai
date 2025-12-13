@@ -43,7 +43,7 @@ __PROVIDER_IMPORT__;
 
 const model = wrapLanguageModel({
   model: __MODEL__,
-  middleware: devToolsMiddleware,
+  middleware: devToolsMiddleware(),
 });
 ```
 
