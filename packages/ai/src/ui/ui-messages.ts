@@ -437,13 +437,22 @@ export function isReasoningUIPart(
   return part.type === 'reasoning';
 }
 
-// TODO AI SDK 6: rename to isStaticToolUIPart
-export function isToolUIPart<TOOLS extends UITools>(
+/**
+ * Check if a message part is a static tool part.
+ *
+ * Static tools are tools for which the types are known at development time.
+ */
+export function isStaticToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> {
   return part.type.startsWith('tool-');
 }
 
+/**
+ * Check if a message part is a dynamic tool part.
+ *
+ * Dynamic tools are tools for which the input and output types are unknown.
+ */
 export function isDynamicToolUIPart(
   part: UIMessagePart<UIDataTypes, UITools>,
 ): part is DynamicToolUIPart {
@@ -454,7 +463,7 @@ export function isDynamicToolUIPart(
 export function isToolOrDynamicToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
-  return isToolUIPart(part) || isDynamicToolUIPart(part);
+  return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
 // TODO AI SDK 6: rename to getStaticToolName

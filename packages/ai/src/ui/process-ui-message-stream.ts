@@ -19,8 +19,8 @@ import {
   InferUIMessageMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
+  isStaticToolUIPart,
   isToolOrDynamicToolUIPart,
-  isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolUIPart,
@@ -155,7 +155,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           ) {
             const part = state.message.parts.find(
               part =>
-                isToolUIPart(part) && part.toolCallId === options.toolCallId,
+                isStaticToolUIPart(part) &&
+                part.toolCallId === options.toolCallId,
             ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
             const anyOptions = options as any;
@@ -403,7 +404,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-start': {
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
+              const toolInvocations =
+                state.message.parts.filter(isStaticToolUIPart);
 
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {

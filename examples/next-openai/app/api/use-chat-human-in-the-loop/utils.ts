@@ -5,7 +5,7 @@ import {
   ToolSet,
   UIMessageStreamWriter,
   getToolName,
-  isToolUIPart,
+  isStaticToolUIPart,
 } from 'ai';
 import { HumanInTheLoopUIMessage } from './types';
 
@@ -62,7 +62,7 @@ export async function processToolCalls<
   const processedParts = await Promise.all(
     parts.map(async part => {
       // Only process tool invocations parts
-      if (!isToolUIPart(part)) return part;
+      if (!isStaticToolUIPart(part)) return part;
 
       const toolName = getToolName(part);
 
