@@ -1,5 +1,24 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- 817e601: fix(openai); fix url_citation schema in chat api
+- 59561f8: fix(openai); fix url_citation schema in chat api
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
 ## 3.0.0-beta.93
 
 ### Patch Changes
