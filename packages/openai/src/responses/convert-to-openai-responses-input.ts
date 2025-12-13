@@ -37,6 +37,7 @@ export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
   systemMessageMode,
+  providerOptionsName,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
@@ -46,6 +47,7 @@ export async function convertToOpenAIResponsesInput({
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  providerOptionsName: string;
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
@@ -112,7 +114,8 @@ export async function convertToOpenAIResponsesInput({
                         : {
                             image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
-                    detail: part.providerOptions?.openai?.imageDetail,
+                    detail:
+                      part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
@@ -150,7 +153,7 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const id = part.providerOptions?.openai?.itemId as
+              const id = part.providerOptions?.[providerOptionsName]?.itemId as
                 | string
                 | undefined;
 
@@ -173,7 +176,7 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
-              const id = part.providerOptions?.openai?.itemId as
+              const id = part.providerOptions?.[providerOptionsName]?.itemId as
                 | string
                 | undefined;
 
@@ -256,7 +259,7 @@ export async function convertToOpenAIResponsesInput({
 
             case 'reasoning': {
               const providerOptions = await parseProviderOptions({
-                provider: 'openai',
+                provider: providerOptionsName,
                 providerOptions: part.providerOptions,
                 schema: openaiResponsesReasoningProviderOptionsSchema,
               });
