@@ -356,8 +356,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: annotation.url,
-        title: annotation.title,
+        url: annotation.url_citation.url,
+        title: annotation.url_citation.title,
       });
     }
 
@@ -657,8 +657,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   type: 'source',
                   sourceType: 'url',
                   id: generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
+                  url: annotation.url_citation.url,
+                  title: annotation.url_citation.title,
                 });
               }
             }
