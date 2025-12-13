@@ -1527,6 +1527,24 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should generate reasoning encrypted content using real fixture', async () => {
+        prepareJsonFixtureResponse('openai-reasoning-encrypted-content.1');
+
+        const result = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.code_interpreter',
+              name: 'codeExecution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toMatchSnapshot();
+      });
+
       it('should handle reasoning with empty summary', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'json-value',
