@@ -150,15 +150,15 @@ const { embeddings } = await embedMany({
               type: 'number',
               description: 'The total number of input tokens.',
             },
-            {
-              name: 'body',
-              type: 'unknown',
-              isOptional: true,
-              description: 'The response body.',
-            },
           ],
         },
       ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
       name: 'providerMetadata',

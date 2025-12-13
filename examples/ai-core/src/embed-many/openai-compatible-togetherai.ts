@@ -11,7 +11,7 @@ async function main() {
     },
   });
   const model = togetherai.embeddingModel('BAAI/bge-large-en-v1.5');
-  const { embeddings, usage } = await embedMany({
+  const { embeddings, usage, warnings } = await embedMany({
     model,
     values: [
       'sunny day at the beach',
@@ -22,6 +22,7 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
+  console.log(warnings);
 }
 
 main().catch(console.error);

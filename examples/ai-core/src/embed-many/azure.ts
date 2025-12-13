@@ -3,7 +3,7 @@ import { embedMany } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const { embeddings, usage } = await embedMany({
+  const { embeddings, usage, warnings } = await embedMany({
     model: azure.embedding('text-embedding-3-large'), // use your own deployment
     values: [
       'sunny day at the beach',
@@ -14,6 +14,7 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
+  console.log(warnings);
 }
 
 main().catch(console.error);

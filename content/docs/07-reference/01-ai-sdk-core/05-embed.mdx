@@ -149,6 +149,12 @@ const { embedding } = await embed({
       ],
     },
     {
+      name: 'warnings',
+      type: 'Warning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
       name: 'response',
       type: 'Response',
       isOptional: true,

@@ -138,29 +138,41 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
 
-      describe('nullable', () => {
-        it('should support nullable', () => {
-          const schema = zodSchema(
-            z4.object({
-              location: z4.string().nullable(),
-            }),
-          );
+      it('should support nullable', () => {
+        const schema = zodSchema(
+          z4.object({
+            location: z4.string().nullable(),
+          }),
+        );
 
-          expect(schema.jsonSchema).toMatchSnapshot();
-        });
+        expect(schema.jsonSchema).toMatchSnapshot();
       });
 
-      describe('z4 schema', () => {
-        it('generates correct JSON SChema for z4 and .literal and .enum', () => {
-          const schema = zodSchema(
-            z4.object({
-              text: z4.literal('hello'),
-              number: z4.enum(['one', 'two', 'three']),
-            }),
-          );
+      it('.literal and .enum', () => {
+        const schema = zodSchema(
+          z4.object({
+            text: z4.literal('hello'),
+            number: z4.enum(['one', 'two', 'three']),
+          }),
+        );
 
-          expect(schema.jsonSchema).toMatchSnapshot();
-        });
+        expect(schema.jsonSchema).toMatchSnapshot();
+      });
+
+      it('should generate JSON schema for input when transform is used', async () => {
+        const schema = zodSchema(
+          z4.object({
+            user: z4.object({
+              id: z4
+                .string()
+                .transform(val => parseInt(val, 10))
+                .pipe(z4.number()),
+              name: z4.string(),
+            }),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchSnapshot();
       });
     });
 

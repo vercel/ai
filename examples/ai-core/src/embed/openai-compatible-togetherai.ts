@@ -11,13 +11,14 @@ async function main() {
     },
   });
   const model = togetherai.embeddingModel('BAAI/bge-large-en-v1.5');
-  const { embedding, usage } = await embed({
+  const { embedding, usage, warnings } = await embed({
     model,
     value: 'sunny day at the beach',
   });
 
   console.log(embedding);
   console.log(usage);
+  console.log(warnings);
 }
 
 main().catch(console.error);

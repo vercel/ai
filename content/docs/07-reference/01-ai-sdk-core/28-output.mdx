@@ -87,6 +87,20 @@ const { output } = await generateText({
       description:
         'The schema that defines the structure of the object to generate. Supports Zod schemas, Valibot schemas, or JSON schemas.',
     },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
+    },
   ]}
 />
 
@@ -136,6 +150,20 @@ const { output } = await generateText({
       type: 'FlexibleSchema<ELEMENT>',
       description:
         'The schema that defines the structure of each array element. Supports Zod schemas, Valibot schemas, or JSON schemas.',
+    },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
     },
   ]}
 />
@@ -206,6 +234,20 @@ const { output } = await generateText({
       description:
         'An array of string options that the model can choose from. The output will be exactly one of these values.',
     },
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
+    },
   ]}
 />
 
@@ -235,7 +277,24 @@ const { output } = await generateText({
 
 #### Parameters
 
-No parameters required.
+<PropertiesTable
+  content={[
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.',
+    },
+  ]}
+/>
 
 #### Returns
 

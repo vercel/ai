@@ -1,9 +1,10 @@
 import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
-import { Embedding, EmbeddingModelUsage } from '../types';
+import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
 
@@ -490,6 +491,146 @@ describe('result.providerMetadata', () => {
     });
 
     expect(result.providerMetadata).toStrictEqual(providerMetadata);
+  });
+});
+
+describe('result.warnings', () => {
+  it('should include warnings in the result (single call path)', async () => {
+    const expectedWarnings: Warning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+    ];
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV3({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          warnings: expectedWarnings,
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual(expectedWarnings);
+  });
+
+  it('should aggregate warnings from multiple calls', async () => {
+    const warning1: Warning = {
+      type: 'other',
+      message: 'Warning from call 1',
+    };
+    const warning2: Warning = {
+      type: 'unsupported',
+      feature: 'dimensions',
+    };
+
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV3({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                warnings: [warning1],
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                warnings: [warning2],
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([warning1, warning2]);
+  });
+});
+
+describe('logWarnings', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
+  });
+
+  it('should call logWarnings with the correct warnings (single call path)', async () => {
+    const expectedWarnings: Warning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+    ];
+
+    await embedMany({
+      model: new MockEmbeddingModelV3({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () => ({
+          embeddings: dummyEmbeddings,
+          warnings: expectedWarnings,
+        }),
+      }),
+      values: testValues,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+  });
+
+  it('should call logWarnings with aggregated warnings from multiple calls', async () => {
+    const warning1: Warning = {
+      type: 'other',
+      message: 'Warning from call 1',
+    };
+    const warning2: Warning = {
+      type: 'unsupported',
+      feature: 'dimensions',
+    };
+
+    let callCount = 0;
+
+    await embedMany({
+      model: new MockEmbeddingModelV3({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                warnings: [warning1],
+              };
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                warnings: [warning2],
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: [warning1, warning2],
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
   });
 });
 
