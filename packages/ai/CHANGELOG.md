@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.150
+
+### Patch Changes
+
+- db62f7d: Added schema name and description for generateText and output
+
 ## 6.0.0-beta.149
 
 ### Patch Changes
