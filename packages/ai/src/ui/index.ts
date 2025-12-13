@@ -35,6 +35,7 @@ export {
   isReasoningUIPart,
   isStaticToolUIPart,
   isTextUIPart,
+  isToolOrDynamicToolUIPart,
   isToolUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
