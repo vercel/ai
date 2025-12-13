@@ -2,15 +2,27 @@ import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  delay,
   FetchFunction,
+  getFromApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { FireworksImageModelId } from './fireworks-image-options';
+
+const DEFAULT_POLL_INTERVAL_MILLIS = 500;
+const DEFAULT_POLL_TIMEOUT_MILLIS = 120000; // 2 minutes for image generation
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation';
   supportsSize?: boolean;
+  /**
+   * Whether the model returns a request_id that needs to be polled for results.
+   * Models like flux-kontext-* use async generation that requires polling.
+   */
+  async?: boolean;
 }
 
 const modelToBackendConfig: Partial<
@@ -21,6 +33,15 @@ const modelToBackendConfig: Partial<
   },
   'accounts/fireworks/models/flux-1-schnell-fp8': {
     urlFormat: 'workflows',
+  },
+  // Flux Kontext models use async generation with polling
+  'accounts/fireworks/models/flux-kontext-pro': {
+    urlFormat: 'workflows',
+    async: true,
+  },
+  'accounts/fireworks/models/flux-kontext-max': {
+    urlFormat: 'workflows',
+    async: true,
   },
   'accounts/fireworks/models/playground-v2-5-1024px-aesthetic': {
     urlFormat: 'image_generation',
@@ -48,20 +69,57 @@ function getUrlForModel(
   baseUrl: string,
   modelId: FireworksImageModelId,
 ): string {
-  switch (modelToBackendConfig[modelId]?.urlFormat) {
+  const backendConfig = modelToBackendConfig[modelId];
+  switch (backendConfig?.urlFormat) {
     case 'image_generation':
       return `${baseUrl}/image_generation/${modelId}`;
     case 'workflows':
     default:
+      // Async models use the base workflows endpoint
+      if (backendConfig?.async) {
+        return `${baseUrl}/workflows/${modelId}`;
+      }
       return `${baseUrl}/workflows/${modelId}/text_to_image`;
   }
 }
+
+function getPollUrlForModel(
+  baseUrl: string,
+  modelId: FireworksImageModelId,
+): string {
+  return `${baseUrl}/workflows/${modelId}/get_result`;
+}
+
+// Schema for async submit response
+const asyncSubmitResponseSchema = z.object({
+  request_id: z.string(),
+});
+
+// Schema for async poll response
+const asyncPollResponseSchema = z.object({
+  status: z.string(),
+  result: z
+    .object({
+      sample: z.string().optional(),
+    })
+    .optional(),
+});
 
 interface FireworksImageModelConfig {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string>;
   fetch?: FetchFunction;
+  /**
+   * Poll interval in milliseconds between status checks for async models.
+   * Defaults to 500ms.
+   */
+  pollIntervalMillis?: number;
+  /**
+   * Overall timeout in milliseconds for polling before giving up.
+   * Defaults to 120000ms (2 minutes).
+   */
+  pollTimeoutMillis?: number;
   _internal?: {
     currentDate?: () => Date;
   };
@@ -116,17 +174,33 @@ export class FireworksImageModel implements ImageModelV3 {
 
     const splitSize = size?.split('x');
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const combinedHeaders = combineHeaders(this.config.headers(), headers);
+
+    const body = {
+      prompt,
+      aspect_ratio: aspectRatio,
+      seed,
+      samples: n,
+      ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
+      ...(providerOptions.fireworks ?? {}),
+    };
+
+    // Handle async models that require polling (e.g., flux-kontext-*)
+    if (backendConfig?.async) {
+      return this.doGenerateAsync({
+        body,
+        headers: combinedHeaders,
+        abortSignal,
+        warnings,
+        currentDate,
+      });
+    }
+
+    // Handle sync models that return binary directly
     const { value: response, responseHeaders } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),
-      headers: combineHeaders(this.config.headers(), headers),
-      body: {
-        prompt,
-        aspect_ratio: aspectRatio,
-        seed,
-        samples: n,
-        ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-        ...(providerOptions.fireworks ?? {}),
-      },
+      headers: combinedHeaders,
+      body,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal,
@@ -142,5 +216,125 @@ export class FireworksImageModel implements ImageModelV3 {
         headers: responseHeaders,
       },
     };
+  }
+
+  /**
+   * Handles async image generation for models like flux-kontext-* that return
+   * a request_id and require polling for results.
+   */
+  private async doGenerateAsync({
+    body,
+    headers,
+    abortSignal,
+    warnings,
+    currentDate,
+  }: {
+    body: Record<string, unknown>;
+    headers: Record<string, string | undefined>;
+    abortSignal: AbortSignal | undefined;
+    warnings: Array<SharedV3Warning>;
+    currentDate: Date;
+  }): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    // Submit the generation request
+    const { value: submitResponse } = await postJsonToApi({
+      url: getUrlForModel(this.config.baseURL, this.modelId),
+      headers,
+      body,
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
+      successfulResponseHandler: createJsonResponseHandler(
+        asyncSubmitResponseSchema,
+      ),
+      abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const requestId = submitResponse.request_id;
+
+    // Poll for the result
+    const imageUrl = await this.pollForImageUrl({
+      requestId,
+      headers,
+      abortSignal,
+    });
+
+    // Download the image from the URL
+    const { value: imageBytes, responseHeaders } = await getFromApi({
+      url: imageUrl,
+      headers,
+      abortSignal,
+      failedResponseHandler: createStatusCodeErrorResponseHandler(),
+      successfulResponseHandler: createBinaryResponseHandler(),
+      fetch: this.config.fetch,
+    });
+
+    return {
+      images: [imageBytes],
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
+    };
+  }
+
+  /**
+   * Polls the get_result endpoint until the image is ready.
+   */
+  private async pollForImageUrl({
+    requestId,
+    headers,
+    abortSignal,
+  }: {
+    requestId: string;
+    headers: Record<string, string | undefined>;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<string> {
+    const pollIntervalMillis =
+      this.config.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
+    const pollTimeoutMillis =
+      this.config.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS;
+    const maxPollAttempts = Math.ceil(
+      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
+    );
+
+    const pollUrl = getPollUrlForModel(this.config.baseURL, this.modelId);
+
+    for (let i = 0; i < maxPollAttempts; i++) {
+      const { value: pollResponse } = await postJsonToApi({
+        url: pollUrl,
+        headers,
+        body: { id: requestId },
+        failedResponseHandler: createStatusCodeErrorResponseHandler(),
+        successfulResponseHandler: createJsonResponseHandler(
+          asyncPollResponseSchema,
+        ),
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      const status = pollResponse.status;
+
+      if (status === 'Ready') {
+        const imageUrl = pollResponse.result?.sample;
+        if (typeof imageUrl === 'string') {
+          return imageUrl;
+        }
+        throw new Error(
+          'Fireworks poll response is Ready but missing result.sample',
+        );
+      }
+
+      if (status === 'Error' || status === 'Failed') {
+        throw new Error(`Fireworks image generation failed with status: ${status}`);
+      }
+
+      // Wait before next poll attempt
+      await delay(pollIntervalMillis);
+    }
+
+    throw new Error(
+      `Fireworks image generation timed out after ${pollTimeoutMillis}ms`,
+    );
   }
 }

@@ -36,6 +36,35 @@ function createSizeModel() {
   );
 }
 
+function createAsyncModel({
+  headers,
+  fetch,
+  currentDate,
+  pollIntervalMillis,
+  pollTimeoutMillis,
+}: {
+  headers?: () => Record<string, string>;
+  fetch?: FetchFunction;
+  currentDate?: () => Date;
+  pollIntervalMillis?: number;
+  pollTimeoutMillis?: number;
+} = {}) {
+  return new FireworksImageModel(
+    'accounts/fireworks/models/flux-kontext-pro',
+    {
+      provider: 'fireworks',
+      baseURL: 'https://api.async-example.com',
+      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+      fetch,
+      pollIntervalMillis,
+      pollTimeoutMillis,
+      _internal: {
+        currentDate,
+      },
+    },
+  );
+}
+
 describe('FireworksImageModel', () => {
   const server = createTestServer({
     'https://api.example.com/*': {
@@ -362,6 +391,281 @@ describe('FireworksImageModel', () => {
       expect(model.modelId).toBe('accounts/fireworks/models/flux-1-dev-fp8');
       expect(model.specificationVersion).toBe('v3');
       expect(model.maxImagesPerCall).toBe(1);
+    });
+  });
+
+  describe('async models (flux-kontext-*)', () => {
+    const asyncServer = createTestServer({
+      'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro':
+        {
+          response: {
+            type: 'json-value',
+            body: { request_id: 'test-request-123' },
+          },
+        },
+      'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result':
+        {
+          response: {
+            type: 'json-value',
+            body: {
+              status: 'Ready',
+              result: { sample: 'https://example.com/image.png' },
+            },
+          },
+        },
+      'https://example.com/image.png': {
+        response: {
+          type: 'binary',
+          body: Buffer.from('async-image-content'),
+        },
+      },
+    });
+
+    it('should submit request and poll for result', async () => {
+      const model = createAsyncModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: 42,
+        providerOptions: {},
+      });
+
+      // Verify submit request
+      expect(asyncServer.calls[0].requestUrl).toBe(
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro',
+      );
+      expect(await asyncServer.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '16:9',
+        seed: 42,
+        samples: 1,
+      });
+
+      // Verify poll request
+      expect(asyncServer.calls[1].requestUrl).toBe(
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result',
+      );
+      expect(await asyncServer.calls[1].requestBodyJson).toStrictEqual({
+        id: 'test-request-123',
+      });
+
+      // Verify image download
+      expect(asyncServer.calls[2].requestUrl).toBe(
+        'https://example.com/image.png',
+      );
+
+      // Verify result
+      expect(result.images).toHaveLength(1);
+      expect(Buffer.from(result.images[0]).toString()).toBe(
+        'async-image-content',
+      );
+    });
+
+    it('should poll multiple times until Ready', async () => {
+      let pollCount = 0;
+
+      // Custom fetch to track poll count
+      const customFetch = vi.fn(async (url: string, init?: RequestInit) => {
+        const urlString = url.toString();
+
+        if (
+          urlString ===
+          'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro'
+        ) {
+          return new Response(JSON.stringify({ request_id: 'test-request-123' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (
+          urlString ===
+          'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+        ) {
+          pollCount++;
+          if (pollCount < 3) {
+            return new Response(JSON.stringify({ status: 'Pending' }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+          return new Response(
+            JSON.stringify({
+              status: 'Ready',
+              result: { sample: 'https://example.com/image.png' },
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (urlString === 'https://example.com/image.png') {
+          return new Response(Buffer.from('async-image-content'), {
+            status: 200,
+          });
+        }
+
+        return new Response('Not found', { status: 404 });
+      }) as unknown as typeof fetch;
+
+      const model = createAsyncModel({
+        pollIntervalMillis: 10,
+        fetch: customFetch,
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(pollCount).toBe(3);
+      expect(result.images).toHaveLength(1);
+    });
+
+    it('should throw error when generation fails', async () => {
+      asyncServer.urls[
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+      ].response = {
+        type: 'json-value',
+        body: { status: 'Error' },
+      };
+
+      const model = createAsyncModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Fireworks image generation failed with status: Error');
+    });
+
+    it('should throw error when polling times out', async () => {
+      asyncServer.urls[
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+      ].response = {
+        type: 'json-value',
+        body: { status: 'Pending' },
+      };
+
+      const model = createAsyncModel({
+        pollIntervalMillis: 10,
+        pollTimeoutMillis: 50,
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Fireworks image generation timed out after 50ms');
+    });
+
+    it('should throw error when Ready but missing sample', async () => {
+      asyncServer.urls[
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+      ].response = {
+        type: 'json-value',
+        body: { status: 'Ready', result: {} },
+      };
+
+      const model = createAsyncModel();
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Fireworks poll response is Ready but missing result.sample',
+      );
+    });
+
+    it('should pass provider options to submit request', async () => {
+      // Reset response for clean test
+      asyncServer.urls[
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+      ].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://example.com/image.png' },
+        },
+      };
+
+      const model = createAsyncModel();
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fireworks: {
+            safety_tolerance: 6,
+            input_image: 'base64-image-data',
+          },
+        },
+      });
+
+      expect(await asyncServer.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        samples: 1,
+        safety_tolerance: 6,
+        input_image: 'base64-image-data',
+      });
+    });
+
+    it('should include response metadata', async () => {
+      // Reset response for clean test
+      asyncServer.urls[
+        'https://api.async-example.com/workflows/accounts/fireworks/models/flux-kontext-pro/get_result'
+      ].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://example.com/image.png' },
+        },
+      };
+
+      const testDate = new Date('2024-01-01T00:00:00Z');
+      const model = createAsyncModel({
+        currentDate: () => testDate,
+      });
+
+      const result = await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.response).toStrictEqual({
+        timestamp: testDate,
+        modelId: 'accounts/fireworks/models/flux-kontext-pro',
+        headers: expect.any(Object),
+      });
     });
   });
 });
