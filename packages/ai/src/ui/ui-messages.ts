@@ -488,12 +488,22 @@ export function getStaticToolName<TOOLS extends UITools>(
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
 
-// TODO AI SDK 6: rename to getToolName
-export function getToolOrDynamicToolName(
+/**
+ * Returns the name of the tool (static or dynamic).
+ *
+ * This function will not restrict the name to the keys of the tool set.
+ * If you need to restrict the name to the keys of the tool set, use `getStaticToolName` instead.
+ */
+export function getToolName(
   part: ToolUIPart<UITools> | DynamicToolUIPart,
 ): string {
   return isDynamicToolUIPart(part) ? part.toolName : getStaticToolName(part);
 }
+
+/**
+ * @deprecated Use getToolName instead.
+ */
+export const getToolOrDynamicToolName = getToolName;
 
 export type InferUIMessageMetadata<T extends UIMessage> =
   T extends UIMessage<infer METADATA> ? METADATA : unknown;

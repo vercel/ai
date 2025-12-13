@@ -4,7 +4,7 @@ import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
 import {
   DefaultChatTransport,
-  getToolOrDynamicToolName,
+  getToolName,
   type DynamicToolUIPart,
   type ToolUIPart,
   isToolUIPart,
@@ -43,7 +43,7 @@ export default function Chat() {
 
               if (isToolUIPart(part)) {
                 const toolPart = part as ToolUIPart<any> | DynamicToolUIPart;
-                const toolName = getToolOrDynamicToolName(toolPart);
+                const toolName = getToolName(toolPart);
 
                 // Display tool title if available, fallback to tool name
                 const displayName = toolPart.title || toolName;

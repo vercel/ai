@@ -14,7 +14,7 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
-  getToolOrDynamicToolName,
+  getToolName,
   InferUIMessageData,
   InferUIMessageTools,
   isDataUIPart,
@@ -170,7 +170,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   providerOptions: part.providerMetadata,
                 });
               } else if (isToolUIPart(part)) {
-                const toolName = getToolOrDynamicToolName(part);
+                const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
                   content.push({
@@ -272,7 +272,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
-                          toolName: getToolOrDynamicToolName(toolPart),
+                          toolName: getToolName(toolPart),
                           output: {
                             type: 'error-text' as const,
                             value:
@@ -289,7 +289,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                       case 'output-error':
                       case 'output-available': {
-                        const toolName = getToolOrDynamicToolName(toolPart);
+                        const toolName = getToolName(toolPart);
                         outputs.push({
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
