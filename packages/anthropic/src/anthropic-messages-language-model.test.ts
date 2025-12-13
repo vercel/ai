@@ -650,6 +650,202 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('structured-outputs-2025-11-13 beta header', () => {
+      it('should NOT include beta header for simple text generation with supported model', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello!' }],
+          model: 'claude-sonnet-4-5',
+        });
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include beta header when using json schema response format with supported model', async () => {
+        prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "structured-outputs-2025-11-13",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should NOT include beta header when using json schema response format with unsupported model', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_123',
+              name: 'json',
+              input: { name: 'test' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        await provider('claude-3-haiku-20240307').doGenerate({
+          prompt: TEST_PROMPT,
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include beta header when using tools with strict: true on supported model', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_123',
+              name: 'testTool',
+              input: { value: 'test' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              description: 'A test tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+              strict: true,
+            },
+          ],
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "structured-outputs-2025-11-13",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include beta header when using tools with strict: false on supported model', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_123',
+              name: 'testTool',
+              input: { value: 'test' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              description: 'A test tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+              strict: false,
+            },
+          ],
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "structured-outputs-2025-11-13",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+
+      it('should include beta header when using tools without strict on supported model', async () => {
+        prepareJsonResponse({
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_123',
+              name: 'testTool',
+              input: { value: 'test' },
+            },
+          ],
+          stopReason: 'tool_use',
+        });
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              description: 'A test tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-beta": "structured-outputs-2025-11-13",
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
+    });
+
     it('should extract text response', async () => {
       prepareJsonResponse({
         content: [{ type: 'text', text: 'Hello, World!' }],
@@ -2335,7 +2531,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
@@ -2441,7 +2637,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         it('should include advanced-tool-use beta header', async () => {
           expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
             {
-              "anthropic-beta": "structured-outputs-2025-11-13,advanced-tool-use-2025-11-20",
+              "anthropic-beta": "advanced-tool-use-2025-11-20,structured-outputs-2025-11-13",
               "anthropic-version": "2023-06-01",
               "content-type": "application/json",
               "x-api-key": "test-api-key",
