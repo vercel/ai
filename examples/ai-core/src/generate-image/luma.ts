@@ -8,11 +8,6 @@ async function main() {
     model: luma.image('photon-flash-1'),
     prompt: 'A salamander at dusk in a forest pond, in the style of ukiyo-e',
     aspectRatio: '1:1',
-    providerOptions: {
-      luma: {
-        // add'l options here
-      },
-    },
   });
 
   await presentImages(result.images);

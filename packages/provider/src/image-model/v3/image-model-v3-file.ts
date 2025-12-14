@@ -27,7 +27,7 @@ be returned as binary data.
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerMetadata?: SharedV3ProviderMetadata;
+      providerOptions?: SharedV3ProviderMetadata;
     }
   | {
       type: 'url';
@@ -40,5 +40,5 @@ be returned as binary data.
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerMetadata?: SharedV3ProviderMetadata;
+      providerOptions?: SharedV3ProviderMetadata;
     };

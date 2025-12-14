@@ -317,6 +317,369 @@ describe('LumaImageModel', () => {
     });
   });
 
+  describe('Image Editing', () => {
+    it('should send image_ref by default when URL file is provided', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'A warrior with sunglasses',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_ref": [
+            {
+              "url": "https://example.com/input.jpg",
+              "weight": 0.85,
+            },
+          ],
+          "model": "test-model",
+          "prompt": "A warrior with sunglasses",
+        }
+      `);
+    });
+
+    it('should send modify_image_ref when referenceType is set', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'Transform flowers to sunflowers',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            referenceType: 'modify_image_ref',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "model": "test-model",
+          "modify_image_ref": {
+            "url": "https://example.com/input.jpg",
+            "weight": 1,
+          },
+          "prompt": "Transform flowers to sunflowers",
+        }
+      `);
+    });
+
+    it('should send style_ref when referenceType is style_ref', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'A dog in this style',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/style.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            referenceType: 'style_ref',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "model": "test-model",
+          "prompt": "A dog in this style",
+          "style_ref": [
+            {
+              "url": "https://example.com/style.jpg",
+              "weight": 0.8,
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should send character_ref when referenceType is character_ref', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'A warrior',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/person1.jpg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/person2.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            referenceType: 'character_ref',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "character_ref": {
+            "identity0": {
+              "images": [
+                "https://example.com/person1.jpg",
+                "https://example.com/person2.jpg",
+              ],
+            },
+          },
+          "model": "test-model",
+          "prompt": "A warrior",
+        }
+      `);
+    });
+
+    it('should support multiple images for image_ref', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'Combine these concepts',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input1.jpg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/input2.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_ref": [
+            {
+              "url": "https://example.com/input1.jpg",
+              "weight": 0.85,
+            },
+            {
+              "url": "https://example.com/input2.jpg",
+              "weight": 0.85,
+            },
+          ],
+          "model": "test-model",
+          "prompt": "Combine these concepts",
+        }
+      `);
+    });
+
+    it('should use custom weights from images config', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'Styled image',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            images: [{ weight: 0.5 }],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_ref": [
+            {
+              "url": "https://example.com/input.jpg",
+              "weight": 0.5,
+            },
+          ],
+          "model": "test-model",
+          "prompt": "Styled image",
+        }
+      `);
+    });
+
+    it('should throw error when mask is provided', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt: 'Replace sky with sunset',
+          files: [
+            {
+              type: 'url',
+              url: 'https://example.com/input.jpg',
+            },
+          ],
+          mask: {
+            type: 'url',
+            url: 'https://example.com/mask.png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Luma AI does not support mask-based image editing');
+    });
+
+    it('should throw error when base64 file data is provided', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              data: new Uint8Array([137, 80, 78, 71]),
+              mediaType: 'image/png',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Luma AI only supports URL-based images');
+    });
+
+    it('should throw error when base64 mask data is provided', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit with mask',
+          files: [
+            {
+              type: 'url',
+              url: 'https://example.com/input.jpg',
+            },
+          ],
+          mask: {
+            type: 'file',
+            data: new Uint8Array([255, 255, 255, 0]),
+            mediaType: 'image/png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Luma AI does not support mask-based image editing');
+    });
+
+    it('should throw error when more than 4 images for image_ref', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt: 'Too many images',
+          files: [
+            { type: 'url', url: 'https://example.com/1.jpg' },
+            { type: 'url', url: 'https://example.com/2.jpg' },
+            { type: 'url', url: 'https://example.com/3.jpg' },
+            { type: 'url', url: 'https://example.com/4.jpg' },
+            { type: 'url', url: 'https://example.com/5.jpg' },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow('Luma AI image_ref supports up to 4 reference images');
+    });
+
+    it('should throw error when multiple files for modify_image_ref', async () => {
+      const model = createBasicModel();
+
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit multiple images',
+          files: [
+            {
+              type: 'url',
+              url: 'https://example.com/input1.jpg',
+            },
+            {
+              type: 'url',
+              url: 'https://example.com/input2.jpg',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            luma: {
+              referenceType: 'modify_image_ref',
+            },
+          },
+        }),
+      ).rejects.toThrow(
+        'Luma AI modify_image_ref only supports a single input image',
+      );
+    });
+  });
+
   describe('response schema validation', () => {
     it('should parse response with image references', async () => {
       server.urls[
