@@ -37,7 +37,7 @@ run(async () => {
     },
     stopWhen: stepCountIs(20),
     providerOptions: {
-      azure: {
+      openai: {
         reasoningEffort: 'high',
         maxCompletionTokens: 32_000,
         store: false,
