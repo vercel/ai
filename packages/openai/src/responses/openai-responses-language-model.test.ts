@@ -3554,14 +3554,14 @@ describe('OpenAIResponsesLanguageModel', () => {
           generateId: mockId(),
         });
 
-        const {providerMetadata} = await model.doGenerate({
+        const { providerMetadata } = await model.doGenerate({
           prompt: TEST_PROMPT,
         });
 
         expect(providerMetadata).toHaveProperty('azure');
         expect(providerMetadata).not.toHaveProperty('openai');
         expect(providerMetadata?.azure).toMatchObject({
-          responseId: "resp_provider_metadata_azure",
+          responseId: 'resp_provider_metadata_azure',
         });
       });
 
@@ -3586,15 +3586,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        const {providerMetadata} = await createModel('gpt-4o').doGenerate({
+        const { providerMetadata } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
         });
 
         expect(providerMetadata).toHaveProperty('openai');
         expect(providerMetadata).not.toHaveProperty('azure');
         expect(providerMetadata?.openai).toMatchObject({
-          responseId: "resp_provider_metadata_openai",
-        })
+          responseId: 'resp_provider_metadata_openai',
+        });
       });
 
       it('should use "azure" as providerMetadata key in tool call content when provider includes "azure"', async () => {
@@ -3626,10 +3626,10 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         const toolCallPart = result.content.find(
-          (part): part is Extract<
-            LanguageModelV3Content,
-            { type: 'tool-call' }
-          > => part.type === 'tool-call',
+          (
+            part,
+          ): part is Extract<LanguageModelV3Content, { type: 'tool-call' }> =>
+            part.type === 'tool-call',
         );
 
         expect(toolCallPart?.providerMetadata).toHaveProperty('azure');
@@ -3766,11 +3766,11 @@ describe('OpenAIResponsesLanguageModel', () => {
         const { stream } = await model.doStream({
           prompt: TEST_PROMPT,
           includeRawChunks: false,
-          providerOptions:{
-            openai:{
+          providerOptions: {
+            openai: {
               reasoningSummary: 'auto',
-            }
-          }
+            },
+          },
         });
 
         const events = await convertReadableStreamToArray(stream);
@@ -3781,7 +3781,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(finishEvent.providerMetadata).toHaveProperty('azure');
           expect(finishEvent.providerMetadata).not.toHaveProperty('openai');
           expect(finishEvent.providerMetadata?.azure).toMatchObject({
-            responseId: "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
           });
         }
       });
