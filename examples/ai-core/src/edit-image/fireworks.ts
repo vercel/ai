@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
 import { experimental_generateImage as generateImage } from 'ai';
-import { fireworks } from '@ai-sdk/fireworks';
+import { fireworks, FireworksImageModelId } from '@ai-sdk/fireworks';
 
 /*
     Fireworks Image Editing API
@@ -24,101 +24,7 @@ import { fireworks } from '@ai-sdk/fireworks';
     Documentation: https://fireworks.ai/docs/api-reference/generate-or-edit-image-using-flux-kontext
 */
 
-const MODEL_ID = 'accounts/fireworks/models/flux-kontext-pro';
-
-// ============================================================================
-// Native Fetch Examples
-// ============================================================================
-
-/**
- * Edit image using native fetch with Fireworks API
- */
-async function editImageNative() {
-  const imageBuffer = readFileSync('data/comic-cat.png');
-  const base64Image = imageBuffer.toString('base64');
-
-  console.log('Editing image with Fireworks Kontext API...');
-
-  const response = await fetch(
-    `https://api.fireworks.ai/inference/v1/workflows/${MODEL_ID}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: 'Turn the cat into a golden retriever dog',
-        input_image: base64Image
-      }),
-    },
-  );
-
-  
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Error:', error);
-    throw new Error(`Fireworks API error: ${response.status}`);
-  }
-
-  // first response returns {"request_id":"<id>"}
-
-  // Response is binary image data
-  console.dir(await response.text())
-
-  // const arrayBuffer = await response.arrayBuffer();
-  // await presentImages([
-  //   {
-  //     base64: '',
-  //     mediaType: 'image/jpeg',
-  //     uint8Array: new Uint8Array(arrayBuffer),
-  //   },
-  // ]);
-}
-
-/**
- * Edit image with URL using native fetch
- */
-async function editImageWithUrlNative() {
-  console.log('Editing image with URL using Fireworks API...');
-
-  const response = await fetch(
-    `https://api.fireworks.ai/inference/v1/workflows/${MODEL_ID}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: 'Add a colorful sunset in the background',
-        input_image:
-          'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg',
-        output_format: 'jpeg',
-        aspect_ratio: '16:9',
-      }),
-    },
-  );
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Error:', error);
-    throw new Error(`Fireworks API error: ${response.status}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  await presentImages([
-    {
-      base64: '',
-      mediaType: 'image/jpeg',
-      uint8Array: new Uint8Array(arrayBuffer),
-    },
-  ]);
-}
-
-// ============================================================================
-// AI SDK Examples using generateImage()
-// ============================================================================
+const MODEL_ID: FireworksImageModelId = 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0';
 
 /**
  * Edit image using AI SDK
@@ -152,6 +58,7 @@ async function editImageAi() {
   });
 
   console.log('OUTPUT IMAGE:');
+  console.dir(images);
   await presentImages(images);
 }
 
@@ -222,15 +129,38 @@ async function editWithProviderOptionsAi() {
   await presentImages(images);
 }
 
+async function getImageUrl(apiKey: string, modelId: string, requestId: string) {
+  const url = `https://api.fireworks.ai/inference/v1/workflows/${modelId}/get_result`;
+
+  console.log('checking for result of task %s at %s', requestId, url);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ id: requestId }),
+  });
+
+  // {"id":"03870241-ee89-49f2-8e0a-99e3b53df97c","status":"Request Moderated","result":null,"progress":null,"details":{"Moderation Reasons":["Safety Filter"]}}
+  const result = await response.json();
+
+  console.dir(result);
+
+  if (result.status !== 'Ready') {
+    console.log('no result yet, waiting 3s before retrying...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    return getImageUrl(apiKey, modelId, requestId);
+  }
+
+  return result.result.sample
+}
+
 // ============================================================================
 // Run Examples
 // ============================================================================
 
-// Native fetch examples:
-editImageNative().catch(console.error);
-// editImageWithUrlNative().catch(console.error);
-
 // AI SDK examples:
-// editImageAi().catch(console.error);
+editImageAi().catch(console.error);
 // styleTransferAi().catch(console.error);
 // editWithProviderOptionsAi().catch(console.error);

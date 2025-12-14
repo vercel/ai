@@ -20,6 +20,8 @@ export async function presentImages(images: GeneratedImage[]) {
 
     // Determine the format of the image.
     const format = await imageType(srcBuffer);
+    console.log('format');
+    console.dir(format);
     const extension = format?.ext;
     if (!extension) {
       throw new Error('Unknown image format');
