@@ -178,9 +178,9 @@ export type OpenAIResponsesFileSearchToolComparisonFilter = {
   type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin';
 
   /**
-   * The value to compare against the attribute key; supports string, number, boolean, or array of string types.
+   * The value to compare against the attribute key; supports string, number, boolean, string[], or number[] types.
    */
-  value: string | number | boolean | string[];
+  value: string | number | boolean | string[] | number[];
 };
 
 /**

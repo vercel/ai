@@ -2798,6 +2798,149 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(result.content).toMatchSnapshot();
         });
       });
+
+      describe('with numeric array filter (in operator)', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.file_search',
+                name: 'fileSearch',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  maxNumResults: 10,
+                  filters: {
+                    key: 'year',
+                    type: 'in',
+                    value: [2022, 2023, 2024], // number[] filter
+                  },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with numeric array filter', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5-nano",
+              "tools": [
+                {
+                  "filters": {
+                    "key": "year",
+                    "type": "in",
+                    "value": [
+                      2022,
+                      2023,
+                      2024,
+                    ],
+                  },
+                  "max_num_results": 10,
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+      });
+
+      describe('with compound filter including numeric array', () => {
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('openai-file-search-tool.1');
+
+          result = await createModel('gpt-5-nano').doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'openai.file_search',
+                name: 'fileSearch',
+                args: {
+                  vectorStoreIds: ['vs_68caad8bd5d88191ab766cf043d89a18'],
+                  filters: {
+                    type: 'and',
+                    filters: [
+                      {
+                        key: 'year',
+                        type: 'in',
+                        value: [2023, 2024], // number[] in compound filter
+                      },
+                      {
+                        key: 'status',
+                        type: 'eq',
+                        value: 'published',
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should send request body with compound filter including numeric array', async () => {
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "Hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "gpt-5-nano",
+              "tools": [
+                {
+                  "filters": {
+                    "filters": [
+                      {
+                        "key": "year",
+                        "type": "in",
+                        "value": [
+                          2023,
+                          2024,
+                        ],
+                      },
+                      {
+                        "key": "status",
+                        "type": "eq",
+                        "value": "published",
+                      },
+                    ],
+                    "type": "and",
+                  },
+                  "type": "file_search",
+                  "vector_store_ids": [
+                    "vs_68caad8bd5d88191ab766cf043d89a18",
+                  ],
+                },
+              ],
+            }
+          `);
+        });
+      });
     });
 
     describe('apply_patch tool', () => {

@@ -414,6 +414,34 @@ const result = await generateText({
 });
 ```
 
+The `filters` parameter supports comparison filters with `in` and `nin` operators for set-based operations.
+Filter values can be strings, numbers, booleans, or arrays of strings or numbers:
+
+```ts
+// Filter documents where 'year' metadata is in a set of numeric values
+filters: {
+  key: 'year',
+  type: 'in',
+  value: [2022, 2023, 2024], // number[] for numeric set membership
+}
+
+// Filter documents where 'category' metadata is in a set of string values
+filters: {
+  key: 'category',
+  type: 'in',
+  value: ['research', 'tutorial'], // string[] for string set membership
+}
+
+// Compound filters with 'and'/'or' operators
+filters: {
+  type: 'and',
+  filters: [
+    { key: 'year', type: 'in', value: [2023, 2024] },
+    { key: 'status', type: 'eq', value: 'published' },
+  ],
+}
+```
+
 #### Image Generation Tool
 
 OpenAI's Responses API supports multi-modal image generation as a provider-defined tool.
