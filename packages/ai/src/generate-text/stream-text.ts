@@ -1001,7 +1001,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           controller.enqueue(value);
         } catch (error) {
-          if (isAbortError(error) && abortSignal?.aborted) {
+          if (isAbortError(error)) {
+            // Handle any AbortError as an abort, regardless of which signal caused it.
+            // This covers cases where middleware uses its own AbortController.
             abort();
           } else {
             controller.error(error);

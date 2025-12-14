@@ -1,12 +1,25 @@
+import assert from 'node:assert';
+
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
+import { z } from 'zod/v4';
+
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  SharedV3Warning,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   delay,
@@ -24,18 +37,8 @@ import {
   convertResponseStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  vitest,
-} from 'vitest';
-import { z } from 'zod/v4';
-import { Output } from '..';
+
+import { Output } from '../';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { createMockServerResponse } from '../test/mock-server-response';
@@ -46,7 +49,6 @@ import { stepCountIs } from './stop-condition';
 import { streamText, StreamTextOnFinishCallback } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
-import { features } from 'node:process';
 
 const defaultSettings = () =>
   ({
@@ -9271,6 +9273,59 @@ describe('streamText', () => {
           messages: expect.any(Array),
         },
       );
+    });
+
+    it('should resolve result.steps when AbortError comes from model/middleware (not outer signal)', async () => {
+      // This tests the case where middleware uses its own AbortController
+      // and triggers an abort that the outer abortSignal doesn't know about
+      const onAbortCallback = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({
+                type: 'response-metadata',
+                id: 'msg-1',
+                modelId: 'test-model',
+                timestamp: new Date(),
+              });
+              controller.enqueue({ type: 'text-start', id: '1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: '1',
+                delta: 'Hello',
+              });
+              // Simulate middleware triggering an abort with its own controller
+              queueMicrotask(() => {
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+        // Note: no abortSignal passed to streamText
+        onAbort: onAbortCallback,
+      });
+
+      // result.steps should resolve (not hang forever)
+      const stepsPromise = result.steps;
+
+      // Add a timeout to detect if it hangs
+      const timeoutPromise = new Promise<'timeout'>(resolve =>
+        setTimeout(() => resolve('timeout'), 1000),
+      );
+
+      const raceResult = await Promise.race([
+        stepsPromise
+          .then(() => 'resolved' as const)
+          .catch(() => 'rejected' as const),
+        timeoutPromise,
+      ]);
+
+      // The promise should have settled (resolved with steps or rejected), not timed out
+      expect(raceResult).not.toBe('timeout');
+      expect(onAbortCallback).toHaveBeenCalled();
     });
   });
 
