@@ -12,7 +12,7 @@
     "@ai-sdk/openai": "3.0.0-beta.96",
     "@ai-sdk/react": "3.0.0-beta.153",
     "ai": "6.0.0-beta.150",
-    "next": "^15.5.7",
+    "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.25.76"
