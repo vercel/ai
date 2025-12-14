@@ -15,13 +15,8 @@
     "@opentelemetry/sdk-logs": "0.55.0",
     "@opentelemetry/instrumentation": "0.52.1",
     "@vercel/otel": "1.10.0",
-<<<<<<< HEAD
     "ai": "workspace:*",
-    "next": "^15.5.7",
-=======
-    "ai": "6.0.0-beta.150",
     "next": "^15.5.9",
->>>>>>> b36806328 (Fix React Server Components CVE vulnerabilities (#11122))
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.25.76"
