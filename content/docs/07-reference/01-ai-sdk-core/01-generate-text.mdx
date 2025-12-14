@@ -705,6 +705,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Schema<OBJECT>',
                       description: 'The schema of the object to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -724,6 +738,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       description:
                         'The schema of the array elements to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -742,6 +770,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Array<string>',
                       description: 'The available choices.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -750,7 +792,28 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'Output.json()',
               type: 'Output',
               description:
-                ' Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+                'Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },

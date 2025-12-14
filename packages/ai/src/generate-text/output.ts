@@ -66,13 +66,27 @@ export const text = (): Output<string, string> => ({
  * When the model generates a text response, it will return an object that matches the schema.
  *
  * @param schema - The schema of the object to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating objects with the specified schema.
  */
 export const object = <OBJECT>({
   schema: inputSchema,
+  name,
+  description,
 }: {
   schema: FlexibleSchema<OBJECT>;
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
 }): Output<OBJECT, DeepPartial<OBJECT>> => {
   const schema = asSchema(inputSchema);
 
@@ -80,6 +94,8 @@ export const object = <OBJECT>({
     responseFormat: resolve(schema.jsonSchema).then(jsonSchema => ({
       type: 'json' as const,
       schema: jsonSchema,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     })),
 
     async parseCompleteOutput(
@@ -148,13 +164,27 @@ export const object = <OBJECT>({
  * When the model generates a text response, it will return an array of elements.
  *
  * @param element - The schema of the array elements to generate.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating an array of elements.
  */
 export const array = <ELEMENT>({
   element: inputElementSchema,
+  name,
+  description,
 }: {
   element: FlexibleSchema<ELEMENT>;
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
 }): Output<Array<ELEMENT>, Array<ELEMENT>> => {
   const elementSchema = asSchema(inputElementSchema);
 
@@ -175,6 +205,8 @@ export const array = <ELEMENT>({
           required: ['elements'],
           additionalProperties: false,
         },
+        ...(name != null && { name }),
+        ...(description != null && { description }),
       };
     }),
 
@@ -293,13 +325,27 @@ export const array = <ELEMENT>({
  * When the model generates a text response, it will return a one of the choice options.
  *
  * @param options - The available choices.
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
  *
  * @returns An output specification for generating a choice.
  */
 export const choice = <CHOICE extends string>({
   options: choiceOptions,
+  name,
+  description,
 }: {
   options: Array<CHOICE>;
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
 }): Output<CHOICE, CHOICE> => {
   return {
     // JSON schema that describes an enumeration:
@@ -314,6 +360,8 @@ export const choice = <CHOICE extends string>({
         required: ['result'],
         additionalProperties: false,
       },
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     } as const),
 
     async parseCompleteOutput(
@@ -410,12 +458,31 @@ export const choice = <CHOICE extends string>({
  * Output specification for unstructured JSON generation.
  * When the model generates a text response, it will return a JSON object.
  *
+ * @param name - Optional name of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+ * @param description - Optional description of the output that should be generated. Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+ *
  * @returns An output specification for generating JSON.
  */
-export const json = (): Output<JSONValue, JSONValue> => {
+export const json = ({
+  name,
+  description,
+}: {
+  /**
+   * Optional name of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema name.
+   */
+  name?: string;
+  /**
+   * Optional description of the output that should be generated.
+   * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
+   */
+  description?: string;
+} = {}): Output<JSONValue, JSONValue> => {
   return {
     responseFormat: Promise.resolve({
       type: 'json' as const,
+      ...(name != null && { name }),
+      ...(description != null && { description }),
     }),
 
     async parseCompleteOutput(
