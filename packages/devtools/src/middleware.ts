@@ -1,4 +1,6 @@
 import {
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3Usage,
   type LanguageModelV3Middleware,
   type LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
@@ -241,8 +243,8 @@ export const devToolsMiddleware = (): LanguageModelV3Middleware => {
           textParts: Array<{ id: string; text: string }>;
           reasoningParts: Array<{ id: string; text: string }>;
           toolCalls: LanguageModelV3StreamPart[];
-          finishReason?: string;
-          usage?: unknown;
+          finishReason?: LanguageModelV3FinishReason;
+          usage?: LanguageModelV3Usage;
         } = {
           textParts: [],
           reasoningParts: [],

@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.0-beta.150
+
+### Patch Changes
+
+- db62f7d: Added schema name and description for generateText and output
+
+## 6.0.0-beta.149
+
+### Patch Changes
+
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
 ## 6.0.0-beta.148
 
 ### Patch Changes
