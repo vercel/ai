@@ -5,7 +5,7 @@ description: Use the AI Badgr OpenAI compatible API with the AI SDK.
 
 # AI Badgr Provider
 
-[AI Badgr](https://aibadgr.com/) provides access to AI models through an OpenAI-compatible API that you can use with the AI SDK.
+[AI Badgr](https://aibadgr.com/) provides access to AI models through an OpenAI-compatible API that you can use with the AI SDK. AI Badgr is well-suited for high-volume, cost-sensitive workloads.
 
 ## Setup
 
@@ -37,7 +37,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const aibadgr = createOpenAICompatible({
   name: 'aibadgr',
-  baseURL: 'https://aibadgr.com/api/v1',
+  baseURL: process.env.AIBADGR_BASE_URL ?? 'https://aibadgr.com/api/v1',
   headers: {
     Authorization: `Bearer ${process.env.AIBADGR_API_KEY}`,
   },
@@ -45,16 +45,33 @@ const aibadgr = createOpenAICompatible({
 ```
 
 <Note>
-  You can obtain an API key from the [AI Badgr
-  Dashboard](https://aibadgr.com/dashboard).
+  You can obtain an API key from the AI Badgr dashboard. Optionally set
+  `AIBADGR_BASE_URL` to override the default base URL.
 </Note>
 
 ## Language Models
 
-You can interact with AI Badgr models using a provider instance. The first argument is the model id:
+You can interact with AI Badgr models using a provider instance. AI Badgr uses a tier-based system for easy model selection:
 
 ```ts
-const model = aibadgr('model-name');
+const model = aibadgr('premium');
+```
+
+### Recommended Models (Tiers)
+
+AI Badgr provides tier-based model access:
+
+- **`basic`** - Fast and cost-effective for simple tasks
+- **`normal`** - Balanced performance and cost for general use
+- **`premium`** - Best quality for complex reasoning and generation
+
+### Advanced: Pin Underlying Models
+
+You can also specify exact model names if needed:
+
+```ts
+const model = aibadgr('gpt-4o');
+const model2 = aibadgr('claude-3-5-sonnet-20241022');
 ```
 
 ### Example - Generate Text
@@ -67,14 +84,14 @@ import { generateText } from 'ai';
 
 const aibadgr = createOpenAICompatible({
   name: 'aibadgr',
-  baseURL: 'https://aibadgr.com/api/v1',
+  baseURL: process.env.AIBADGR_BASE_URL ?? 'https://aibadgr.com/api/v1',
   headers: {
     Authorization: `Bearer ${process.env.AIBADGR_API_KEY}`,
   },
 });
 
 const { text, usage, finishReason } = await generateText({
-  model: aibadgr('model-name'),
+  model: aibadgr('premium'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 
@@ -93,14 +110,14 @@ import { streamText } from 'ai';
 
 const aibadgr = createOpenAICompatible({
   name: 'aibadgr',
-  baseURL: 'https://aibadgr.com/api/v1',
+  baseURL: process.env.AIBADGR_BASE_URL ?? 'https://aibadgr.com/api/v1',
   headers: {
     Authorization: `Bearer ${process.env.AIBADGR_API_KEY}`,
   },
 });
 
 const result = streamText({
-  model: aibadgr('model-name'),
+  model: aibadgr('premium'),
   prompt: 'Write a short story about AI.',
 });
 

@@ -4,13 +4,13 @@ import { streamText } from 'ai';
 
 async function main() {
   const aibadgr = createOpenAICompatible({
-    baseURL: 'https://aibadgr.com/api/v1',
+    baseURL: process.env.AIBADGR_BASE_URL ?? 'https://aibadgr.com/api/v1',
     name: 'aibadgr',
     headers: {
       Authorization: `Bearer ${process.env.AIBADGR_API_KEY}`,
     },
   });
-  const model = aibadgr.chatModel('model-name');
+  const model = aibadgr.chatModel('premium');
   const result = streamText({
     model,
     prompt: 'Write a short story about AI.',
