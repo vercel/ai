@@ -115,12 +115,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const providerOptionsName = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
-    const openaiOptions = await parseProviderOptions({
+    const providerOptionsName = this.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let openaiOptions = await parseProviderOptions({
       provider: providerOptionsName,
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
+
+    if (openaiOptions == null && providerOptionsName !== 'openai') {
+      openaiOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiResponsesProviderOptionsSchema,
+      });
+    }
 
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
@@ -371,6 +381,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings],
       store,
       toolNameMapping,
+      providerOptionsName,
     };
   }
 
@@ -382,13 +393,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings,
       webSearchToolName,
       toolNameMapping,
+      providerOptionsName,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
       modelId: this.modelId,
     });
-
-    const providerOptionsName = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     const {
       responseHeaders,
@@ -860,6 +870,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       toolNameMapping,
       store,
+      providerOptionsName,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -881,7 +892,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const self = this;
-    const providerOptionsName = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     let usage: OpenAIResponsesUsage | undefined = undefined;
