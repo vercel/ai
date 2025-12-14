@@ -13,6 +13,7 @@ import {
   Settings,
   Brain,
   Loader2,
+  BarChart3,
 } from 'lucide-react';
 import { AISDKLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -407,16 +408,67 @@ function App() {
     return steps.reduce((acc, s) => acc + (s.duration_ms || 0), 0);
   };
 
-  const getTotalTokens = (steps: Step[]): { input: number; output: number } => {
+  const getTotalTokens = (
+    steps: Step[],
+  ): { input: InputTokenBreakdown; output: OutputTokenBreakdown } => {
     return steps.reduce(
       (acc, s) => {
         const usage = parseJson(s.usage);
-        return {
-          input: acc.input + (usage?.inputTokens ?? 0),
-          output: acc.output + (usage?.outputTokens ?? 0),
+        const inputBreakdown = getInputTokenBreakdown(usage?.inputTokens);
+        const outputBreakdown = getOutputTokenBreakdown(usage?.outputTokens);
+
+        const input: InputTokenBreakdown = {
+          total: acc.input.total + inputBreakdown.total,
         };
+
+        // Only add breakdown properties if they exist in either accumulator or current breakdown
+        if (
+          acc.input.noCache !== undefined ||
+          inputBreakdown.noCache !== undefined
+        ) {
+          input.noCache =
+            (acc.input.noCache ?? 0) + (inputBreakdown.noCache ?? 0);
+        }
+        if (
+          acc.input.cacheRead !== undefined ||
+          inputBreakdown.cacheRead !== undefined
+        ) {
+          input.cacheRead =
+            (acc.input.cacheRead ?? 0) + (inputBreakdown.cacheRead ?? 0);
+        }
+        if (
+          acc.input.cacheWrite !== undefined ||
+          inputBreakdown.cacheWrite !== undefined
+        ) {
+          input.cacheWrite =
+            (acc.input.cacheWrite ?? 0) + (inputBreakdown.cacheWrite ?? 0);
+        }
+
+        const output: OutputTokenBreakdown = {
+          total: acc.output.total + outputBreakdown.total,
+        };
+
+        // Only add breakdown properties if they exist in either accumulator or current breakdown
+        if (
+          acc.output.text !== undefined ||
+          outputBreakdown.text !== undefined
+        ) {
+          output.text = (acc.output.text ?? 0) + (outputBreakdown.text ?? 0);
+        }
+        if (
+          acc.output.reasoning !== undefined ||
+          outputBreakdown.reasoning !== undefined
+        ) {
+          output.reasoning =
+            (acc.output.reasoning ?? 0) + (outputBreakdown.reasoning ?? 0);
+        }
+
+        return { input, output };
       },
-      { input: 0, output: 0 },
+      {
+        input: { total: 0 },
+        output: { total: 0 },
+      } as { input: InputTokenBreakdown; output: OutputTokenBreakdown },
     );
   };
 
@@ -560,11 +612,27 @@ function App() {
                       {formatDuration(getTotalDuration(selectedRun.steps))}
                     </span>
                     <span className="px-3 text-muted-foreground/30">·</span>
-                    <span className="font-mono">
-                      input: {getTotalTokens(selectedRun.steps).input}{' '}
-                      <span className="text-muted-foreground/50">→</span>{' '}
-                      output: {getTotalTokens(selectedRun.steps).output}
-                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="font-mono cursor-help">
+                          input:{' '}
+                          {formatInputTokens(
+                            getTotalTokens(selectedRun.steps).input,
+                          )}{' '}
+                          <span className="text-muted-foreground/50">→</span>{' '}
+                          output:{' '}
+                          {formatOutputTokens(
+                            getTotalTokens(selectedRun.steps).output,
+                          )}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <TokenBreakdownTooltip
+                          input={getTotalTokens(selectedRun.steps).input}
+                          output={getTotalTokens(selectedRun.steps).output}
+                        />
+                      </TooltipContent>
+                    </Tooltip>
                     <span className="px-3 text-muted-foreground/30">·</span>
                     <span>
                       {new Date(selectedRun.run.started_at).toLocaleString()}
@@ -641,10 +709,12 @@ function App() {
                                           </TooltipTrigger>
                                           <TooltipContent
                                             side="bottom"
-                                            className="max-w-sm"
+                                            className="max-w-sm max-h-40 overflow-hidden"
                                           >
-                                            {inputSummary.fullText ||
-                                              inputSummary.toolDetails}
+                                            <span className="line-clamp-6">
+                                              {inputSummary.fullText ||
+                                                inputSummary.toolDetails}
+                                            </span>
                                           </TooltipContent>
                                         </Tooltip>
                                       ) : (
@@ -710,17 +780,32 @@ function App() {
                                 {usage && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="text-[11px] font-mono text-muted-foreground">
-                                        {usage.inputTokens ?? 0}{' '}
+                                      <span className="text-[11px] font-mono text-muted-foreground cursor-help">
+                                        {formatInputTokens(
+                                          getInputTokenBreakdown(
+                                            usage.inputTokens,
+                                          ),
+                                        )}{' '}
                                         <span className="text-muted-foreground/50">
                                           →
                                         </span>{' '}
-                                        {usage.outputTokens ?? 0}
+                                        {formatOutputTokens(
+                                          getOutputTokenBreakdown(
+                                            usage.outputTokens,
+                                          ),
+                                        )}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      Input: {usage.inputTokens ?? 0} · Output:{' '}
-                                      {usage.outputTokens ?? 0}
+                                      <TokenBreakdownTooltip
+                                        input={getInputTokenBreakdown(
+                                          usage.inputTokens,
+                                        )}
+                                        output={getOutputTokenBreakdown(
+                                          usage.outputTokens,
+                                        )}
+                                        raw={usage.raw}
+                                      />
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
@@ -741,6 +826,7 @@ function App() {
                               provider={step.provider}
                               input={input}
                               providerOptions={parseJson(step.provider_options)}
+                              usage={usage}
                             />
 
                             {/* Two Panel Layout */}
@@ -805,11 +891,13 @@ function StepConfigBar({
   provider,
   input,
   providerOptions,
+  usage,
 }: {
   modelId?: string;
   provider?: string | null;
   input: any;
   providerOptions?: any;
+  usage?: any;
 }) {
   const toolCount = input?.tools?.length ?? 0;
 
@@ -896,6 +984,28 @@ function StepConfigBar({
               </DrawerHeader>
               <div className="flex-1 overflow-y-auto p-4">
                 <JsonBlock data={providerOptions} size="lg" />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </>
+      )}
+
+      {usage && (
+        <>
+          <span className="text-muted-foreground/30">·</span>
+          <Drawer direction="right">
+            <DrawerTrigger asChild>
+              <button className="inline-flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer">
+                <BarChart3 className="size-3" />
+                Usage
+              </button>
+            </DrawerTrigger>
+            <DrawerContent className="h-full w-[800px] sm:max-w-[800px] overflow-hidden">
+              <DrawerHeader className="border-b border-border shrink-0">
+                <DrawerTitle>Token Usage</DrawerTitle>
+              </DrawerHeader>
+              <div className="flex-1 overflow-y-auto p-4">
+                <UsageDetails usage={usage} />
               </div>
             </DrawerContent>
           </Drawer>
@@ -1765,6 +1875,154 @@ function RawDataSection({
   );
 }
 
+function UsageDetails({ usage }: { usage: any }) {
+  const inputBreakdown = getInputTokenBreakdown(usage?.inputTokens);
+  const outputBreakdown = getOutputTokenBreakdown(usage?.outputTokens);
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+            Input Tokens
+          </div>
+          <div className="text-2xl font-semibold">{inputBreakdown.total}</div>
+          {(inputBreakdown.cacheRead !== undefined ||
+            inputBreakdown.cacheWrite !== undefined) && (
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+              {inputBreakdown.cacheRead !== undefined && (
+                <div className="flex justify-between">
+                  <span>Cache read</span>
+                  <span className="font-mono">{inputBreakdown.cacheRead}</span>
+                </div>
+              )}
+              {inputBreakdown.cacheWrite !== undefined && (
+                <div className="flex justify-between">
+                  <span>Cache write</span>
+                  <span className="font-mono">{inputBreakdown.cacheWrite}</span>
+                </div>
+              )}
+              {inputBreakdown.noCache !== undefined && (
+                <div className="flex justify-between">
+                  <span>No cache</span>
+                  <span className="font-mono">{inputBreakdown.noCache}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+            Output Tokens
+          </div>
+          <div className="text-2xl font-semibold">{outputBreakdown.total}</div>
+          {(outputBreakdown.text !== undefined ||
+            outputBreakdown.reasoning !== undefined) && (
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+              {outputBreakdown.text !== undefined && (
+                <div className="flex justify-between">
+                  <span>Text</span>
+                  <span className="font-mono">{outputBreakdown.text}</span>
+                </div>
+              )}
+              {outputBreakdown.reasoning !== undefined && (
+                <div className="flex justify-between">
+                  <span>Reasoning</span>
+                  <span className="font-mono">{outputBreakdown.reasoning}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Raw Usage Data */}
+      {usage?.raw && (
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+            Raw Provider Usage
+          </div>
+          <JsonBlock data={usage.raw} size="sm" />
+        </div>
+      )}
+
+      {/* Full Usage Object */}
+      <div>
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+          Full Usage Object
+        </div>
+        <JsonBlock data={usage} size="sm" />
+      </div>
+    </div>
+  );
+}
+
+function TokenBreakdownTooltip({
+  input,
+  output,
+  raw,
+}: {
+  input: InputTokenBreakdown;
+  output: OutputTokenBreakdown;
+  raw?: unknown;
+}) {
+  // Check if we have any breakdown metadata (even if values are 0)
+  const hasInputBreakdown =
+    input.noCache !== undefined ||
+    input.cacheRead !== undefined ||
+    input.cacheWrite !== undefined;
+  const hasOutputBreakdown =
+    output.text !== undefined || output.reasoning !== undefined;
+  const hasBreakdown = hasInputBreakdown || hasOutputBreakdown;
+
+  if (!hasBreakdown) {
+    return (
+      <div className="text-xs">
+        <div>Input: {input.total}</div>
+        <div>Output: {output.total}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-xs space-y-2">
+      <div>
+        <div className="font-medium mb-1">Input: {input.total}</div>
+        {input.cacheRead !== undefined && (
+          <div className="text-muted-foreground ml-2">
+            Cache read: {input.cacheRead}
+          </div>
+        )}
+        {input.cacheWrite !== undefined && (
+          <div className="text-muted-foreground ml-2">
+            Cache write: {input.cacheWrite}
+          </div>
+        )}
+      </div>
+      <div>
+        <div className="font-medium mb-1">Output: {output.total}</div>
+        {output.text !== undefined && (
+          <div className="text-muted-foreground ml-2">Text: {output.text}</div>
+        )}
+        {output.reasoning !== undefined && (
+          <div className="text-muted-foreground ml-2">
+            Reasoning: {output.reasoning}
+          </div>
+        )}
+      </div>
+      {raw !== undefined && (
+        <div className="pt-1 border-t border-border mt-1">
+          <div className="text-muted-foreground/70 font-mono text-[10px] max-w-[200px] truncate">
+            Raw: {JSON.stringify(raw)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function safeParseJson(value: any): any {
   if (typeof value === 'string') {
     try {
@@ -1774,6 +2032,94 @@ function safeParseJson(value: any): any {
     }
   }
   return value;
+}
+
+/**
+ * Token usage can be either a number (old format) or an object with breakdown (ai@6.0.0-beta.139+).
+ * Old format: inputTokens: 4456
+ * New format for input: { total: 4456, noCache: 9, cacheRead: 4100, cacheWrite: 347 }
+ * New format for output: { total: 1262, text: 1262, reasoning: 0 }
+ */
+interface InputTokenBreakdown {
+  total: number;
+  noCache?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+}
+
+interface OutputTokenBreakdown {
+  total: number;
+  text?: number;
+  reasoning?: number;
+}
+
+function getInputTokenBreakdown(
+  tokens: number | InputTokenBreakdown | null | undefined,
+): InputTokenBreakdown {
+  if (tokens == null) return { total: 0 };
+  if (typeof tokens === 'number') return { total: tokens };
+  if (typeof tokens === 'object') {
+    // Handle case where total might be missing or not a number
+    const total =
+      'total' in tokens && typeof tokens.total === 'number' ? tokens.total : 0;
+    return {
+      total,
+      // Only include cache fields if they are actual numbers
+      ...(typeof tokens.noCache === 'number' && { noCache: tokens.noCache }),
+      ...(typeof tokens.cacheRead === 'number' && {
+        cacheRead: tokens.cacheRead,
+      }),
+      ...(typeof tokens.cacheWrite === 'number' && {
+        cacheWrite: tokens.cacheWrite,
+      }),
+    };
+  }
+  return { total: 0 };
+}
+
+function getOutputTokenBreakdown(
+  tokens: number | OutputTokenBreakdown | null | undefined,
+): OutputTokenBreakdown {
+  if (tokens == null) return { total: 0 };
+  if (typeof tokens === 'number') return { total: tokens };
+  if (typeof tokens === 'object') {
+    // Handle case where total might be missing or not a number
+    const total =
+      'total' in tokens && typeof tokens.total === 'number' ? tokens.total : 0;
+    return {
+      total,
+      // Only include text/reasoning if they are actual numbers
+      ...(typeof tokens.text === 'number' && { text: tokens.text }),
+      ...(typeof tokens.reasoning === 'number' && {
+        reasoning: tokens.reasoning,
+      }),
+    };
+  }
+  return { total: 0 };
+}
+
+/**
+ * Formats input token count with cache info in parentheses if available.
+ * e.g., "4456" or "4456 (4100 cached)"
+ */
+function formatInputTokens(breakdown: InputTokenBreakdown): string {
+  const { total, cacheRead } = breakdown;
+  if (cacheRead && cacheRead > 0) {
+    return `${total} (${cacheRead} cached)`;
+  }
+  return String(total);
+}
+
+/**
+ * Formats output token count with reasoning info if available.
+ * e.g., "1054" or "1054 (500 reasoning)"
+ */
+function formatOutputTokens(breakdown: OutputTokenBreakdown): string {
+  const { total, reasoning } = breakdown;
+  if (reasoning && reasoning > 0) {
+    return `${total} (${reasoning} reasoning)`;
+  }
+  return String(total);
 }
 
 /**
