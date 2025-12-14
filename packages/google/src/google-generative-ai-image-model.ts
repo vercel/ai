@@ -52,14 +52,31 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     const {
       prompt,
       n = 1,
-      size = '1024x1024',
+      size,
       aspectRatio = '1:1',
       seed,
       providerOptions,
       headers,
       abortSignal,
+      files,
+      mask,
     } = options;
     const warnings: Array<SharedV3Warning> = [];
+
+    // Google Generative AI does not support image editing
+    if (files != null && files.length > 0) {
+      throw new Error(
+        'Google Generative AI does not support image editing. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
+
+    if (mask != null) {
+      throw new Error(
+        'Google Generative AI does not support image editing with masks. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
 
     if (size != null) {
       warnings.push({

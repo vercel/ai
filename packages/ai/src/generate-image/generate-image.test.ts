@@ -83,7 +83,11 @@ describe('generateImage', () => {
           });
         },
       }),
-      prompt,
+      prompt: {
+        text: prompt,
+        images: [pngBase64],
+        mask: pngBase64,
+      },
       size: '1024x1024',
       aspectRatio: '16:9',
       seed: 12345,
@@ -101,6 +105,18 @@ describe('generateImage', () => {
     expect(capturedArgs).toStrictEqual({
       n: 1,
       prompt,
+      mask: {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      files: [
+        {
+          type: 'file',
+          data: convertBase64ToUint8Array(pngBase64),
+          mediaType: 'image/png',
+        },
+      ],
       size: '1024x1024',
       aspectRatio: '16:9',
       seed: 12345,
@@ -339,6 +355,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -358,6 +376,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -406,6 +426,8 @@ describe('generateImage', () => {
               case 0:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 2,
                   seed: 12345,
                   size: '1024x1024',
@@ -424,6 +446,8 @@ describe('generateImage', () => {
               case 1:
                 expect(options).toStrictEqual({
                   prompt,
+                  files: undefined,
+                  mask: undefined,
                   n: 1,
                   seed: 12345,
                   size: '1024x1024',
@@ -480,6 +504,8 @@ describe('generateImage', () => {
                 case 0:
                   expect(options).toStrictEqual({
                     prompt,
+                    files: undefined,
+                    mask: undefined,
                     n: 2,
                     seed: 12345,
                     size: '1024x1024',
@@ -499,6 +525,8 @@ describe('generateImage', () => {
                 case 1:
                   expect(options).toStrictEqual({
                     prompt,
+                    files: undefined,
+                    mask: undefined,
                     n: 1,
                     seed: 12345,
                     size: '1024x1024',

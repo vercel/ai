@@ -1,10 +1,11 @@
 import { SharedV3ProviderOptions } from '../../shared';
+import { ImageModelV3File } from './image-model-v3-file';
 
 export type ImageModelV3CallOptions = {
   /**
-Prompt for the image generation.
+Prompt for the image generation. Some operations, like upscaling, may not require a prompt.
      */
-  prompt: string;
+  prompt: string | undefined;
 
   /**
 Number of images to generate.
@@ -30,6 +31,18 @@ Seed for the image generation.
 `undefined` will use the provider's default seed.
  */
   seed: number | undefined;
+
+  /**
+Array of images for image editing or variation generation. 
+The images should be provided as base64 encoded strings or binary data.
+ */
+  files: ImageModelV3File[] | undefined;
+
+  /**
+Array of images for image editing or variation generation. 
+The images should be provided as base64 encoded strings or binary data.
+ */
+  mask: ImageModelV3File | undefined;
 
   /**
 Additional provider-specific options that are passed through to the provider

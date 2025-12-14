@@ -585,6 +585,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -604,6 +606,8 @@ describe('image', () => {
         .imageModel('dalle-deployment')
         .doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: undefined,
@@ -629,6 +633,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -660,6 +666,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -677,6 +685,8 @@ describe('image', () => {
 
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -692,6 +702,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: undefined,

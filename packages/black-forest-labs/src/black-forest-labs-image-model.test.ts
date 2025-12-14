@@ -67,6 +67,8 @@ describe('BlackForestLabsImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -101,6 +103,8 @@ describe('BlackForestLabsImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -128,6 +132,8 @@ describe('BlackForestLabsImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -154,6 +160,8 @@ describe('BlackForestLabsImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -183,6 +191,8 @@ describe('BlackForestLabsImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -202,6 +212,8 @@ describe('BlackForestLabsImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         aspectRatio: '16:9',
         providerOptions: {},
@@ -233,6 +245,8 @@ describe('BlackForestLabsImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -261,6 +275,8 @@ describe('BlackForestLabsImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -283,6 +299,8 @@ describe('BlackForestLabsImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         providerOptions: {},
@@ -306,6 +324,8 @@ describe('BlackForestLabsImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1920x1080',
         providerOptions: {},
@@ -339,6 +359,8 @@ describe('BlackForestLabsImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -367,6 +389,8 @@ describe('BlackForestLabsImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -404,6 +428,8 @@ describe('BlackForestLabsImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -437,6 +463,8 @@ describe('BlackForestLabsImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           seed: undefined,
@@ -473,6 +501,8 @@ describe('BlackForestLabsImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           seed: undefined,
@@ -497,6 +527,8 @@ describe('BlackForestLabsImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           seed: undefined,
@@ -514,6 +546,8 @@ describe('BlackForestLabsImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,

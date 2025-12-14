@@ -79,6 +79,8 @@ describe('LumaImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -99,6 +101,8 @@ describe('LumaImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         aspectRatio: '16:9',
         providerOptions: {},
@@ -129,6 +133,8 @@ describe('LumaImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -151,6 +157,8 @@ describe('LumaImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -185,6 +193,8 @@ describe('LumaImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -226,6 +236,8 @@ describe('LumaImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -241,6 +253,8 @@ describe('LumaImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           seed: 123,
@@ -274,6 +288,8 @@ describe('LumaImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -333,6 +349,8 @@ describe('LumaImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -375,6 +393,8 @@ describe('LumaImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -415,6 +435,8 @@ describe('LumaImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -454,6 +476,8 @@ describe('LumaImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -510,6 +534,8 @@ describe('LumaImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
