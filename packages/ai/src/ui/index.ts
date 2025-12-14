@@ -28,11 +28,17 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  getReasoningContent,
+  getReasoningParts,
+  getTextContent,
+  getTextParts,
   getToolName,
   getToolOrDynamicToolName,
   isDataUIPart,
   isFileUIPart,
+  isReasoningStreaming,
   isReasoningUIPart,
+  isTextStreaming,
   isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,

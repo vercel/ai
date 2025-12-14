@@ -1,0 +1,245 @@
+---
+title: UIMessage Helpers
+description: API Reference for UIMessage helper functions.
+---
+
+# UIMessage Helpers
+
+Helper functions to extract and aggregate parts from `UIMessage` objects. Useful when working with reasoning models (DeepSeek, Claude, etc.) that stream content as multiple parts.
+
+## getTextParts
+
+Get all text parts from a message.
+
+```ts
+import { getTextParts } from 'ai';
+
+const textParts = getTextParts(message);
+// => TextUIPart[]
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to extract text parts from.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'TextUIPart[]',
+      type: 'Array',
+      description: 'Array of text parts from the message.',
+    },
+  ]}
+/>
+
+## getTextContent
+
+Get joined text content from a message.
+
+```ts
+import { getTextContent } from 'ai';
+
+const text = getTextContent(message);
+// => "Hello, how can I help you?"
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to extract text content from.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'string',
+      type: 'string',
+      description: 'Concatenated text from all text parts.',
+    },
+  ]}
+/>
+
+## getReasoningParts
+
+Get all reasoning parts from a message.
+
+```ts
+import { getReasoningParts } from 'ai';
+
+const reasoningParts = getReasoningParts(message);
+// => ReasoningUIPart[]
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to extract reasoning parts from.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'ReasoningUIPart[]',
+      type: 'Array',
+      description: 'Array of reasoning parts from the message.',
+    },
+  ]}
+/>
+
+## getReasoningContent
+
+Get joined reasoning text from a message.
+
+```ts
+import { getReasoningContent } from 'ai';
+
+const reasoning = getReasoningContent(message);
+// => "Let me think about this step by step..."
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to extract reasoning content from.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'string',
+      type: 'string',
+      description: 'Concatenated text from all reasoning parts.',
+    },
+  ]}
+/>
+
+## isTextStreaming
+
+Check if text is currently streaming in a message.
+
+```ts
+import { isTextStreaming } from 'ai';
+
+if (isTextStreaming(message)) {
+  // Show typing indicator
+}
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to check for streaming text.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'boolean',
+      type: 'boolean',
+      description: 'True if any text part has state "streaming".',
+    },
+  ]}
+/>
+
+## isReasoningStreaming
+
+Check if reasoning is currently streaming in a message.
+
+```ts
+import { isReasoningStreaming } from 'ai';
+
+if (isReasoningStreaming(message)) {
+  // Show "thinking..." indicator
+}
+```
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'message',
+      type: 'UIMessage',
+      description: 'The UIMessage to check for streaming reasoning.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'boolean',
+      type: 'boolean',
+      description: 'True if any reasoning part has state "streaming".',
+    },
+  ]}
+/>
+
+## Example: Displaying Reasoning
+
+```tsx
+import { getReasoningContent, isReasoningStreaming } from 'ai';
+
+function Message({ message }) {
+  const reasoning = getReasoningContent(message);
+  const isThinking = isReasoningStreaming(message);
+
+  return (
+    <div>
+      {reasoning && (
+        <details>
+          <summary>
+            {isThinking ? 'Thinking...' : 'View reasoning'}
+          </summary>
+          <p>{reasoning}</p>
+        </details>
+      )}
+      <p>{getTextContent(message)}</p>
+    </div>
+  );
+}
+```
