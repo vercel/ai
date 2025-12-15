@@ -5,8 +5,8 @@ import { describe, it, expect } from 'vitest';
 
 describe('createToolModelOutput', () => {
   describe('error cases', () => {
-    it('should return error type with string value when isError is true and output is string', () => {
-      const result = createToolModelOutput({
+    it('should return error type with string value when isError is true and output is string', async () => {
+      const result = await createToolModelOutput({
         output: 'Error message',
         tool: undefined,
         errorMode: 'text',
@@ -18,9 +18,9 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return error type with JSON stringified value when isError is true and output is not string', () => {
+    it('should return error type with JSON stringified value when isError is true and output is not string', async () => {
       const errorOutput = { error: 'Something went wrong', code: 500 };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: errorOutput,
         tool: undefined,
         errorMode: 'text',
@@ -32,7 +32,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return error type with JSON stringified value for complex objects', () => {
+    it('should return error type with JSON stringified value for complex objects', async () => {
       const complexError = {
         message: 'Complex error',
         details: {
@@ -40,7 +40,7 @@ describe('createToolModelOutput', () => {
           stack: ['line1', 'line2'],
         },
       };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: complexError,
         tool: undefined,
         errorMode: 'text',
@@ -54,7 +54,7 @@ describe('createToolModelOutput', () => {
   });
 
   describe('tool with toModelOutput', () => {
-    it('should use tool.toModelOutput when available', () => {
+    it('should use tool.toModelOutput when available', async () => {
       const mockTool = tool({
         inputSchema: z.object({}),
         toModelOutput: ({ output }) => ({
@@ -63,7 +63,7 @@ describe('createToolModelOutput', () => {
         }),
       });
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: 'test output',
         tool: mockTool,
         errorMode: 'none',
@@ -75,7 +75,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should use tool.toModelOutput with complex output', () => {
+    it('should use tool.toModelOutput with complex output', async () => {
       const mockTool = tool({
         inputSchema: z.object({}),
         toModelOutput: ({ output }) => ({
@@ -85,7 +85,7 @@ describe('createToolModelOutput', () => {
       });
 
       const complexOutput = { data: [1, 2, 3], status: 'success' };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: complexOutput,
         tool: mockTool,
         errorMode: 'none',
@@ -97,7 +97,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should use tool.toModelOutput returning content type', () => {
+    it('should use tool.toModelOutput returning content type', async () => {
       const mockTool: Tool = {
         toModelOutput: () => ({
           type: 'content',
@@ -109,7 +109,7 @@ describe('createToolModelOutput', () => {
         inputSchema: z.object({}),
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: 'any output',
         tool: mockTool,
         errorMode: 'none',
@@ -126,7 +126,7 @@ describe('createToolModelOutput', () => {
   });
 
   describe('string output without toModelOutput', () => {
-    it('should return text type for string output', () => {
+    it('should return text type for string output', async () => {
       const result = createToolModelOutput({
         output: 'Simple string output',
         tool: undefined,
@@ -139,13 +139,13 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return text type for string output even with tool that has no toModelOutput', () => {
+    it('should return text type for string output even with tool that has no toModelOutput', async () => {
       const toolWithoutToModelOutput: Tool = {
         description: 'A tool without toModelOutput',
         inputSchema: z.object({}),
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: 'String output',
         tool: toolWithoutToModelOutput,
         errorMode: 'none',
@@ -157,8 +157,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return text type for empty string', () => {
-      const result = createToolModelOutput({
+    it('should return text type for empty string', async () => {
+      const result = await createToolModelOutput({
         output: '',
         tool: undefined,
         errorMode: 'none',
@@ -172,9 +172,9 @@ describe('createToolModelOutput', () => {
   });
 
   describe('non-string output without toModelOutput', () => {
-    it('should return json type for object output', () => {
+    it('should return json type for object output', async () => {
       const objectOutput = { result: 'success', data: [1, 2, 3] };
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: objectOutput,
         tool: undefined,
         errorMode: 'none',
@@ -186,9 +186,9 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return json type for array output', () => {
+    it('should return json type for array output', async () => {
       const arrayOutput = [1, 2, 3, 'test'];
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: arrayOutput,
         tool: undefined,
         errorMode: 'none',
@@ -200,8 +200,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return json type for number output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for number output', async () => {
+      const result = await createToolModelOutput({
         output: 42,
         tool: undefined,
         errorMode: 'none',
@@ -213,8 +213,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return json type for boolean output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for boolean output', async () => {
+      const result = await createToolModelOutput({
         output: true,
         tool: undefined,
         errorMode: 'none',
@@ -226,8 +226,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return json type for null output', () => {
-      const result = createToolModelOutput({
+    it('should return json type for null output', async () => {
+      const result = await createToolModelOutput({
         output: null,
         tool: undefined,
         errorMode: 'none',
@@ -239,7 +239,7 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should return json type for complex nested object', () => {
+    it('should return json type for complex nested object', async () => {
       const complexOutput = {
         user: {
           id: 123,
@@ -259,7 +259,7 @@ describe('createToolModelOutput', () => {
         ],
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: complexOutput,
         tool: undefined,
         errorMode: 'none',
@@ -273,7 +273,7 @@ describe('createToolModelOutput', () => {
   });
 
   describe('edge cases', () => {
-    it('should prioritize isError over tool.toModelOutput', () => {
+    it('should prioritize isError over tool.toModelOutput', async () => {
       const mockTool: Tool = {
         inputSchema: z.object({}),
         toModelOutput: () => ({
@@ -282,7 +282,7 @@ describe('createToolModelOutput', () => {
         }),
       };
 
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: 'Error occurred',
         tool: mockTool,
         errorMode: 'text',
@@ -294,8 +294,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should handle undefined output in error text case', () => {
-      const result = createToolModelOutput({
+    it('should handle undefined output in error text case', async () => {
+      const result = await createToolModelOutput({
         output: undefined,
         tool: undefined,
         errorMode: 'text',
@@ -307,8 +307,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should use null for undefined output in error json case', () => {
-      const result = createToolModelOutput({
+    it('should use null for undefined output in error json case', async () => {
+      const result = await createToolModelOutput({
         output: undefined,
         tool: undefined,
         errorMode: 'json',
@@ -320,8 +320,8 @@ describe('createToolModelOutput', () => {
       });
     });
 
-    it('should use null for undefined output in non-error case', () => {
-      const result = createToolModelOutput({
+    it('should use null for undefined output in non-error case', async () => {
+      const result = await createToolModelOutput({
         output: undefined,
         tool: undefined,
         errorMode: 'none',
