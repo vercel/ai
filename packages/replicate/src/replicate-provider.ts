@@ -66,6 +66,13 @@ export function createReplicate(
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     image: createImageModel,
@@ -76,12 +83,8 @@ export function createReplicate(
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

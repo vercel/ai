@@ -96,6 +96,7 @@ export function createRevai(
       message: 'Rev.ai does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = () => {
     throw new NoSuchModelError({

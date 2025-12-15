@@ -93,6 +93,7 @@ export function createGladia(
       message: 'Gladia does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({

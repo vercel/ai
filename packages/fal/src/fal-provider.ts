@@ -148,6 +148,13 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
@@ -159,12 +166,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       });
     },
     speech: createSpeechModel,
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
   };
 }

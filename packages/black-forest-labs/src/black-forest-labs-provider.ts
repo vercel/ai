@@ -83,6 +83,13 @@ export function createBlackForestLabs(
       pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3',
     imageModel: createImageModel,
@@ -93,12 +100,8 @@ export function createBlackForestLabs(
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

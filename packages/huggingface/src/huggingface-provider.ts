@@ -94,6 +94,7 @@ export function createHuggingFace(
         'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({

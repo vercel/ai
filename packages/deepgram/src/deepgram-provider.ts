@@ -115,6 +115,7 @@ export function createDeepgram(
       message: 'Deepgram does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({

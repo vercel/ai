@@ -67,6 +67,13 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     image: createImageModel,
@@ -77,12 +84,8 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

@@ -114,6 +114,7 @@ export function createElevenLabs(
       message: 'ElevenLabs does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
