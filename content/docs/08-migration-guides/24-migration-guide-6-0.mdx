@@ -77,7 +77,7 @@ const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
 ```tsx filename="AI SDK 6"
 import { convertToModelMessages, type ModelMessage } from 'ai';
 
-const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+const modelMessages = await convertToModelMessages(messages); // ModelMessage[]
 ```
 
 ### `generateObject` and `streamObject` Deprecation
@@ -177,6 +177,50 @@ for await (const partialObject of partialOutputStream) {
 ```
 
 Learn more about [generating structured data](/docs/ai-sdk-core/generating-structured-data).
+
+### async `convertToModelMessages`
+
+`convertToModelMessages()` is async in AI SDK 6 to support async `Tool.toModelOutput()`.
+
+```tsx filename="AI SDK 5"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = convertToModelMessages(uiMessages);
+```
+
+```tsx filename="AI SDK 6"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = await convertToModelMessages(uiMessages);
+```
+
+### `Tool.toModelOutput` changes
+
+`toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
+
+In AI SDK 5, the `output` was the arguments.
+
+```tsx filename="AI SDK 5"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: output => {
+    // ...
+  },
+});
+```
+
+```tsx filename="AI SDK 6"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: ({ output }) => {
+    // ...
+  },
+});
+```
 
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 
@@ -348,6 +392,92 @@ import type {
 ```tsx filename="AI SDK 6"
 // Single Warning type for all generation functions
 import type { Warning } from 'ai';
+```
+
+## AI SDK UI
+
+### Tool UI Part Helper Functions Rename
+
+The tool UI part helper functions have been renamed to better reflect their purpose and to accommodate both static and dynamic tool parts ([PR #XXXX](https://github.com/vercel/ai/pull/XXXX)).
+
+#### `isToolUIPart` → `isStaticToolUIPart`
+
+The `isToolUIPart` function has been renamed to `isStaticToolUIPart` to clarify that it checks for static tool parts only.
+
+```tsx filename="AI SDK 5"
+import { isToolUIPart } from 'ai';
+
+// Check if a part is a tool UI part
+if (isToolUIPart(part)) {
+  console.log(part.toolName);
+}
+```
+
+```tsx filename="AI SDK 6"
+import { isStaticToolUIPart } from 'ai';
+
+// Check if a part is a static tool UI part
+if (isStaticToolUIPart(part)) {
+  console.log(part.toolName);
+}
+```
+
+#### `isToolOrDynamicToolUIPart` → `isToolUIPart`
+
+The `isToolOrDynamicToolUIPart` function has been renamed to `isToolUIPart`. The old name is deprecated but still available.
+
+```tsx filename="AI SDK 5"
+import { isToolOrDynamicToolUIPart } from 'ai';
+
+// Check if a part is either a static or dynamic tool UI part
+if (isToolOrDynamicToolUIPart(part)) {
+  console.log('Tool part found');
+}
+```
+
+```tsx filename="AI SDK 6"
+import { isToolUIPart } from 'ai';
+
+// Check if a part is either a static or dynamic tool UI part
+if (isToolUIPart(part)) {
+  console.log('Tool part found');
+}
+```
+
+#### `getToolName` → `getStaticToolName`
+
+The `getToolName` function has been renamed to `getStaticToolName` to clarify that it returns the tool name from static tool parts only.
+
+```tsx filename="AI SDK 5"
+import { getToolName } from 'ai';
+
+// Get the tool name from a tool part
+const name = getToolName(toolPart);
+```
+
+```tsx filename="AI SDK 6"
+import { getStaticToolName } from 'ai';
+
+// Get the tool name from a static tool part
+const name = getStaticToolName(toolPart);
+```
+
+#### `getToolOrDynamicToolName` → `getToolName`
+
+The `getToolOrDynamicToolName` function has been renamed to `getToolName`. The old name is deprecated but still available.
+
+```tsx filename="AI SDK 5"
+import { getToolOrDynamicToolName } from 'ai';
+
+// Get the tool name from either a static or dynamic tool part
+const name = getToolOrDynamicToolName(toolPart);
+```
+
+```tsx filename="AI SDK 6"
+import { getToolName } from 'ai';
+
+// Get the tool name from either a static or dynamic tool part
+const name = getToolName(toolPart);
 ```
 
 ## Providers
