@@ -9,7 +9,7 @@ export async function POST(req: Request) {
 
   return createAgentUIStreamResponse({
     agent: openaiMetadataAgent,
-    messages,
+    uiMessages: messages,
     messageMetadata: ({ part }): ExampleMetadata | undefined => {
       // send custom information to the client on start:
       if (part.type === 'start') {
