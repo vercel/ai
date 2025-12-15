@@ -10,7 +10,7 @@ export default defineLazyEventHandler(async () => {
     // Extract the `prompt` from the body of the request
     const { messages, data } = await readBody(event);
 
-    const initialMessages = convertToModelMessages(messages.slice(0, -1));
+    const initialMessages = await convertToModelMessages(messages.slice(0, -1));
     const currentMessage = messages[messages.length - 1] as UIMessage;
 
     // Ask OpenAI for a streaming chat completion given the prompt
