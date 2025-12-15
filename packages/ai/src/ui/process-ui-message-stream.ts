@@ -43,6 +43,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     }
   >;
   finishReason?: FinishReason;
+  toolYields?: Record<string, unknown[]>;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -137,9 +138,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata?: ProviderMetadata;
                 }
               | {
+                  state: 'output-streaming';
+                  input: unknown;
+                  yields: unknown[];
+                  providerExecuted?: boolean;
+                }
+              | {
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
+                  yields?: unknown[];
                   providerExecuted?: boolean;
                   preliminary?: boolean;
                 }
@@ -171,6 +179,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
+              if (anyOptions.yields != null) {
+                anyPart.yields = anyOptions.yields;
+              }
               // once providerExecuted is set, it stays for streaming
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
@@ -193,6 +204,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 errorText: anyOptions.errorText,
                 providerExecuted: anyOptions.providerExecuted,
                 preliminary: anyOptions.preliminary,
+                yields: anyOptions.yields,
                 ...(anyOptions.providerMetadata != null
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
@@ -217,9 +229,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata?: ProviderMetadata;
                 }
               | {
+                  state: 'output-streaming';
+                  input: unknown;
+                  yields: unknown[];
+                }
+              | {
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
+                  yields?: unknown[];
                   preliminary: boolean | undefined;
                 }
               | {
@@ -254,6 +272,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
+              if (anyOptions.yields != null) {
+                anyPart.yields = anyOptions.yields;
+              }
               if (
                 anyOptions.providerMetadata != null &&
                 part.state === 'input-available'
@@ -272,6 +293,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 preliminary: anyOptions.preliminary,
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
+                yields: anyOptions.yields,
                 ...(anyOptions.providerMetadata != null
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
@@ -550,30 +572,74 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-output-available': {
+              // keep yields in a local typed map on state
+              const getToolYields = (): Record<string, unknown[]> => {
+                const s = state as unknown as {
+                  toolYields?: Record<string, unknown[]>;
+                };
+                s.toolYields ??= {};
+                return s.toolYields;
+              };
+
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 
               if (toolInvocation.type === 'dynamic-tool') {
-                updateDynamicToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: toolInvocation.toolName,
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  preliminary: chunk.preliminary,
-                  providerExecuted: chunk.providerExecuted,
-                  title: toolInvocation.title,
-                });
+                if (chunk.preliminary) {
+                  const toolYields = getToolYields();
+                  (toolYields[chunk.toolCallId] ??= []).push(chunk.output);
+
+                  updateDynamicToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-streaming',
+                    input: (toolInvocation as any).input,
+                    yields: toolYields[chunk.toolCallId], // typed unknown[]
+                    title: toolInvocation.title,
+                  });
+                } else {
+                  const toolYields = getToolYields();
+
+                  updateDynamicToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: toolInvocation.toolName,
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    yields: toolYields[chunk.toolCallId] ?? [],
+                    preliminary: chunk.preliminary,
+                    providerExecuted: chunk.providerExecuted,
+                    title: toolInvocation.title,
+                  });
+                }
               } else {
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
-                  state: 'output-available',
-                  input: (toolInvocation as any).input,
-                  output: chunk.output,
-                  providerExecuted: chunk.providerExecuted,
-                  preliminary: chunk.preliminary,
-                  title: toolInvocation.title,
-                });
+                if (chunk.preliminary) {
+                  const toolYields = getToolYields();
+                  (toolYields[chunk.toolCallId] ??= []).push(chunk.output);
+
+                  updateToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-streaming',
+                    input: (toolInvocation as any).input,
+                    yields: toolYields[chunk.toolCallId] as unknown[], // satisfy union
+                    providerExecuted: chunk.providerExecuted,
+                    title: toolInvocation.title,
+                  });
+                } else {
+                  const toolYields = getToolYields();
+
+                  updateToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: getToolName(toolInvocation),
+                    state: 'output-available',
+                    input: (toolInvocation as any).input,
+                    output: chunk.output,
+                    yields: toolYields[chunk.toolCallId] ?? [],
+                    providerExecuted: chunk.providerExecuted,
+                    preliminary: chunk.preliminary,
+                    title: toolInvocation.title,
+                  });
+                }
               }
 
               write();
@@ -593,6 +659,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
+
+                // 🔧 Clear yields for error state to comply with type contract
+                const part = state.message.parts.find(
+                  part =>
+                    part.type === 'dynamic-tool' &&
+                    part.toolCallId === chunk.toolCallId,
+                ) as any;
+                if (part) {
+                  delete part.yields;
+                }
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
@@ -604,6 +680,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: toolInvocation.title,
                 });
+
+                const part = state.message.parts.find(
+                  part =>
+                    isToolUIPart(part) && part.toolCallId === chunk.toolCallId,
+                ) as any;
+                if (part) {
+                  delete part.yields;
+                }
               }
 
               write();
@@ -613,6 +697,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'start-step': {
               // add a step boundary part to the message
               state.message.parts.push({ type: 'step-start' });
+              write();
               break;
             }
 
@@ -620,6 +705,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               // reset the current text and reasoning parts
               state.activeTextParts = {};
               state.activeReasoningParts = {};
+              write();
               break;
             }
 

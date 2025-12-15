@@ -41,6 +41,16 @@ describe('readUIMessageStream', () => {
               {
                 "type": "step-start",
               },
+            ],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
@@ -76,6 +86,22 @@ describe('readUIMessageStream', () => {
               {
                 "providerMetadata": undefined,
                 "state": "streaming",
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "id": "msg-123",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "providerMetadata": undefined,
+                "state": "done",
                 "text": "Hello, world!",
                 "type": "text",
               },

@@ -6,7 +6,14 @@ import {
   processUIMessageStream,
   StreamingUIMessageState,
 } from './process-ui-message-stream';
-import { InferUIMessageData, UIMessage } from './ui-messages';
+import {
+  DynamicToolUIPart,
+  InferUIMessageData,
+  isDynamicToolUIPart,
+  isToolUIPart,
+  ToolUIPart,
+  UIMessage,
+} from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -84,6 +91,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -123,6 +142,24 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "Hello, world!",
                   "type": "text",
                 },
@@ -288,6 +325,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -301,6 +350,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -329,6 +379,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -357,6 +408,68 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -394,6 +507,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -431,6 +545,45 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -473,6 +626,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": [],
             },
             {
               "type": "step-start",
@@ -586,6 +740,27 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "input": {},
+                  "output": {
+                    "location": "Berlin",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
+                },
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -599,6 +774,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -636,6 +812,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -673,6 +850,86 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "input": {},
+                  "output": {
+                    "location": "Berlin",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "input": {},
+                  "output": {
+                    "location": "Berlin",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -719,6 +976,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -765,6 +1023,54 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "input": {},
+                  "output": {
+                    "location": "Berlin",
+                  },
+                  "state": "output-available",
+                  "toolCallId": "tool-call-id-original",
+                  "type": "tool-tool-name-original",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -816,6 +1122,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": [],
             },
             {
               "type": "step-start",
@@ -891,6 +1198,18 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -993,6 +1312,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -1027,6 +1347,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -1061,6 +1382,80 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1104,6 +1499,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1147,6 +1543,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1190,6 +1587,51 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1238,6 +1680,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": [],
             },
             {
               "type": "step-start",
@@ -1344,6 +1787,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -1451,6 +1906,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -1489,6 +1945,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -1527,6 +1984,88 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1574,6 +2113,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1625,6 +2165,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1676,6 +2217,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1733,6 +2275,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1790,6 +2333,65 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "state": "done",
+                  "text": "I now know the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "state": "done",
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": {
+                    "weather": "sunny",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -1852,6 +2454,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": [],
             },
             {
               "type": "step-start",
@@ -1943,6 +2546,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -1956,6 +2571,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -1982,6 +2598,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -2008,6 +2625,64 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
                 },
                 {
                   "type": "step-start",
@@ -2043,6 +2718,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
                 {
                   "type": "step-start",
@@ -2078,6 +2754,43 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
                 },
                 {
                   "type": "step-start",
@@ -2118,6 +2831,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": undefined,
             },
             {
               "type": "step-start",
@@ -2220,6 +2934,24 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "shared": {
+                  "key1": "value-1a",
+                  "key2": "value-2a",
+                },
+                "start": "start-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -2297,6 +3029,31 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "t1t2",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1a",
+                  "key2": "value-2a",
+                },
+                "start": "start-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "t1t2",
                   "type": "text",
                 },
@@ -2444,6 +3201,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -2465,6 +3234,24 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "t1",
                   "type": "text",
                 },
@@ -2608,6 +3395,22 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -2633,6 +3436,28 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "t1",
                   "type": "text",
                 },
@@ -2762,6 +3587,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": undefined,
@@ -2773,6 +3610,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -2799,6 +3637,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -2825,6 +3664,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -2851,6 +3691,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -2877,6 +3718,34 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
+                  "yields": [],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "testArg": "test-value",
+                  },
+                  "output": "test-result",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-0",
+                  "type": "tool-test-tool",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -2908,6 +3777,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-0",
               "type": "tool-test-tool",
+              "yields": [],
             },
           ],
           "role": "assistant",
@@ -2964,6 +3834,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -3003,6 +3885,24 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "Hello, world!",
                   "type": "text",
                 },
@@ -3130,6 +4030,18 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -3609,6 +4521,54 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "state": "done",
+                  "text": "I will open the conversation with witty banter. ",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "isRedacted": true,
+                    },
+                  },
+                  "state": "done",
+                  "text": "redacted-data",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "state": "done",
+                  "text": "Once the user has relaxed, I will pry for valuable information.",
+                  "type": "reasoning",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hi there!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -3716,6 +4676,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -3729,6 +4701,34 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "London",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "input-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -3760,6 +4760,7 @@ describe('processUIMessageStream', () => {
               "title": undefined,
               "toolCallId": "tool-call-id",
               "type": "tool-tool-name",
+              "yields": undefined,
             },
           ],
           "role": "assistant",
@@ -3825,6 +4826,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -3866,6 +4879,31 @@ describe('processUIMessageStream', () => {
                   "state": "done",
                   "text": "The weather in London is sunny.",
                   "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "sourceId": "source-id",
+                  "title": "Example",
+                  "type": "source-url",
+                  "url": "https://example.com",
                 },
               ],
               "role": "assistant",
@@ -3978,6 +5016,18 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -4179,6 +5229,40 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Here is a file:",
+                  "type": "text",
+                },
+                {
+                  "mediaType": "text/plain",
+                  "type": "file",
+                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "And another one:",
+                  "type": "text",
+                },
+                {
+                  "mediaType": "application/json",
+                  "type": "file",
+                  "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -4265,6 +5349,34 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": "example-data-can-be-anything",
+                  "type": "data-test",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -4367,6 +5479,30 @@ describe('processUIMessageStream', () => {
               "role": "assistant",
             },
           },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
         ]
       `);
     });
@@ -4453,8 +5589,37 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "data": "example-data-can-be-anything",
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": "or-something-else",
                   "id": "data-part-id",
                   "type": "data-test",
                 },
@@ -4564,10 +5729,42 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "data": {
                     "a": "a1",
                     "b": "b1",
+                  },
+                  "id": "data-part-id",
+                  "type": "data-test",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "data": {
+                    "b": "b2",
+                    "c": "c2",
                   },
                   "id": "data-part-id",
                   "type": "data-test",
@@ -4716,6 +5913,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": undefined,
@@ -4727,6 +5936,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -4753,6 +5963,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -4779,6 +5990,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -4807,6 +6019,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -4835,6 +6048,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "errorText": undefined,
@@ -4849,6 +6063,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-2",
                   "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -4877,6 +6092,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
+                  "yields": [],
                 },
                 {
                   "errorText": "error-text",
@@ -4891,6 +6107,51 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-2",
                   "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "type": "tool-tool-name",
+                  "yields": [],
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-2",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -4921,6 +6182,7 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "tool-call-1",
             "type": "tool-tool-name",
+            "yields": [],
           },
           {
             "errorText": "error-text",
@@ -4935,6 +6197,7 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "tool-call-2",
             "type": "tool-tool-name",
+            "yields": undefined,
           },
         ]
       `);
@@ -5038,6 +6301,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": undefined,
@@ -5049,6 +6324,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5076,6 +6352,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5103,6 +6380,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5132,6 +6410,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -5161,6 +6440,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "errorText": undefined,
@@ -5175,6 +6455,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-2",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5204,6 +6485,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "errorText": "error-text",
@@ -5219,6 +6501,53 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-2",
                   "toolName": "tool-name",
                   "type": "dynamic-tool",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                  "yields": [],
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-2",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5250,6 +6579,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "tool-call-1",
             "toolName": "tool-name",
             "type": "dynamic-tool",
+            "yields": [],
           },
           {
             "errorText": "error-text",
@@ -5265,6 +6595,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "tool-call-2",
             "toolName": "tool-name",
             "type": "dynamic-tool",
+            "yields": undefined,
           },
         ]
       `);
@@ -5325,6 +6656,7 @@ describe('processUIMessageStream', () => {
           "title": undefined,
           "toolCallId": "tool-call-id",
           "type": "tool-tool-name",
+          "yields": undefined,
         },
       ]
     `);
@@ -5422,6 +6754,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": undefined,
@@ -5433,6 +6777,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5460,6 +6805,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5487,6 +6833,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5514,6 +6861,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
                 {
                   "errorText": undefined,
@@ -5528,6 +6876,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-2",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5557,6 +6906,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "errorText": undefined,
@@ -5571,6 +6921,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-2",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5600,6 +6951,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "errorText": "error-text",
@@ -5615,6 +6967,53 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "tool-call-2",
                   "toolName": "t1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                  "yields": [],
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-2",
+                  "toolName": "t1",
+                  "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5646,6 +7045,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "tool-call-1",
             "toolName": "t1",
             "type": "dynamic-tool",
+            "yields": [],
           },
           {
             "errorText": "error-text",
@@ -5661,6 +7061,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "tool-call-2",
             "toolName": "t1",
             "type": "dynamic-tool",
+            "yields": undefined,
           },
         ]
       `);
@@ -5731,6 +7132,18 @@ describe('processUIMessageStream', () => {
               "id": "msg-123",
               "metadata": undefined,
               "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
               "role": "assistant",
             },
           },
@@ -5880,6 +7293,49 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "tool-call-id",
                   "type": "tool-tool-name",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1",
+                    },
+                  },
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+                {
+                  "callProviderMetadata": {
+                    "testProvider": {
+                      "signature": "2",
+                    },
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "input-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-id",
+                  "type": "tool-tool-name",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -5923,6 +7379,7 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "tool-call-id",
             "type": "tool-tool-name",
+            "yields": undefined,
           },
         ]
       `);
@@ -5995,6 +7452,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": undefined,
@@ -6006,6 +7475,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6032,6 +7502,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6056,6 +7527,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6080,6 +7552,32 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": "Invalid input for tool cityAttractions",
+                  "input": undefined,
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-cityAttractions",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6106,6 +7604,7 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "call-1",
             "type": "tool-cityAttractions",
+            "yields": undefined,
           },
         ]
       `);
@@ -6192,6 +7691,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -6205,6 +7716,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6223,17 +7735,20 @@ describe('processUIMessageStream', () => {
                   "input": {
                     "city": "San Francisco",
                   },
-                  "output": {
-                    "status": "loading",
-                    "text": "Getting weather for San Francisco",
-                  },
-                  "preliminary": true,
+                  "output": undefined,
+                  "preliminary": undefined,
                   "providerExecuted": undefined,
                   "rawInput": undefined,
-                  "state": "output-available",
+                  "state": "output-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": [
+                    {
+                      "status": "loading",
+                      "text": "Getting weather for San Francisco",
+                    },
+                  ],
                 },
               ],
               "role": "assistant",
@@ -6252,18 +7767,25 @@ describe('processUIMessageStream', () => {
                   "input": {
                     "city": "San Francisco",
                   },
-                  "output": {
-                    "status": "success",
-                    "temperature": 72,
-                    "text": "The weather in San Francisco is 72°F",
-                  },
-                  "preliminary": true,
+                  "output": undefined,
+                  "preliminary": undefined,
                   "providerExecuted": undefined,
                   "rawInput": undefined,
-                  "state": "output-available",
+                  "state": "output-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": [
+                    {
+                      "status": "loading",
+                      "text": "Getting weather for San Francisco",
+                    },
+                    {
+                      "status": "success",
+                      "temperature": 72,
+                      "text": "The weather in San Francisco is 72°F",
+                    },
+                  ],
                 },
               ],
               "role": "assistant",
@@ -6294,6 +7816,58 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
+                  "yields": [
+                    {
+                      "status": "loading",
+                      "text": "Getting weather for San Francisco",
+                    },
+                    {
+                      "status": "success",
+                      "temperature": 72,
+                      "text": "The weather in San Francisco is 72°F",
+                    },
+                  ],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "city": "San Francisco",
+                  },
+                  "output": {
+                    "status": "success",
+                    "temperature": 72,
+                    "text": "The weather in San Francisco is 72°F",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-cityAttractions",
+                  "yields": [
+                    {
+                      "status": "loading",
+                      "text": "Getting weather for San Francisco",
+                    },
+                    {
+                      "status": "success",
+                      "temperature": 72,
+                      "text": "The weather in San Francisco is 72°F",
+                    },
+                  ],
                 },
               ],
               "role": "assistant",
@@ -6326,9 +7900,487 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "call-1",
             "type": "tool-cityAttractions",
+            "yields": [
+              {
+                "status": "loading",
+                "text": "Getting weather for San Francisco",
+              },
+              {
+                "status": "success",
+                "temperature": 72,
+                "text": "The weather in San Francisco is 72°F",
+              },
+            ],
           },
         ]
       `);
+    });
+  });
+
+  describe('tool output streaming with yields', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            prompt: 'What is the weather in San Francisco?',
+          },
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          type: 'tool-input-available',
+        },
+        // First preliminary yield
+        {
+          output: {
+            state: 'loading',
+            text: 'Doing a thing',
+          },
+          preliminary: true,
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        // Second preliminary yield
+        {
+          output: {
+            state: 'loading',
+            text: 'Did another thing',
+          },
+          preliminary: true,
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        // Final result
+        {
+          output: {
+            data: 'some result here',
+          },
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should call the update function with output-streaming state and yields', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "prompt": "What is the weather in San Francisco?",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "input-available",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "prompt": "What is the weather in San Francisco?",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-streaming",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                  "yields": [
+                    {
+                      "state": "loading",
+                      "text": "Doing a thing",
+                    },
+                  ],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "prompt": "What is the weather in San Francisco?",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-streaming",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                  "yields": [
+                    {
+                      "state": "loading",
+                      "text": "Doing a thing",
+                    },
+                    {
+                      "state": "loading",
+                      "text": "Did another thing",
+                    },
+                  ],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "prompt": "What is the weather in San Francisco?",
+                  },
+                  "output": {
+                    "data": "some result here",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                  "yields": [
+                    {
+                      "state": "loading",
+                      "text": "Doing a thing",
+                    },
+                    {
+                      "state": "loading",
+                      "text": "Did another thing",
+                    },
+                  ],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "prompt": "What is the weather in San Francisco?",
+                  },
+                  "output": {
+                    "data": "some result here",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-weather",
+                  "yields": [
+                    {
+                      "state": "loading",
+                      "text": "Doing a thing",
+                    },
+                    {
+                      "state": "loading",
+                      "text": "Did another thing",
+                    },
+                  ],
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state with yields', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "prompt": "What is the weather in San Francisco?",
+            },
+            "output": {
+              "data": "some result here",
+            },
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-weather",
+            "yields": [
+              {
+                "state": "loading",
+                "text": "Doing a thing",
+              },
+              {
+                "state": "loading",
+                "text": "Did another thing",
+              },
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should have output-streaming state with yields for preliminary results', async () => {
+      // Check that we have output-streaming states in the write calls
+      const streamingStates = writeCalls
+        .flatMap(call => call.message.parts)
+        .filter(
+          part =>
+            isToolUIPart(part) &&
+            part.toolCallId === 'call-1' &&
+            part.state === 'output-streaming',
+        ) as Array<ToolUIPart & { state: 'output-streaming' }>;
+
+      expect(streamingStates).toHaveLength(2);
+
+      // First streaming state should have 1 yield
+      const firstStreaming = streamingStates[0];
+      expect(firstStreaming.yields).toEqual([
+        {
+          state: 'loading',
+          text: 'Doing a thing',
+        },
+      ]);
+
+      // Second streaming state should have 2 yields
+      const secondStreaming = streamingStates[1];
+      expect(secondStreaming.yields).toEqual([
+        {
+          state: 'loading',
+          text: 'Doing a thing',
+        },
+        {
+          state: 'loading',
+          text: 'Did another thing',
+        },
+      ]);
+    });
+
+    it('should have output-available state with final output and all yields', async () => {
+      const finalPart = state!.message.parts.find(
+        part =>
+          isToolUIPart(part) &&
+          part.toolCallId === 'call-1' &&
+          part.state === 'output-available',
+      ) as ToolUIPart & { state: 'output-available' };
+
+      expect(finalPart).toBeDefined();
+      expect(finalPart.output).toEqual({
+        data: 'some result here',
+      });
+      expect(finalPart.yields).toEqual([
+        {
+          state: 'loading',
+          text: 'Doing a thing',
+        },
+        {
+          state: 'loading',
+          text: 'Did another thing',
+        },
+      ]);
+    });
+  });
+
+  describe('dynamic tool output streaming with yields', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          input: {
+            query: 'test',
+          },
+          toolCallId: 'call-1',
+          toolName: 'dynamic-tool',
+          type: 'tool-input-available',
+          dynamic: true,
+        },
+        {
+          output: {
+            status: 'progress',
+            message: 'Step 1',
+          },
+          preliminary: true,
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+          dynamic: true,
+        },
+        {
+          output: {
+            status: 'progress',
+            message: 'Step 2',
+          },
+          preliminary: true,
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+          dynamic: true,
+        },
+        {
+          output: {
+            status: 'complete',
+            result: 'final result',
+          },
+          toolCallId: 'call-1',
+          type: 'tool-output-available',
+          dynamic: true,
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should have output-streaming states with yields for dynamic tools', async () => {
+      const streamingParts = writeCalls
+        .flatMap(call => call.message.parts)
+        .filter(
+          part =>
+            isDynamicToolUIPart(part) &&
+            part.toolCallId === 'call-1' &&
+            part.state === 'output-streaming',
+        ) as Array<DynamicToolUIPart & { state: 'output-streaming' }>;
+
+      expect(streamingParts).toHaveLength(2);
+      expect(streamingParts[0].yields).toEqual([
+        { status: 'progress', message: 'Step 1' },
+      ]);
+      expect(streamingParts[1].yields).toEqual([
+        { status: 'progress', message: 'Step 1' },
+        { status: 'progress', message: 'Step 2' },
+      ]);
+    });
+
+    it('should have final output-available state with all yields for dynamic tools', async () => {
+      const finalPart = state!.message.parts.find(
+        part =>
+          isDynamicToolUIPart(part) &&
+          part.toolCallId === 'call-1' &&
+          part.state === 'output-available',
+      ) as DynamicToolUIPart & { state: 'output-available' };
+
+      expect(finalPart).toBeDefined();
+      expect(finalPart.output).toEqual({
+        status: 'complete',
+        result: 'final result',
+      });
+      expect(finalPart.yields).toEqual([
+        { status: 'progress', message: 'Step 1' },
+        { status: 'progress', message: 'Step 2' },
+      ]);
     });
   });
 
@@ -6624,6 +8676,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -6637,6 +8701,7 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6666,6 +8731,37 @@ describe('processUIMessageStream', () => {
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "approval-requested",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6697,6 +8793,7 @@ describe('processUIMessageStream', () => {
             "title": undefined,
             "toolCallId": "call-1",
             "type": "tool-tool1",
+            "yields": undefined,
           },
         ]
       `);
@@ -6761,6 +8858,18 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
                 {
                   "errorText": undefined,
                   "input": {
@@ -6774,6 +8883,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6803,6 +8913,37 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": undefined,
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "state": "approval-requested",
+                  "title": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                  "yields": undefined,
                 },
               ],
               "role": "assistant",
@@ -6834,6 +8975,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "dynamic-tool",
+            "yields": undefined,
           },
         ]
       `);
@@ -6919,6 +9061,7 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -6947,6 +9090,39 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -6984,6 +9160,7 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -7021,6 +9198,45 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -7061,6 +9277,7 @@ describe('processUIMessageStream', () => {
             "state": "output-available",
             "toolCallId": "call-1",
             "type": "tool-tool1",
+            "yields": [],
           },
           {
             "type": "step-start",
@@ -7157,6 +9374,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
               ],
               "role": "assistant",
@@ -7186,6 +9404,40 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -7224,6 +9476,7 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -7262,6 +9515,46 @@ describe('processUIMessageStream', () => {
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "dynamic-tool",
+                  "yields": [],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "result1",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                  "yields": [],
                 },
                 {
                   "type": "step-start",
@@ -7303,6 +9596,7 @@ describe('processUIMessageStream', () => {
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "dynamic-tool",
+            "yields": [],
           },
           {
             "type": "step-start",
@@ -7402,13 +9696,16 @@ describe('processUIMessageStream', () => {
                   "input": {
                     "value": "value",
                   },
-                  "output": "preliminary-result",
-                  "preliminary": true,
+                  "output": undefined,
+                  "preliminary": undefined,
                   "providerExecuted": undefined,
                   "rawInput": undefined,
-                  "state": "output-available",
+                  "state": "output-streaming",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                  ],
                 },
               ],
               "role": "assistant",
@@ -7430,13 +9727,17 @@ describe('processUIMessageStream', () => {
                   "input": {
                     "value": "value",
                   },
-                  "output": "final-result",
-                  "preliminary": true,
+                  "output": undefined,
+                  "preliminary": undefined,
                   "providerExecuted": undefined,
                   "rawInput": undefined,
-                  "state": "output-available",
+                  "state": "output-streaming",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
                 },
               ],
               "role": "assistant",
@@ -7465,6 +9766,10 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
                 },
               ],
               "role": "assistant",
@@ -7493,6 +9798,45 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
+                },
+                {
+                  "type": "step-start",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "final-result",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
                 },
                 {
                   "type": "step-start",
@@ -7530,6 +9874,10 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
                 },
                 {
                   "type": "step-start",
@@ -7567,6 +9915,51 @@ describe('processUIMessageStream', () => {
                   "state": "output-available",
                   "toolCallId": "call-1",
                   "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": true,
+                    "id": "id-1",
+                  },
+                  "errorText": undefined,
+                  "input": {
+                    "value": "value",
+                  },
+                  "output": "final-result",
+                  "preliminary": undefined,
+                  "providerExecuted": undefined,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                  "yields": [
+                    "preliminary-result",
+                    "final-result",
+                  ],
                 },
                 {
                   "type": "step-start",
@@ -7607,6 +10000,10 @@ describe('processUIMessageStream', () => {
             "state": "output-available",
             "toolCallId": "call-1",
             "type": "tool-tool1",
+            "yields": [
+              "preliminary-result",
+              "final-result",
+            ],
           },
           {
             "type": "step-start",
@@ -7720,6 +10117,33 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -7756,6 +10180,39 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "I did not execute the tool.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "type": "tool-tool1",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "I did not execute the tool.",
                   "type": "text",
                 },
@@ -7934,6 +10391,34 @@ describe('processUIMessageStream', () => {
                 {
                   "type": "step-start",
                 },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
@@ -7971,6 +10456,40 @@ describe('processUIMessageStream', () => {
                 {
                   "providerMetadata": undefined,
                   "state": "streaming",
+                  "text": "I did not execute the tool.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "original-id",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "approval": {
+                    "approved": false,
+                    "id": "id-1",
+                  },
+                  "input": {
+                    "value": "value",
+                  },
+                  "rawInput": undefined,
+                  "state": "output-denied",
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": undefined,
+                  "state": "done",
                   "text": "I did not execute the tool.",
                   "type": "text",
                 },
