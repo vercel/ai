@@ -39,6 +39,12 @@ Add your API key to your environment:
 AI_GATEWAY_API_KEY=your_api_key_here
 ```
 
+<Note>
+  When deployed to Vercel, you can also use [OIDC
+  authentication](/providers/ai-sdk-providers/ai-gateway#oidc-authentication-vercel-deployments)
+  without API keys.
+</Note>
+
 The AI Gateway is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration), so you can access models using a simple string:
 
 ```ts
