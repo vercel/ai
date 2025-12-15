@@ -206,6 +206,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       toolCallId: part.toolCallId,
                       toolName,
                       output: await createToolModelOutput({
+                        toolCallId: part.toolCallId,
                         output:
                           part.state === 'output-error'
                             ? part.errorText
@@ -290,6 +291,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         toolCallId: toolPart.toolCallId,
                         toolName,
                         output: await createToolModelOutput({
+                          toolCallId: toolPart.toolCallId,
                           output:
                             toolPart.state === 'output-error'
                               ? toolPart.errorText

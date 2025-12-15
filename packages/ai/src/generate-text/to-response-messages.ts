@@ -66,6 +66,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         break;
       case 'tool-result': {
         const output = await createToolModelOutput({
+          toolCallId: part.toolCallId,
           tool: tools?.[part.toolName],
           output: part.output,
           errorMode: 'none',
@@ -81,6 +82,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       }
       case 'tool-error': {
         const output = await createToolModelOutput({
+          toolCallId: part.toolCallId,
           tool: tools?.[part.toolName],
           output: part.error,
           errorMode: 'json',
@@ -121,6 +123,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
     }
 
     const output = await createToolModelOutput({
+      toolCallId: part.toolCallId,
       tool: tools?.[part.toolName],
       output: part.type === 'tool-result' ? part.output : part.error,
       errorMode: part.type === 'tool-error' ? 'text' : 'none',
