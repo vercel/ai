@@ -153,7 +153,7 @@ describe('GoogleGenerativeAIImageModel', () => {
           "parameters": {
             "aspectRatio": "16:9",
             "sampleCount": 1,
-        },
+          },
         }
       `);
     });
@@ -182,7 +182,7 @@ describe('GoogleGenerativeAIImageModel', () => {
           "parameters": {
             "aspectRatio": "16:9",
             "sampleCount": 1,
-        },
+          },
         }
       `);
     });
@@ -216,7 +216,7 @@ describe('GoogleGenerativeAIImageModel', () => {
             "aspectRatio": "1:1",
             "personGeneration": "dont_allow",
             "sampleCount": 1,
-        },
+          },
         }
       `);
     });
