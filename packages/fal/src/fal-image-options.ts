@@ -5,8 +5,17 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        imageUrl: z.string().nullish().meta({ deprecated: true, description: 'Use `prompt.images` instead' }),
-        maskUrl: z.string().nullish().meta({ deprecated: true, description: 'Use `prompt.mask` instead' }),
+        imageUrl: z
+          .string()
+          .nullish()
+          .meta({
+            deprecated: true,
+            description: 'Use `prompt.images` instead',
+          }),
+        maskUrl: z
+          .string()
+          .nullish()
+          .meta({ deprecated: true, description: 'Use `prompt.mask` instead' }),
         guidanceScale: z.number().min(1).max(20).nullish(),
         numInferenceSteps: z.number().min(1).max(50).nullish(),
         enableSafetyChecker: z.boolean().nullish(),
