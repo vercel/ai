@@ -165,6 +165,80 @@ const { image } = await generateImage({
 });
 ```
 
+### Image Editing
+
+DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pass input images via `prompt.images` to transform or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const imageBuffer = fs.readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+  size: '1024x1024',
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./mask.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+});
+```
+
+#### Multi-Image Combining
+
+Combine multiple reference images into a single output:
+
+```ts
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const cat = fs.readFileSync('./cat.png');
+const dog = fs.readFileSync('./dog.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'Create a scene with both animals together, playing as friends',
+    images: [cat, dog],
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. DeepInfra uses an OpenAI-compatible image editing API
+  at `https://api.deepinfra.com/v1/openai/images/edits`.
+</Note>
+
 ### Model Capabilities
 
 For models supporting aspect ratios, the following ratios are typically supported:
