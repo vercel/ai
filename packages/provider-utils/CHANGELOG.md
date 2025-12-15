@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+
 ## 4.0.0-beta.47
 
 ### Patch Changes
