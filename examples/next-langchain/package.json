@@ -20,6 +20,7 @@
     "ai": "6.0.0-beta.158",
     "langchain": "^1.2.0",
     "next": "^15.5.9",
+    "lucide-react": "^0.561.0",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^3.25.0"

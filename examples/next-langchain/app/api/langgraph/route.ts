@@ -59,9 +59,10 @@ export async function POST(req: Request) {
 
     /**
      * Stream from the graph using LangGraph's streaming format
+     * Note: Type assertion needed due to LangChain type version mismatch
      */
     const stream = await graph.stream(
-      { messages: langchainMessages },
+      { messages: langchainMessages as never },
       { streamMode: ['values', 'messages'] },
     );
 

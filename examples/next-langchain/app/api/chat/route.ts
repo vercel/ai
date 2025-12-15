@@ -40,8 +40,9 @@ export async function POST(req: Request) {
 
     /**
      * Stream the response from the model
+     * Note: Type assertion needed due to LangChain type version mismatch
      */
-    const stream = await model.stream(langchainMessages);
+    const stream = await model.stream(langchainMessages as never);
 
     /**
      * Convert the LangChain stream to UI message stream
