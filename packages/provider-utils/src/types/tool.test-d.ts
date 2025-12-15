@@ -82,7 +82,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((options: { output: any }) => ToolResultOutput) | undefined
+        | ((options: {
+            output: any;
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -97,7 +100,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((options: { output: 'test' }) => ToolResultOutput) | undefined
+        | ((options: {
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -112,7 +118,10 @@ describe('tool type', () => {
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((options: { output: 'test' }) => ToolResultOutput) | undefined
+        | ((options: {
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
   });

@@ -194,7 +194,7 @@ functionality that can be fully encapsulated in the provider.
         : [OUTPUT] extends [never]
           ? any
           : NoInfer<OUTPUT>;
-    }) => ToolResultOutput;
+    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
   } & (
     | {
         /**
@@ -268,7 +268,9 @@ export function dynamicTool(tool: {
    *
    * If not provided, the tool result will be sent as a JSON object.
    */
-  toModelOutput?: (options: { output: unknown }) => ToolResultOutput;
+  toModelOutput?: (options: {
+    output: unknown;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
 
   /**
    * Whether the tool needs approval before it can be executed.
