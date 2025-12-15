@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.152
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/gateway@2.0.0-beta.79
+
 ## 6.0.0-beta.151
 
 ### Patch Changes
