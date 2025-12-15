@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+
 ## 4.0.0-beta.49
 
 ### Patch Changes
