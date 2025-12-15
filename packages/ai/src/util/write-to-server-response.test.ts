@@ -96,12 +96,105 @@ describe('writeToServerResponse', () => {
     // Verify all chunks were eventually written
     expect(mockResponse.writtenChunks).toHaveLength(3);
   });
+
+  it('should set headers correctly when statusText is undefined', async () => {
+    const mockResponse = createSimpleMockResponse();
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('test data'));
+        controller.close();
+      },
+    });
+
+    const expectedHeaders = {
+      'X-Example-Header': 'example-value',
+      'X-Example-Chat-Title': 'My Conversation',
+    };
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 200,
+      statusText: undefined,
+      headers: expectedHeaders,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual(expectedHeaders);
+    expect(mockResponse.ended).toBe(true);
+    expect(mockResponse.writtenChunks).toHaveLength(1);
+  });
+
+  it('should set headers correctly when statusText is provided', async () => {
+    const mockResponse = createSimpleMockResponse();
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('test data'));
+        controller.close();
+      },
+    });
+
+    const expectedHeaders = {
+      'X-Example-Header': 'example-value',
+      'X-Example-Chat-Title': 'New Chat Session',
+    };
+
+    writeToServerResponse({
+      response: mockResponse,
+      status: 201,
+      statusText: 'Created',
+      headers: expectedHeaders,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.statusCode).toBe(201);
+    expect(mockResponse.statusMessage).toBe('Created');
+    expect(mockResponse.headers).toEqual(expectedHeaders);
+    expect(mockResponse.ended).toBe(true);
+    expect(mockResponse.writtenChunks).toHaveLength(1);
+  });
+
+  it('should set headers correctly when statusText is not set and status is not set', async () => {
+    const mockResponse = createSimpleMockResponse();
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('test data'));
+        controller.close();
+      },
+    });
+
+    const expectedHeaders = {
+      'X-Example-Header': 'example-value',
+      'X-Example-Message': 'Hello World',
+    };
+
+    writeToServerResponse({
+      response: mockResponse,
+      headers: expectedHeaders,
+      stream,
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.statusCode).toBe(200);
+    expect(mockResponse.headers).toEqual(expectedHeaders);
+    expect(mockResponse.ended).toBe(true);
+    expect(mockResponse.writtenChunks).toHaveLength(1);
+  });
 });
 
 class SimpleMockResponse extends EventEmitter {
   writtenChunks: any[] = [];
   statusCode = 0;
   statusMessage = '';
+  headers: Record<string, string | number | string[]> = {};
   ended = false;
 
   write(chunk: any): boolean {
@@ -119,7 +212,14 @@ class SimpleMockResponse extends EventEmitter {
     headers?: Record<string, string | number | string[]>,
   ): void {
     this.statusCode = statusCode;
-    this.statusMessage = statusMessage || '';
+
+    if (typeof statusMessage === 'string') {
+      this.statusMessage = statusMessage;
+      this.headers = headers || {};
+    } else {
+      this.statusMessage = '';
+      this.headers = statusMessage || {};
+    }
   }
 
   async waitForEnd() {
@@ -141,6 +241,7 @@ class BackpressureMockResponse extends EventEmitter {
   writeCallCount = 0;
   statusCode = 0;
   statusMessage = '';
+  headers: Record<string, string | number | string[]> = {};
   ended = false;
   private shouldApplyBackpressure = false;
 
@@ -179,7 +280,14 @@ class BackpressureMockResponse extends EventEmitter {
     headers?: Record<string, string | number | string[]>,
   ): void {
     this.statusCode = statusCode;
-    this.statusMessage = statusMessage || '';
+
+    if (typeof statusMessage === 'string') {
+      this.statusMessage = statusMessage;
+      this.headers = headers || {};
+    } else {
+      this.statusMessage = '';
+      this.headers = statusMessage || {};
+    }
   }
 
   async waitForEnd() {
