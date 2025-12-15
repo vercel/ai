@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 47c0ac0: fix(xai): use correct parameter names for maxOutputTokens
+
 ## 3.0.0-beta.59
 
 ### Patch Changes
