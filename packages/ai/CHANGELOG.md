@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.154
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/gateway@2.0.0-beta.81
+
 ## 6.0.0-beta.153
 
 ### Patch Changes
