@@ -397,12 +397,14 @@ const bflStatus = z.union([
   z.literal('Ready'),
   z.literal('Error'),
   z.literal('Failed'),
+  z.literal('Request Moderated'),
 ]);
 
 const bflPollSchema = z
   .object({
     status: bflStatus.optional(),
     state: bflStatus.optional(),
+    details: z.unknown().optional(),
     result: z
       .object({
         sample: z.url(),

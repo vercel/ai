@@ -273,6 +273,67 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.textToImageParams).not.toHaveProperty('style');
   });
+
+  it('should throw error when request is moderated', async () => {
+    server.urls[invokeUrl].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          id: 'fe7256d1-50d9-4663-8592-85eaf002e80c',
+          status: 'Request Moderated',
+          result: null,
+          progress: null,
+          details: { 'Moderation Reasons': ['Derivative Works Filter'] },
+          preview: null,
+        }),
+      ),
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: 'Generate something that triggers moderation',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).rejects.toThrow(
+      'Amazon Bedrock request was moderated: Derivative Works Filter',
+    );
+  });
+
+  it('should throw error when no images are returned', async () => {
+    server.urls[invokeUrl].response = {
+      type: 'binary',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          images: [],
+        }),
+      ),
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: 'Generate an image',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).rejects.toThrow('Amazon Bedrock returned no images');
+  });
 });
 
 describe('Image Editing', () => {

@@ -233,6 +233,25 @@ export class BedrockImageModel implements ImageModelV3 {
       fetch: this.config.fetch,
     });
 
+    // Handle moderated/blocked requests
+    if (response.status === 'Request Moderated') {
+      const moderationReasons = response.details?.['Moderation Reasons'];
+      const reasons = Array.isArray(moderationReasons)
+        ? moderationReasons
+        : ['Unknown'];
+      throw new Error(
+        `Amazon Bedrock request was moderated: ${reasons.join(', ')}`,
+      );
+    }
+
+    // Check if images are present
+    if (!response.images || response.images.length === 0) {
+      throw new Error(
+        'Amazon Bedrock returned no images. ' +
+          (response.status ? `Status: ${response.status}` : ''),
+      );
+    }
+
     return {
       images: response.images,
       warnings,
@@ -272,5 +291,14 @@ function uint8ArrayToBase64(uint8Array: Uint8Array): string {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const bedrockImageResponseSchema = z.object({
-  images: z.array(z.string()),
+  // Normal successful response
+  images: z.array(z.string()).optional(),
+
+  // Moderation response fields
+  id: z.string().optional(),
+  status: z.string().optional(),
+  result: z.unknown().optional(),
+  progress: z.unknown().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+  preview: z.unknown().optional(),
 });
