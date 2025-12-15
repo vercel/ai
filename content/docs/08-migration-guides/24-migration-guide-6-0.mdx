@@ -178,6 +178,34 @@ for await (const partialObject of partialOutputStream) {
 
 Learn more about [generating structured data](/docs/ai-sdk-core/generating-structured-data).
 
+### `Tool.toModelOutput` changes
+
+`toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
+
+In AI SDK 5, the `output` was the arguments.
+
+```tsx filename="AI SDK 5"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: output => {
+    // ...
+  },
+});
+```
+
+```tsx filename="AI SDK 6"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: ({ output }) => {
+    // ...
+  },
+});
+```
+
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 
 `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` have been deprecated.
