@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.0-beta.97",
-    "@ai-sdk/react": "3.0.0-beta.155",
+    "@ai-sdk/openai": "3.0.0-beta.98",
+    "@ai-sdk/react": "3.0.0-beta.156",
     "@vercel/blob": "^0.26.0",
-    "ai": "6.0.0-beta.152",
+    "ai": "6.0.0-beta.153",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
