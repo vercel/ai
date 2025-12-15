@@ -178,6 +178,22 @@ for await (const partialObject of partialOutputStream) {
 
 Learn more about [generating structured data](/docs/ai-sdk-core/generating-structured-data).
 
+### async `convertToModelMessages`
+
+`convertToModelMessages()` is async in AI SDK 6 to support async `Tool.toModelOutput()`.
+
+```tsx filename="AI SDK 5"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = convertToModelMessages(uiMessages);
+```
+
+```tsx filename="AI SDK 6"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = await convertToModelMessages(uiMessages);
+```
+
 ### `Tool.toModelOutput` changes
 
 `toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
