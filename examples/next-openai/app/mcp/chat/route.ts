@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
       system: 'You are a helpful chatbot capable of basic arithmetic problems',
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       onFinish: async () => {
         await client.close();
       },

@@ -77,7 +77,7 @@ const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
 ```tsx filename="AI SDK 6"
 import { convertToModelMessages, type ModelMessage } from 'ai';
 
-const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+const modelMessages = await convertToModelMessages(messages); // ModelMessage[]
 ```
 
 ### `generateObject` and `streamObject` Deprecation
@@ -177,6 +177,50 @@ for await (const partialObject of partialOutputStream) {
 ```
 
 Learn more about [generating structured data](/docs/ai-sdk-core/generating-structured-data).
+
+### async `convertToModelMessages`
+
+`convertToModelMessages()` is async in AI SDK 6 to support async `Tool.toModelOutput()`.
+
+```tsx filename="AI SDK 5"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = convertToModelMessages(uiMessages);
+```
+
+```tsx filename="AI SDK 6"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = await convertToModelMessages(uiMessages);
+```
+
+### `Tool.toModelOutput` changes
+
+`toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
+
+In AI SDK 5, the `output` was the arguments.
+
+```tsx filename="AI SDK 5"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: output => {
+    // ...
+  },
+});
+```
+
+```tsx filename="AI SDK 6"
+import { tool } from 'ai';
+
+const someTool = tool({
+  // ...
+  toModelOutput: ({ output }) => {
+    // ...
+  },
+});
+```
 
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 

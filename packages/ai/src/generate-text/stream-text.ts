@@ -10,6 +10,7 @@ import {
   isAbortError,
   ProviderOptions,
   ToolApprovalResponse,
+  ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -850,7 +851,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'finish-step') {
-          const stepMessages = toResponseMessages({
+          const stepMessages = await toResponseMessages({
             content: recordedContent,
             tools,
           });
@@ -1162,7 +1163,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
-            // forward provider-executed approval responses to the provider (do not execute locally):
+// forward provider-executed approval responses to the provider (do not execute locally):
             if (providerExecutedToolApprovals.length > 0) {
               initialResponseMessages.push({
                 role: 'tool',
@@ -1180,34 +1181,43 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
             // Local tool results (approved + denied) are sent as tool results:
             if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+              const localToolContent: ToolContent = [];
+
+              // add regular tool results for approved tool calls:
+              for (const output of toolOutputs) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
+                  toolCallId: output.toolCallId,
+                  toolName: output.toolName,
+                  output: await createToolModelOutput({
+                    toolCallId: output.toolCallId,
+                    input: output.input,
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                });
+              }
+
+              // add execution denied tool results for denied local tool approvals:
+              for (const toolApproval of localDeniedToolApprovals) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'execution-denied' as const,
+                    reason: toolApproval.approvalResponse.reason,
+                  },
+                });
+              }
+
               initialResponseMessages.push({
                 role: 'tool',
-                content: [
-                  // add regular tool results for approved tool calls:
-                  ...toolOutputs.map(output => ({
-                    type: 'tool-result' as const,
-                    toolCallId: output.toolCallId,
-                    toolName: output.toolName,
-                    output: createToolModelOutput({
-                      tool: tools?.[output.toolName],
-                      output:
-                        output.type === 'tool-result'
-                          ? output.output
-                          : output.error,
-                      errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                    }),
-                  })),
-                  // add execution denied tool results for denied local tool approvals:
-                  ...localDeniedToolApprovals.map(toolApproval => ({
-                    type: 'tool-result' as const,
-                    toolCallId: toolApproval.toolCall.toolCallId,
-                    toolName: toolApproval.toolCall.toolName,
-                    output: {
-                      type: 'execution-denied' as const,
-                      reason: toolApproval.approvalResponse.reason,
-                    },
-                  })),
-                ],
+                content: localToolContent,
               });
             }
           } finally {
@@ -1648,12 +1658,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
-                      ...toResponseMessages({
+                      ...(await toResponseMessages({
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
                         tools,
-                      }),
+                      })),
                     );
 
                     try {
