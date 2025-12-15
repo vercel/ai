@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+
 ## 4.0.0-beta.48
 
 ### Patch Changes

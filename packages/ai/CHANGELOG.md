@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.153
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/gateway@2.0.0-beta.80
+
 ## 6.0.0-beta.152
 
 ### Patch Changes
