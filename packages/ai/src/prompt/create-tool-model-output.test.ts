@@ -127,7 +127,7 @@ describe('createToolModelOutput', () => {
 
   describe('string output without toModelOutput', () => {
     it('should return text type for string output', async () => {
-      const result = createToolModelOutput({
+      const result = await createToolModelOutput({
         output: 'Simple string output',
         tool: undefined,
         errorMode: 'none',

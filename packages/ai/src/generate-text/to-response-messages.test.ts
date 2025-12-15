@@ -5,8 +5,8 @@ import { toResponseMessages } from './to-response-messages';
 import { describe, it, expect } from 'vitest';
 
 describe('toResponseMessages', () => {
-  it('should return an assistant message with text when no tool calls or results', () => {
-    const result = toResponseMessages({
+  it('should return an assistant message with text when no tool calls or results', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -29,8 +29,8 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should include tool calls in the assistant message', () => {
-    const result = toResponseMessages({
+  it('should include tool calls in the assistant message', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -67,8 +67,8 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should include tool calls with metadata in the assistant message', () => {
-    const result = toResponseMessages({
+  it('should include tool calls with metadata in the assistant message', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -122,8 +122,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include tool results as a separate message', () => {
-    const result = toResponseMessages({
+  it('should include tool results as a separate message', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -189,8 +189,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include tool errors as a separate message', () => {
-    const result = toResponseMessages({
+  it('should include tool errors as a separate message', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -256,8 +256,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should handle undefined text', () => {
-    const result = toResponseMessages({
+  it('should handle undefined text', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'reasoning',
@@ -292,8 +292,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include reasoning array with redacted reasoning in the assistant message', () => {
-    const result = toResponseMessages({
+  it('should include reasoning array with redacted reasoning in the assistant message', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'reasoning',
@@ -351,8 +351,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should handle multipart tool results', () => {
-    const result = toResponseMessages({
+  it('should handle multipart tool results', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -426,13 +426,13 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include images in the assistant message', () => {
+  it('should include images in the assistant message', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       mediaType: 'image/png',
     });
 
-    const result = toResponseMessages({
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -463,7 +463,7 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should handle multiple images in the assistant message', () => {
+  it('should handle multiple images in the assistant message', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       mediaType: 'image/png',
@@ -473,7 +473,7 @@ describe('toResponseMessages', () => {
       mediaType: 'image/jpeg',
     });
 
-    const result = toResponseMessages({
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -511,13 +511,13 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should handle Uint8Array images', () => {
+  it('should handle Uint8Array images', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       mediaType: 'image/png',
     });
 
-    const result = toResponseMessages({
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -548,13 +548,13 @@ describe('toResponseMessages', () => {
     ]);
   });
 
-  it('should include images, reasoning, and tool calls in the correct order', () => {
+  it('should include images, reasoning, and tool calls in the correct order', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       mediaType: 'image/png',
     });
 
-    const result = toResponseMessages({
+    const result = await toResponseMessages({
       content: [
         {
           type: 'reasoning',
@@ -620,8 +620,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should not append text parts if text is empty string', () => {
-    const result = toResponseMessages({
+  it('should not append text parts if text is empty string', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
@@ -661,8 +661,8 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should not append assistant message if there is no content', () => {
-    const result = toResponseMessages({
+  it('should not append assistant message if there is no content', async () => {
+    const result = await toResponseMessages({
       content: [],
       tools: {},
     });
@@ -671,8 +671,8 @@ describe('toResponseMessages', () => {
   });
 
   describe('provider-executed tool calls', () => {
-    it('should include provider-executed tool calls and results', () => {
-      const result = toResponseMessages({
+    it('should include provider-executed tool calls and results', async () => {
+      const result = await toResponseMessages({
         content: [
           {
             type: 'text',
@@ -749,7 +749,6 @@ describe('toResponseMessages', () => {
                     },
                   ],
                 },
-                "providerExecuted": true,
                 "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",
@@ -771,8 +770,8 @@ describe('toResponseMessages', () => {
     });
   });
 
-  it('should include provider metadata in the text parts', () => {
-    const result = toResponseMessages({
+  it('should include provider metadata in the text parts', async () => {
+    const result = await toResponseMessages({
       content: [
         {
           type: 'text',
