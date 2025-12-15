@@ -266,6 +266,81 @@ describe('collectToolApprovals', () => {
     `);
   });
 
+  it('should skip approval response with unknown approvalId', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: { value: 'test-input' },
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-1',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'unknown-approval-id', // doesn't match any request
+              approved: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "approvedToolApprovals": [],
+        "deniedToolApprovals": [],
+      }
+    `);
+  });
+
+  it('should skip approval response when referenced tool call does not exist', () => {
+    const result = collectToolApprovals({
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            // No tool-call part, only the approval request
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-id-1',
+              toolCallId: 'call-that-does-not-exist',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-id-1',
+              approved: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "approvedToolApprovals": [],
+        "deniedToolApprovals": [],
+      }
+    `);
+  });
+
   it('should work for 2 approvals, 2 rejections, 1 approval with tool result, 1 rejection with tool result', () => {
     const result = collectToolApprovals({
       messages: [
