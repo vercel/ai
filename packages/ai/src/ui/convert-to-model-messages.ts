@@ -172,7 +172,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                if (part.state !== 'input-streaming') {
+                const isProviderExecutedAwaitingApprovalExecution =
+                  part.providerExecuted === true &&
+                  part.state === 'approval-responded';
+
+                if (
+                  part.state !== 'input-streaming' &&
+                  !isProviderExecutedAwaitingApprovalExecution
+                ) {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -242,8 +249,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             });
 
             // check if there are tool invocations with results in the block
+            // Include non-provider-executed tools, OR provider-executed tools with approval responses
             const toolParts = block.filter(
-              part => isToolUIPart(part) && part.providerExecuted !== true,
+              part =>
+                isToolUIPart(part) &&
+                (part.providerExecuted !== true ||
+                  part.approval?.approved != null),
             ) as (
               | ToolUIPart<InferUIMessageTools<UI_MESSAGE>>
               | DynamicToolUIPart
@@ -263,6 +274,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
                     });
+                  }
+
+                  // For provider-executed tools in approval-responded state,
+                  // only the approval response is needed, not a tool result
+                  if (
+                    toolPart.providerExecuted === true &&
+                    toolPart.state === 'approval-responded'
+                  ) {
+                    continue;
                   }
 
                   switch (toolPart.state) {
@@ -311,10 +331,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   }
                 }
 
-                modelMessages.push({
-                  role: 'tool',
-                  content,
-                });
+                if (content.length > 0) {
+                  modelMessages.push({
+                    role: 'tool',
+                    content,
+                  });
+                }
               }
             }
 
