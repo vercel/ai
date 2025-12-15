@@ -2,16 +2,9 @@ export {
   toBaseMessages,
   toUIMessageStream,
   convertModelMessages,
-  useLangSmithDeployment,
-} from './langchain-adapter';
+} from './adapter';
 
-// Re-export LangChain types for convenience
-export type {
-  BaseMessage,
-  AIMessage,
-  HumanMessage,
-  SystemMessage,
-  ToolMessage,
-  AIMessageChunk,
-  BaseMessageChunk,
-} from '@langchain/core/messages';
+export {
+  useLangSmithDeployment,
+  type LangSmithDeploymentTransportOptions,
+} from './transport';

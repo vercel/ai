@@ -754,6 +754,9 @@ importers:
       langchain:
         specifier: ^1.2.0
         version: 1.2.0(@langchain/core@1.1.5(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.56.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(openai@6.13.0(ws@8.18.0)(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/exporter-trace-otlp-proto@0.56.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))(openai@6.13.0(ws@8.18.0)(zod@3.25.76))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.0(zod@3.25.76))
+      lucide-react:
+        specifier: ^0.561.0
+        version: 0.561.0(react@18.3.1)
       next:
         specifier: ^15.5.9
         version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.50.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
@@ -14808,6 +14811,11 @@ packages:
 
   lucide-react@0.556.0:
     resolution: {integrity: sha512-iOb8dRk7kLaYBZhR2VlV1CeJGxChBgUthpSP8wom9jfj79qovgG6qcSdiy6vkoREKPnbUYzJsCn4o4PtG3Iy+A==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@0.561.0:
+    resolution: {integrity: sha512-Y59gMY38tl4/i0qewcqohPdEbieBy7SovpBL9IFebhc2mDd8x4PZSOsiFRkpPcOq6bj1r/mjH/Rk73gSlIJP2A==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -34734,6 +34742,10 @@ snapshots:
       react: 18.3.1
 
   lucide-react@0.556.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  lucide-react@0.561.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 

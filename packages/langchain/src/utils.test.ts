@@ -1,0 +1,827 @@
+import { describe, it, expect } from 'vitest';
+import {
+  AIMessage,
+  AIMessageChunk,
+  HumanMessage,
+  ToolMessage,
+} from '@langchain/core/messages';
+import type { ToolResultPart, AssistantContent, UserContent, UIMessageChunk } from 'ai';
+import {
+  convertToolResultPart,
+  convertAssistantContent,
+  convertUserContent,
+  isToolResultPart,
+  processModelChunk,
+  isPlainMessageObject,
+  isAIMessageChunk,
+  isToolMessageType,
+  getMessageText,
+  isImageGenerationOutput,
+  extractImageOutputs,
+  processLangGraphEvent,
+} from './utils';
+
+/**
+ * Creates a mock ReadableStreamDefaultController for testing
+ */
+function createMockController(chunks: unknown[]): ReadableStreamDefaultController<UIMessageChunk> {
+  return {
+    enqueue: (c: unknown) => { chunks.push(c); },
+    close: () => {},
+    error: () => {},
+    desiredSize: 1,
+  } as ReadableStreamDefaultController<UIMessageChunk>;
+}
+
+describe('convertToolResultPart', () => {
+  it('should convert text output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      output: { type: 'text', value: 'Sunny, 72°F' },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result).toBeInstanceOf(ToolMessage);
+    expect(result.tool_call_id).toBe('call-1');
+    expect(result.content).toBe('Sunny, 72°F');
+  });
+
+  it('should convert error-text output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'failing_tool',
+      output: { type: 'error-text', value: 'Something went wrong' },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('Something went wrong');
+  });
+
+  it('should convert json output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'get_data',
+      output: { type: 'json', value: { temperature: 72 } },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('{"temperature":72}');
+  });
+
+  it('should convert error-json output', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'failing_tool',
+      output: { type: 'error-json', value: { error: 'Failed' } },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('{"error":"Failed"}');
+  });
+
+  it('should convert content output with text blocks', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'multi_output',
+      output: {
+        type: 'content',
+        value: [
+          { type: 'text', text: 'First part ' },
+          { type: 'text', text: 'Second part' },
+        ],
+      },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('First part Second part');
+  });
+
+  it('should handle content output with non-text blocks', () => {
+    const part: ToolResultPart = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'mixed_output',
+      output: {
+        type: 'content',
+        value: [
+          { type: 'text', text: 'Hello' },
+          { type: 'image-data', data: 'base64data', mediaType: 'image/png' },
+        ],
+      },
+    };
+
+    const result = convertToolResultPart(part);
+
+    expect(result.content).toBe('Hello');
+  });
+});
+
+describe('convertAssistantContent', () => {
+  it('should convert string content', () => {
+    const content: AssistantContent = 'Hello, how can I help?';
+
+    const result = convertAssistantContent(content);
+
+    expect(result).toBeInstanceOf(AIMessage);
+    expect(result.content).toBe('Hello, how can I help?');
+  });
+
+  it('should convert array content with text parts', () => {
+    const content: AssistantContent = [
+      { type: 'text', text: 'Hello ' },
+      { type: 'text', text: 'World' },
+    ];
+
+    const result = convertAssistantContent(content);
+
+    expect(result.content).toBe('Hello World');
+  });
+
+  it('should convert array content with tool calls', () => {
+    const content: AssistantContent = [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        input: { location: 'NYC' },
+      },
+    ];
+
+    const result = convertAssistantContent(content);
+
+    expect(result.tool_calls).toHaveLength(1);
+    expect(result.tool_calls?.[0]).toEqual({
+      id: 'call-1',
+      name: 'get_weather',
+      args: { location: 'NYC' },
+    });
+  });
+
+  it('should handle mixed text and tool calls', () => {
+    const content: AssistantContent = [
+      { type: 'text', text: "I'll check the weather" },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        input: { location: 'NYC' },
+      },
+    ];
+
+    const result = convertAssistantContent(content);
+
+    expect(result.content).toBe("I'll check the weather");
+    expect(result.tool_calls).toHaveLength(1);
+  });
+
+  it('should have no tool_calls when none present', () => {
+    const content: AssistantContent = [{ type: 'text', text: 'Just text' }];
+
+    const result = convertAssistantContent(content);
+
+    // AIMessage normalizes undefined to empty array
+    expect(result.tool_calls).toHaveLength(0);
+  });
+});
+
+describe('convertUserContent', () => {
+  it('should convert string content', () => {
+    const content: UserContent = 'Hello!';
+
+    const result = convertUserContent(content);
+
+    expect(result).toBeInstanceOf(HumanMessage);
+    expect(result.content).toBe('Hello!');
+  });
+
+  it('should convert array content with text parts', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Part 1 ' },
+      { type: 'text', text: 'Part 2' },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toBe('Part 1 Part 2');
+  });
+
+  it('should filter out non-text parts', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Describe this image' },
+      { type: 'image', image: new Uint8Array([1, 2, 3]), mediaType: 'image/png' },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toBe('Describe this image');
+  });
+});
+
+describe('isToolResultPart', () => {
+  it('should return true for valid tool result parts', () => {
+    const part = {
+      type: 'tool-result',
+      toolCallId: 'call-1',
+      toolName: 'test',
+      output: { type: 'text', value: 'result' },
+    };
+
+    expect(isToolResultPart(part)).toBe(true);
+  });
+
+  it('should return false for null', () => {
+    expect(isToolResultPart(null)).toBe(false);
+  });
+
+  it('should return false for undefined', () => {
+    expect(isToolResultPart(undefined)).toBe(false);
+  });
+
+  it('should return false for non-objects', () => {
+    expect(isToolResultPart('string')).toBe(false);
+    expect(isToolResultPart(123)).toBe(false);
+  });
+
+  it('should return false for objects without type', () => {
+    expect(isToolResultPart({ toolCallId: 'call-1' })).toBe(false);
+  });
+
+  it('should return false for objects with wrong type', () => {
+    expect(isToolResultPart({ type: 'text' })).toBe(false);
+  });
+});
+
+describe('processModelChunk', () => {
+  it('should emit text-start and text-delta for first chunk', () => {
+    const chunk = new AIMessageChunk({
+      content: 'Hello',
+      id: 'msg-1',
+    });
+    const state = { started: false, messageId: 'default' };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(state.started).toBe(true);
+    expect(state.messageId).toBe('msg-1');
+    expect(chunks).toEqual([
+      { type: 'text-start', id: 'msg-1' },
+      { type: 'text-delta', delta: 'Hello', id: 'msg-1' },
+    ]);
+  });
+
+  it('should emit only text-delta for subsequent chunks', () => {
+    const chunk = new AIMessageChunk({
+      content: ' World',
+      id: 'msg-1',
+    });
+    const state = { started: true, messageId: 'msg-1' };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toEqual([
+      { type: 'text-delta', delta: ' World', id: 'msg-1' },
+    ]);
+  });
+
+  it('should handle array content with text parts', () => {
+    const chunk = new AIMessageChunk({
+      content: [{ type: 'text', text: 'Array content' }],
+      id: 'msg-1',
+    });
+    const state = { started: false, messageId: 'default' };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Array content',
+      id: 'msg-1',
+    });
+  });
+
+  it('should not emit for empty content', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    const state = { started: false, messageId: 'default' };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toHaveLength(0);
+    expect(state.started).toBe(false);
+  });
+});
+
+describe('isPlainMessageObject', () => {
+  it('should return true for plain objects', () => {
+    expect(isPlainMessageObject({ type: 'ai', content: 'Hello' })).toBe(true);
+  });
+
+  it('should return false for LangChain class instances', () => {
+    const aiChunk = new AIMessageChunk({ content: 'Hello' });
+    expect(isPlainMessageObject(aiChunk)).toBe(false);
+  });
+
+  it('should return false for null', () => {
+    expect(isPlainMessageObject(null)).toBe(false);
+  });
+
+  it('should return false for non-objects', () => {
+    expect(isPlainMessageObject('string')).toBe(false);
+    expect(isPlainMessageObject(123)).toBe(false);
+  });
+});
+
+describe('isAIMessageChunk', () => {
+  it('should return true for AIMessageChunk instances', () => {
+    const chunk = new AIMessageChunk({ content: 'Hello' });
+    expect(isAIMessageChunk(chunk)).toBe(true);
+  });
+
+  it('should return true for plain objects with type: ai', () => {
+    const plainObj = { type: 'ai', content: 'Hello', id: 'msg-1' };
+    expect(isAIMessageChunk(plainObj)).toBe(true);
+  });
+
+  it('should return false for AIMessage instances (not chunks)', () => {
+    const msg = new AIMessage({ content: 'Hello' });
+    // AIMessage is not AIMessageChunk, but it extends BaseMessage
+    // The function should return false for AIMessage if it's checking specifically for chunks
+    expect(isAIMessageChunk(msg)).toBe(false);
+  });
+
+  it('should return false for plain objects with other types', () => {
+    expect(isAIMessageChunk({ type: 'tool', content: 'Hello' })).toBe(false);
+    expect(isAIMessageChunk({ type: 'human', content: 'Hello' })).toBe(false);
+  });
+
+  it('should return false for null/undefined', () => {
+    expect(isAIMessageChunk(null)).toBe(false);
+    expect(isAIMessageChunk(undefined)).toBe(false);
+  });
+});
+
+describe('isToolMessageType', () => {
+  it('should return true for ToolMessage instances', () => {
+    const toolMsg = new ToolMessage({ tool_call_id: 'call-1', content: 'Result' });
+    expect(isToolMessageType(toolMsg)).toBe(true);
+  });
+
+  it('should return true for plain objects with type: tool', () => {
+    const plainObj = { type: 'tool', content: 'Result', tool_call_id: 'call-1' };
+    expect(isToolMessageType(plainObj)).toBe(true);
+  });
+
+  it('should return false for other types', () => {
+    expect(isToolMessageType({ type: 'ai', content: 'Hello' })).toBe(false);
+    expect(isToolMessageType({ type: 'human', content: 'Hello' })).toBe(false);
+  });
+
+  it('should return false for null/undefined', () => {
+    expect(isToolMessageType(null)).toBe(false);
+    expect(isToolMessageType(undefined)).toBe(false);
+  });
+});
+
+describe('getMessageText', () => {
+  it('should extract text from AIMessageChunk', () => {
+    const chunk = new AIMessageChunk({ content: 'Hello World' });
+    expect(getMessageText(chunk)).toBe('Hello World');
+  });
+
+  it('should extract text from plain objects with content', () => {
+    const plainObj = { content: 'Plain text' };
+    expect(getMessageText(plainObj)).toBe('Plain text');
+  });
+
+  it('should return empty string for non-string content', () => {
+    const plainObj = { content: [{ type: 'text', text: 'Array' }] };
+    expect(getMessageText(plainObj)).toBe('');
+  });
+
+  it('should return empty string for null', () => {
+    expect(getMessageText(null)).toBe('');
+  });
+
+  it('should return empty string for objects without content', () => {
+    expect(getMessageText({ type: 'ai' })).toBe('');
+  });
+});
+
+describe('isImageGenerationOutput', () => {
+  it('should return true for valid image generation outputs', () => {
+    const output = {
+      id: 'img-1',
+      type: 'image_generation_call',
+      status: 'completed',
+      result: 'base64data',
+    };
+    expect(isImageGenerationOutput(output)).toBe(true);
+  });
+
+  it('should return false for other types', () => {
+    expect(isImageGenerationOutput({ type: 'tool_call' })).toBe(false);
+    expect(isImageGenerationOutput({ type: 'text' })).toBe(false);
+  });
+
+  it('should return false for null/undefined', () => {
+    expect(isImageGenerationOutput(null)).toBe(false);
+    expect(isImageGenerationOutput(undefined)).toBe(false);
+  });
+
+  it('should return false for non-objects', () => {
+    expect(isImageGenerationOutput('string')).toBe(false);
+    expect(isImageGenerationOutput(123)).toBe(false);
+  });
+});
+
+describe('extractImageOutputs', () => {
+  it('should extract image generation outputs from additional_kwargs', () => {
+    const additionalKwargs = {
+      tool_outputs: [
+        {
+          id: 'img-1',
+          type: 'image_generation_call',
+          status: 'completed',
+          result: 'base64data',
+        },
+        {
+          id: 'tool-1',
+          type: 'tool_call',
+          status: 'completed',
+        },
+      ],
+    };
+
+    const result = extractImageOutputs(additionalKwargs);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('img-1');
+  });
+
+  it('should return empty array for undefined additional_kwargs', () => {
+    expect(extractImageOutputs(undefined)).toEqual([]);
+  });
+
+  it('should return empty array when tool_outputs is not an array', () => {
+    expect(extractImageOutputs({ tool_outputs: 'not-array' })).toEqual([]);
+    expect(extractImageOutputs({})).toEqual([]);
+  });
+});
+
+describe('processLangGraphEvent', () => {
+  const createMockState = () => ({
+    messageSeen: {} as Record<string, { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }>,
+    messageConcat: {} as Record<string, AIMessageChunk>,
+    emittedToolCalls: new Set<string>(),
+    emittedImages: new Set<string>(),
+  });
+
+  it('should handle custom events', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(['custom', { data: 'value' }], state, controller);
+
+    expect(chunks).toEqual([
+      { type: 'data-custom', transient: true, data: { data: 'value' } },
+    ]);
+  });
+
+  it('should handle three-element arrays with namespace', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['namespace', 'custom', { data: 'value' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      { type: 'data-custom', transient: true, data: { data: 'value' } },
+    ]);
+  });
+
+  it('should handle AI message chunks with text content', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Hello',
+      id: 'msg-1',
+    });
+  });
+
+  it('should skip messages without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: 'Hello' });
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toHaveLength(0);
+  });
+
+  it('should handle tool message output', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Tool result',
+    });
+    toolMsg.id = 'msg-1';
+    processLangGraphEvent(['messages', [toolMsg]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Tool result',
+    });
+  });
+
+  it('should handle plain AI message objects from RemoteGraph', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const plainMsg = { type: 'ai', content: 'Hello', id: 'msg-1' };
+    processLangGraphEvent(['messages', [plainMsg]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'text-delta',
+      delta: 'Hello',
+      id: 'msg-1',
+    });
+  });
+
+  it('should handle plain tool message objects from RemoteGraph', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const plainToolMsg = {
+      type: 'tool',
+      content: 'Result',
+      id: 'msg-1',
+      tool_call_id: 'call-1',
+    };
+    processLangGraphEvent(['messages', [plainToolMsg]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Result',
+    });
+  });
+
+  it('should handle values event and finalize pending messages', () => {
+    const state = createMockState();
+    state.messageSeen['msg-1'] = { text: true };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(['values', {}], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'text-end', id: 'msg-1' });
+    expect(state.messageSeen['msg-1']).toBeUndefined();
+  });
+
+  it('should handle tool calls in values event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'ai',
+          tool_calls: [
+            { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+          ],
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      input: { city: 'NYC' },
+    });
+  });
+
+  it('should not duplicate already emitted tool calls', () => {
+    const state = createMockState();
+    state.emittedToolCalls.add('call-1');
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'ai',
+          tool_calls: [
+            { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+          ],
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
+    const toolInputEvents = chunks.filter(
+      (c: unknown) =>
+        (c as { type: string }).type === 'tool-input-available' ||
+        (c as { type: string }).type === 'tool-input-start',
+    );
+    expect(toolInputEvents).toHaveLength(0);
+  });
+
+  it('should handle tool calls in additional_kwargs format', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'ai',
+          additional_kwargs: {
+            tool_calls: [
+              {
+                id: 'call-1',
+                function: {
+                  name: 'get_weather',
+                  arguments: '{"city":"NYC"}',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      input: { city: 'NYC' },
+    });
+  });
+
+  it('should handle image generation outputs', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: '', id: 'msg-1' });
+    (aiChunk as unknown as { additional_kwargs: Record<string, unknown> }).additional_kwargs = {
+      tool_outputs: [
+        {
+          id: 'img-1',
+          type: 'image_generation_call',
+          status: 'completed',
+          result: 'base64imagedata',
+          output_format: 'png',
+        },
+      ],
+    };
+
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'file',
+      mediaType: 'image/png',
+      url: 'data:image/png;base64,base64imagedata',
+    });
+    expect(state.emittedImages.has('img-1')).toBe(true);
+  });
+
+  it('should not emit duplicate images', () => {
+    const state = createMockState();
+    state.emittedImages.add('img-1');
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: '', id: 'msg-1' });
+    (aiChunk as unknown as { additional_kwargs: Record<string, unknown> }).additional_kwargs = {
+      tool_outputs: [
+        {
+          id: 'img-1',
+          type: 'image_generation_call',
+          status: 'completed',
+          result: 'base64imagedata',
+        },
+      ],
+    };
+
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    const fileEvents = chunks.filter(
+      (c: unknown) => (c as { type: string }).type === 'file',
+    );
+    expect(fileEvents).toHaveLength(0);
+  });
+
+  it('should handle tool call chunks with streaming', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+      tool_call_chunks: [
+        {
+          id: 'call-1',
+          name: 'get_weather',
+          args: '{"city":',
+          index: 0,
+        },
+      ],
+    });
+
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+    });
+    expect(chunks).toContainEqual({
+      type: 'tool-input-delta',
+      toolCallId: 'call-1',
+      inputTextDelta: '{"city":',
+    });
+    expect(state.emittedToolCalls.has('call-1')).toBe(true);
+  });
+
+  it('should skip tool call chunks without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+      tool_call_chunks: [
+        {
+          // No id
+          name: 'get_weather',
+          args: '{"city":',
+          index: 0,
+        },
+      ],
+    });
+
+    processLangGraphEvent(['messages', [aiChunk]], state, controller);
+
+    const toolEvents = chunks.filter(
+      (c: unknown) =>
+        (c as { type: string }).type === 'tool-input-start' ||
+        (c as { type: string }).type === 'tool-input-delta',
+    );
+    expect(toolEvents).toHaveLength(0);
+  });
+});
+

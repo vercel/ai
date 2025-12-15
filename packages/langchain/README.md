@@ -1,6 +1,6 @@
 # AI SDK - LangChain Adapter
 
-The **[AI SDK](https://ai-sdk.dev)** LangChain adapter provides seamless integration between [LangChain](https://langchain.com/) / [LangGraph](https://langchain-ai.github.io/langgraph/) and the AI SDK, enabling you to use LangChain agents and graphs with AI SDK UI components.
+The **[AI SDK](https://ai-sdk.dev)** LangChain adapter provides seamless integration between [LangChain](https://langchain.com/) and the AI SDK, enabling you to use LangChain agents and graphs with AI SDK UI components.
 
 ## Installation
 

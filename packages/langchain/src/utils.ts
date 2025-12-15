@@ -1,30 +1,25 @@
 import {
   AIMessage,
   HumanMessage,
-  SystemMessage,
   ToolMessage,
   BaseMessage,
   AIMessageChunk,
   BaseMessageChunk,
-  ToolCallChunk
+  ToolCallChunk,
 } from '@langchain/core/messages';
 import {
-  type UIMessage,
   type UIMessageChunk,
-  convertToModelMessages,
-  type ChatTransport,
-  type ChatRequestOptions,
-  type ModelMessage,
   type ToolResultPart,
   type AssistantContent,
   type UserContent,
 } from 'ai';
-import { RemoteGraph, type RemoteGraphParams } from '@langchain/langgraph/remote';
 
 /**
  * Converts a ToolResultPart to a LangChain ToolMessage
+ * @param block - The ToolResultPart to convert.
+ * @returns The converted ToolMessage.
  */
-function convertToolResultPart(block: ToolResultPart): ToolMessage {
+export function convertToolResultPart(block: ToolResultPart): ToolMessage {
   const content = (() => {
     if (block.output.type === 'text' || block.output.type === 'error-text') {
       return block.output.value;
@@ -56,8 +51,10 @@ function convertToolResultPart(block: ToolResultPart): ToolMessage {
 
 /**
  * Converts AssistantContent to LangChain AIMessage
+ * @param content - The AssistantContent to convert.
+ * @returns The converted AIMessage.
  */
-function convertAssistantContent(content: AssistantContent): AIMessage {
+export function convertAssistantContent(content: AssistantContent): AIMessage {
   if (typeof content === 'string') {
     return new AIMessage({ content });
   }
@@ -89,14 +86,18 @@ function convertAssistantContent(content: AssistantContent): AIMessage {
 
 /**
  * Converts UserContent to LangChain HumanMessage
+ * @param content - The UserContent to convert.
+ * @returns The converted HumanMessage.
  */
-function convertUserContent(content: UserContent): HumanMessage {
+export function convertUserContent(content: UserContent): HumanMessage {
   if (typeof content === 'string') {
     return new HumanMessage({ content });
   }
 
   const textParts = content
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .filter(
+      (part): part is { type: 'text'; text: string } => part.type === 'text',
+    )
     .map(part => part.text);
 
   return new HumanMessage({ content: textParts.join('') });
@@ -104,8 +105,10 @@ function convertUserContent(content: UserContent): HumanMessage {
 
 /**
  * Helper to check if a content item is a ToolResultPart
+ * @param item - The item to check.
+ * @returns True if the item is a ToolResultPart, false otherwise.
  */
-function isToolResultPart(item: unknown): item is ToolResultPart {
+export function isToolResultPart(item: unknown): item is ToolResultPart {
   return (
     item != null &&
     typeof item === 'object' &&
@@ -115,78 +118,12 @@ function isToolResultPart(item: unknown): item is ToolResultPart {
 }
 
 /**
- * Converts AI SDK UIMessages to LangChain BaseMessage objects.
- *
- * This function transforms the AI SDK's message format into LangChain's message
- * format, enabling seamless integration between the two frameworks.
- *
- * @param messages - Array of AI SDK UIMessage objects to convert.
- * @returns Promise resolving to an array of LangChain BaseMessage objects.
- *
- * @example
- * ```ts
- * import { toBaseMessages } from '@ai-sdk/langchain';
- *
- * const langchainMessages = await toBaseMessages(uiMessages);
- *
- * // Use with LangChain
- * const response = await model.invoke(langchainMessages);
- * ```
- */
-export async function toBaseMessages(
-  messages: UIMessage[],
-): Promise<BaseMessage[]> {
-  const modelMessages = await convertToModelMessages(messages);
-  return convertModelMessages(modelMessages);
-}
-
-/**
- * Converts ModelMessages to LangChain BaseMessage objects.
- *
- * @param modelMessages - Array of ModelMessage objects from convertToModelMessages.
- * @returns Array of LangChain BaseMessage objects.
- */
-export function convertModelMessages(
-  modelMessages: ModelMessage[],
-): BaseMessage[] {
-  const result: BaseMessage[] = [];
-
-  for (const message of modelMessages) {
-    switch (message.role) {
-      case 'tool': {
-        // Tool messages contain an array of tool results
-        for (const item of message.content) {
-          if (isToolResultPart(item)) {
-            result.push(convertToolResultPart(item));
-          }
-        }
-        break;
-      }
-
-      case 'assistant': {
-        result.push(convertAssistantContent(message.content));
-        break;
-      }
-
-      case 'system': {
-        result.push(new SystemMessage({ content: message.content }));
-        break;
-      }
-
-      case 'user': {
-        result.push(convertUserContent(message.content));
-        break;
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
  * Processes a model stream chunk and emits UI message chunks.
+ * @param chunk - The AIMessageChunk to process.
+ * @param state - The state of the model stream.
+ * @param controller - The controller to use to emit the UI message chunks.
  */
-function processModelChunk(
+export function processModelChunk(
   chunk: AIMessageChunk,
   state: { started: boolean; messageId: string },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
@@ -229,8 +166,11 @@ function processModelChunk(
 /**
  * Checks if a message is a plain object (not a LangChain class instance).
  * LangChain class instances have a _getType method.
+ * 
+ * @param msg - The message to check.
+ * @returns True if the message is a plain object, false otherwise.
  */
-function isPlainMessageObject(msg: unknown): boolean {
+export function isPlainMessageObject(msg: unknown): boolean {
   if (msg == null || typeof msg !== 'object') return false;
   // LangChain class instances have _getType method
   return typeof (msg as { _getType?: unknown })._getType !== 'function';
@@ -240,8 +180,11 @@ function isPlainMessageObject(msg: unknown): boolean {
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
  * For plain objects from RemoteGraph API, matches type === 'ai'.
+ * 
+ * @param msg - The message to check.
+ * @returns True if the message is an AI message chunk, false otherwise.
  */
-function isAIMessageChunk(
+export function isAIMessageChunk(
   msg: unknown,
 ): msg is AIMessageChunk & { type?: string; content?: string } {
   // Actual AIMessageChunk class instance
@@ -256,8 +199,11 @@ function isAIMessageChunk(
 
 /**
  * Checks if a message is a Tool message (works for both class instances and plain objects).
+ * 
+ * @param msg - The message to check.
+ * @returns True if the message is a Tool message, false otherwise.
  */
-function isToolMessageType(
+export function isToolMessageType(
   msg: unknown,
 ): msg is ToolMessage & { type?: string; tool_call_id?: string } {
   if (ToolMessage.isInstance(msg)) return true;
@@ -271,8 +217,11 @@ function isToolMessageType(
 
 /**
  * Gets text content from a message (works for both class instances and plain objects).
+ * 
+ * @param msg - The message to get the text from.
+ * @returns The text content of the message.
  */
-function getMessageText(msg: unknown): string {
+export function getMessageText(msg: unknown): string {
   if (AIMessageChunk.isInstance(msg)) {
     return msg.text ?? '';
   }
@@ -285,9 +234,60 @@ function getMessageText(msg: unknown): string {
 }
 
 /**
- * Processes a LangGraph event and emits UI message chunks.
+ * Type for image generation tool outputs from LangChain/OpenAI
  */
-function processLangGraphEvent(
+interface ImageGenerationOutput {
+  id: string;
+  type: 'image_generation_call';
+  status: string;
+  result?: string; // base64 image data
+  revised_prompt?: string;
+  size?: string;
+  output_format?: string;
+  quality?: string;
+  background?: string;
+}
+
+/**
+ * Checks if an object is an image generation output
+ * 
+ * @param obj - The object to check.
+ * @returns True if the object is an image generation output, false otherwise.
+ */
+export function isImageGenerationOutput(obj: unknown): obj is ImageGenerationOutput {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: string }).type === 'image_generation_call'
+  );
+}
+
+/**
+ * Extracts image generation outputs from `additional_kwargs`
+ * 
+ * @param additionalKwargs - The additional kwargs to extract the image generation outputs from.
+ * @returns The image generation outputs.
+ */
+export function extractImageOutputs(
+  additionalKwargs: Record<string, unknown> | undefined,
+): ImageGenerationOutput[] {
+  if (!additionalKwargs) return [];
+
+  const toolOutputs = additionalKwargs.tool_outputs;
+  if (!Array.isArray(toolOutputs)) return [];
+
+  return toolOutputs.filter(isImageGenerationOutput);
+}
+
+/**
+ * Processes a LangGraph event and emits UI message chunks.
+ * 
+ * @param event - The event to process.
+ * @param state - The state of the LangGraph event.
+ * @param controller - The controller to use to emit the UI message chunks.
+ */
+export function processLangGraphEvent(
   event: unknown[],
   state: {
     messageSeen: Record<
@@ -296,10 +296,11 @@ function processLangGraphEvent(
     >;
     messageConcat: Record<string, AIMessageChunk>;
     emittedToolCalls: Set<string>;
+    emittedImages: Set<string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
-  const { messageSeen, messageConcat, emittedToolCalls } = state;
+  const { messageSeen, messageConcat, emittedToolCalls, emittedImages } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
 
   switch (type) {
@@ -332,10 +333,30 @@ function processLangGraphEvent(
       if (isAIMessageChunk(msg)) {
         const concatChunk = messageConcat[msg.id];
 
+        // Handle image generation outputs from additional_kwargs.tool_outputs
+        const additionalKwargs = (
+          msg as { additional_kwargs?: Record<string, unknown> }
+        ).additional_kwargs;
+        const imageOutputs = extractImageOutputs(additionalKwargs);
+
+        for (const imageOutput of imageOutputs) {
+          // Only emit if we have image data and haven't emitted this image yet
+          if (imageOutput.result && !emittedImages.has(imageOutput.id)) {
+            emittedImages.add(imageOutput.id);
+
+            // Emit as a file part using proper AI SDK multimodal format
+            const mediaType = `image/${imageOutput.output_format || 'png'}`;
+            controller.enqueue({
+              type: 'file',
+              mediaType,
+              url: `data:${mediaType};base64,${imageOutput.result}`,
+            });
+          }
+        }
+
         // Handle tool call chunks for streaming tool calls
-        const toolCallChunks = (
-          msg as { tool_call_chunks?: ToolCallChunk[] }
-        ).tool_call_chunks;
+        const toolCallChunks = (msg as { tool_call_chunks?: ToolCallChunk[] })
+          .tool_call_chunks;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
             const idx = toolCallChunk.index ?? 0;
@@ -448,11 +469,21 @@ function processLangGraphEvent(
             if (!msgId) continue;
 
             // Check if this is an AI message with tool calls
-            let toolCalls: Array<{ id: string; name: string; args: unknown }> | undefined;
+            let toolCalls:
+              | Array<{ id: string; name: string; args: unknown }>
+              | undefined;
 
             // For class instances
             if (AIMessageChunk.isInstance(msg) || AIMessage.isInstance(msg)) {
-              toolCalls = (msg as { tool_calls?: Array<{ id: string; name: string; args: unknown }> }).tool_calls;
+              toolCalls = (
+                msg as {
+                  tool_calls?: Array<{
+                    id: string;
+                    name: string;
+                    args: unknown;
+                  }>;
+                }
+              ).tool_calls;
             }
             // For plain objects from RemoteGraph API
             else if (isPlainMessageObject(msg)) {
@@ -460,21 +491,35 @@ function processLangGraphEvent(
               if (obj.type === 'ai') {
                 // Try tool_calls first (normalized format)
                 if (Array.isArray(obj.tool_calls)) {
-                  toolCalls = obj.tool_calls as { id: string; name: string; args: unknown }[];
+                  toolCalls = obj.tool_calls as {
+                    id: string;
+                    name: string;
+                    args: unknown;
+                  }[];
                 }
                 // Fall back to additional_kwargs.tool_calls (OpenAI format)
-                else if (obj.additional_kwargs && typeof obj.additional_kwargs === 'object') {
-                  const additionalKwargs = obj.additional_kwargs as Record<string, unknown>;
+                else if (
+                  obj.additional_kwargs &&
+                  typeof obj.additional_kwargs === 'object'
+                ) {
+                  const additionalKwargs = obj.additional_kwargs as Record<
+                    string,
+                    unknown
+                  >;
                   if (Array.isArray(additionalKwargs.tool_calls)) {
                     // Convert OpenAI format to normalized format
-                    toolCalls = (additionalKwargs.tool_calls as Array<{
-                      id?: string;
-                      function?: { name?: string; arguments?: string };
-                    }>).map((tc, idx) => {
+                    toolCalls = (
+                      additionalKwargs.tool_calls as Array<{
+                        id?: string;
+                        function?: { name?: string; arguments?: string };
+                      }>
+                    ).map((tc, idx) => {
                       const functionData = tc.function;
                       let args: unknown;
                       try {
-                        args = functionData?.arguments ? JSON.parse(functionData.arguments) : {};
+                        args = functionData?.arguments
+                          ? JSON.parse(functionData.arguments)
+                          : {};
                       } catch {
                         args = {};
                       }
@@ -510,210 +555,4 @@ function processLangGraphEvent(
       break;
     }
   }
-}
-
-/**
- * Converts a LangChain stream to an AI SDK UIMessageStream.
- *
- * This function automatically detects the stream type and handles both:
- * - Direct model streams (AsyncIterable from `model.stream()`)
- * - LangGraph streams (ReadableStream with `streamMode: ['values', 'messages']`)
- *
- * Detection is based on the first value in the stream:
- * - If it's an array like `['messages', ...]`, it's a LangGraph stream
- * - If it's an AIMessageChunk object, it's a direct model stream
- *
- * @param stream - A stream from LangChain model.stream() or LangGraph graph.stream().
- * @returns A ReadableStream of UIMessageChunk objects.
- *
- * @example
- * ```ts
- * // With a direct model stream
- * const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
- * const stream = await model.stream(messages);
- * return createUIMessageStreamResponse({
- *   stream: toUIMessageStream(stream),
- * });
- *
- * // With a LangGraph stream
- * const graphStream = await graph.stream(
- *   { messages },
- *   { streamMode: ['values', 'messages'] }
- * );
- * return createUIMessageStreamResponse({
- *   stream: toUIMessageStream(graphStream),
- * });
- * ```
- */
-export function toUIMessageStream(
-  stream: AsyncIterable<AIMessageChunk> | ReadableStream,
-): ReadableStream<UIMessageChunk> {
-  // State for model stream handling
-  const modelState = { started: false, messageId: 'langchain-msg-1' };
-
-  // State for LangGraph stream handling
-  const langGraphState = {
-    messageSeen: {} as Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >,
-    messageConcat: {} as Record<string, AIMessageChunk>,
-    emittedToolCalls: new Set<string>(),
-  };
-
-  // Track detected stream type: null = not yet detected
-  let streamType: 'model' | 'langgraph' | null = null;
-
-  // Get async iterator from the stream (works for both AsyncIterable and ReadableStream)
-  const getAsyncIterator = (): AsyncIterator<unknown> => {
-    if (Symbol.asyncIterator in stream) {
-      return (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]();
-    }
-    // For ReadableStream without Symbol.asyncIterator
-    const reader = (stream as ReadableStream).getReader();
-    return {
-      async next() {
-        const { done, value } = await reader.read();
-        return { done, value };
-      },
-    };
-  };
-
-  const iterator = getAsyncIterator();
-
-  return new ReadableStream<UIMessageChunk>({
-    async start(controller) {
-      controller.enqueue({ type: 'start' });
-
-      try {
-        while (true) {
-          const { done, value } = await iterator.next();
-          if (done) break;
-
-          // Detect stream type on first value
-          if (streamType === null) {
-            if (Array.isArray(value)) {
-              streamType = 'langgraph';
-            } else {
-              streamType = 'model';
-            }
-          }
-
-          // Process based on detected type
-          if (streamType === 'model') {
-            processModelChunk(
-              value as AIMessageChunk,
-              modelState,
-              controller,
-            );
-          } else {
-            processLangGraphEvent(
-              value as unknown[],
-              langGraphState,
-              controller,
-            );
-          }
-        }
-
-        // Finalize based on stream type
-        if (streamType === 'model') {
-          if (modelState.started) {
-            controller.enqueue({ type: 'text-end', id: modelState.messageId });
-          }
-          controller.enqueue({ type: 'finish' });
-        }
-      } catch (error) {
-        controller.enqueue({
-          type: 'error',
-          errorText: error instanceof Error ? error.message : 'Unknown error',
-        });
-      } finally {
-        controller.close();
-      }
-    },
-  });
-}
-
-/**
- * Options for configuring a LangSmith deployment transport.
- * Extends RemoteGraphParams but makes graphId optional (defaults to 'agent').
- */
-export type LangSmithDeploymentTransportOptions = Omit<
-  RemoteGraphParams,
-  'graphId'
-> & {
-  /**
-   * The ID of the graph to connect to.
-   * @default 'agent'
-   */
-  graphId?: string;
-};
-
-/**
- * Internal ChatTransport implementation for LangSmith/LangGraph deployments.
- * Use {@link useLangSmithDeployment} to create an instance.
- */
-class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
-  protected graph: RemoteGraph;
-
-  constructor(options: LangSmithDeploymentTransportOptions) {
-    this.graph = new RemoteGraph({
-      ...options,
-      graphId: options.graphId ?? 'agent',
-    });
-  }
-
-  async sendMessages(
-    options: {
-      trigger: 'submit-message' | 'regenerate-message';
-      chatId: string;
-      messageId: string | undefined;
-      messages: UI_MESSAGE[];
-      abortSignal: AbortSignal | undefined;
-    } & ChatRequestOptions,
-  ): Promise<ReadableStream<UIMessageChunk>> {
-    const baseMessages = await toBaseMessages(options.messages);
-
-    const stream = await this.graph.stream(
-      { messages: baseMessages },
-      { streamMode: ['values', 'messages'] },
-    );
-
-    return toUIMessageStream(
-      stream as AsyncIterable<AIMessageChunk> | ReadableStream,
-    );
-  }
-
-  async reconnectToStream(
-    _options: {
-      chatId: string;
-    } & ChatRequestOptions,
-  ): Promise<ReadableStream<UIMessageChunk> | null> {
-    throw new Error('Method not implemented.');
-  }
-}
-
-/**
- * A ChatTransport implementation for LangSmith/LangGraph deployments.
- *
- * This transport enables seamless integration between the AI SDK's useChat hook
- * and LangSmith deployed LangGraph agents.
- *
- * @example
- * ```ts
- * import { useLangSmithDeployment } from '@ai-sdk/langchain';
- *
- * // Use with useChat
- * const { messages, input, handleSubmit } = useChat({
- *   transport: useLangSmithDeployment({
- *     url: 'https://your-deployment.us.langgraph.app',
- *     apiKey: 'my-api-key',
- *   }),
- * });
- * ```
- */
-export function useLangSmithDeployment<UI_MESSAGE extends UIMessage>(options: LangSmithDeploymentTransportOptions) {
-  return new LangSmithDeploymentTransport<UI_MESSAGE>(options);
 }

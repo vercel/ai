@@ -6,9 +6,8 @@ import {
   toUIMessageStream,
   toBaseMessages,
   convertModelMessages,
-  useLangSmithDeployment,
-} from './langchain-adapter';
-import { describe, it, expect, vi } from 'vitest';
+} from './adapter';
+import { describe, it, expect } from 'vitest';
 import type { ModelMessage, UIMessage } from 'ai';
 import {
   AIMessage,
@@ -679,24 +678,3 @@ describe('toBaseMessages', () => {
   });
 });
 
-describe('LangSmithDeploymentTransport', () => {
-  it('should create transport with options', () => {
-    const transport = useLangSmithDeployment({
-      url: 'https://test.langsmith.app',
-      apiKey: 'test-key',
-    });
-
-    expect("sendMessages" in transport).toBe(true);
-    expect("reconnectToStream" in transport).toBe(true);
-  });
-
-  it('should throw error for reconnectToStream', async () => {
-    const transport = useLangSmithDeployment({
-      url: 'https://test.langsmith.app',
-    });
-
-    await expect(
-      transport.reconnectToStream({ chatId: 'chat-1' }),
-    ).rejects.toThrow('Method not implemented.');
-  });
-});
