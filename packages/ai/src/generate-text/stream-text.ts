@@ -1163,7 +1163,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
-// forward provider-executed approval responses to the provider (do not execute locally):
+            // forward provider-executed approval responses to the provider (do not execute locally):
             if (providerExecutedToolApprovals.length > 0) {
               initialResponseMessages.push({
                 role: 'tool',
