@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- c1efac4: feat: add input arg to toModelOutput
+
 ## 4.0.0-beta.50
 
 ### Patch Changes
