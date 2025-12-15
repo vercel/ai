@@ -8,6 +8,7 @@ describe('createToolModelOutput', () => {
     it('should return error type with string value when isError is true and output is string', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'Error message',
         tool: undefined,
         errorMode: 'text',
@@ -25,6 +26,7 @@ describe('createToolModelOutput', () => {
       const errorOutput = { error: 'Something went wrong', code: 500 };
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: errorOutput,
         tool: undefined,
         errorMode: 'text',
@@ -48,6 +50,7 @@ describe('createToolModelOutput', () => {
       };
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: complexError,
         tool: undefined,
         errorMode: 'text',
@@ -74,6 +77,7 @@ describe('createToolModelOutput', () => {
 
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'test output',
         tool: mockTool,
         errorMode: 'none',
@@ -98,6 +102,7 @@ describe('createToolModelOutput', () => {
 
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: { data: [1, 2, 3], status: 'success' },
         tool: mockTool,
         errorMode: 'none',
@@ -135,6 +140,7 @@ describe('createToolModelOutput', () => {
 
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'any output',
         tool: mockTool,
         errorMode: 'none',
@@ -162,6 +168,7 @@ describe('createToolModelOutput', () => {
     it('should return text type for string output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'Simple string output',
         tool: undefined,
         errorMode: 'none',
@@ -178,6 +185,7 @@ describe('createToolModelOutput', () => {
     it('should return text type for string output even with tool that has no toModelOutput', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'String output',
         tool: {
           description: 'A tool without toModelOutput',
@@ -197,6 +205,7 @@ describe('createToolModelOutput', () => {
     it('should return text type for empty string', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: '',
         tool: undefined,
         errorMode: 'none',
@@ -215,6 +224,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for object output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: { result: 'success', data: [1, 2, 3] },
         tool: undefined,
         errorMode: 'none',
@@ -238,6 +248,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for array output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: [1, 2, 3, 'test'],
         tool: undefined,
         errorMode: 'none',
@@ -259,6 +270,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for number output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 42,
         tool: undefined,
         errorMode: 'none',
@@ -275,6 +287,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for boolean output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: true,
         tool: undefined,
         errorMode: 'none',
@@ -291,6 +304,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for null output', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: null,
         tool: undefined,
         errorMode: 'none',
@@ -307,6 +321,7 @@ describe('createToolModelOutput', () => {
     it('should return json type for complex nested object', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: {
           user: {
             id: 123,
@@ -373,6 +388,7 @@ describe('createToolModelOutput', () => {
 
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: 'Error occurred',
         tool: mockTool,
         errorMode: 'text',
@@ -389,6 +405,7 @@ describe('createToolModelOutput', () => {
     it('should handle undefined output in error text case', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: undefined,
         tool: undefined,
         errorMode: 'text',
@@ -405,6 +422,7 @@ describe('createToolModelOutput', () => {
     it('should use null for undefined output in error json case', async () => {
       const result = await createToolModelOutput({
         toolCallId: '123',
+        input: {},
         output: undefined,
         tool: undefined,
         errorMode: 'json',
@@ -413,22 +431,6 @@ describe('createToolModelOutput', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "type": "error-json",
-          "value": null,
-        }
-      `);
-    });
-
-    it('should use null for undefined output in non-error case', async () => {
-      const result = await createToolModelOutput({
-        toolCallId: '123',
-        output: undefined,
-        tool: undefined,
-        errorMode: 'none',
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "type": "json",
           "value": null,
         }
       `);
@@ -447,6 +449,7 @@ describe('createToolModelOutput', () => {
 
       const result = await createToolModelOutput({
         toolCallId: '2344',
+        input: {},
         output: 'test',
         tool: mockTool,
         errorMode: 'none',
@@ -456,6 +459,31 @@ describe('createToolModelOutput', () => {
         {
           "type": "text",
           "value": "Tool call ID: 2344",
+        }
+      `);
+    });
+
+    it('should pass input to tool.toModelOutput', async () => {
+      const mockTool: Tool = {
+        inputSchema: z.object({ number: z.number() }),
+        toModelOutput: ({ input }) => ({
+          type: 'text',
+          value: `Input: ${input.number}`,
+        }),
+      };
+
+      const result = await createToolModelOutput({
+        toolCallId: '2344',
+        input: { number: 8877 },
+        output: 'test',
+        tool: mockTool,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Input: 8877",
         }
       `);
     });

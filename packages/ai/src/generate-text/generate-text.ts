@@ -378,6 +378,7 @@ A function that attempts to repair a tool call that failed to parse.
           for (const output of toolOutputs) {
             const modelOutput = await createToolModelOutput({
               toolCallId: output.toolCallId,
+              input: output.input,
               tool: tools?.[output.toolName],
               output:
                 output.type === 'tool-result' ? output.output : output.error,

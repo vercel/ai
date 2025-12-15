@@ -3,11 +3,13 @@ import { Tool, ToolResultOutput } from '@ai-sdk/provider-utils';
 
 export async function createToolModelOutput({
   toolCallId,
+  input,
   output,
   tool,
   errorMode,
 }: {
   toolCallId: string;
+  input: unknown;
   output: unknown;
   tool: Tool | undefined;
   errorMode: 'none' | 'text' | 'json';
@@ -19,7 +21,7 @@ export async function createToolModelOutput({
   }
 
   if (tool?.toModelOutput) {
-    return await tool.toModelOutput({ toolCallId, output });
+    return await tool.toModelOutput({ toolCallId, input, output });
   }
 
   return typeof output === 'string'
