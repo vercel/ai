@@ -1,26 +1,17 @@
 export {
-  toBaseMessage,
+  toBaseMessages,
   toUIMessageStream,
   convertModelMessages,
-  LangSmithDeploymentTransport,
+  useLangSmithDeployment,
 } from './langchain-adapter';
 
+// Re-export LangChain types for convenience
 export type {
-  LangChainContentBlock,
-  LangChainToolCall,
-  LangChainToolCallChunk,
-  LangChainBaseMessage,
-  LangChainBaseMessageChunk,
-  LangChainAIMessage,
-  LangChainAIMessageChunk,
-  LangChainToolMessage,
-  LangChainHumanMessage,
-  LangChainSystemMessage,
-  ToolMessageFactory,
-  AIMessageFactory,
-  SystemMessageFactory,
-  HumanMessageFactory,
-  MessageFactories,
-  LangSmithDeploymentTransportOptions,
-  RemoteGraphFactory,
-} from './langchain-adapter';
+  BaseMessage,
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+  ToolMessage,
+  AIMessageChunk,
+  BaseMessageChunk,
+} from '@langchain/core/messages';
