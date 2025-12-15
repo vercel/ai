@@ -1,5 +1,40 @@
 # ai
 
+## 6.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/gateway@2.0.0-beta.82
+
+## 6.0.0-beta.154
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/gateway@2.0.0-beta.81
+
+## 6.0.0-beta.153
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/gateway@2.0.0-beta.80
+
+## 6.0.0-beta.152
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/gateway@2.0.0-beta.79
+
 ## 6.0.0-beta.151
 
 ### Patch Changes

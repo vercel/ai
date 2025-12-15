@@ -53,7 +53,7 @@ export async function createAgentUIStream<
     tools: agent.tools,
   });
 
-  const modelMessages = convertToModelMessages(validatedMessages, {
+  const modelMessages = await convertToModelMessages(validatedMessages, {
     tools: agent.tools,
   });
 
