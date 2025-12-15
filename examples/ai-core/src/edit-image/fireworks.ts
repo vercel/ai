@@ -24,7 +24,8 @@ import { fireworks, FireworksImageModelId } from '@ai-sdk/fireworks';
     Documentation: https://fireworks.ai/docs/api-reference/generate-or-edit-image-using-flux-kontext
 */
 
-const MODEL_ID: FireworksImageModelId = 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0';
+const MODEL_ID: FireworksImageModelId =
+  'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0';
 
 /**
  * Edit image using AI SDK
@@ -153,7 +154,7 @@ async function getImageUrl(apiKey: string, modelId: string, requestId: string) {
     return getImageUrl(apiKey, modelId, requestId);
   }
 
-  return result.result.sample
+  return result.result.sample;
 }
 
 // ============================================================================

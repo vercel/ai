@@ -5,9 +5,9 @@ import 'dotenv/config';
 
 const fireworks = createFireworks({
   fetch: (url, options) => {
-    console.dir({url, options})
-    return fetch(url, options)
-  }
+    console.dir({ url, options });
+    return fetch(url, options);
+  },
 });
 
 async function main() {

@@ -440,7 +440,10 @@ async function multipleImagesAi() {
     model: luma.image(MODEL_ID),
     prompt: {
       text: prompt,
-      images: [TIGER_IN_SNOW_IMAGE_URL, GUY_SMILING_WITH_FLOWERS_AND_HAT_IMAGE_URL],
+      images: [
+        TIGER_IN_SNOW_IMAGE_URL,
+        GUY_SMILING_WITH_FLOWERS_AND_HAT_IMAGE_URL,
+      ],
     },
     providerOptions: {
       luma: {

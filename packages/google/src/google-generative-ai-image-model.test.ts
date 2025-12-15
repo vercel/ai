@@ -417,7 +417,7 @@ describe('GoogleGenerativeAIImageModel', () => {
               type: 'file',
               data: 'base64-source-image',
               mediaType: 'image/png',
-        },
+            },
           ],
           mask: {
             type: 'file',
