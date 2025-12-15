@@ -1,11 +1,15 @@
 import { openai } from '@ai-sdk/openai';
-import { readUIMessageStream, stepCountIs, streamText, tool } from 'ai';
+import { readUIMessageStream, stepCountIs, streamText, Tool, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
 run(async () => {
+  const toModelOutputArgs: Array<
+    Parameters<NonNullable<Tool['toModelOutput']>>[0]
+  > = [];
+
   const result = streamText({
-    model: openai('gpt-4.1-mini'),
+    model: openai('gpt-5-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -16,10 +20,13 @@ run(async () => {
           location,
           temperature: 72 + Math.floor(Math.random() * 21) - 10,
         }),
-        toModelOutput: ({ output: { location, temperature } }) => ({
-          type: 'text',
-          value: `The weather in ${location} is ${temperature} degrees Fahrenheit.`,
-        }),
+        toModelOutput: ({ input, output, toolCallId }) => {
+          toModelOutputArgs.push({ input, output, toolCallId });
+          return {
+            type: 'text',
+            value: `The weather in ${input.location} is ${output.temperature} degrees Fahrenheit.`,
+          };
+        },
       }),
     },
     stopWhen: stepCountIs(5),
@@ -32,4 +39,6 @@ run(async () => {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));
   }
+
+  console.log(JSON.stringify(toModelOutputArgs, null, 2));
 });
