@@ -96,11 +96,13 @@
     "brown-bees-dress",
     "brown-drinks-invite",
     "chatty-cameras-complain",
+    "chatty-donuts-wait",
     "chatty-maps-check",
     "chilled-lions-switch",
     "chilled-news-tickle",
     "chilly-bears-study",
     "chilly-carrots-act",
+    "chilly-mails-give",
     "chilly-spoons-exercise",
     "clean-elephants-tickle",
     "clever-glasses-learn",
@@ -126,6 +128,7 @@
     "cyan-mirrors-clap",
     "cyan-rocks-obey",
     "cyan-seahorses-admire",
+    "dry-grapes-sleep",
     "dull-ladybugs-clap",
     "early-fans-type",
     "early-fishes-explain",
@@ -310,6 +313,7 @@
     "quiet-pens-suffer",
     "real-coats-kick",
     "real-kiwis-fly",
+    "red-melons-taste",
     "red-roses-glow",
     "red-wasps-know",
     "rich-boats-yawn",
@@ -450,6 +454,7 @@
     "witty-items-rest",
     "witty-years-learn",
     "young-beans-melt",
-    "young-laws-compare"
+    "young-laws-compare",
+    "young-scissors-cough"
   ]
 }
