@@ -1527,6 +1527,107 @@ const model = openai.image('dall-e-3');
   parameter instead.
 </Note>
 
+### Image Editing
+
+OpenAI's `gpt-image-1` model supports powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const imageBuffer = fs.readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Turn the cat into a dog but retain the style of the original image',
+    images: [imageBuffer],
+  },
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./mask.png'); // Transparent areas = edit regions
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+});
+```
+
+#### Background Removal
+
+Remove the background from an image by setting `background` to `transparent`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const imageBuffer = fs.readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'do not change anything',
+    images: [imageBuffer],
+  },
+  providerOptions: {
+    openai: {
+      background: 'transparent',
+      output_format: 'png',
+    },
+  },
+});
+```
+
+#### Multi-Image Combining
+
+Combine multiple reference images into a single output. `gpt-image-1` supports up to 16 input images:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+
+const cat = fs.readFileSync('./cat.png');
+const dog = fs.readFileSync('./dog.png');
+const owl = fs.readFileSync('./owl.png');
+const bear = fs.readFileSync('./bear.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Combine these animals into a group photo, retaining the original style',
+    images: [cat, dog, owl, bear],
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. For `gpt-image-1`, each image should be a `png`,
+  `webp`, or `jpg` file less than 50MB.
+</Note>
+
 ### Model Capabilities
 
 | Model              | Sizes                           |
