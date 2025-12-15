@@ -2,12 +2,12 @@ import { openaiFetchPdfCustomToolAgent } from '@/agent/openai-fetch-pdf-custom-t
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
-  const { messages } = await request.json();
+  const body = await request.json();
 
-  console.dir(messages, { depth: Infinity });
+  console.dir(body.messages, { depth: Infinity });
 
   return createAgentUIStreamResponse({
     agent: openaiFetchPdfCustomToolAgent,
-    messages,
+    uiMessages: body.messages,
   });
 }
