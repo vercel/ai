@@ -208,8 +208,8 @@ export class LumaImageModel implements ImageModelV3 {
   private getEditingOptions(
     files: ImageModelV3File[] | undefined,
     mask: ImageModelV3File | undefined,
-    referenceType: LumaReferenceType = 'image_ref',
-    imageConfigs: Array<{ weight?: number | null }> = [],
+    referenceType: LumaReferenceType = 'image',
+    imageConfigs: Array<{ weight?: number | null; id?: string | null }> = [],
   ): Record<string, unknown> {
     const options: Record<string, unknown> = {};
 
@@ -239,66 +239,76 @@ export class LumaImageModel implements ImageModelV3 {
 
     // Default weights per reference type
     const defaultWeights: Record<LumaReferenceType, number> = {
-      image_ref: 0.85,
-      style_ref: 0.8,
-      character_ref: 1.0, // Not used, but defined for completeness
-      modify_image_ref: 1.0,
+      image: 0.85,
+      style: 0.8,
+      character: 1.0, // Not used, but defined for completeness
+      modify_image: 1.0,
     };
 
     switch (referenceType) {
-      case 'image_ref': {
+      case 'image': {
         // Supports up to 4 images
         if (files.length > 4) {
           throw new Error(
-            'Luma AI image_ref supports up to 4 reference images. ' +
+            'Luma AI image supports up to 4 reference images. ' +
               `You provided ${files.length} images.`,
           );
         }
-        options.image_ref = files.map((file, index) => ({
+        options.image = files.map((file, index) => ({
           url: (file as { type: 'url'; url: string }).url,
-          weight: imageConfigs[index]?.weight ?? defaultWeights.image_ref,
+          weight: imageConfigs[index]?.weight ?? defaultWeights.image,
         }));
         break;
       }
 
-      case 'style_ref': {
+      case 'style': {
         // Style ref accepts an array but typically uses one style image
-        options.style_ref = files.map((file, index) => ({
+        options.style = files.map((file, index) => ({
           url: (file as { type: 'url'; url: string }).url,
-          weight: imageConfigs[index]?.weight ?? defaultWeights.style_ref,
+          weight: imageConfigs[index]?.weight ?? defaultWeights.style,
         }));
         break;
       }
 
-      case 'character_ref': {
-        // Supports up to 4 images for a single identity
-        if (files.length > 4) {
-          throw new Error(
-            'Luma AI character_ref supports up to 4 identity images. ' +
-              `You provided ${files.length} images.`,
-          );
+      case 'character': {
+        // Group images by identity id
+        const identities: Record<string, string[]> = {};
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i] as { type: 'url'; url: string };
+          const identityId = imageConfigs[i]?.id ?? 'identity0';
+          if (!identities[identityId]) {
+            identities[identityId] = [];
+          }
+          identities[identityId].push(file.url);
         }
-        options.character_ref = {
-          identity0: {
-            images: files.map(
-              file => (file as { type: 'url'; url: string }).url,
-            ),
-          },
-        };
+
+        // Validate each identity has at most 4 images
+        for (const [identityId, images] of Object.entries(identities)) {
+          if (images.length > 4) {
+            throw new Error(
+              `Luma AI character supports up to 4 images per identity. ` +
+                `Identity '${identityId}' has ${images.length} images.`,
+            );
+          }
+        }
+
+        options.character = Object.fromEntries(
+          Object.entries(identities).map(([id, images]) => [id, { images }]),
+        );
         break;
       }
 
-      case 'modify_image_ref': {
+      case 'modify_image': {
         // Only supports a single image
         if (files.length > 1) {
           throw new Error(
-            'Luma AI modify_image_ref only supports a single input image. ' +
+            'Luma AI modify_image only supports a single input image. ' +
               `You provided ${files.length} images.`,
           );
         }
-        options.modify_image_ref = {
+        options.modify_image = {
           url: (files[0] as { type: 'url'; url: string }).url,
-          weight: imageConfigs[0]?.weight ?? defaultWeights.modify_image_ref,
+          weight: imageConfigs[0]?.weight ?? defaultWeights.modify_image,
         };
         break;
       }
@@ -376,13 +386,13 @@ export const lumaImageProviderOptionsSchema = lazySchema(() =>
       .object({
         /**
          * The type of image reference to use when providing input images.
-         * - `image_ref`: Guide generation using reference images (up to 4). Default.
-         * - `style_ref`: Apply a specific style from reference image(s).
-         * - `character_ref`: Create consistent characters from reference images (up to 4).
-         * - `modify_image_ref`: Transform a single input image with prompt guidance.
+         * - `image`: Guide generation using reference images (up to 4). Default.
+         * - `style`: Apply a specific style from reference image(s).
+         * - `character`: Create consistent characters from reference images (up to 4).
+         * - `modify_image`: Transform a single input image with prompt guidance.
          */
         referenceType: z
-          .enum(['image_ref', 'style_ref', 'character_ref', 'modify_image_ref'])
+          .enum(['image', 'style', 'character', 'modify_image'])
           .nullish(),
 
         /**
@@ -394,11 +404,20 @@ export const lumaImageProviderOptionsSchema = lazySchema(() =>
             z.object({
               /**
                * The weight of this image's influence on the generation.
-               * - For `image_ref`: Higher weight = closer to reference (default: 0.85)
-               * - For `style_ref`: Higher weight = stronger style influence (default: 0.8)
-               * - For `modify_image_ref`: Higher weight = closer to input, lower = more creative (default: 1.0)
+               * - For `image`: Higher weight = closer to reference (default: 0.85)
+               * - For `style`: Higher weight = stronger style influence (default: 0.8)
+               * - For `modify_image`: Higher weight = closer to input, lower = more creative (default: 1.0)
                */
               weight: z.number().min(0).max(1).nullish(),
+
+              /**
+               * The identity name for character references.
+               * Used with `character` to specify which identity group the image belongs to.
+               * Luma supports multiple identities (e.g., 'identity0', 'identity1') for generating
+               * images with multiple consistent characters.
+               * Default: 'identity0'
+               */
+              id: z.string().nullish(),
             }),
           )
           .nullish(),

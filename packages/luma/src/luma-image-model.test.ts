@@ -318,7 +318,7 @@ describe('LumaImageModel', () => {
   });
 
   describe('Image Editing', () => {
-    it('should send image_ref by default when URL file is provided', async () => {
+    it('should send image by default when URL file is provided', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -340,7 +340,7 @@ describe('LumaImageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchInlineSnapshot(`
         {
-          "image_ref": [
+          "image": [
             {
               "url": "https://example.com/input.jpg",
               "weight": 0.85,
@@ -352,7 +352,7 @@ describe('LumaImageModel', () => {
       `);
     });
 
-    it('should send modify_image_ref when referenceType is set', async () => {
+    it('should send modify_image when referenceType is set', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -370,7 +370,7 @@ describe('LumaImageModel', () => {
         seed: undefined,
         providerOptions: {
           luma: {
-            referenceType: 'modify_image_ref',
+            referenceType: 'modify_image',
           },
         },
       });
@@ -379,7 +379,7 @@ describe('LumaImageModel', () => {
       expect(requestBody).toMatchInlineSnapshot(`
         {
           "model": "test-model",
-          "modify_image_ref": {
+          "modify_image": {
             "url": "https://example.com/input.jpg",
             "weight": 1,
           },
@@ -388,7 +388,7 @@ describe('LumaImageModel', () => {
       `);
     });
 
-    it('should send style_ref when referenceType is style_ref', async () => {
+    it('should send style when referenceType is style', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -406,7 +406,7 @@ describe('LumaImageModel', () => {
         seed: undefined,
         providerOptions: {
           luma: {
-            referenceType: 'style_ref',
+            referenceType: 'style',
           },
         },
       });
@@ -416,7 +416,7 @@ describe('LumaImageModel', () => {
         {
           "model": "test-model",
           "prompt": "A dog in this style",
-          "style_ref": [
+          "style": [
             {
               "url": "https://example.com/style.jpg",
               "weight": 0.8,
@@ -426,7 +426,7 @@ describe('LumaImageModel', () => {
       `);
     });
 
-    it('should send character_ref when referenceType is character_ref', async () => {
+    it('should send character when referenceType is character', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -448,7 +448,7 @@ describe('LumaImageModel', () => {
         seed: undefined,
         providerOptions: {
           luma: {
-            referenceType: 'character_ref',
+            referenceType: 'character',
           },
         },
       });
@@ -456,7 +456,7 @@ describe('LumaImageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchInlineSnapshot(`
         {
-          "character_ref": {
+          "character": {
             "identity0": {
               "images": [
                 "https://example.com/person1.jpg",
@@ -470,7 +470,96 @@ describe('LumaImageModel', () => {
       `);
     });
 
-    it('should support multiple images for image_ref', async () => {
+    it('should send character with custom identity id from images config', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'A woman with a cat',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/person.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            referenceType: 'character',
+            images: [{ id: 'identity0' }],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "character": {
+            "identity0": {
+              "images": [
+                "https://example.com/person.jpg",
+              ],
+            },
+          },
+          "model": "test-model",
+          "prompt": "A woman with a cat",
+        }
+      `);
+    });
+
+    it('should send character with multiple identities from images config', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt: 'Two people talking',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/person1.jpg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/person2.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            referenceType: 'character',
+            images: [{ id: 'identity0' }, { id: 'identity1' }],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "character": {
+            "identity0": {
+              "images": [
+                "https://example.com/person1.jpg",
+              ],
+            },
+            "identity1": {
+              "images": [
+                "https://example.com/person2.jpg",
+              ],
+            },
+          },
+          "model": "test-model",
+          "prompt": "Two people talking",
+        }
+      `);
+    });
+
+    it('should support multiple images for image', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -496,7 +585,7 @@ describe('LumaImageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchInlineSnapshot(`
         {
-          "image_ref": [
+          "image": [
             {
               "url": "https://example.com/input1.jpg",
               "weight": 0.85,
@@ -538,7 +627,7 @@ describe('LumaImageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchInlineSnapshot(`
         {
-          "image_ref": [
+          "image": [
             {
               "url": "https://example.com/input.jpg",
               "weight": 0.5,
@@ -624,7 +713,7 @@ describe('LumaImageModel', () => {
       ).rejects.toThrow('Luma AI does not support mask-based image editing');
     });
 
-    it('should throw error when more than 4 images for image_ref', async () => {
+    it('should throw error when more than 4 images for image', async () => {
       const model = createBasicModel();
 
       await expect(
@@ -644,10 +733,10 @@ describe('LumaImageModel', () => {
           seed: undefined,
           providerOptions: {},
         }),
-      ).rejects.toThrow('Luma AI image_ref supports up to 4 reference images');
+      ).rejects.toThrow('Luma AI image supports up to 4 reference images');
     });
 
-    it('should throw error when multiple files for modify_image_ref', async () => {
+    it('should throw error when multiple files for modify_image', async () => {
       const model = createBasicModel();
 
       await expect(
@@ -670,12 +759,12 @@ describe('LumaImageModel', () => {
           seed: undefined,
           providerOptions: {
             luma: {
-              referenceType: 'modify_image_ref',
+              referenceType: 'modify_image',
             },
           },
         }),
       ).rejects.toThrow(
-        'Luma AI modify_image_ref only supports a single input image',
+        'Luma AI modify_image only supports a single input image',
       );
     });
   });

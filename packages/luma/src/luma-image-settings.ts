@@ -4,16 +4,16 @@ export type LumaImageModelId = 'photon-1' | 'photon-flash-1' | (string & {});
 /**
 The type of image reference to use when providing input images.
 
-- `image_ref`: Guide generation using reference images (up to 4). Default.
-- `style_ref`: Apply a specific style from reference image(s).
-- `character_ref`: Create consistent characters from reference images (up to 4).
-- `modify_image_ref`: Transform a single input image with prompt guidance.
+- `image`: Guide generation using reference images (up to 4). Default.
+- `style`: Apply a specific style from reference image(s).
+- `character`: Create consistent characters from reference images (up to 4).
+- `modify_image`: Transform a single input image with prompt guidance.
  */
 export type LumaReferenceType =
-  | 'image_ref'
-  | 'style_ref'
-  | 'character_ref'
-  | 'modify_image_ref';
+  | 'image'
+  | 'style'
+  | 'character'
+  | 'modify_image';
 
 /**
 Per-image configuration for Luma image references.
@@ -21,12 +21,21 @@ Per-image configuration for Luma image references.
 export interface LumaImageConfig {
   /**
   The weight of this image's influence on the generation.
-  - For `image_ref`: Higher weight = closer to reference (default: 0.85)
-  - For `style_ref`: Higher weight = stronger style influence (default: 0.8)
-  - For `modify_image_ref`: Higher weight = closer to input, lower = more creative (default: 1.0)
-  Note: Not applicable to `character_ref`.
+  - For `image`: Higher weight = closer to reference (default: 0.85)
+  - For `style`: Higher weight = stronger style influence (default: 0.8)
+  - For `modify_image`: Higher weight = closer to input, lower = more creative (default: 1.0)
+  Note: Not applicable to `character`.
    */
   weight?: number;
+
+  /**
+  The identity name for character references.
+  Used with `character` to specify which identity group the image belongs to.
+  Luma supports multiple identities (e.g., 'identity0', 'identity1') for generating
+  images with multiple consistent characters.
+  Default: 'identity0'
+   */
+  id?: string;
 }
 
 /**
@@ -53,12 +62,12 @@ for results before timing out.
 
   /**
 The type of image reference to use when providing input images via `prompt.images`.
-Default is `image_ref`.
+Default is `image`.
 
-- `image_ref`: Guide generation using reference images (up to 4)
-- `style_ref`: Apply a specific style from reference image(s)
-- `character_ref`: Create consistent characters from reference images (up to 4)
-- `modify_image_ref`: Transform a single input image with prompt guidance
+- `image`: Guide generation using reference images (up to 4)
+- `style`: Apply a specific style from reference image(s)
+- `character`: Create consistent characters from reference images (up to 4)
+- `modify_image`: Transform a single input image with prompt guidance
    */
   referenceType?: LumaReferenceType;
 
@@ -70,7 +79,7 @@ Example:
 ```ts
 providerOptions: {
   luma: {
-    referenceType: 'image_ref',
+    referenceType: 'image',
     images: [
       { weight: 0.9 },
       { weight: 0.5 },

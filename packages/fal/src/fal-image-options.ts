@@ -5,13 +5,10 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        imageUrl: z
-          .string()
-          .nullish()
-          .meta({
-            deprecated: true,
-            description: 'Use `prompt.images` instead',
-          }),
+        imageUrl: z.string().nullish().meta({
+          deprecated: true,
+          description: 'Use `prompt.images` instead',
+        }),
         maskUrl: z
           .string()
           .nullish()
