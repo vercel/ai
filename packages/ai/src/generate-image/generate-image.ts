@@ -29,7 +29,7 @@ import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 
-type Prompt =
+export type GenerateImagePrompt =
   | string
   | {
       images: Array<DataContent>;
@@ -75,7 +75,7 @@ The image model to use.
   /**
 The prompt that should be used to generate the image.
    */
-  prompt: Prompt;
+  prompt: GenerateImagePrompt;
 
   /**
 Number of images to generate.
@@ -303,7 +303,7 @@ async function invokeModelMaxImagesPerCall(model: ImageModelV3) {
 }
 
 function normalizePrompt(
-  prompt: Prompt,
+  prompt: GenerateImagePrompt,
 ): Pick<ImageModelV3CallOptions, 'prompt' | 'files' | 'mask'> {
   if (typeof prompt === 'string') {
     return { prompt, files: undefined, mask: undefined };
