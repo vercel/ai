@@ -57,6 +57,7 @@ export async function convertToOpenAIResponsesInput({
 }> {
   const input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV3Warning> = [];
+  const processedApprovalIds = new Set<string>();
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -344,6 +345,18 @@ export async function convertToOpenAIResponsesInput({
           if (part.type === 'tool-approval-response') {
             const approvalResponse =
               part as LanguageModelV3ToolApprovalResponsePart;
+
+            if (processedApprovalIds.has(approvalResponse.approvalId)) {
+              continue;
+            }
+            processedApprovalIds.add(approvalResponse.approvalId);
+
+            if (store) {
+              input.push({
+                type: 'item_reference',
+                id: approvalResponse.approvalId,
+              });
+            }
 
             input.push({
               type: 'mcp_approval_response',

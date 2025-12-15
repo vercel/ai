@@ -743,24 +743,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             input: part.arguments,
             providerExecuted: true,
             dynamic: true,
-            providerMetadata: {
-              [providerKey]: {
-                itemId: part.id,
-                approvalRequestId,
-              },
-            } satisfies SharedV3ProviderMetadata,
           });
 
           content.push({
             type: 'tool-approval-request',
             approvalId: approvalRequestId,
             toolCallId: dummyToolCallId,
-            providerMetadata: {
-              [providerKey]: {
-                itemId: part.id,
-                approvalRequestId,
-              },
-            } satisfies SharedV3ProviderMetadata,
           } satisfies LanguageModelV3ToolApprovalRequest);
           break;
         }
@@ -1404,24 +1392,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   input: value.item.arguments,
                   providerExecuted: true,
                   dynamic: true,
-                  providerMetadata: {
-                    [providerKey]: {
-                      itemId: value.item.id,
-                      approvalRequestId,
-                    },
-                  },
                 });
 
                 controller.enqueue({
                   type: 'tool-approval-request',
                   approvalId: approvalRequestId,
                   toolCallId: dummyToolCallId,
-                  providerMetadata: {
-                    [providerKey]: {
-                      itemId: value.item.id,
-                      approvalRequestId,
-                    },
-                  },
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
