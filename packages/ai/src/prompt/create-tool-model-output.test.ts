@@ -435,6 +435,23 @@ describe('createToolModelOutput', () => {
         }
       `);
     });
+
+    it('should use null for undefined output in non-error case', async () => {
+      const result = await createToolModelOutput({
+        toolCallId: '123',
+        input: {},
+        output: undefined,
+        tool: undefined,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "json",
+          "value": null,
+        }
+      `);
+    });
   });
 
   describe('arguments', () => {
