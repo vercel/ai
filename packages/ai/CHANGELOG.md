@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.151
+
+### Patch Changes
+
+- dcdac8c: chore(ai): rename tool helpers
+
 ## 6.0.0-beta.150
 
 ### Patch Changes
