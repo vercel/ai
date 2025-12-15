@@ -1151,6 +1151,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 toolName: output.toolName,
                 output: await createToolModelOutput({
                   toolCallId: output.toolCallId,
+                  input: output.input,
                   tool: tools?.[output.toolName],
                   output:
                     output.type === 'tool-result'
