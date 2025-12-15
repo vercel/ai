@@ -17,7 +17,7 @@ export function createToolModelOutput({
   }
 
   if (tool?.toModelOutput) {
-    return tool.toModelOutput(output);
+    return tool.toModelOutput({ output });
   }
 
   return typeof output === 'string'
