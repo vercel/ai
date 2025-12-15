@@ -5,7 +5,7 @@ import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 import 'dotenv/config';
 
-run(async () =>{
+run(async () => {
   const image = readFileSync('data/sunlit_lounge.png');
   const mask = readFileSync('data/sunlit_lounge_mask_white_black.png');
 

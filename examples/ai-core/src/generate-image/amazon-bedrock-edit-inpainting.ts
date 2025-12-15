@@ -5,7 +5,7 @@ import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 import 'dotenv/config';
 
-run(async () =>{
+run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');
 
   console.log('INPUT IMAGE:');

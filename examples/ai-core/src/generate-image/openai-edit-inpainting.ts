@@ -18,7 +18,8 @@ run(async () => {
     },
   ]);
 
-  const prompt = 'A sunlit indoor lounge area with a pool containing a flamingo';
+  const prompt =
+    'A sunlit indoor lounge area with a pool containing a flamingo';
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({

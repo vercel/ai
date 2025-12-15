@@ -8,8 +8,7 @@ import { run } from '../lib/run';
 import 'dotenv/config';
 
 run(async () => {
-  const prompt =
-    'Add a saddle and reins to the cat in the image';
+  const prompt = 'Add a saddle and reins to the cat in the image';
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
@@ -26,7 +25,7 @@ run(async () => {
         height: 768,
       } satisfies BlackForestLabsImageProviderOptions,
     },
-  })
+  });
 
   console.log('OUTPUT IMAGE:');
   await presentImages(images);
