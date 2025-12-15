@@ -763,7 +763,10 @@ Google Vertex Imagen models support image editing through inpainting, outpaintin
 Insert or replace objects in specific areas using a mask:
 
 ```ts
-import { vertex, GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
@@ -795,7 +798,10 @@ const { images } = await generateImage({
 Extend an image beyond its original boundaries:
 
 ```ts
-import { vertex, GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
@@ -826,6 +832,7 @@ const { images } = await generateImage({
 The following options are available under `providerOptions.vertex.edit`:
 
 - **mode** - The edit mode to use:
+
   - `EDIT_MODE_INPAINT_INSERTION` - Insert objects into masked areas
   - `EDIT_MODE_INPAINT_REMOVAL` - Remove objects from masked areas
   - `EDIT_MODE_OUTPAINT` - Extend image beyond boundaries
@@ -836,6 +843,7 @@ The following options are available under `providerOptions.vertex.edit`:
 - **baseSteps** _number_ - Number of sampling steps (35-75). Higher values = better quality but slower.
 
 - **maskMode** - How to interpret the mask:
+
   - `MASK_MODE_USER_PROVIDED` - Use the provided mask directly
   - `MASK_MODE_DEFAULT` - Default mask mode
   - `MASK_MODE_DETECTION_BOX` - Mask from detected bounding boxes
