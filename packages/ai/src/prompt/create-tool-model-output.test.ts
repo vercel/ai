@@ -176,15 +176,13 @@ describe('createToolModelOutput', () => {
     });
 
     it('should return text type for string output even with tool that has no toModelOutput', async () => {
-      const toolWithoutToModelOutput: Tool = {
-        description: 'A tool without toModelOutput',
-        inputSchema: z.object({}),
-      };
-
       const result = await createToolModelOutput({
         toolCallId: '123',
         output: 'String output',
-        tool: toolWithoutToModelOutput,
+        tool: {
+          description: 'A tool without toModelOutput',
+          inputSchema: z.object({}),
+        },
         errorMode: 'none',
       });
 
@@ -215,10 +213,9 @@ describe('createToolModelOutput', () => {
 
   describe('non-string output without toModelOutput', () => {
     it('should return json type for object output', async () => {
-      const objectOutput = { result: 'success', data: [1, 2, 3] };
       const result = await createToolModelOutput({
         toolCallId: '123',
-        output: objectOutput,
+        output: { result: 'success', data: [1, 2, 3] },
         tool: undefined,
         errorMode: 'none',
       });
@@ -239,10 +236,9 @@ describe('createToolModelOutput', () => {
     });
 
     it('should return json type for array output', async () => {
-      const arrayOutput = [1, 2, 3, 'test'];
       const result = await createToolModelOutput({
         toolCallId: '123',
-        output: arrayOutput,
+        output: [1, 2, 3, 'test'],
         tool: undefined,
         errorMode: 'none',
       });
@@ -309,28 +305,26 @@ describe('createToolModelOutput', () => {
     });
 
     it('should return json type for complex nested object', async () => {
-      const complexOutput = {
-        user: {
-          id: 123,
-          name: 'John Doe',
-          preferences: {
-            theme: 'dark',
-            notifications: true,
-          },
-        },
-        metadata: {
-          timestamp: '2023-01-01T00:00:00Z',
-          version: '1.0.0',
-        },
-        items: [
-          { id: 1, name: 'Item 1' },
-          { id: 2, name: 'Item 2' },
-        ],
-      };
-
       const result = await createToolModelOutput({
         toolCallId: '123',
-        output: complexOutput,
+        output: {
+          user: {
+            id: 123,
+            name: 'John Doe',
+            preferences: {
+              theme: 'dark',
+              notifications: true,
+            },
+          },
+          metadata: {
+            timestamp: '2023-01-01T00:00:00Z',
+            version: '1.0.0',
+          },
+          items: [
+            { id: 1, name: 'Item 1' },
+            { id: 2, name: 'Item 2' },
+          ],
+        },
         tool: undefined,
         errorMode: 'none',
       });
@@ -436,6 +430,32 @@ describe('createToolModelOutput', () => {
         {
           "type": "json",
           "value": null,
+        }
+      `);
+    });
+  });
+
+  describe('arguments', () => {
+    it('should pass toolCallId to tool.toModelOutput', async () => {
+      const mockTool: Tool = {
+        inputSchema: z.object({}),
+        toModelOutput: ({ toolCallId }) => ({
+          type: 'text',
+          value: `Tool call ID: ${toolCallId}`,
+        }),
+      };
+
+      const result = await createToolModelOutput({
+        toolCallId: '2344',
+        output: 'test',
+        tool: mockTool,
+        errorMode: 'none',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "type": "text",
+          "value": "Tool call ID: 2344",
         }
       `);
     });
