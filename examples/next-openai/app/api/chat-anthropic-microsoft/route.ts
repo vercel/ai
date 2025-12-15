@@ -1,14 +1,14 @@
 import { createAgentUIStreamResponse } from 'ai';
 import { createAnthropicMicrosoftAgent } from '@/agent/anthropic-microsoft-agent';
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
+const agent = createAnthropicMicrosoftAgent();
 
-  const agent = createAnthropicMicrosoftAgent();
+export async function POST(req: Request) {
+  const body = await req.json();
 
   return createAgentUIStreamResponse({
     agent,
-    messages,
+    uiMessages: body.messages,
     sendSources: true,
   });
 }
