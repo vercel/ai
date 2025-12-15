@@ -1,4 +1,4 @@
-import { ServerResponse } from 'node:http';
+import { ServerResponse, OutgoingHttpHeaders } from 'node:http';
 
 /**
  * Writes the content of a stream to a server response.
@@ -16,14 +16,7 @@ export function writeToServerResponse({
   headers?: Record<string, string | number | string[]>;
   stream: ReadableStream<Uint8Array>;
 }): void {
-  const code = status ?? 200;
-  if (statusText) {
-    response.writeHead(code, statusText, headers);
-  } else if (headers !== undefined) {
-    response.writeHead(code, headers);
-  } else {
-    response.writeHead(code);
-  }
+  response.writeHead(status ?? 200, ...[statusText, headers].filter(arg => arg !== undefined) as [string?, OutgoingHttpHeaders?]);
 
   const reader = stream.getReader();
   const read = async () => {
