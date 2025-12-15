@@ -184,17 +184,17 @@ functionality that can be fully encapsulated in the provider.
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
-Optional conversion function that maps the tool result to an output that can be used by the language model.
-
-If not provided, the tool result will be sent as a JSON object.
-  */
-    toModelOutput?: (
+     * Optional conversion function that maps the tool result to an output that can be used by the language model.
+     *
+     * If not provided, the tool result will be sent as a JSON object.
+     */
+    toModelOutput?: (options: {
       output: 0 extends 1 & OUTPUT
         ? any
         : [OUTPUT] extends [never]
           ? any
-          : NoInfer<OUTPUT>,
-    ) => ToolResultOutput;
+          : NoInfer<OUTPUT>;
+    }) => ToolResultOutput;
   } & (
     | {
         /**
@@ -262,7 +262,13 @@ export function dynamicTool(tool: {
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => ToolResultOutput;
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   */
+  toModelOutput?: (options: { output: unknown }) => ToolResultOutput;
 
   /**
    * Whether the tool needs approval before it can be executed.

@@ -74,7 +74,7 @@ import { z } from 'zod';
 const screenshotTool = tool({
   inputSchema: z.object({}),
   execute: async () => 'imgbase64',
-  toModelOutput: result => [{ type: 'image', data: result }],
+  toModelOutput: ({ output }) => [{ type: 'image', data: output }],
 });
 
 const result = streamText({

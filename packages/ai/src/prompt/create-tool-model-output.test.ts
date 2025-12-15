@@ -1,4 +1,4 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { tool, Tool } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from './create-tool-model-output';
 import z from 'zod/v4';
 import { describe, it, expect } from 'vitest';
@@ -55,13 +55,13 @@ describe('createToolModelOutput', () => {
 
   describe('tool with toModelOutput', () => {
     it('should use tool.toModelOutput when available', () => {
-      const mockTool: Tool = {
-        toModelOutput: (output: any) => ({
+      const mockTool = tool({
+        inputSchema: z.object({}),
+        toModelOutput: ({ output }) => ({
           type: 'text',
           value: `Custom output: ${output}`,
         }),
-        inputSchema: z.object({}),
-      };
+      });
 
       const result = createToolModelOutput({
         output: 'test output',
@@ -76,13 +76,13 @@ describe('createToolModelOutput', () => {
     });
 
     it('should use tool.toModelOutput with complex output', () => {
-      const mockTool: Tool = {
-        toModelOutput: (output: any) => ({
+      const mockTool = tool({
+        inputSchema: z.object({}),
+        toModelOutput: ({ output }) => ({
           type: 'json',
           value: { processed: output, timestamp: '2023-01-01' },
         }),
-        inputSchema: z.object({}),
-      };
+      });
 
       const complexOutput = { data: [1, 2, 3], status: 'success' };
       const result = createToolModelOutput({

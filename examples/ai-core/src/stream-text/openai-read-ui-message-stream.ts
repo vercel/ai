@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { readUIMessageStream, stepCountIs, streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-4.1-mini'),
     tools: {
@@ -16,7 +16,7 @@ async function main() {
           location,
           temperature: 72 + Math.floor(Math.random() * 21) - 10,
         }),
-        toModelOutput: ({ location, temperature }) => ({
+        toModelOutput: ({ output: { location, temperature } }) => ({
           type: 'text',
           value: `The weather in ${location} is ${temperature} degrees Fahrenheit.`,
         }),
@@ -32,6 +32,4 @@ async function main() {
     console.clear();
     console.log(JSON.stringify(uiMessage, null, 2));
   }
-}
-
-main().catch(console.error);
+});
