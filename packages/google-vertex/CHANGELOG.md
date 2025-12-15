@@ -1,5 +1,51 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.114
+
+### Patch Changes
+
+- 47a88a1: Remove duplicate gemini-1.0-pro-001 model ID
+
+## 4.0.0-beta.113
+
+### Patch Changes
+
+- Updated dependencies [6c38080]
+  - @ai-sdk/anthropic@3.0.0-beta.83
+
+## 4.0.0-beta.112
+
+### Patch Changes
+
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+- Updated dependencies [ee8cd23]
+  - @ai-sdk/google@3.0.0-beta.72
+
+## 4.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [49e2b6a]
+  - @ai-sdk/google@3.0.0-beta.71
+
+## 4.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/anthropic@3.0.0-beta.82
+  - @ai-sdk/google@3.0.0-beta.70
+
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/anthropic@3.0.0-beta.81
+  - @ai-sdk/google@3.0.0-beta.69
+
 ## 4.0.0-beta.108
 
 ### Patch Changes
