@@ -40,6 +40,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
+import { validateAndApplyToolInputOverrides } from './validate-and-apply-tool-input-overrides';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
@@ -360,10 +361,13 @@ A function that attempts to repair a tool call that failed to parse.
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
+          const { validToolCalls, invalidToolErrors } =
+            validateAndApplyToolInputOverrides({
+              approvals: approvedToolApprovals,
+            });
+
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
-              toolApproval => toolApproval.toolCall,
-            ),
+            toolCalls: validToolCalls,
             tools: tools as TOOLS,
             tracer,
             telemetry,
@@ -372,11 +376,13 @@ A function that attempts to repair a tool call that failed to parse.
             experimental_context,
           });
 
+          const allToolOutputs = [...toolOutputs, ...invalidToolErrors];
+
           responseMessages.push({
             role: 'tool',
             content: [
               // add regular tool results for approved tool calls:
-              ...toolOutputs.map(output => ({
+              ...allToolOutputs.map(output => ({
                 type: 'tool-result' as const,
                 toolCallId: output.toolCallId,
                 toolName: output.toolName,
@@ -615,6 +621,7 @@ A function that attempts to repair a tool call that failed to parse.
                 type: 'tool-approval-request',
                 approvalId: generateId(),
                 toolCall,
+                allowsInputEditing: tool.allowsInputEditing,
               };
             }
           }

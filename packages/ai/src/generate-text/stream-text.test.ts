@@ -15603,6 +15603,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "id-1",
                 "toolCall": {
                   "input": {
@@ -15688,6 +15689,7 @@ describe('streamText', () => {
                 "type": "tool-input-available",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "id-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -15718,6 +15720,7 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "allowsInputEditing": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -15752,6 +15755,7 @@ describe('streamText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",
@@ -15838,6 +15842,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "id-1",
                 "toolCall": {
                   "input": {
@@ -15944,6 +15949,7 @@ describe('streamText', () => {
                 "type": "tool-input-available",
               },
               {
+                "allowsInputEditing": undefined,
                 "approvalId": "id-1",
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
@@ -15995,6 +16001,7 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "allowsInputEditing": undefined,
               "approvalId": "id-1",
               "toolCall": {
                 "input": {
@@ -16050,6 +16057,7 @@ describe('streamText', () => {
                   "type": "tool-call",
                 },
                 {
+                  "allowsInputEditing": undefined,
                   "approvalId": "id-1",
                   "toolCallId": "call-1",
                   "type": "tool-approval-request",

@@ -253,6 +253,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved?: never;
         reason?: never;
+        allowsInputEditing?: boolean;
       };
     }
   | {
@@ -265,6 +266,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -278,6 +280,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -291,6 +294,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
   | {
@@ -303,6 +307,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        override?: { input: asUITool<TOOL>['input'] };
       };
     }
 );
@@ -357,6 +362,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved?: never;
         reason?: never;
+        allowsInputEditing?: boolean;
       };
     }
   | {
@@ -369,6 +375,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        override?: { input: unknown };
       };
     }
   | {
@@ -382,6 +389,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        override?: { input: unknown };
       };
     }
   | {
@@ -394,6 +402,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        override?: { input: unknown };
       };
     }
   | {
@@ -406,6 +415,7 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        override?: { input: unknown };
       };
     }
 );

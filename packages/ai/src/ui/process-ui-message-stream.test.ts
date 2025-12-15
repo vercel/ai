@@ -6652,6 +6652,7 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "approval": {
+                    "allowsInputEditing": undefined,
                     "id": "id-1",
                   },
                   "errorText": undefined,
@@ -6683,6 +6684,7 @@ describe('processUIMessageStream', () => {
           },
           {
             "approval": {
+              "allowsInputEditing": undefined,
               "id": "id-1",
             },
             "errorText": undefined,
@@ -6789,6 +6791,7 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "approval": {
+                    "allowsInputEditing": undefined,
                     "id": "id-1",
                   },
                   "errorText": undefined,
@@ -6820,6 +6823,7 @@ describe('processUIMessageStream', () => {
           },
           {
             "approval": {
+              "allowsInputEditing": undefined,
               "id": "id-1",
             },
             "errorText": undefined,

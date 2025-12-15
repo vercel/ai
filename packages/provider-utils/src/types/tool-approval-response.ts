@@ -18,4 +18,14 @@ export type ToolApprovalResponse = {
    * Optional reason for the approval or denial.
    */
   reason?: string;
+
+  /**
+   * Optional override for the tool input.
+   */
+  override?: {
+    /**
+     * The modified input to use instead of the original.
+     */
+    input: unknown;
+  };
 };
