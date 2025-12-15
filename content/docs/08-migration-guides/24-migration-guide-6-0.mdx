@@ -77,7 +77,7 @@ const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
 ```tsx filename="AI SDK 6"
 import { convertToModelMessages, type ModelMessage } from 'ai';
 
-const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+const modelMessages = await convertToModelMessages(messages); // ModelMessage[]
 ```
 
 ### `generateObject` and `streamObject` Deprecation

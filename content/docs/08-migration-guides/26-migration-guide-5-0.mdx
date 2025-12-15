@@ -178,7 +178,7 @@ import { convertToModelMessages, streamText } from 'ai';
 
 const result = await streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
 });
 ```
 
@@ -667,7 +667,7 @@ const result = streamText({
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
   // toolCallStreaming removed - streaming is always enabled
   tools: {
     weatherTool,
@@ -1279,7 +1279,7 @@ __PROVIDER_IMPORT__;
 
 const result = await streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
   stopWhen: stepCountIs(5), // Stop after 5 steps with tool calls
 });
 
@@ -1804,7 +1804,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -2967,7 +2967,7 @@ const messages: UIMessage[] = [
 
 const result = streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
   // experimental_generateMessageId removed from here
 });
 
@@ -3007,7 +3007,7 @@ const result = streamText({
 ```tsx filename="AI SDK 5.0"
 const result = streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
 });
 
 return result.toUIMessageStreamResponse({
@@ -3044,7 +3044,7 @@ const stream = createUIMessageStream({
     // Stream the AI response
     const result = streamText({
       model: __MODEL__,
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
     });
 
     writer.merge(result.toUIMessageStream());

@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       const result = streamText({
         model: 'openai/gpt-4o',
-        messages: convertToModelMessages(messages),
+        messages: await convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
             description: 'show the weather in a given city to the user',
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       const result = streamText({
         model: 'openai/gpt-4o',
-        messages: convertToModelMessages(messages),
+        messages: await convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
             description: 'show the weather in a given city to the user',
@@ -365,7 +365,7 @@ export async function POST(req: Request) {
 
       const result = streamText({
         model: 'openai/gpt-4o',
-        messages: convertToModelMessages(messages),
+        messages: await convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
             description: 'show the weather in a given city to the user',
@@ -538,7 +538,7 @@ export async function processToolCalls<
         const toolInstance = executeFunctions[toolName] as Tool['execute'];
         if (toolInstance) {
           result = await toolInstance(part.input, {
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
           });
         } else {
