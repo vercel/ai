@@ -132,9 +132,7 @@ export async function convertToXaiResponsesInput({
       case 'tool': {
         for (const part of message.content) {
           if (part.type === 'tool-approval-response') {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'tool approval responses',
-            });
+            continue;
           }
 
           const output = part.output;

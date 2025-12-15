@@ -146,9 +146,7 @@ export function convertToGoogleGenerativeAIMessages(
 
         for (const part of content) {
           if (part.type === 'tool-approval-response') {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'tool approval responses',
-            });
+            continue;
           }
 
           const output = part.output;

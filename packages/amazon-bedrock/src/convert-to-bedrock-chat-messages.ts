@@ -147,9 +147,7 @@ export async function convertToBedrockChatMessages(
             case 'tool': {
               for (const part of content) {
                 if (part.type === 'tool-approval-response') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'tool approval responses',
-                  });
+                  continue;
                 }
 
                 let toolResultContent;

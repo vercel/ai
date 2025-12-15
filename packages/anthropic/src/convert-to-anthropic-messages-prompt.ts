@@ -261,9 +261,7 @@ export async function convertToAnthropicMessagesPrompt({
                 const part = content[i];
 
                 if (part.type === 'tool-approval-response') {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'tool approval responses',
-                  });
+                  continue;
                 }
 
                 // cache control: first add cache control from part.

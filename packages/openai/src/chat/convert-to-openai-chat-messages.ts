@@ -185,9 +185,7 @@ export function convertToOpenAIChatMessages({
       case 'tool': {
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'tool approval responses',
-            });
+            continue;
           }
 
           const output = toolResponse.output;
