@@ -84,6 +84,7 @@ describe('tool type', () => {
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
             toolCallId: string;
+            input: { number: number };
             output: any;
           }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
@@ -103,6 +104,7 @@ describe('tool type', () => {
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
             toolCallId: string;
+            input: { number: number };
             output: 'test';
           }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
@@ -122,6 +124,7 @@ describe('tool type', () => {
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
             toolCallId: string;
+            input: { number: number };
             output: 'test';
           }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
