@@ -44,8 +44,14 @@ Creates a model for image generation.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
   /**

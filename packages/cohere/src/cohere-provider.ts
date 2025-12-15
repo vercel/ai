@@ -29,8 +29,14 @@ Creates a model for text generation.
 */
   languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
   /**

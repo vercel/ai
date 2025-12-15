@@ -47,8 +47,14 @@ Creates an Azure OpenAI completion model for text generation.
    */
   completion(deploymentId: string): LanguageModelV3;
 
+  /**
+   * Creates an Azure OpenAI model for text embeddings.
+   */
   embedding(deploymentId: string): EmbeddingModelV3;
 
+  /**
+   * Creates an Azure OpenAI model for text embeddings.
+   */
   embeddingModel(deploymentId: string): EmbeddingModelV3;
 
   /**

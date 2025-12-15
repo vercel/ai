@@ -29,8 +29,14 @@ Creates a model for text generation.
 */
   chat(modelId: MistralChatModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV3;
 
   /**

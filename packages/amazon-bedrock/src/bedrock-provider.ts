@@ -112,8 +112,14 @@ export interface AmazonBedrockProvider extends ProviderV3 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
 
   /**
