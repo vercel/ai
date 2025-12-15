@@ -383,7 +383,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -1093,7 +1093,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",

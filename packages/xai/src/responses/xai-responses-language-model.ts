@@ -117,7 +117,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
-      max_tokens: maxOutputTokens,
+      max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       seed,
