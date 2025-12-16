@@ -4,4 +4,3 @@
 ---
 
 Add Google Maps grounding tool support for location-aware Gemini responses
-

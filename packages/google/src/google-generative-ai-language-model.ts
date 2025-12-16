@@ -189,7 +189,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
         toolConfig: googleOptions?.retrievalConfig
-          ? { ...googleToolConfig, retrievalConfig: googleOptions.retrievalConfig }
+          ? {
+              ...googleToolConfig,
+              retrievalConfig: googleOptions.retrievalConfig,
+            }
           : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,

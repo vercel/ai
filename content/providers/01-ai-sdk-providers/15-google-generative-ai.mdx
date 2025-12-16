@@ -683,7 +683,8 @@ const { text, sources, providerMetadata } = await generateText({
       },
     },
   },
-  prompt: 'What are the best Italian restaurants within a 15-minute walk from here?',
+  prompt:
+    'What are the best Italian restaurants within a 15-minute walk from here?',
 });
 
 const metadata = providerMetadata?.google as
@@ -712,9 +713,7 @@ When Google Maps grounding is enabled, the model's response will include sources
 }
 ```
 
-<Note>
-  Google Maps grounding is supported on Gemini 2.0 and newer models.
-</Note>
+<Note>Google Maps grounding is supported on Gemini 2.0 and newer models.</Note>
 
 ### RAG Engine Grounding
 
