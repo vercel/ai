@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.87
+
+### Patch Changes
+
+- 72d76cc: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+
 ## 2.0.86
 
 ### Patch Changes
