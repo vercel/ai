@@ -16,4 +16,5 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
 export const hasDefaultResponseFormat = new Set([
   'gpt-image-1',
   'gpt-image-1-mini',
+  'gpt-image-1.5',
 ]);
