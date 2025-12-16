@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/openai@3.0.0-beta.103
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
 ## 3.0.0-beta.104
 
 ### Patch Changes
