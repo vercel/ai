@@ -128,12 +128,16 @@ export function processModelChunk(
   state: { started: boolean; messageId: string },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
-  // Get the message ID from the chunk if available
+  /**
+   * Get the message ID from the chunk if available
+   */
   if (chunk.id) {
     state.messageId = chunk.id;
   }
 
-  // Extract text content from AIMessageChunk
+  /**
+   * Extract text content from AIMessageChunk
+   */
   const text =
     typeof chunk.content === 'string'
       ? chunk.content
@@ -172,7 +176,9 @@ export function processModelChunk(
  */
 export function isPlainMessageObject(msg: unknown): boolean {
   if (msg == null || typeof msg !== 'object') return false;
-  // LangChain class instances have _getType method
+  /**
+   * LangChain class instances have _getType method
+   */
   return typeof (msg as { _getType?: unknown })._getType !== 'function';
 }
 
@@ -187,9 +193,13 @@ export function isPlainMessageObject(msg: unknown): boolean {
 export function isAIMessageChunk(
   msg: unknown,
 ): msg is AIMessageChunk & { type?: string; content?: string } {
-  // Actual AIMessageChunk class instance
+  /**
+   * Actual AIMessageChunk class instance
+   */
   if (AIMessageChunk.isInstance(msg)) return true;
-  // Plain object from RemoteGraph API (not a LangChain class instance)
+  /**
+   * Plain object from RemoteGraph API (not a LangChain class instance)
+   */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
     return 'type' in obj && obj.type === 'ai';
@@ -207,7 +217,9 @@ export function isToolMessageType(
   msg: unknown,
 ): msg is ToolMessage & { type?: string; tool_call_id?: string } {
   if (ToolMessage.isInstance(msg)) return true;
-  // Plain object from RemoteGraph API (not a LangChain class instance)
+  /**
+   * Plain object from RemoteGraph API (not a LangChain class instance)
+   */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
     return 'type' in obj && obj.type === 'tool';
@@ -225,7 +237,9 @@ export function getMessageText(msg: unknown): string {
   if (AIMessageChunk.isInstance(msg)) {
     return msg.text ?? '';
   }
-  // Handle plain objects - check content property
+  /**
+   * Handle plain objects - check content property
+   */
   if (msg != null && typeof msg === 'object' && 'content' in msg) {
     const content = (msg as { content: unknown }).content;
     return typeof content === 'string' ? content : '';
@@ -320,7 +334,9 @@ export function processLangGraphEvent(
 
       if (!msg?.id) return;
 
-      // Accumulate message chunks for later reference
+      /**
+       * Accumulate message chunks for later reference
+       */
       if (messageConcat[msg.id]) {
         const existing = messageConcat[msg.id];
         if (AIMessageChunk.isInstance(msg)) {
@@ -333,18 +349,24 @@ export function processLangGraphEvent(
       if (isAIMessageChunk(msg)) {
         const concatChunk = messageConcat[msg.id];
 
-        // Handle image generation outputs from additional_kwargs.tool_outputs
+        /**
+         * Handle image generation outputs from additional_kwargs.tool_outputs
+         */
         const additionalKwargs = (
           msg as { additional_kwargs?: Record<string, unknown> }
         ).additional_kwargs;
         const imageOutputs = extractImageOutputs(additionalKwargs);
 
         for (const imageOutput of imageOutputs) {
-          // Only emit if we have image data and haven't emitted this image yet
+          /**
+           * Only emit if we have image data and haven't emitted this image yet
+           */
           if (imageOutput.result && !emittedImages.has(imageOutput.id)) {
             emittedImages.add(imageOutput.id);
 
-            // Emit as a file part using proper AI SDK multimodal format
+            /**
+             * Emit as a file part using proper AI SDK multimodal format
+             */
             const mediaType = `image/${imageOutput.output_format || 'png'}`;
             controller.enqueue({
               type: 'file',
@@ -354,17 +376,23 @@ export function processLangGraphEvent(
           }
         }
 
-        // Handle tool call chunks for streaming tool calls
+        /**
+         * Handle tool call chunks for streaming tool calls
+         */
         const toolCallChunks = (msg as { tool_call_chunks?: ToolCallChunk[] })
           .tool_call_chunks;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
             const idx = toolCallChunk.index ?? 0;
-            // Get the tool call ID from the chunk or accumulated chunks
+            /**
+             * Get the tool call ID from the chunk or accumulated chunks
+             */
             const toolCallId =
               toolCallChunk.id || concatChunk?.tool_call_chunks?.[idx]?.id;
 
-            // Skip if we don't have a proper tool call ID - we'll handle it in values
+            /**
+             * Skip if we don't have a proper tool call ID - we'll handle it in values
+             */
             if (!toolCallId) {
               continue;
             }
@@ -399,7 +427,9 @@ export function processLangGraphEvent(
           return;
         }
 
-        // Handle text content
+        /**
+         * Handle text content
+         */
         const text = getMessageText(msg);
         if (text) {
           if (!messageSeen[msg.id]?.text) {
@@ -429,7 +459,9 @@ export function processLangGraphEvent(
     }
 
     case 'values': {
-      // Finalize all pending message chunks
+      /**
+       * Finalize all pending message chunks
+       */
       for (const [id, seen] of Object.entries(messageSeen)) {
         if (seen.text) controller.enqueue({ type: 'text-end', id });
         if (seen.tool) {
@@ -457,8 +489,10 @@ export function processLangGraphEvent(
         delete messageConcat[id];
       }
 
-      // Also check for tool calls in the final state that weren't streamed
-      // This handles cases where tool calls appear directly in values without being in messages events
+      /**
+       * Also check for tool calls in the final state that weren't streamed
+       * This handles cases where tool calls appear directly in values without being in messages events
+       */
       if (data != null && typeof data === 'object' && 'messages' in data) {
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
@@ -468,12 +502,16 @@ export function processLangGraphEvent(
             const msgId = (msg as { id: string }).id;
             if (!msgId) continue;
 
-            // Check if this is an AI message with tool calls
+            /**
+             * Check if this is an AI message with tool calls
+             */
             let toolCalls:
               | Array<{ id: string; name: string; args: unknown }>
               | undefined;
 
-            // For class instances
+            /**
+             * For class instances
+             */
             if (AIMessageChunk.isInstance(msg) || AIMessage.isInstance(msg)) {
               toolCalls = (
                 msg as {
@@ -485,11 +523,15 @@ export function processLangGraphEvent(
                 }
               ).tool_calls;
             }
-            // For plain objects from RemoteGraph API
+            /**
+             * For plain objects from RemoteGraph API
+             */
             else if (isPlainMessageObject(msg)) {
               const obj = msg as Record<string, unknown>;
               if (obj.type === 'ai') {
-                // Try tool_calls first (normalized format)
+                /**
+                 * Try tool_calls first (normalized format)
+                 */
                 if (Array.isArray(obj.tool_calls)) {
                   toolCalls = obj.tool_calls as {
                     id: string;
@@ -497,7 +539,9 @@ export function processLangGraphEvent(
                     args: unknown;
                   }[];
                 }
-                // Fall back to additional_kwargs.tool_calls (OpenAI format)
+                /**
+                 * Fall back to additional_kwargs.tool_calls (OpenAI format)
+                 */
                 else if (
                   obj.additional_kwargs &&
                   typeof obj.additional_kwargs === 'object'
@@ -507,7 +551,9 @@ export function processLangGraphEvent(
                     unknown
                   >;
                   if (Array.isArray(additionalKwargs.tool_calls)) {
-                    // Convert OpenAI format to normalized format
+                    /**
+                     * Convert OpenAI format to normalized format
+                     */
                     toolCalls = (
                       additionalKwargs.tool_calls as Array<{
                         id?: string;
@@ -536,7 +582,9 @@ export function processLangGraphEvent(
 
             if (toolCalls && toolCalls.length > 0) {
               for (const toolCall of toolCalls) {
-                // Only emit if we haven't already processed this tool call
+                /**
+                 * Only emit if we haven't already processed this tool call
+                 */
                 if (!emittedToolCalls.has(toolCall.id)) {
                   emittedToolCalls.add(toolCall.id);
                   controller.enqueue({

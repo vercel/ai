@@ -119,10 +119,14 @@ export function convertModelMessages(
 export function toUIMessageStream(
   stream: AsyncIterable<AIMessageChunk> | ReadableStream,
 ): ReadableStream<UIMessageChunk> {
-  // State for model stream handling
+  /**
+   * State for model stream handling
+   */
   const modelState = { started: false, messageId: 'langchain-msg-1' };
 
-  // State for LangGraph stream handling
+  /**
+   * State for LangGraph stream handling
+   */
   const langGraphState = {
     messageSeen: {} as Record<
       string,
@@ -133,15 +137,21 @@ export function toUIMessageStream(
     emittedImages: new Set<string>(),
   };
 
-  // Track detected stream type: null = not yet detected
+  /**
+   * Track detected stream type: null = not yet detected
+   */
   let streamType: 'model' | 'langgraph' | null = null;
 
-  // Get async iterator from the stream (works for both AsyncIterable and ReadableStream)
+  /**
+   * Get async iterator from the stream (works for both AsyncIterable and ReadableStream)
+   */
   const getAsyncIterator = (): AsyncIterator<unknown> => {
     if (Symbol.asyncIterator in stream) {
       return (stream as AsyncIterable<unknown>)[Symbol.asyncIterator]();
     }
-    // For ReadableStream without Symbol.asyncIterator
+    /**
+     * For ReadableStream without Symbol.asyncIterator
+     */
     const reader = (stream as ReadableStream).getReader();
     return {
       async next() {
@@ -162,7 +172,9 @@ export function toUIMessageStream(
           const { done, value } = await iterator.next();
           if (done) break;
 
-          // Detect stream type on first value
+          /**
+           * Detect stream type on first value
+           */
           if (streamType === null) {
             if (Array.isArray(value)) {
               streamType = 'langgraph';
@@ -171,7 +183,9 @@ export function toUIMessageStream(
             }
           }
 
-          // Process based on detected type
+          /**
+           * Process based on detected type
+           */
           if (streamType === 'model') {
             processModelChunk(value as AIMessageChunk, modelState, controller);
           } else {
@@ -183,7 +197,9 @@ export function toUIMessageStream(
           }
         }
 
-        // Finalize based on stream type
+        /**
+         * Finalize based on stream type
+         */
         if (streamType === 'model') {
           if (modelState.started) {
             controller.enqueue({ type: 'text-end', id: modelState.messageId });
