@@ -232,7 +232,7 @@ const result = await generateText({
         { type: 'text', text: 'Describe the pdf in detail.' },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
         },
       ],
@@ -301,7 +301,7 @@ const result = await generateObject({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./document.pdf'),
+          data: readFileSync('./document.pdf'),
           mediaType: 'application/pdf',
           providerOptions: {
             bedrock: {
@@ -916,11 +916,7 @@ Amazon Nova Canvas supports several image editing task types. When you provide i
 Create variations of an existing image while maintaining its core characteristics:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
@@ -949,11 +945,7 @@ Edit specific parts of an image. You can define the area to modify using either 
 **Using a mask prompt (text-based selection):**
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
@@ -973,12 +965,8 @@ const { images } = await generateImage({
 **Using a mask image:**
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const image = fs.readFileSync('./input-image.png');
-const mask = fs.readFileSync('./mask.png'); // White pixels = area to change
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // White pixels = area to change
 
 const { images } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
@@ -999,11 +987,7 @@ const { images } = await generateImage({
 Extend an image beyond its original boundaries:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
@@ -1030,11 +1014,7 @@ const { images } = await generateImage({
 Remove the background from an image:
 
 ```ts
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
