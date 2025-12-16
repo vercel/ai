@@ -32,6 +32,11 @@ Creates a model for transcription.
 Creates a model for speech generation.
    */
   speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface ElevenLabsProviderSettings {

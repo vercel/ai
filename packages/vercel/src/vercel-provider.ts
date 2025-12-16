@@ -43,6 +43,11 @@ Creates a model for text generation.
 Creates a language model for text generation.
 */
   languageModel(modelId: VercelChatModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createVercel(

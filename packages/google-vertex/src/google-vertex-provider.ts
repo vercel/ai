@@ -52,6 +52,13 @@ Creates a model for image generation.
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   tools: typeof googleVertexTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(
+    modelId: GoogleVertexEmbeddingModelId,
+  ): GoogleVertexEmbeddingModel;
 }
 
 export interface GoogleVertexProviderSettings {

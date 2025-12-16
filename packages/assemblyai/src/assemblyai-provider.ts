@@ -24,6 +24,11 @@ export interface AssemblyAIProvider extends ProviderV3 {
 Creates a model for transcription.
    */
   transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface AssemblyAIProviderSettings {

@@ -49,6 +49,11 @@ Creates a Hugging Face responses model for text generation.
 Creates a Hugging Face responses model for text generation.
 */
   responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 /**

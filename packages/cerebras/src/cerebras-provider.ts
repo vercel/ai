@@ -65,6 +65,11 @@ Creates a Cerebras model for text generation.
 Creates a Cerebras chat model for text generation.
 */
   chat(modelId: CerebrasChatModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createCerebras(

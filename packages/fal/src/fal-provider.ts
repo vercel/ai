@@ -63,6 +63,11 @@ Creates a model for transcription.
 Creates a model for speech generation.
    */
   speech(modelId: FalSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://fal.run';

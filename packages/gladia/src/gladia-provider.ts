@@ -20,6 +20,11 @@ export interface GladiaProvider extends ProviderV3 {
 Creates a model for transcription.
    */
   transcription(): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GladiaProviderSettings {

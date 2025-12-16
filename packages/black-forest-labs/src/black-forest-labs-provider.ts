@@ -52,6 +52,11 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.bfl.ai/v1';

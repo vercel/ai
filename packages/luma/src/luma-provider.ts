@@ -40,6 +40,11 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: LumaImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';

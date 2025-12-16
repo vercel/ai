@@ -37,6 +37,11 @@ Creates a model for transcription.
    * Tools provided by Groq.
    */
   tools: typeof groqTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GroqProviderSettings {

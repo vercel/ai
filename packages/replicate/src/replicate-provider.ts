@@ -40,6 +40,11 @@ export interface ReplicateProvider extends ProviderV3 {
    * Creates a Replicate image generation model.
    */
   imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 /**

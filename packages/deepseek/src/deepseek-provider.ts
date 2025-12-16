@@ -51,6 +51,11 @@ Creates a DeepSeek model for text generation.
 Creates a DeepSeek chat model for text generation.
 */
   chat(modelId: DeepSeekChatModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export function createDeepSeek(
