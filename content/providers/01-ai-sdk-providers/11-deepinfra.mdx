@@ -174,11 +174,7 @@ DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pas
 Transform an existing image using text prompts:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: deepinfra.image('Qwen/Qwen-Image-Edit'),
@@ -195,12 +191,8 @@ const { images } = await generateImage({
 Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const image = fs.readFileSync('./input-image.png');
-const mask = fs.readFileSync('./mask.png');
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png');
 
 const { images } = await generateImage({
   model: deepinfra.image('Qwen/Qwen-Image-Edit'),
@@ -217,12 +209,8 @@ const { images } = await generateImage({
 Combine multiple reference images into a single output:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const cat = fs.readFileSync('./cat.png');
-const dog = fs.readFileSync('./dog.png');
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
 
 const { images } = await generateImage({
   model: deepinfra.image('Qwen/Qwen-Image-Edit'),
