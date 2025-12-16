@@ -3,7 +3,6 @@ import {
   LanguageModelV3Message,
   LanguageModelV3Prompt,
   LanguageModelV3TextPart,
-  LanguageModelV3ToolApprovalResponsePart,
   LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
@@ -232,7 +231,7 @@ export function convertToLanguageModelMessage({
                 approvalId: part.approvalId,
                 approved: part.approved,
                 reason: part.reason,
-              } satisfies LanguageModelV3ToolApprovalResponsePart;
+              };
             }
           }
         }),
