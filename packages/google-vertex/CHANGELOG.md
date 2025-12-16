@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- Updated dependencies [32a6c13]
+  - @ai-sdk/google@3.0.0-beta.77
+
 ## 4.0.0-beta.118
 
 ### Patch Changes
