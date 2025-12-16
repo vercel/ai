@@ -14,6 +14,8 @@ import {
   type UserContent,
 } from 'ai';
 
+import { type LangGraphEventState } from './types';
+
 /**
  * Converts a ToolResultPart to a LangChain ToolMessage
  * @param block - The ToolResultPart to convert.
@@ -338,7 +340,28 @@ export function getMessageText(msg: unknown): string {
 
   if ('content' in dataSource) {
     const content = dataSource.content;
-    return typeof content === 'string' ? content : '';
+    /**
+     * Handle string content
+     */
+    if (typeof content === 'string') {
+      return content;
+    }
+    /**
+     * Handle array of content blocks (e.g., [{ type: 'text', text: 'The', index: 0 }])
+     */
+    if (Array.isArray(content)) {
+      return content
+        .filter(
+          (block): block is { type: 'text'; text: string } =>
+            block != null &&
+            typeof block === 'object' &&
+            block.type === 'text' &&
+            typeof block.text === 'string',
+        )
+        .map(block => block.text)
+        .join('');
+    }
+    return '';
   }
   return '';
 }
@@ -669,25 +692,7 @@ export function extractImageOutputs(
  */
 export function processLangGraphEvent(
   event: unknown[],
-  state: {
-    messageSeen: Record<
-      string,
-      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
-    >;
-    messageConcat: Record<string, AIMessageChunk>;
-    emittedToolCalls: Set<string>;
-    emittedImages: Set<string>;
-    emittedReasoningIds: Set<string>;
-    /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
-    messageReasoningIds: Record<string, string>;
-    /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
-    toolCallInfoByIndex: Record<
-      string,
-      Record<number, { id: string; name: string }>
-    >;
-    /** Tracks the current LangGraph step for start-step/finish-step events */
-    currentStep: number | null;
-  },
+  state: LangGraphEventState,
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
   const {
@@ -698,6 +703,7 @@ export function processLangGraphEvent(
     emittedReasoningIds,
     messageReasoningIds,
     toolCallInfoByIndex,
+    emittedToolCallsByKey,
   } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
 
@@ -845,12 +851,14 @@ export function processLangGraphEvent(
             /**
              * Emit tool-input-start when we first see this tool call
              * (even if args is empty - the first chunk often has empty args)
+             * Set dynamic: true to enable HITL approval requests
              */
             if (!messageSeen[msgId]?.tool?.[toolCallId]) {
               controller.enqueue({
                 type: 'tool-input-start',
                 toolCallId: toolCallId,
                 toolName: toolName,
+                dynamic: true,
               });
 
               messageSeen[msgId] ??= {};
@@ -987,11 +995,15 @@ export function processLangGraphEvent(
 
             if (toolCallSeen && toolCall) {
               emittedToolCalls.add(toolCallId);
+              // Store mapping for HITL interrupt lookup
+              const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+              emittedToolCallsByKey.set(toolCallKey, toolCallId);
               controller.enqueue({
                 type: 'tool-input-available',
                 toolCallId,
                 toolName: toolCall.name,
                 input: toolCall.args,
+                dynamic: true,
               });
             }
           }
@@ -1041,28 +1053,41 @@ export function processLangGraphEvent(
                 }
               ).tool_calls;
             } else if (isPlainMessageObject(msg)) {
-            /**
-             * For plain objects from RemoteGraph API
-             */
+              /**
+               * For plain objects from RemoteGraph API or serialized LangChain messages
+               */
               const obj = msg as Record<string, unknown>;
-              if (obj.type === 'ai') {
+
+              /**
+               * Determine the data source (handle both direct and serialized formats)
+               */
+              const isSerializedFormat =
+                obj.type === 'constructor' &&
+                Array.isArray(obj.id) &&
+                ((obj.id as string[]).includes('AIMessageChunk') ||
+                  (obj.id as string[]).includes('AIMessage'));
+              const dataSource = isSerializedFormat
+                ? (obj.kwargs as Record<string, unknown>)
+                : obj;
+
+              if (obj.type === 'ai' || isSerializedFormat) {
                 /**
                  * Try tool_calls first (normalized format)
                  */
-                if (Array.isArray(obj.tool_calls)) {
-                  toolCalls = obj.tool_calls as {
+                if (Array.isArray(dataSource?.tool_calls)) {
+                  toolCalls = dataSource.tool_calls as {
                     id: string;
                     name: string;
                     args: unknown;
                   }[];
                 } else if (
-                /**
-                 * Fall back to additional_kwargs.tool_calls (OpenAI format)
-                 */
-                  obj.additional_kwargs &&
-                  typeof obj.additional_kwargs === 'object'
+                  /**
+                   * Fall back to additional_kwargs.tool_calls (OpenAI format)
+                   */
+                  dataSource?.additional_kwargs &&
+                  typeof dataSource.additional_kwargs === 'object'
                 ) {
-                  const additionalKwargs = obj.additional_kwargs as Record<
+                  const additionalKwargs = dataSource.additional_kwargs as Record<
                     string,
                     unknown
                   >;
@@ -1103,11 +1128,15 @@ export function processLangGraphEvent(
                  */
                 if (!emittedToolCalls.has(toolCall.id)) {
                   emittedToolCalls.add(toolCall.id);
+                  // Store mapping for HITL interrupt lookup
+                  const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
+                  emittedToolCallsByKey.set(toolCallKey, toolCall.id);
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
                     toolName: toolCall.name,
                     input: toolCall.args,
+                    dynamic: true,
                   });
                 }
               }
@@ -1115,14 +1144,35 @@ export function processLangGraphEvent(
 
             /**
              * Check for reasoning content that wasn't streamed
-             * GPT-5 populates the reasoning summary only in the final values event
-             * Use reasoning block ID for deduplication as it's consistent across streaming and values
-             * If we've already streamed this reasoning, skip entirely to avoid duplication
+             * Use reasoning block ID for deduplication as it's consistent across streaming and values.
+             *
+             * IMPORTANT: Handle two cases differently:
+             * 1. Message has reasoning WITHOUT tool_calls → emit reasoning (pure reasoning case)
+             * 2. Message has reasoning WITH tool_calls → only emit if streamed this request
+             *    (When resuming from HITL interrupt, historical messages have both reasoning
+             *    AND tool_calls. We skip those to avoid duplicate reasoning entries.)
              */
             const reasoningId = extractReasoningId(msg);
-            if (reasoningId && !emittedReasoningIds.has(reasoningId)) {
-              // Use extractReasoningFromValuesMessage which extracts from response_metadata.output
-              // This is the full accumulated reasoning, not deltas
+            const wasStreamedThisRequest = !!messageSeen[msgId];
+            const hasToolCalls = toolCalls && toolCalls.length > 0;
+
+            /**
+             * Determine if we should emit reasoning:
+             * - If we already emitted this reasoning ID, skip
+             * - If the message was streamed this request, emit (normal flow)
+             * - If NOT streamed but has NO tool_calls, emit (pure reasoning in values case)
+             * - If NOT streamed but HAS tool_calls, skip (historical HITL message)
+             */
+            const shouldEmitReasoning =
+              reasoningId &&
+              !emittedReasoningIds.has(reasoningId) &&
+              (wasStreamedThisRequest || !hasToolCalls);
+
+            if (shouldEmitReasoning) {
+              /**
+               * Use extractReasoningFromValuesMessage which extracts from response_metadata.output
+               * This is the full accumulated reasoning, not deltas
+               */
               const reasoning = extractReasoningFromValuesMessage(msg);
 
               if (reasoning) {
@@ -1135,6 +1185,74 @@ export function processLangGraphEvent(
                 controller.enqueue({ type: 'reasoning-end', id: msgId });
                 emittedReasoningIds.add(reasoningId);
               }
+            }
+          }
+        }
+      }
+
+      /**
+       * Handle Human-in-the-Loop interrupts
+       * When HITL middleware pauses execution, the interrupt data is in __interrupt__
+       * Note: This is outside the 'messages' check because interrupt can come as a separate event
+       */
+      if (data != null && typeof data === 'object') {
+        const interrupt = (data as Record<string, unknown>).__interrupt__;
+        if (Array.isArray(interrupt) && interrupt.length > 0) {
+          for (const interruptItem of interrupt) {
+            const interruptValue = (interruptItem as { value?: unknown })
+              ?.value as Record<string, unknown> | undefined;
+
+            if (!interruptValue) continue;
+
+            // Support both camelCase (JS SDK) and snake_case (Python SDK)
+            const actionRequests = (interruptValue.actionRequests ||
+              interruptValue.action_requests) as
+              | Array<{
+                  name: string;
+                  args?: Record<string, unknown>; // JS SDK uses 'args'
+                  arguments?: Record<string, unknown>; // Python SDK uses 'arguments'
+                  id?: string;
+                }>
+              | undefined;
+
+            if (!Array.isArray(actionRequests)) continue;
+
+            for (const actionRequest of actionRequests) {
+              const toolName = actionRequest.name;
+              // Support both 'args' (JS SDK) and 'arguments' (Python SDK)
+              const input = actionRequest.args || actionRequest.arguments;
+
+              // Look up the original tool call ID using the name+args key
+              // Fall back to action request ID or generate one if not found
+              const toolCallKey = `${toolName}:${JSON.stringify(input)}`;
+              const toolCallId =
+                emittedToolCallsByKey.get(toolCallKey) ||
+                actionRequest.id ||
+                `hitl-${toolName}-${Date.now()}`;
+
+              /**
+               * First emit tool-input-available so the UI knows what tool is being called
+               */
+              if (!emittedToolCalls.has(toolCallId)) {
+                emittedToolCalls.add(toolCallId);
+                emittedToolCallsByKey.set(toolCallKey, toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId,
+                  toolName,
+                  input,
+                  dynamic: true,
+                });
+              }
+
+              /**
+               * Then emit tool-approval-request to mark it as awaiting approval
+               */
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: toolCallId,
+                toolCallId,
+              });
             }
           }
         }

@@ -605,8 +605,13 @@ describe('getMessageText', () => {
     expect(getMessageText(plainObj)).toBe('Plain text');
   });
 
-  it('should return empty string for non-string content', () => {
+  it('should extract text from content array with text blocks', () => {
     const plainObj = { content: [{ type: 'text', text: 'Array' }] };
+    expect(getMessageText(plainObj)).toBe('Array');
+  });
+
+  it('should return empty string for non-text content blocks', () => {
+    const plainObj = { content: [{ type: 'image', url: 'http://example.com' }] };
     expect(getMessageText(plainObj)).toBe('');
   });
 
@@ -690,6 +695,7 @@ describe('processLangGraphEvent', () => {
     messageReasoningIds: {} as Record<string, string>,
     toolCallInfoByIndex: {} as Record<string, Record<number, { id: string; name: string }>>,
     currentStep: null as number | null,
+    emittedToolCallsByKey: new Map<string, string>(),
   });
 
   it('should handle custom events', () => {
@@ -838,6 +844,7 @@ describe('processLangGraphEvent', () => {
       toolCallId: 'call-1',
       toolName: 'get_weather',
       input: { city: 'NYC' },
+      dynamic: true,
     });
   });
 
@@ -987,6 +994,7 @@ describe('processLangGraphEvent', () => {
       toolCallId: 'call-1',
       toolName: 'get_weather',
       input: { city: 'NYC' },
+      dynamic: true,
     });
   });
 
@@ -1068,6 +1076,7 @@ describe('processLangGraphEvent', () => {
       type: 'tool-input-start',
       toolCallId: 'call-1',
       toolName: 'get_weather',
+      dynamic: true,
     });
     expect(chunks).toContainEqual({
       type: 'tool-input-delta',
@@ -1216,6 +1225,259 @@ describe('processLangGraphEvent', () => {
       type: 'tool-output-error',
       toolCallId: 'call-1',
       errorText: 'API rate limit exceeded',
+    });
+  });
+
+  it('should handle HITL interrupt in values event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesWithInterrupt = {
+      messages: [],
+      __interrupt__: [
+        {
+          value: {
+            action_requests: [
+              {
+                name: 'send_email',
+                arguments: {
+                  to: 'test@example.com',
+                  subject: 'Hello',
+                  body: 'Test message',
+                },
+                id: 'call-hitl-1',
+              },
+            ],
+            review_configs: [
+              {
+                action_name: 'send_email',
+                allowed_decisions: ['approve', 'edit', 'reject'],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-hitl-1',
+      toolName: 'send_email',
+      input: {
+        to: 'test@example.com',
+        subject: 'Hello',
+        body: 'Test message',
+      },
+      dynamic: true,
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'call-hitl-1',
+      toolCallId: 'call-hitl-1',
+    });
+  });
+
+  it('should handle multiple HITL interrupts in values event', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesWithMultipleInterrupts = {
+      messages: [],
+      __interrupt__: [
+        {
+          value: {
+            action_requests: [
+              {
+                name: 'send_email',
+                arguments: { to: 'user@example.com' },
+                id: 'call-email-1',
+              },
+              {
+                name: 'delete_file',
+                arguments: { filename: 'temp.txt' },
+                id: 'call-delete-1',
+              },
+            ],
+            review_configs: [
+              { action_name: 'send_email', allowed_decisions: ['approve', 'reject'] },
+              { action_name: 'delete_file', allowed_decisions: ['approve', 'reject'] },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesWithMultipleInterrupts], state, controller);
+
+    // Check both tool inputs
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      input: { to: 'user@example.com' },
+      dynamic: true,
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: 'call-delete-1',
+      toolName: 'delete_file',
+      input: { filename: 'temp.txt' },
+      dynamic: true,
+    });
+
+    // Check both approval requests
+    expect(chunks).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'call-email-1',
+      toolCallId: 'call-email-1',
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'call-delete-1',
+      toolCallId: 'call-delete-1',
+    });
+  });
+
+  it('should generate fallback ID for HITL interrupt without id', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesWithInterruptNoId = {
+      messages: [],
+      __interrupt__: [
+        {
+          value: {
+            action_requests: [
+              {
+                name: 'send_email',
+                arguments: { to: 'test@example.com' },
+                // no id provided
+              },
+            ],
+            review_configs: [],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesWithInterruptNoId], state, controller);
+
+    // Should have generated a fallback ID
+    const toolInputChunk = chunks.find(
+      (c): c is { type: 'tool-input-available'; toolCallId: string; toolName: string; input: unknown } =>
+        (c as { type: string }).type === 'tool-input-available',
+    );
+    expect(toolInputChunk).toBeDefined();
+    expect(toolInputChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+
+    const approvalChunk = chunks.find(
+      (c): c is { type: 'tool-approval-request'; approvalId: string; toolCallId: string } =>
+        (c as { type: string }).type === 'tool-approval-request',
+    );
+    expect(approvalChunk).toBeDefined();
+    expect(approvalChunk?.toolCallId).toBe(toolInputChunk?.toolCallId);
+  });
+
+  it('should handle JS SDK camelCase interrupt format (actionRequests, args)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // JS SDK uses camelCase: actionRequests with args instead of arguments
+    const valuesWithInterrupt = {
+      messages: [],
+      __interrupt__: [
+        {
+          id: 'interrupt-123',
+          value: {
+            actionRequests: [
+              {
+                name: 'send_email',
+                args: {
+                  to: 'test@example.com',
+                  subject: 'Hello',
+                },
+              },
+            ],
+            reviewConfigs: [
+              {
+                actionName: 'send_email',
+                allowedDecisions: ['approve', 'edit', 'reject'],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-available',
+      toolCallId: expect.stringMatching(/^hitl-send_email-/),
+      toolName: 'send_email',
+      input: { to: 'test@example.com', subject: 'Hello' },
+      dynamic: true,
+    });
+
+    const approvalChunk = chunks.find(
+      (c): c is { type: 'tool-approval-request'; approvalId: string; toolCallId: string } =>
+        (c as { type: string }).type === 'tool-approval-request',
+    );
+    expect(approvalChunk).toBeDefined();
+  });
+
+  it('should reuse existing tool call ID when interrupt matches previously emitted tool call', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // Simulate tool-input-available already emitted with specific ID
+    const toolCallId = 'call_xAIvZJjC2JwEtTrHoiRaVBXs';
+    const toolName = 'send_email';
+    const input = { to: 'john@example.com', subject: 'Hello', body: 'Hello' };
+
+    // Pre-populate the state as if tool was already emitted
+    state.emittedToolCalls.add(toolCallId);
+    state.emittedToolCallsByKey.set(`${toolName}:${JSON.stringify(input)}`, toolCallId);
+
+    // Now process interrupt with same tool name and args
+    const valuesWithInterrupt = {
+      __interrupt__: [
+        {
+          id: 'interrupt-456',
+          value: {
+            actionRequests: [
+              {
+                name: toolName,
+                args: input,
+                // Note: no id field in action request
+              },
+            ],
+            reviewConfigs: [],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    // Should NOT emit another tool-input-available (already emitted)
+    expect(chunks.filter(c => (c as { type: string }).type === 'tool-input-available')).toHaveLength(0);
+
+    // Should emit tool-approval-request with the ORIGINAL tool call ID
+    expect(chunks).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: toolCallId,
+      toolCallId: toolCallId,
     });
   });
 });

@@ -2,53 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  MessageCircle,
-  Cpu,
-  Wrench,
-  Cloud,
-  BookOpen,
-  Github,
-  ExternalLink,
-  LucideIcon,
-} from 'lucide-react';
-
-interface NavItem {
-  href: string;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-  badge?: string;
-}
-
-const navItems: NavItem[] = [
-  {
-    href: '/',
-    label: 'Basic Chat',
-    description: 'Simple LangChain streaming',
-    icon: MessageCircle,
-  },
-  {
-    href: '/langgraph',
-    label: 'LangGraph',
-    description: 'StateGraph with streaming',
-    icon: Cpu,
-  },
-  {
-    href: '/createAgent',
-    label: 'GPT-5 Agent',
-    description: 'Reasoning + multiple tools',
-    icon: Wrench,
-    badge: 'GPT-5',
-  },
-  {
-    href: '/langsmith',
-    label: 'LangSmith Deploy',
-    description: 'Browser transport',
-    icon: Cloud,
-    badge: 'Direct',
-  },
-];
+import { BookOpen, Github, ExternalLink } from 'lucide-react';
+import { navItems } from '../app/constants';
 
 export function Sidebar() {
   const pathname = usePathname();

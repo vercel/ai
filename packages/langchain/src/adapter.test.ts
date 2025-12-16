@@ -7,7 +7,7 @@ import {
   toBaseMessages,
   convertModelMessages,
 } from './adapter';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ModelMessage, UIMessage } from 'ai';
 import {
   AIMessage,
@@ -16,7 +16,10 @@ import {
   SystemMessage,
   ToolMessage,
 } from '@langchain/core/messages';
-import { LANGGRAPH_RESPONSE } from './__fixtures__/langgraph';
+import {
+  LANGGRAPH_RESPONSE_1,
+  LANGGRAPH_RESPONSE_2,
+} from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
   it('should emit start event on stream initialization', async () => {
@@ -300,6 +303,7 @@ describe('toUIMessageStream', () => {
           "type": "start",
         },
         {
+          "dynamic": true,
           "input": {
             "city": "SF",
           },
@@ -348,6 +352,7 @@ describe('toUIMessageStream', () => {
           "type": "start",
         },
         {
+          "dynamic": true,
           "input": {
             "city": "NYC",
           },
@@ -412,6 +417,7 @@ describe('toUIMessageStream', () => {
       type: 'tool-input-start',
       toolCallId: 'call-789',
       toolName: 'get_weather',
+      dynamic: true,
     });
   });
 
@@ -469,6 +475,7 @@ describe('toUIMessageStream', () => {
       toolCallId: 'call-real-id',
       toolName: 'get_weather',
       input: { city: 'LA' },
+      dynamic: true,
     });
   });
 
@@ -701,6 +708,7 @@ describe('toUIMessageStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "dynamic": true,
           "toolCallId": "call-123",
           "toolName": "search",
           "type": "tool-input-start",
@@ -984,9 +992,18 @@ describe('toBaseMessages', () => {
   });
 });
 
-describe('toUIMessageStream with LangGraph fixture', () => {
-  it('should correctly transform LangGraph stream events to UI message events', async () => {
-    const inputStream = convertArrayToReadableStream(LANGGRAPH_RESPONSE);
+describe('toUIMessageStream with LangGraph HITL fixture', () => {
+  beforeEach(() => {
+    // Mock Date.now() to make generated HITL IDs deterministic for snapshots
+    vi.spyOn(Date, 'now').mockReturnValue(1234567890);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should correctly transform first request (before approval)', async () => {
+    const inputStream = convertArrayToReadableStream(LANGGRAPH_RESPONSE_1);
 
     const result = await convertReadableStreamToArray(
       toUIMessageStream(inputStream),
@@ -994,7 +1011,20 @@ describe('toUIMessageStream with LangGraph fixture', () => {
 
     // Use file snapshot to avoid stack overflow with large results
     await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
-      './__snapshots__/langgraph-stream.json',
+      './__snapshots__/langgraph-hitl-request-1.json',
+    );
+  });
+
+  it('should correctly transform second request (after approval)', async () => {
+    const inputStream = convertArrayToReadableStream(LANGGRAPH_RESPONSE_2);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Use file snapshot to avoid stack overflow with large results
+    await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
+      './__snapshots__/langgraph-hitl-request-2.json',
     );
   });
 });

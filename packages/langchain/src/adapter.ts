@@ -17,6 +17,7 @@ import {
   processLangGraphEvent,
   isToolResultPart,
 } from './utils';
+import { type LangGraphEventState } from './types';
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -132,7 +133,7 @@ export function toUIMessageStream(
   /**
    * State for LangGraph stream handling
    */
-  const langGraphState = {
+  const langGraphState: LangGraphEventState = {
     messageSeen: {} as Record<
       string,
       { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
@@ -147,6 +148,7 @@ export function toUIMessageStream(
       Record<number, { id: string; name: string }>
     >,
     currentStep: null as number | null,
+    emittedToolCallsByKey: new Map<string, string>(),
   };
 
   /**

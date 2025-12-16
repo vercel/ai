@@ -4,35 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Zap, Menu, X, ExternalLink } from 'lucide-react';
-
-interface NavItem {
-  href: string;
-  label: string;
-  description: string;
-}
-
-const navItems: NavItem[] = [
-  {
-    href: '/',
-    label: 'Basic Chat',
-    description: 'Simple LangChain streaming',
-  },
-  {
-    href: '/langgraph',
-    label: 'LangGraph',
-    description: 'StateGraph with streaming',
-  },
-  {
-    href: '/createAgent',
-    label: 'GPT-5 Agent',
-    description: 'Reasoning + multiple tools',
-  },
-  {
-    href: '/langsmith',
-    label: 'LangSmith Deploy',
-    description: 'Browser transport',
-  },
-];
+import { navItems } from '../app/constants';
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
