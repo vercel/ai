@@ -34,7 +34,10 @@ export function MobileNav() {
           {isOpen ? (
             <X className="w-6 h-6 text-[var(--foreground)]" strokeWidth={2} />
           ) : (
-            <Menu className="w-6 h-6 text-[var(--foreground)]" strokeWidth={2} />
+            <Menu
+              className="w-6 h-6 text-[var(--foreground)]"
+              strokeWidth={2}
+            />
           )}
         </button>
       </div>

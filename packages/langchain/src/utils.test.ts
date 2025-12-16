@@ -5,7 +5,12 @@ import {
   HumanMessage,
   ToolMessage,
 } from '@langchain/core/messages';
-import type { ToolResultPart, AssistantContent, UserContent, UIMessageChunk } from 'ai';
+import type {
+  ToolResultPart,
+  AssistantContent,
+  UserContent,
+  UIMessageChunk,
+} from 'ai';
 import {
   convertToolResultPart,
   convertAssistantContent,
@@ -24,9 +29,13 @@ import {
 /**
  * Creates a mock ReadableStreamDefaultController for testing
  */
-function createMockController(chunks: unknown[]): ReadableStreamDefaultController<UIMessageChunk> {
+function createMockController(
+  chunks: unknown[],
+): ReadableStreamDefaultController<UIMessageChunk> {
   return {
-    enqueue: (c: unknown) => { chunks.push(c); },
+    enqueue: (c: unknown) => {
+      chunks.push(c);
+    },
     close: () => {},
     error: () => {},
     desiredSize: 1,
@@ -219,7 +228,11 @@ describe('convertUserContent', () => {
   it('should filter out non-text parts', () => {
     const content: UserContent = [
       { type: 'text', text: 'Describe this image' },
-      { type: 'image', image: new Uint8Array([1, 2, 3]), mediaType: 'image/png' },
+      {
+        type: 'image',
+        image: new Uint8Array([1, 2, 3]),
+        mediaType: 'image/png',
+      },
     ];
 
     const result = convertUserContent(content);
@@ -442,7 +455,11 @@ describe('processModelChunk', () => {
     expect(state.reasoningStarted).toBe(true);
     expect(chunks).toEqual([
       { type: 'reasoning-start', id: 'msg-1' },
-      { type: 'reasoning-delta', delta: 'I need to analyze this question carefully...', id: 'msg-1' },
+      {
+        type: 'reasoning-delta',
+        delta: 'I need to analyze this question carefully...',
+        id: 'msg-1',
+      },
     ]);
   });
 
@@ -478,7 +495,11 @@ describe('processModelChunk', () => {
     expect(state.reasoningStarted).toBe(true);
     expect(chunks).toEqual([
       { type: 'reasoning-start', id: 'msg-1' },
-      { type: 'reasoning-delta', delta: 'Breaking down the problem into parts...', id: 'msg-1' },
+      {
+        type: 'reasoning-delta',
+        delta: 'Breaking down the problem into parts...',
+        id: 'msg-1',
+      },
     ]);
   });
 
@@ -574,12 +595,19 @@ describe('isAIMessageChunk', () => {
 
 describe('isToolMessageType', () => {
   it('should return true for ToolMessage instances', () => {
-    const toolMsg = new ToolMessage({ tool_call_id: 'call-1', content: 'Result' });
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Result',
+    });
     expect(isToolMessageType(toolMsg)).toBe(true);
   });
 
   it('should return true for plain objects with type: tool', () => {
-    const plainObj = { type: 'tool', content: 'Result', tool_call_id: 'call-1' };
+    const plainObj = {
+      type: 'tool',
+      content: 'Result',
+      tool_call_id: 'call-1',
+    };
     expect(isToolMessageType(plainObj)).toBe(true);
   });
 
@@ -611,7 +639,9 @@ describe('getMessageText', () => {
   });
 
   it('should return empty string for non-text content blocks', () => {
-    const plainObj = { content: [{ type: 'image', url: 'http://example.com' }] };
+    const plainObj = {
+      content: [{ type: 'image', url: 'http://example.com' }],
+    };
     expect(getMessageText(plainObj)).toBe('');
   });
 
@@ -687,13 +717,19 @@ describe('extractImageOutputs', () => {
 
 describe('processLangGraphEvent', () => {
   const createMockState = () => ({
-    messageSeen: {} as Record<string, { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }>,
+    messageSeen: {} as Record<
+      string,
+      { text?: boolean; reasoning?: boolean; tool?: Record<string, boolean> }
+    >,
     messageConcat: {} as Record<string, AIMessageChunk>,
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: {} as Record<string, string>,
-    toolCallInfoByIndex: {} as Record<string, Record<number, { id: string; name: string }>>,
+    toolCallInfoByIndex: {} as Record<
+      string,
+      Record<number, { id: string; name: string }>
+    >,
     currentStep: null as number | null,
     emittedToolCallsByKey: new Map<string, string>(),
   });
@@ -1004,7 +1040,9 @@ describe('processLangGraphEvent', () => {
     const controller = createMockController(chunks);
 
     const aiChunk = new AIMessageChunk({ content: '', id: 'msg-1' });
-    (aiChunk as unknown as { additional_kwargs: Record<string, unknown> }).additional_kwargs = {
+    (
+      aiChunk as unknown as { additional_kwargs: Record<string, unknown> }
+    ).additional_kwargs = {
       tool_outputs: [
         {
           id: 'img-1',
@@ -1033,7 +1071,9 @@ describe('processLangGraphEvent', () => {
     const controller = createMockController(chunks);
 
     const aiChunk = new AIMessageChunk({ content: '', id: 'msg-1' });
-    (aiChunk as unknown as { additional_kwargs: Record<string, unknown> }).additional_kwargs = {
+    (
+      aiChunk as unknown as { additional_kwargs: Record<string, unknown> }
+    ).additional_kwargs = {
       tool_outputs: [
         {
           id: 'img-1',
@@ -1150,7 +1190,10 @@ describe('processLangGraphEvent', () => {
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
-    const aiChunk = new AIMessageChunk({ content: 'More content', id: 'msg-1' });
+    const aiChunk = new AIMessageChunk({
+      content: 'More content',
+      id: 'msg-1',
+    });
     const metadata = { langgraph_step: 1, langgraph_node: 'model' };
 
     processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
@@ -1304,15 +1347,25 @@ describe('processLangGraphEvent', () => {
               },
             ],
             review_configs: [
-              { action_name: 'send_email', allowed_decisions: ['approve', 'reject'] },
-              { action_name: 'delete_file', allowed_decisions: ['approve', 'reject'] },
+              {
+                action_name: 'send_email',
+                allowed_decisions: ['approve', 'reject'],
+              },
+              {
+                action_name: 'delete_file',
+                allowed_decisions: ['approve', 'reject'],
+              },
             ],
           },
         },
       ],
     };
 
-    processLangGraphEvent(['values', valuesWithMultipleInterrupts], state, controller);
+    processLangGraphEvent(
+      ['values', valuesWithMultipleInterrupts],
+      state,
+      controller,
+    );
 
     // Check both tool inputs
     expect(chunks).toContainEqual({
@@ -1368,19 +1421,34 @@ describe('processLangGraphEvent', () => {
       ],
     };
 
-    processLangGraphEvent(['values', valuesWithInterruptNoId], state, controller);
+    processLangGraphEvent(
+      ['values', valuesWithInterruptNoId],
+      state,
+      controller,
+    );
 
     // Should have generated a fallback ID
     const toolInputChunk = chunks.find(
-      (c): c is { type: 'tool-input-available'; toolCallId: string; toolName: string; input: unknown } =>
-        (c as { type: string }).type === 'tool-input-available',
+      (
+        c,
+      ): c is {
+        type: 'tool-input-available';
+        toolCallId: string;
+        toolName: string;
+        input: unknown;
+      } => (c as { type: string }).type === 'tool-input-available',
     );
     expect(toolInputChunk).toBeDefined();
     expect(toolInputChunk?.toolCallId).toMatch(/^hitl-send_email-/);
 
     const approvalChunk = chunks.find(
-      (c): c is { type: 'tool-approval-request'; approvalId: string; toolCallId: string } =>
-        (c as { type: string }).type === 'tool-approval-request',
+      (
+        c,
+      ): c is {
+        type: 'tool-approval-request';
+        approvalId: string;
+        toolCallId: string;
+      } => (c as { type: string }).type === 'tool-approval-request',
     );
     expect(approvalChunk).toBeDefined();
     expect(approvalChunk?.toolCallId).toBe(toolInputChunk?.toolCallId);
@@ -1429,8 +1497,13 @@ describe('processLangGraphEvent', () => {
     });
 
     const approvalChunk = chunks.find(
-      (c): c is { type: 'tool-approval-request'; approvalId: string; toolCallId: string } =>
-        (c as { type: string }).type === 'tool-approval-request',
+      (
+        c,
+      ): c is {
+        type: 'tool-approval-request';
+        approvalId: string;
+        toolCallId: string;
+      } => (c as { type: string }).type === 'tool-approval-request',
     );
     expect(approvalChunk).toBeDefined();
   });
@@ -1447,7 +1520,10 @@ describe('processLangGraphEvent', () => {
 
     // Pre-populate the state as if tool was already emitted
     state.emittedToolCalls.add(toolCallId);
-    state.emittedToolCallsByKey.set(`${toolName}:${JSON.stringify(input)}`, toolCallId);
+    state.emittedToolCallsByKey.set(
+      `${toolName}:${JSON.stringify(input)}`,
+      toolCallId,
+    );
 
     // Now process interrupt with same tool name and args
     const valuesWithInterrupt = {
@@ -1471,7 +1547,11 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
     // Should NOT emit another tool-input-available (already emitted)
-    expect(chunks.filter(c => (c as { type: string }).type === 'tool-input-available')).toHaveLength(0);
+    expect(
+      chunks.filter(
+        c => (c as { type: string }).type === 'tool-input-available',
+      ),
+    ).toHaveLength(0);
 
     // Should emit tool-approval-request with the ORIGINAL tool call ID
     expect(chunks).toContainEqual({
@@ -1481,4 +1561,3 @@ describe('processLangGraphEvent', () => {
     });
   });
 });
-

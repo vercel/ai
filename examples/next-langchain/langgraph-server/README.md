@@ -48,7 +48,12 @@ This example uses `createAgent` from LangChain for simplicity. However, the Lang
 For more advanced use cases, you can use the low-level LangGraph APIs:
 
 ```typescript
-import { StateGraph, MessagesAnnotation, START, END } from '@langchain/langgraph';
+import {
+  StateGraph,
+  MessagesAnnotation,
+  START,
+  END,
+} from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 
 const workflow = new StateGraph(MessagesAnnotation)

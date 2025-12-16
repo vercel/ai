@@ -30,35 +30,30 @@ export default function HITLPage() {
     [threadId],
   );
 
-  const {
-    messages,
-    status,
-    error,
-    sendMessage,
-    addToolApprovalResponse,
-  } = useChat({
-    transport,
-    /**
-     * Automatically send a new request when tool approval responses are added.
-     * This checks if there are any dynamic-tool parts with approval-responded state
-     * that don't have output yet (meaning the tool hasn't been executed).
-     */
-    sendAutomaticallyWhen: ({ messages }) => {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage || lastMessage.role !== 'assistant') return false;
+  const { messages, status, error, sendMessage, addToolApprovalResponse } =
+    useChat({
+      transport,
+      /**
+       * Automatically send a new request when tool approval responses are added.
+       * This checks if there are any dynamic-tool parts with approval-responded state
+       * that don't have output yet (meaning the tool hasn't been executed).
+       */
+      sendAutomaticallyWhen: ({ messages }) => {
+        const lastMessage = messages[messages.length - 1];
+        if (!lastMessage || lastMessage.role !== 'assistant') return false;
 
-      // Check if there's a tool with approval-responded that needs execution
-      // Use part.output == null to check for both undefined and null
-      const hasApprovalResponse = lastMessage.parts.some(
-        part =>
-          part.type === 'dynamic-tool' &&
-          part.state === 'approval-responded' &&
-          (part as { output?: unknown }).output == null,
-      );
+        // Check if there's a tool with approval-responded that needs execution
+        // Use part.output == null to check for both undefined and null
+        const hasApprovalResponse = lastMessage.parts.some(
+          part =>
+            part.type === 'dynamic-tool' &&
+            part.state === 'approval-responded' &&
+            (part as { output?: unknown }).output == null,
+        );
 
-      return hasApprovalResponse;
-    },
-  });
+        return hasApprovalResponse;
+      },
+    });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

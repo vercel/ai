@@ -33,7 +33,9 @@ export function LangsmithConfigPanel({
             <div className="text-sm font-medium text-[var(--foreground)]">
               Connected to
             </div>
-            <code className="text-xs text-[var(--accent)]">{deploymentUrl}</code>
+            <code className="text-xs text-[var(--accent)]">
+              {deploymentUrl}
+            </code>
           </div>
         </div>
         <button
@@ -79,4 +81,3 @@ export function LangsmithConfigPanel({
     </div>
   );
 }
-

@@ -16,7 +16,7 @@ const model = new ChatOpenAI({
   model: 'gpt-4o-mini',
   temperature: 0,
 });
-  
+
 /**
  * Calls the model and returns the response as new graph state
  * @param state - The state of the graph

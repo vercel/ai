@@ -4,7 +4,8 @@ import { MobileNav } from '../components/mobile-nav';
 
 export const metadata = {
   title: 'AI SDK + LangChain Examples',
-  description: 'Example applications showcasing AI SDK with LangChain integration',
+  description:
+    'Example applications showcasing AI SDK with LangChain integration',
 };
 
 export default function RootLayout({

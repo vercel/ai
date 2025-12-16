@@ -1,6 +1,4 @@
-import {
-  AIMessageChunk,
-} from '@langchain/core/messages';
+import { AIMessageChunk } from '@langchain/core/messages';
 import {
   type UIMessage,
   type UIMessageChunk,

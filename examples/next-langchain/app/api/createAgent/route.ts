@@ -43,25 +43,25 @@ const weatherTool = tool(
     const weatherData: Record<string, { temp: number; condition: string }> = {
       'new york': { temp: 72, condition: 'Partly cloudy' },
       'los angeles': { temp: 85, condition: 'Sunny' },
-      'london': { temp: 58, condition: 'Overcast with light rain' },
-      'tokyo': { temp: 68, condition: 'Clear skies' },
-      'paris': { temp: 64, condition: 'Mild with scattered clouds' },
-      'sydney': { temp: 75, condition: 'Warm and sunny' },
+      london: { temp: 58, condition: 'Overcast with light rain' },
+      tokyo: { temp: 68, condition: 'Clear skies' },
+      paris: { temp: 64, condition: 'Mild with scattered clouds' },
+      sydney: { temp: 75, condition: 'Warm and sunny' },
     };
 
     const cityLower = city.toLowerCase();
     const data = weatherData[cityLower] || { temp: 70, condition: 'Unknown' };
 
     const temp =
-      units === 'celsius'
-        ? Math.round(((data.temp - 32) * 5) / 9)
-        : data.temp;
+      units === 'celsius' ? Math.round(((data.temp - 32) * 5) / 9) : data.temp;
     const unit = units === 'celsius' ? '°C' : '°F';
 
     /**
      * artificial delay to simulate tool execution time
      */
-    await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1000)));
+    await new Promise(resolve =>
+      setTimeout(resolve, Math.floor(Math.random() * 1000)),
+    );
 
     return `Weather in ${city}: ${temp}${unit}, ${data.condition}`;
   },
@@ -93,7 +93,7 @@ const wikiSearchTool = tool(
         'Artificial intelligence (AI) is the capability of computational systems to perform tasks typically associated with human intelligence, such as learning, reasoning, problem-solving, and perception.',
       'machine learning':
         'Machine learning (ML) is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.',
-      'langchain':
+      langchain:
         'LangChain is a framework for developing applications powered by large language models (LLMs). It provides tools for prompt management, chains, agents, and memory.',
     };
 
@@ -136,7 +136,9 @@ const dateTimeTool = tool(
     /**
      * artificial delay to simulate tool execution time
      */
-    await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1000)));
+    await new Promise(resolve =>
+      setTimeout(resolve, Math.floor(Math.random() * 1000)),
+    );
 
     try {
       const formatted = new Intl.DateTimeFormat('en-US', options).format(now);
@@ -147,12 +149,15 @@ const dateTimeTool = tool(
   },
   {
     name: 'get_datetime',
-    description: 'Get the current date and time, optionally in a specific timezone',
+    description:
+      'Get the current date and time, optionally in a specific timezone',
     schema: z.object({
       timezone: z
         .string()
         .optional()
-        .describe('IANA timezone (e.g., "America/New_York", "Europe/London", "Asia/Tokyo")'),
+        .describe(
+          'IANA timezone (e.g., "America/New_York", "Europe/London", "Asia/Tokyo")',
+        ),
       format: z
         .enum(['full', 'short'])
         .optional()

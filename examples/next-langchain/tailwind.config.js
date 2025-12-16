@@ -8,12 +8,26 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['Geist Mono', 'SF Mono', 'Consolas', 'Liberation Mono', 'monospace'],
+        sans: [
+          'Geist',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'Roboto',
+          'sans-serif',
+        ],
+        mono: [
+          'Geist Mono',
+          'SF Mono',
+          'Consolas',
+          'Liberation Mono',
+          'monospace',
+        ],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
       animation: {
         'fade-in': 'fade-in 0.3s ease-out forwards',

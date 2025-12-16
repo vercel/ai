@@ -38,8 +38,8 @@ export default function LangSmithPage() {
       placeholder="Send a message..."
       suggestions={[
         "What's the weather in Paris?",
-        "Calculate 25 * 4 + 10",
-        "Tell me a fun fact",
+        'Calculate 25 * 4 + 10',
+        'Tell me a fun fact',
       ]}
       configPanel={
         <LangsmithConfigPanel

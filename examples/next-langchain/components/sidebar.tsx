@@ -13,7 +13,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center gap-3 p-5 border-b border-[var(--border)]">
         <div className="w-9 h-9 rounded-lg bg-[var(--background-tertiary)] border border-[var(--border)] flex items-center justify-center text-xs leading-none whitespace-nowrap">
-          <span>🦜</span><span>🔗</span>
+          <span>🦜</span>
+          <span>🔗</span>
         </div>
         <div>
           <h1 className="font-semibold text-[var(--foreground)]">LangChain</h1>

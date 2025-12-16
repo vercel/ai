@@ -21,9 +21,9 @@ export default function Chat() {
       error={error}
       placeholder="Say something..."
       suggestions={[
-        "Explain how LangChain works",
-        "Write a haiku about coding",
-        "What can you help me with?",
+        'Explain how LangChain works',
+        'Write a haiku about coding',
+        'What can you help me with?',
       ]}
     />
   );

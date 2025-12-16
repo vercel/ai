@@ -30,10 +30,10 @@ export const navItems: NavItem[] = [
   },
   {
     href: '/createAgent',
-    label: 'GPT-5 Agent',
+    label: 'ReAct Agent',
     description: 'Reasoning + multiple tools',
     icon: Wrench,
-    badge: 'GPT-5',
+    badge: 'Multimodal',
   },
   {
     href: '/hitl',
@@ -50,4 +50,3 @@ export const navItems: NavItem[] = [
     badge: 'Direct',
   },
 ];
-

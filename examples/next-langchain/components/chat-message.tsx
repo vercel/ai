@@ -38,7 +38,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
           {message.parts.map((part, i) => {
             // Handle reasoning parts (extended thinking)
             if (part.type === 'reasoning') {
-              const reasoningPart = part as { type: 'reasoning'; text: string; state?: 'streaming' | 'done' };
+              const reasoningPart = part as {
+                type: 'reasoning';
+                text: string;
+                state?: 'streaming' | 'done';
+              };
               return (
                 <ReasoningBlock
                   key={i}
@@ -56,7 +60,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
             }
             // Handle file parts (including generated images)
             if (part.type === 'file') {
-              const filePart = part as { type: 'file'; url: string; mediaType: string };
+              const filePart = part as {
+                type: 'file';
+                url: string;
+                mediaType: string;
+              };
               // Check if it's an image
               if (filePart.mediaType?.startsWith('image/')) {
                 const format = filePart.mediaType.split('/')[1] || 'png';
@@ -98,7 +106,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       <span className="text-[var(--foreground-secondary)]">
                         Result:{' '}
                       </span>
-                      {typeof part.output === 'string' && part.output.length > 200
+                      {typeof part.output === 'string' &&
+                      part.output.length > 200
                         ? `${part.output.slice(0, 200)}...`
                         : JSON.stringify(part.output)}
                     </div>
@@ -113,4 +122,3 @@ export function ChatMessage({ message }: ChatMessageProps) {
     </div>
   );
 }
-

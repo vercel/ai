@@ -61,6 +61,7 @@ To run the example locally you need to:
 1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
 2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
 3. Set the required OpenAI environment variable in two places:
+
    - `.env.local` in the root (for Next.js API routes)
    - `langgraph-server/.env` (for the LangGraph server)
 
@@ -69,6 +70,7 @@ To run the example locally you need to:
    ```
 
 4. Install dependencies:
+
    ```bash
    pnpm install
    cd langgraph-server && pnpm install && cd ..
@@ -120,7 +122,7 @@ const langchainMessages = await toBaseMessages(messages);
 // Stream from graph
 const stream = await graph.stream(
   { messages: langchainMessages },
-  { streamMode: ['values', 'messages'] }
+  { streamMode: ['values', 'messages'] },
 );
 
 // Return UI stream response

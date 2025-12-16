@@ -132,4 +132,3 @@ export function getPendingApprovals(messages: UIMessage[]) {
 
   return approvals;
 }
-

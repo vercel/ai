@@ -15,13 +15,7 @@ function toDataUri(base64: string, format: string = 'png'): string {
 /**
  * Image viewer modal for full-size preview
  */
-function ImageModal({
-  src,
-  onClose,
-}: {
-  src: string;
-  onClose: () => void;
-}) {
+function ImageModal({ src, onClose }: { src: string; onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in"
@@ -100,8 +94,9 @@ export function GeneratedImage({
           <span>AI Generated Image</span>
         </div>
       </div>
-      {showModal && <ImageModal src={src} onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <ImageModal src={src} onClose={() => setShowModal(false)} />
+      )}
     </>
   );
 }
-

@@ -1002,9 +1002,7 @@ export function processLangGraphEvent(
             /**
              * Check if this is an AI message with tool calls
              */
-            let toolCalls:
-              | ToolCall[]
-              | undefined;
+            let toolCalls: ToolCall[] | undefined;
 
             /**
              * For class instances

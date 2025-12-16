@@ -56,5 +56,3 @@ export function ReasoningBlock({ text, state }: ReasoningBlockProps) {
     </div>
   );
 }
-
-

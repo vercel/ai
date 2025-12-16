@@ -32,9 +32,9 @@ export default function LangGraphChat() {
       error={error}
       placeholder="Ask anything..."
       suggestions={[
-        "What is LangGraph?",
-        "Explain state machines",
-        "How do agents work?",
+        'What is LangGraph?',
+        'Explain state machines',
+        'How do agents work?',
       ]}
     />
   );
