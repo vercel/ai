@@ -146,6 +146,7 @@ export function toUIMessageStream(
       string,
       Record<number, { id: string; name: string }>
     >,
+    currentStep: null as number | null,
   };
 
   /**

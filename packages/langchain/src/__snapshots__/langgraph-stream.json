@@ -3,6 +3,9 @@
     "type": "start"
   },
   {
+    "type": "start-step"
+  },
+  {
     "type": "reasoning-start",
     "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
   },
@@ -576,6 +579,12 @@
     "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
   },
   {
+    "type": "finish-step"
+  },
+  {
+    "type": "start-step"
+  },
+  {
     "type": "tool-output-available",
     "toolCallId": "call_i1stUubDtqlmCGOvtUD9DqUo",
     "output": "Weather in Tokyo: 20°C, Clear skies"
@@ -584,5 +593,11 @@
     "type": "tool-output-available",
     "toolCallId": "call_ri3SBHWTEUcRU3Qhyy2M3gty",
     "output": "Current date and time in Asia/Tokyo: Tuesday, December 16, 2025 at 11:22:39 AM"
+  },
+  {
+    "type": "finish-step"
+  },
+  {
+    "type": "start-step"
   }
 ]

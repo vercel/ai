@@ -689,6 +689,7 @@ describe('processLangGraphEvent', () => {
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: {} as Record<string, string>,
     toolCallInfoByIndex: {} as Record<string, Record<number, { id: string; name: string }>>,
+    currentStep: null as number | null,
   });
 
   it('should handle custom events', () => {
@@ -1102,6 +1103,120 @@ describe('processLangGraphEvent', () => {
         (c as { type: string }).type === 'tool-input-delta',
     );
     expect(toolEvents).toHaveLength(0);
+  });
+
+  it('should emit start-step on first message with langgraph_step', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    const metadata = { langgraph_step: 1, langgraph_node: 'model' };
+
+    processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'start-step' });
+    expect(state.currentStep).toBe(1);
+  });
+
+  it('should emit finish-step and start-step on step change', () => {
+    const state = createMockState();
+    state.currentStep = 1;
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+    const metadata = { langgraph_step: 2, langgraph_node: 'tools' };
+
+    processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
+
+    expect(chunks[0]).toEqual({ type: 'finish-step' });
+    expect(chunks[1]).toEqual({ type: 'start-step' });
+    expect(state.currentStep).toBe(2);
+  });
+
+  it('should not emit step events when step unchanged', () => {
+    const state = createMockState();
+    state.currentStep = 1;
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({ content: 'More content', id: 'msg-1' });
+    const metadata = { langgraph_step: 1, langgraph_node: 'model' };
+
+    processLangGraphEvent(['messages', [aiChunk, metadata]], state, controller);
+
+    const stepEvents = chunks.filter(
+      (c: unknown) =>
+        (c as { type: string }).type === 'start-step' ||
+        (c as { type: string }).type === 'finish-step',
+    );
+    expect(stepEvents).toHaveLength(0);
+  });
+
+  it('should emit tool-output-error for ToolMessage with status error', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Connection timeout',
+    });
+    toolMsg.id = 'msg-1';
+    // Simulate error status (not directly settable via constructor)
+    (toolMsg as unknown as { status: string }).status = 'error';
+
+    processLangGraphEvent(['messages', [toolMsg]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-output-error',
+      toolCallId: 'call-1',
+      errorText: 'Connection timeout',
+    });
+  });
+
+  it('should emit tool-output-available for ToolMessage with status success', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Result data',
+    });
+    toolMsg.id = 'msg-1';
+    (toolMsg as unknown as { status: string }).status = 'success';
+
+    processLangGraphEvent(['messages', [toolMsg]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Result data',
+    });
+  });
+
+  it('should handle plain tool message objects with error status', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const plainToolMsg = {
+      type: 'tool',
+      content: 'API rate limit exceeded',
+      id: 'msg-1',
+      tool_call_id: 'call-1',
+      status: 'error',
+    };
+
+    processLangGraphEvent(['messages', [plainToolMsg]], state, controller);
+
+    expect(chunks).toContainEqual({
+      type: 'tool-output-error',
+      toolCallId: 'call-1',
+      errorText: 'API rate limit exceeded',
+    });
   });
 });
 

@@ -681,7 +681,12 @@ export function processLangGraphEvent(
     /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
     messageReasoningIds: Record<string, string>;
     /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
-    toolCallInfoByIndex: Record<string, Record<number, { id: string; name: string }>>;
+    toolCallInfoByIndex: Record<
+      string,
+      Record<number, { id: string; name: string }>
+    >;
+    /** Tracks the current LangGraph step for start-step/finish-step events */
+    currentStep: number | null;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -707,12 +712,30 @@ export function processLangGraphEvent(
     }
 
     case 'messages': {
-      const [rawMsg] = data as [BaseMessageChunk | BaseMessage | undefined];
+      const [rawMsg, metadata] = data as [
+        BaseMessageChunk | BaseMessage | undefined,
+        Record<string, unknown> | undefined,
+      ];
 
       const msg = rawMsg;
       const msgId = getMessageId(msg);
 
       if (!msgId) return;
+
+      /**
+       * Track LangGraph step changes and emit start-step/finish-step events
+       */
+      const langgraphStep =
+        typeof metadata?.langgraph_step === 'number'
+          ? metadata.langgraph_step
+          : null;
+      if (langgraphStep !== null && langgraphStep !== state.currentStep) {
+        if (state.currentStep !== null) {
+          controller.enqueue({ type: 'finish-step' });
+        }
+        controller.enqueue({ type: 'start-step' });
+        state.currentStep = langgraphStep;
+      }
 
       /**
        * Accumulate message chunks for later reference
@@ -922,12 +945,27 @@ export function processLangGraphEvent(
             : msgObj;
 
         const toolCallId = dataSource.tool_call_id as string | undefined;
+        const status = dataSource.status as string | undefined;
+
         if (toolCallId) {
-          controller.enqueue({
-            type: 'tool-output-available',
-            toolCallId,
-            output: dataSource.content,
-          });
+          if (status === 'error') {
+            // Tool execution failed
+            controller.enqueue({
+              type: 'tool-output-error',
+              toolCallId,
+              errorText:
+                typeof dataSource.content === 'string'
+                  ? dataSource.content
+                  : 'Tool execution failed',
+            });
+          } else {
+            // Tool execution succeeded
+            controller.enqueue({
+              type: 'tool-output-available',
+              toolCallId,
+              output: dataSource.content,
+            });
+          }
         }
       }
 
