@@ -688,6 +688,7 @@ describe('processLangGraphEvent', () => {
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: {} as Record<string, string>,
+    toolCallInfoByIndex: {} as Record<string, Record<number, { id: string; name: string }>>,
   });
 
   it('should handle custom events', () => {

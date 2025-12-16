@@ -58,6 +58,11 @@ const weatherTool = tool(
         : data.temp;
     const unit = units === 'celsius' ? '°C' : '°F';
 
+    /**
+     * artificial delay to simulate tool execution time
+     */
+    await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1000)));
+
     return `Weather in ${city}: ${temp}${unit}, ${data.condition}`;
   },
   {
@@ -127,6 +132,11 @@ const dateTimeTool = tool(
       minute: '2-digit',
       second: format === 'full' ? '2-digit' : undefined,
     };
+
+    /**
+     * artificial delay to simulate tool execution time
+     */
+    await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1000)));
 
     try {
       const formatted = new Intl.DateTimeFormat('en-US', options).format(now);

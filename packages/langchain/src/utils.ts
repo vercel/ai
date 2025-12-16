@@ -680,6 +680,8 @@ export function processLangGraphEvent(
     emittedReasoningIds: Set<string>;
     /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
     messageReasoningIds: Record<string, string>;
+    /** Maps message ID + tool call index to tool call info (for streaming chunks without ID) */
+    toolCallInfoByIndex: Record<string, Record<number, { id: string; name: string }>>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -690,6 +692,7 @@ export function processLangGraphEvent(
     emittedImages,
     emittedReasoningIds,
     messageReasoningIds,
+    toolCallInfoByIndex,
   } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
 
@@ -766,6 +769,13 @@ export function processLangGraphEvent(
         /**
          * Handle tool call chunks for streaming tool calls
          * Access from dataSource to handle both direct and serialized messages
+         *
+         * Tool call chunks are streamed as follows:
+         * 1. First chunk: has name, id, but often empty args
+         * 2. Subsequent chunks: have args but NO id or name
+         *
+         * We store tool call info by index when we first see it, then look it up
+         * for subsequent chunks that don't include the id.
          */
         const toolCallChunks = dataSource.tool_call_chunks as
           | ToolCallChunk[]
@@ -773,11 +783,28 @@ export function processLangGraphEvent(
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
             const idx = toolCallChunk.index ?? 0;
+
             /**
-             * Get the tool call ID from the chunk or accumulated chunks
+             * If this chunk has an id, store it for future lookups by index
+             */
+            if (toolCallChunk.id) {
+              toolCallInfoByIndex[msgId] ??= {};
+              toolCallInfoByIndex[msgId][idx] = {
+                id: toolCallChunk.id,
+                name:
+                  toolCallChunk.name ||
+                  concatChunk?.tool_call_chunks?.[idx]?.name ||
+                  'unknown',
+              };
+            }
+
+            /**
+             * Get the tool call ID from the chunk, stored info, or accumulated chunks
              */
             const toolCallId =
-              toolCallChunk.id || concatChunk?.tool_call_chunks?.[idx]?.id;
+              toolCallChunk.id ||
+              toolCallInfoByIndex[msgId]?.[idx]?.id ||
+              concatChunk?.tool_call_chunks?.[idx]?.id;
 
             /**
              * Skip if we don't have a proper tool call ID - we'll handle it in values
@@ -788,23 +815,31 @@ export function processLangGraphEvent(
 
             const toolName =
               toolCallChunk.name ||
+              toolCallInfoByIndex[msgId]?.[idx]?.name ||
               concatChunk?.tool_call_chunks?.[idx]?.name ||
-              `unknown`;
+              'unknown';
 
+            /**
+             * Emit tool-input-start when we first see this tool call
+             * (even if args is empty - the first chunk often has empty args)
+             */
+            if (!messageSeen[msgId]?.tool?.[toolCallId]) {
+              controller.enqueue({
+                type: 'tool-input-start',
+                toolCallId: toolCallId,
+                toolName: toolName,
+              });
+
+              messageSeen[msgId] ??= {};
+              messageSeen[msgId].tool ??= {};
+              messageSeen[msgId].tool![toolCallId] = true;
+              emittedToolCalls.add(toolCallId);
+            }
+
+            /**
+             * Only emit tool-input-delta when args is non-empty
+             */
             if (toolCallChunk.args) {
-              if (!messageSeen[msgId]?.tool?.[toolCallId]) {
-                controller.enqueue({
-                  type: 'tool-input-start',
-                  toolCallId: toolCallId,
-                  toolName: toolName,
-                });
-
-                messageSeen[msgId] ??= {};
-                messageSeen[msgId].tool ??= {};
-                messageSeen[msgId].tool![toolCallId] = true;
-                emittedToolCalls.add(toolCallId);
-              }
-
               controller.enqueue({
                 type: 'tool-input-delta',
                 toolCallId: toolCallId,
