@@ -112,7 +112,7 @@ describe('doEmbed', () => {
     });
 
     const { embeddings, usage } = await cohereModel.doEmbed({
-      values: ['I like apples'],
+      values: [testValues[0]],
     });
 
     expect(embeddings.length).toBe(1);
@@ -122,7 +122,7 @@ describe('doEmbed', () => {
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
       input_type: 'search_query',
-      texts: ['I like apples'],
+      texts: [testValues[0]],
       truncate: undefined,
     });
   });
