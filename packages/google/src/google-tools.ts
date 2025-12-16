@@ -1,5 +1,6 @@
 import { codeExecution } from './tool/code-execution';
 import { fileSearch } from './tool/file-search';
+import { googleMaps } from './tool/google-maps';
 import { googleSearch } from './tool/google-search';
 import { urlContext } from './tool/url-context';
 import { vertexRagStore } from './tool/vertex-rag-store';
@@ -10,6 +11,15 @@ export const googleTools = {
    * Must have name "google_search".
    */
   googleSearch,
+
+  /**
+   * Creates a Google Maps grounding tool that gives the model access to Google Maps data.
+   * Must have name "google_maps".
+   *
+   * @see https://ai.google.dev/gemini-api/docs/maps-grounding
+   * @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+   */
+  googleMaps,
 
   /**
    * Creates a URL context tool that gives Google direct access to real-time web content.
