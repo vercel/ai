@@ -96,7 +96,7 @@ export const customTool = dynamicTool({
             {
               name: 'toModelOutput',
               isOptional: true,
-              type: '(output: unknown) => LanguageModelV3ToolResultPart[\'output\']',
+              type: '({toolCallId: string; input: unknown; output: unknown}) => ToolResultOutput | PromiseLike<ToolResultOutput>',
               description: 'Optional conversion function that maps the tool result to an output that can be used by the language model.'
             },
             {
@@ -123,7 +123,7 @@ When using dynamic tools alongside static tools, you need to check the `dynamic`
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     // Static tool with known types
     weather: weatherTool,

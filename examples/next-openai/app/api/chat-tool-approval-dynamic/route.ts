@@ -8,6 +8,6 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: dynamicWeatherWithApprovalAgent,
-    messages: body.messages,
+    uiMessages: body.messages,
   });
 }

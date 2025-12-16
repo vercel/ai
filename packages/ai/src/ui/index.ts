@@ -29,6 +29,7 @@ export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-me
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
   createStreamingUIMessageState,
+  getStaticToolName,
   processUIMessageStream,
   type StreamingUIMessageState,
 } from './process-ui-message-stream';
@@ -38,6 +39,7 @@ export {
   isDataUIPart,
   isFileUIPart,
   isReasoningUIPart,
+  isStaticToolUIPart,
   isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,

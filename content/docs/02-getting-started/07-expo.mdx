@@ -83,13 +83,14 @@ Create a route handler, `app/api/chat+api.ts` and add the following code:
 
 ```tsx filename="app/api/chat+api.ts"
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -117,7 +118,7 @@ The AI SDK supports dozens of model providers through [first-party](/providers/a
 This quickstart uses the [Vercel AI Gateway](https://vercel.com/ai-gateway) provider, which is the default [global provider](/docs/ai-sdk-core/provider-management#global-provider-configuration). This means you can access models using a simple string in the model configuration:
 
 ```ts
-model: 'anthropic/claude-sonnet-4.5';
+model: __MODEL__;
 ```
 
 You can also explicitly import and use the gateway provider in two other equivalent ways:
@@ -316,14 +317,15 @@ Modify your `app/api/chat+api.ts` file to include the new weather tool:
 
 ```tsx filename="app/api/chat+api.ts" highlight="2,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
     tools: {
       weather: tool({
         description: 'Get the weather in a location (fahrenheit)',
@@ -479,14 +481,15 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {
       weather: tool({
@@ -535,14 +538,15 @@ import {
   tool,
   stepCountIs,
 } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
     tools: {
       weather: tool({

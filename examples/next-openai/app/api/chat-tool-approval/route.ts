@@ -2,12 +2,12 @@ import { weatherWithApprovalAgent } from '@/agent/weather-with-approval-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
-  const { messages } = await request.json();
+  const body = await request.json();
 
-  console.dir(messages, { depth: Infinity });
+  console.dir(body.messages, { depth: Infinity });
 
   return createAgentUIStreamResponse({
     agent: weatherWithApprovalAgent,
-    messages,
+    uiMessages: body.messages,
   });
 }

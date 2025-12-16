@@ -21,10 +21,11 @@ The ToolLoopAgent class handles these three components. Here's an agent that use
 
 ```ts
 import { ToolLoopAgent, stepCountIs, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const weatherAgent = new ToolLoopAgent({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location (in Fahrenheit)',

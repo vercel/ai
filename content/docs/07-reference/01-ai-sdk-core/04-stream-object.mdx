@@ -5,6 +5,14 @@ description: API Reference for streamObject
 
 # `streamObject()`
 
+<Note type="warning">
+  `streamObject` is deprecated. Use
+  [`streamText`](/docs/reference/ai-sdk-core/stream-text) with the
+  [`output`](/docs/reference/ai-sdk-core/output) property instead. See
+  [Generating Structured Data](/docs/ai-sdk-core/generating-structured-data) for
+  more information.
+</Note>
+
 Streams a typed, structured object for a given prompt and schema using a language model.
 
 It can be used to force the language model to return structured data, e.g. for information extraction, synthetic data generation, or classification tasks.
@@ -13,10 +21,11 @@ It can be used to force the language model to return structured data, e.g. for i
 
 ```ts
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -40,10 +49,11 @@ You can use `elementStream` to get the stream of complete array elements.
 
 ```ts highlight="7,18"
 import { streamObject } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'array',
   schema: z.object({
     name: z.string(),
@@ -66,7 +76,7 @@ for await (const hero of elementStream) {
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'no-schema',
   prompt: 'Generate a lasagna recipe.',
 });
@@ -86,7 +96,7 @@ and provide the list of possible values in the `enum` parameter.
 import { streamObject } from 'ai';
 
 const { partialObjectStream } = streamObject({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   output: 'enum',
   enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
   prompt:
@@ -119,14 +129,6 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       description: "The type of output to generate. Defaults to 'object'.",
     },
     {
-      name: 'mode',
-      type: "'auto' | 'json' | 'tool'",
-      description:
-        "The mode to use for object generation. Not every model supports all modes. \
-        Defaults to 'auto' for 'object' output and to 'json' for 'no-schema' output. \
-        Must be 'json' for 'no-schema' output.",
-    },
-    {
       name: 'schema',
       type: 'Zod Schema | JSON Schema',
       description:
@@ -153,7 +155,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         Not available with 'no-schema' or 'enum' output.",
     },
     {
-      name: 'system | SystemModelMessage',
+      name: 'system | SystemModelMessage | SystemModelMessage[]',
       type: 'string',
       description:
         'The system prompt to use that specifies the behavior of the model.',
@@ -602,7 +604,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'usage',
               type: 'LanguageModelUsage',
-              description: 'The token usage of the generated text.',
+              description: 'The token usage of the generated object.',
               properties: [
                 {
                   type: 'LanguageModelUsage',
@@ -610,31 +612,81 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                     {
                       name: 'inputTokens',
                       type: 'number | undefined',
-                      description: 'The number of input (prompt) tokens used.',
+                      description:
+                        'The total number of input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'inputTokenDetails',
+                      type: 'LanguageModelInputTokenDetails',
+                      description:
+                        'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+                      properties: [
+                        {
+                          type: 'LanguageModelInputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'noCacheTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of non-cached input (prompt) tokens used.',
+                            },
+                            {
+                              name: 'cacheReadTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens read.',
+                            },
+                            {
+                              name: 'cacheWriteTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of cached input (prompt) tokens written.',
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       name: 'outputTokens',
                       type: 'number | undefined',
                       description:
-                        'The number of output (completion) tokens used.',
+                        'The number of total output (completion) tokens used.',
+                    },
+                    {
+                      name: 'outputTokenDetails',
+                      type: 'LanguageModelOutputTokenDetails',
+                      description:
+                        'Detailed information about the output (completion) tokens.',
+                      properties: [
+                        {
+                          type: 'LanguageModelOutputTokenDetails',
+                          parameters: [
+                            {
+                              name: 'textTokens',
+                              type: 'number | undefined',
+                              description: 'The number of text tokens used.',
+                            },
+                            {
+                              name: 'reasoningTokens',
+                              type: 'number | undefined',
+                              description:
+                                'The number of reasoning tokens used.',
+                            },
+                          ],
+                        },
+                      ],
                     },
                     {
                       name: 'totalTokens',
                       type: 'number | undefined',
+                      description: 'The total number of tokens used.',
+                    },
+                    {
+                      name: 'raw',
+                      type: 'object | undefined',
+                      isOptional: true,
                       description:
-                        'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-                    },
-                    {
-                      name: 'reasoningTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of reasoning tokens used.',
-                    },
-                    {
-                      name: 'cachedInputTokens',
-                      type: 'number | undefined',
-                      isOptional: true,
-                      description: 'The number of cached input tokens.',
+                        "Raw usage information from the provider. This is the provider's original usage information and may include additional fields.",
                     },
                   ],
                 },
@@ -724,30 +776,79 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             {
               name: 'inputTokens',
               type: 'number | undefined',
-              description: 'The number of input (prompt) tokens used.',
+              description: 'The total number of input (prompt) tokens used.',
+            },
+            {
+              name: 'inputTokenDetails',
+              type: 'LanguageModelInputTokenDetails',
+              description:
+                'Detailed information about the input (prompt) tokens. See also: cached tokens and non-cached tokens.',
+              properties: [
+                {
+                  type: 'LanguageModelInputTokenDetails',
+                  parameters: [
+                    {
+                      name: 'noCacheTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of non-cached input (prompt) tokens used.',
+                    },
+                    {
+                      name: 'cacheReadTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of cached input (prompt) tokens read.',
+                    },
+                    {
+                      name: 'cacheWriteTokens',
+                      type: 'number | undefined',
+                      description:
+                        'The number of cached input (prompt) tokens written.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'outputTokens',
               type: 'number | undefined',
-              description: 'The number of output (completion) tokens used.',
+              description:
+                'The number of total output (completion) tokens used.',
+            },
+            {
+              name: 'outputTokenDetails',
+              type: 'LanguageModelOutputTokenDetails',
+              description:
+                'Detailed information about the output (completion) tokens.',
+              properties: [
+                {
+                  type: 'LanguageModelOutputTokenDetails',
+                  parameters: [
+                    {
+                      name: 'textTokens',
+                      type: 'number | undefined',
+                      description: 'The number of text tokens used.',
+                    },
+                    {
+                      name: 'reasoningTokens',
+                      type: 'number | undefined',
+                      description: 'The number of reasoning tokens used.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'totalTokens',
               type: 'number | undefined',
+              description: 'The total number of tokens used.',
+            },
+            {
+              name: 'raw',
+              type: 'object | undefined',
+              isOptional: true,
               description:
-                'The total number of tokens as reported by the provider. This number might be different from the sum of inputTokens and outputTokens and e.g. include reasoning tokens or other overhead.',
-            },
-            {
-              name: 'reasoningTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of reasoning tokens used.',
-            },
-            {
-              name: 'cachedInputTokens',
-              type: 'number | undefined',
-              isOptional: true,
-              description: 'The number of cached input tokens.',
+                "Raw usage information from the provider. This is the provider's original usage information and may include additional fields.",
             },
           ],
         },

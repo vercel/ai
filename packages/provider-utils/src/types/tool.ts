@@ -25,7 +25,14 @@ export interface ToolExecutionOptions {
   abortSignal?: AbortSignal;
 
   /**
-   * Additional context.
+   * User-defined context.
+   *
+   * Treat the context object as immutable inside tools.
+   * Mutating the context object can lead to race conditions and unexpected results
+   * when tools are called in parallel.
+   *
+   * If you need to mutate the context, analyze the tool calls and results
+   * in `prepareStep` and update it there.
    *
    * Experimental (can break in patch releases).
    */
@@ -122,14 +129,22 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 
   /**
-The schema of the input that the tool expects. The language model will use this to generate the input.
-It is also used to validate the output of the language model.
-Use descriptions to make the input understandable for the language model.
+   * The schema of the input that the tool expects.
+   * The language model will use this to generate the input.
+   * It is also used to validate the output of the language model.
+   *
+   * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-Whether the tool needs approval before it can be executed.
+   * An optional list of input examples that show the language
+   * model what the input should look like.
+   */
+  inputExamples?: Array<{ input: INPUT }>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
    */
   needsApproval?:
     | boolean
@@ -169,17 +184,30 @@ Whether the tool needs approval before it can be executed.
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
-Optional conversion function that maps the tool result to an output that can be used by the language model.
+     * Optional conversion function that maps the tool result to an output that can be used by the language model.
+     *
+     * If not provided, the tool result will be sent as a JSON object.
+     */
+    toModelOutput?: (options: {
+      /**
+       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+       */
+      toolCallId: string;
 
-If not provided, the tool result will be sent as a JSON object.
-  */
-    toModelOutput?: (
+      /**
+       * The input of the tool call.
+       */
+      input: [INPUT] extends [never] ? unknown : INPUT;
+
+      /**
+       * The output of the tool call.
+       */
       output: 0 extends 1 & OUTPUT
         ? any
         : [OUTPUT] extends [never]
           ? any
-          : NoInfer<OUTPUT>,
-    ) => ToolResultOutput;
+          : NoInfer<OUTPUT>;
+    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
   } & (
     | {
         /**
@@ -247,7 +275,28 @@ export function dynamicTool(tool: {
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => ToolResultOutput;
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   */
+  toModelOutput?: (options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * The input of the tool call.
+     */
+    input: unknown;
+
+    /**
+     * The output of the tool call.
+     */
+    output: unknown;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
 
   /**
    * Whether the tool needs approval before it can be executed.
