@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
 ## 4.0.0-beta.99
 
 ### Patch Changes

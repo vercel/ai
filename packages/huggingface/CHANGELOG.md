@@ -1,5 +1,15 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.50
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
 ## 1.0.0-beta.49
 
 ### Patch Changes

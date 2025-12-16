@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
 ## 3.0.0-beta.89
 
 ### Patch Changes

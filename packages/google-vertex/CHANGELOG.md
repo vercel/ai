@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/google@3.0.0-beta.79
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
 ## 4.0.0-beta.121
 
 ### Patch Changes
