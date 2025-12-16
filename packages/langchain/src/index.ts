@@ -5,7 +5,7 @@ export {
 } from './adapter';
 
 export {
-  useLangSmithDeployment,
+  LangSmithDeploymentTransport,
   type LangSmithDeploymentTransportOptions,
 } from './transport';
 

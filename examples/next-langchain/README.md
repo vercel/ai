@@ -27,9 +27,9 @@ Showcases LangChain's `createAgent` with the AI SDK adapter:
 
 ### 4. LangGraph Transport (`/langsmith`)
 
-Connect directly to a LangGraph app from the browser using `useLangSmithDeployment`:
+Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
 
-- Uses `useLangSmithDeployment` to create a transport for client-side communication
+- Uses `LangSmithDeploymentTransport` to create a transport for client-side communication
 - No backend route needed - talks directly to the LangGraph server
 - Works with both local development server and LangSmith deployments
 - Includes a local LangGraph server for development (see below)
@@ -139,17 +139,24 @@ return createUIMessageStreamResponse({
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useLangSmithDeployment } from '@ai-sdk/langchain';
+import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
+import { useMemo } from 'react';
 
 function Chat() {
+  const transport = useMemo(
+    () =>
+      new LangSmithDeploymentTransport({
+        // Local development server:
+        url: 'http://localhost:2024',
+        // Or for a LangSmith deployment:
+        // url: 'https://your-deployment.langsmith.app',
+        // apiKey: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
+      }),
+    [],
+  );
+
   const { messages, sendMessage, status } = useChat({
-    transport: useLangSmithDeployment({
-      // Local development server:
-      url: 'http://localhost:2024',
-      // Or for a LangSmith deployment:
-      // url: 'https://your-deployment.langsmith.app',
-      // apiKey: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
-    }),
+    transport,
   });
 
   // ... render chat UI

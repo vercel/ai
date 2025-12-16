@@ -27,10 +27,25 @@ export type LangSmithDeploymentTransportOptions = Omit<
 };
 
 /**
- * Internal ChatTransport implementation for LangSmith/LangGraph deployments.
- * Use {@link useLangSmithDeployment} to create an instance.
+ * A ChatTransport implementation for LangSmith/LangGraph deployments.
+ *
+ * This transport enables seamless integration between the AI SDK's useChat hook
+ * and LangSmith deployed LangGraph agents.
+ *
+ * @example
+ * ```ts
+ * import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
+ *
+ * // Use with useChat
+ * const { messages, input, handleSubmit } = useChat({
+ *   transport: new LangSmithDeploymentTransport({
+ *     url: 'https://your-deployment.us.langgraph.app',
+ *     apiKey: 'my-api-key',
+ *   }),
+ * });
+ * ```
  */
-class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
+export class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
   implements ChatTransport<UI_MESSAGE>
 {
   protected graph: RemoteGraph;
@@ -70,29 +85,4 @@ class LangSmithDeploymentTransport<UI_MESSAGE extends UIMessage>
   ): Promise<ReadableStream<UIMessageChunk> | null> {
     throw new Error('Method not implemented.');
   }
-}
-
-/**
- * A ChatTransport implementation for LangSmith/LangGraph deployments.
- *
- * This transport enables seamless integration between the AI SDK's useChat hook
- * and LangSmith deployed LangGraph agents.
- *
- * @example
- * ```ts
- * import { useLangSmithDeployment } from '@ai-sdk/langchain';
- *
- * // Use with useChat
- * const { messages, input, handleSubmit } = useChat({
- *   transport: useLangSmithDeployment({
- *     url: 'https://your-deployment.us.langgraph.app',
- *     apiKey: 'my-api-key',
- *   }),
- * });
- * ```
- */
-export function useLangSmithDeployment<UI_MESSAGE extends UIMessage>(
-  options: LangSmithDeploymentTransportOptions,
-) {
-  return new LangSmithDeploymentTransport<UI_MESSAGE>(options);
 }

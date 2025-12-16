@@ -1,8 +1,8 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useLangSmithDeployment } from '@ai-sdk/langchain';
-import { useState } from 'react';
+import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
+import { useState, useMemo } from 'react';
 import { ChatContainer } from '../../components/chat-container';
 import { LangsmithConfigPanel } from '../../components/langsmith-config-panel';
 
@@ -14,11 +14,17 @@ export default function LangSmithPage() {
 
   const deploymentUrl = customUrl || LOCAL_DEV_URL;
 
+  const transport = useMemo(
+    () =>
+      new LangSmithDeploymentTransport({
+        url: deploymentUrl,
+        apiKey: apiKey || undefined,
+      }),
+    [deploymentUrl, apiKey],
+  );
+
   const { messages, sendMessage, status, error } = useChat({
-    transport: useLangSmithDeployment({
-      url: deploymentUrl,
-      apiKey: apiKey || undefined,
-    }),
+    transport,
   });
 
   return (

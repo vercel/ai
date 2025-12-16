@@ -1,9 +1,9 @@
-import { useLangSmithDeployment } from './transport';
+import { LangSmithDeploymentTransport } from './transport';
 import { describe, it, expect } from 'vitest';
 
-describe('useLangSmithDeployment', () => {
+describe('LangSmithDeploymentTransport', () => {
   it('should create transport with options', () => {
-    const transport = useLangSmithDeployment({
+    const transport = new LangSmithDeploymentTransport({
       url: 'https://test.langsmith.app',
       apiKey: 'test-key',
     });
@@ -13,7 +13,7 @@ describe('useLangSmithDeployment', () => {
   });
 
   it('should create transport with only url', () => {
-    const transport = useLangSmithDeployment({
+    const transport = new LangSmithDeploymentTransport({
       url: 'https://test.langsmith.app',
     });
 
@@ -21,7 +21,7 @@ describe('useLangSmithDeployment', () => {
   });
 
   it('should create transport with custom graphId', () => {
-    const transport = useLangSmithDeployment({
+    const transport = new LangSmithDeploymentTransport({
       url: 'https://test.langsmith.app',
       graphId: 'custom-agent',
     });
@@ -30,7 +30,7 @@ describe('useLangSmithDeployment', () => {
   });
 
   it('should throw error for reconnectToStream', async () => {
-    const transport = useLangSmithDeployment({
+    const transport = new LangSmithDeploymentTransport({
       url: 'https://test.langsmith.app',
     });
 

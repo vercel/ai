@@ -57,18 +57,25 @@ return createUIMessageStreamResponse({
 
 ### LangSmith Deployment Transport
 
-Use `useLangSmithDeployment` with the AI SDK `useChat` hook to connect directly to a LangGraph deployment from the browser:
+Use `LangSmithDeploymentTransport` with the AI SDK `useChat` hook to connect directly to a LangGraph deployment from the browser:
 
 ```tsx
 import { useChat } from 'ai/react';
-import { useLangSmithDeployment } from '@ai-sdk/langchain';
+import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
+import { useMemo } from 'react';
 
 function Chat() {
+  const transport = useMemo(
+    () =>
+      new LangSmithDeploymentTransport({
+        url: 'https://your-deployment.us.langgraph.app',
+        apiKey: process.env.LANGSMITH_API_KEY,
+      }),
+    [],
+  );
+
   const { messages, input, handleInputChange, handleSubmit } = useChat({
-    transport: useLangSmithDeployment({
-      url: 'https://your-deployment.us.langgraph.app',
-      apiKey: process.env.LANGSMITH_API_KEY,
-    }),
+    transport,
   });
 
   return (
@@ -123,18 +130,18 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 - `values` - State updates that finalize pending message chunks
 - `custom` - Custom data events
 
-### `useLangSmithDeployment(options)`
+### `LangSmithDeploymentTransport`
 
-Creates a `ChatTransport` for LangSmith/LangGraph deployments.
+A `ChatTransport` implementation for LangSmith/LangGraph deployments.
 
-**Parameters:**
+**Constructor Parameters:**
 
 - `options`: `LangSmithDeploymentTransportOptions` - Configuration for the RemoteGraph connection
   - `url`: `string` - LangSmith deployment URL or local server URL
   - `apiKey?`: `string` - API key for authentication (optional for local development)
   - `graphId?`: `string` - The ID of the graph to connect to (defaults to `'agent'`)
 
-**Returns:** `ChatTransport`
+**Implements:** `ChatTransport`
 
 ## Documentation
 
