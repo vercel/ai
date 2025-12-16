@@ -147,6 +147,7 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v6/rename-text-embedding-to-embedding`                     | Transforms v6/rename text embedding to embedding                     |
 | `v6/rename-tool-call-options-to-tool-execution-options`     | Transforms v6/rename tool call options to tool execution options     |
 | `v6/rename-vertex-provider-metadata-key`                    | Transforms v6/rename vertex provider metadata key                    |
+| `v6/wrap-tomodeloutput-parameter`                           | Transforms v6/wrap tomodeloutput parameter                           |
 
 ## CLI Options
 
