@@ -3,6 +3,8 @@ import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { loadApiKey, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
 import { ReplicateImageModelId } from './replicate-image-settings';
+import { ReplicateLanguageModel } from './replicate-language-model';
+import { ReplicateLanguageModelId } from './replicate-language-settings';
 import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {
@@ -32,6 +34,11 @@ or to provide a custom fetch implementation for e.g. testing.
 
 export interface ReplicateProvider extends ProviderV3 {
   /**
+   * Creates a Replicate language model.
+   */
+  languageModel(modelId: ReplicateLanguageModelId): ReplicateLanguageModel;
+
+  /**
    * Creates a Replicate image generation model.
    */
   image(modelId: ReplicateImageModelId): ReplicateImageModel;
@@ -48,34 +55,40 @@ export interface ReplicateProvider extends ProviderV3 {
 export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
+  const baseURL = options.baseURL ?? 'https://api.replicate.com/v1';
+  const headers = withUserAgentSuffix(
+    {
+      Authorization: `Bearer ${loadApiKey({
+        apiKey: options.apiToken,
+        environmentVariableName: 'REPLICATE_API_TOKEN',
+        description: 'Replicate',
+      })}`,
+      ...options.headers,
+    },
+    `ai-sdk/replicate/${VERSION}`,
+  );
+
+  const createLanguageModel = (modelId: ReplicateLanguageModelId) =>
+    new ReplicateLanguageModel(modelId, {
+      provider: 'replicate.languageModel',
+      baseURL,
+      headers,
+      fetch: options.fetch,
+    });
+
   const createImageModel = (modelId: ReplicateImageModelId) =>
     new ReplicateImageModel(modelId, {
-      provider: 'replicate',
-      baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
-      headers: withUserAgentSuffix(
-        {
-          Authorization: `Bearer ${loadApiKey({
-            apiKey: options.apiToken,
-            environmentVariableName: 'REPLICATE_API_TOKEN',
-            description: 'Replicate',
-          })}`,
-          ...options.headers,
-        },
-        `ai-sdk/replicate/${VERSION}`,
-      ),
+      provider: 'replicate.image',
+      baseURL,
+      headers,
       fetch: options.fetch,
     });
 
   return {
     specificationVersion: 'v3' as const,
+    languageModel: createLanguageModel,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
     embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({
         modelId,
