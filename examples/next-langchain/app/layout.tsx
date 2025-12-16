@@ -18,7 +18,7 @@ export default function RootLayout({
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden bg-[var(--background)] relative">
           <MobileNav />
-          <main className="flex-1 flex flex-col overflow-hidden">
+          <main className="flex-1 flex flex-col overflow-hidden border border-[var(--border-hover)] m-2 lg:m-3 rounded-xl bg-[var(--background-secondary)]">
             {children}
           </main>
         </div>

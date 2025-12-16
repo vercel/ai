@@ -16,8 +16,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
           isUser
-            ? 'bg-gradient-to-br from-blue-500 to-cyan-400 text-white'
-            : 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
+            ? 'bg-gradient-to-br from-amber-500 to-orange-400 text-white'
+            : 'bg-gradient-to-br from-amber-700 to-yellow-600 text-white'
         }`}
       >
         {isUser ? 'U' : 'AI'}

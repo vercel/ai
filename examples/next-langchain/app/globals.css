@@ -5,38 +5,40 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Vercel-inspired dark theme */
+  /* Dark theme with improved contrast */
   --background: #000000;
-  --background-secondary: #0a0a0a;
-  --background-tertiary: #111111;
-  --foreground: #ededed;
-  --foreground-secondary: #a1a1a1;
-  --foreground-muted: #666666;
+  --background-secondary: #080808;
+  --background-tertiary: #141414;
+  --foreground: #f0f0f0;
+  --foreground-secondary: #b8b8b8;
+  --foreground-muted: #8a8a8a;
   
-  /* Accent colors */
-  --accent: #0070f3;
-  --accent-hover: #0060df;
-  --accent-light: rgba(0, 112, 243, 0.1);
+  /* Warm accent palette */
+  --accent: #d4a574;
+  --accent-hover: #c49464;
+  --accent-light: rgba(212, 165, 116, 0.12);
+  --accent-secondary: #8b7355;
   
-  /* Borders */
-  --border: #222222;
-  --border-hover: #333333;
+  /* Borders - neutral gray */
+  --border: #262626;
+  --border-hover: #3a3a3a;
   
   /* Success, error, warning */
-  --success: #00c853;
-  --error: #ff4444;
-  --warning: #ffbb00;
+  --success: #4ade80;
+  --error: #f87171;
+  --warning: #fbbf24;
   
-  /* Gradients */
-  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-2: linear-gradient(135deg, #0070f3 0%, #00c6ff 100%);
-  --gradient-3: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  /* Gradients - warmer tones */
+  --gradient-1: linear-gradient(135deg, #d4a574 0%, #8b7355 100%);
+  --gradient-2: linear-gradient(135deg, #c9a86c 0%, #7d6b4e 100%);
+  --gradient-3: linear-gradient(135deg, #f5d0a9 0%, #d4a574 100%);
+  --gradient-border: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 25%, #1f1f1f 50%, #2a2a2a 75%, #3a3a3a 100%);
   
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 40px rgba(0, 112, 243, 0.15);
+  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.05);
 }
 
 * {
@@ -83,9 +85,10 @@ code {
   font-family: 'Geist Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace;
   font-size: 0.875em;
   background: var(--background-tertiary);
-  padding: 0.15em 0.4em;
+  color: var(--foreground);
+  padding: 0.2em 0.5em;
   border-radius: 4px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-hover);
 }
 
 /* Animation keyframes */
@@ -172,9 +175,16 @@ code {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: var(--gradient-2);
+  background: var(--gradient-border);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
+
+/* Subtle glow effect for main content */
+.content-glow {
+  box-shadow: 
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+    0 0 60px -20px rgba(255, 255, 255, 0.08);
 }

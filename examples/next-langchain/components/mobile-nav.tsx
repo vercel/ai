@@ -45,7 +45,7 @@ export function MobileNav() {
       {/* Mobile header */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--background-secondary)]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-yellow-500 flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" strokeWidth={2} />
           </div>
           <div>
@@ -85,7 +85,7 @@ export function MobileNav() {
                   }`}
                 >
                   <span className="font-medium">{item.label}</span>
-                  <span className="text-xs text-[var(--foreground-muted)]">
+                  <span className="text-xs text-[var(--foreground-secondary)]">
                     {item.description}
                   </span>
                 </Link>

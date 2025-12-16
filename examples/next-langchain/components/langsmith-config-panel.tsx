@@ -70,7 +70,7 @@ export function LangsmithConfigPanel({
               className="w-full px-3 py-2 text-sm bg-[var(--background-secondary)] border border-[var(--border)] rounded-lg text-[var(--foreground)] placeholder-[var(--foreground-muted)] focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
-          <p className="text-xs text-[var(--foreground-muted)]">
+          <p className="text-xs text-[var(--foreground-secondary)]">
             💡 The local server starts automatically with{' '}
             <code className="text-[var(--accent)]">pnpm dev</code>
           </p>

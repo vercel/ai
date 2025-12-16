@@ -95,7 +95,7 @@ export function GeneratedImage({
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 mt-2 text-xs text-[var(--foreground-muted)]">
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-[var(--foreground-secondary)]">
           <ImageIcon className="w-3.5 h-3.5" />
           <span>AI Generated Image</span>
         </div>

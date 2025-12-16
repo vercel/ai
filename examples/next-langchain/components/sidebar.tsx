@@ -70,7 +70,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <div className="px-3 py-2 text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+        <div className="px-3 py-2 text-xs font-semibold text-[var(--foreground-secondary)] uppercase tracking-wider">
           Examples
         </div>
         {navItems.map(item => {
@@ -87,7 +87,7 @@ export function Sidebar() {
               }`}
             >
               <span
-                className={`flex-shrink-0 mt-0.5 ${isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground-muted)] group-hover:text-[var(--foreground-secondary)]'}`}
+                className={`flex-shrink-0 mt-0.5 ${isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground-secondary)] group-hover:text-[var(--foreground)]'}`}
               >
                 <Icon className="w-5 h-5" strokeWidth={1.5} />
               </span>
@@ -100,7 +100,7 @@ export function Sidebar() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[var(--foreground-muted)] truncate mt-0.5">
+                <p className="text-xs text-[var(--foreground-secondary)] truncate mt-0.5 opacity-80">
                   {item.description}
                 </p>
               </div>
