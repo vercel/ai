@@ -149,7 +149,7 @@ function standardSchema<OBJECT>(
   return jsonSchema(
     () =>
       standardSchema['~standard'].jsonSchema.input({
-        target: 'draft-7',
+        target: 'draft-07',
       }),
     {
       validate: async value => {
