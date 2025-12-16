@@ -693,28 +693,23 @@ A function that attempts to repair a tool call that failed to parse.
             toolApprovalRequests: Object.values(toolApprovalRequests),
           });
 
-          // If a provider-executed approval was denied, add the denied result to stepContent.
-          // The provider will receive the tool-result with execution-denied output type and
-          // can handle it appropriately (e.g., convert to error message).
-          if (pendingDeniedProviderExecutedToolApprovals.length > 0) {
-            for (const deniedApproval of pendingDeniedProviderExecutedToolApprovals) {
-              stepContent.push({
-                type: 'tool-result',
-                toolCallId: deniedApproval.toolCall.toolCallId,
-                toolName: deniedApproval.toolCall.toolName,
-                input: deniedApproval.toolCall.input,
-                output: {
-                  type: 'execution-denied',
-                  reason: deniedApproval.approvalResponse.reason,
-                },
-                providerExecuted: true,
-                dynamic: true,
-              });
-            }
-
-            // ensure we only emit this closure once:
-            pendingDeniedProviderExecutedToolApprovals = [];
+          // Emit denied provider-executed tool approvals as execution-denied tool results.
+          for (const deniedApproval of pendingDeniedProviderExecutedToolApprovals) {
+            stepContent.push({
+              type: 'tool-result',
+              toolCallId: deniedApproval.toolCall.toolCallId,
+              toolName: deniedApproval.toolCall.toolName,
+              input: deniedApproval.toolCall.input,
+              output: {
+                type: 'execution-denied',
+                reason: deniedApproval.approvalResponse.reason,
+              },
+              providerExecuted: true,
+              dynamic: true,
+            });
           }
+          // Reset after emitting to ensure we only emit once per denied approval
+          pendingDeniedProviderExecutedToolApprovals = [];
 
           // append to messages for potential next step:
           responseMessages.push(
