@@ -69,6 +69,13 @@ console.log(transcript);
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
     },
+    {
+      name: 'maxDownloadSizeInBytes',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum allowed download size in bytes when audio is a URL. Prevents DoS attacks via unbounded memory consumption. Default: 100MB (104857600 bytes).',
+    },
   ]}
 />
 
