@@ -194,7 +194,7 @@ class SimpleMockResponse extends EventEmitter {
   writtenChunks: any[] = [];
   statusCode = 0;
   statusMessage = '';
-  headers: Record<string, string | number | string[]> = {};
+  headers: Record<string, string | number | string[]> | undefined;
   ended = false;
 
   write(chunk: any): boolean {
@@ -215,10 +215,10 @@ class SimpleMockResponse extends EventEmitter {
 
     if (typeof statusMessage === 'string') {
       this.statusMessage = statusMessage;
-      this.headers = headers || {};
+      this.headers = headers;
     } else {
       this.statusMessage = '';
-      this.headers = statusMessage || {};
+      this.headers = statusMessage;
     }
   }
 
@@ -241,7 +241,7 @@ class BackpressureMockResponse extends EventEmitter {
   writeCallCount = 0;
   statusCode = 0;
   statusMessage = '';
-  headers: Record<string, string | number | string[]> = {};
+  headers: Record<string, string | number | string[]> | undefined;
   ended = false;
   private shouldApplyBackpressure = false;
 
@@ -283,10 +283,10 @@ class BackpressureMockResponse extends EventEmitter {
 
     if (typeof statusMessage === 'string') {
       this.statusMessage = statusMessage;
-      this.headers = headers || {};
+      this.headers = headers;
     } else {
       this.statusMessage = '';
-      this.headers = statusMessage || {};
+      this.headers = statusMessage;
     }
   }
 
