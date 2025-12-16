@@ -15,23 +15,25 @@ export default function AgentPage() {
 
   return (
     <ChatContainer
-      title="Image Generation Agent"
+      title="Multi-Tool Agent"
       description={
         <>
-          Uses LangChain&apos;s <code>createAgent</code> with the{' '}
-          <code>imageGeneration</code> tool to showcase multimodality. Ask the
-          AI to draw, create, or design any image you can imagine!
+          Uses LangChain&apos;s <code>createAgent</code> with <strong>GPT-5</strong>{' '}
+          and multiple tools including image generation, weather, Wikipedia
+          search, and date/time. GPT-5&apos;s reasoning tokens are displayed in
+          a collapsible panel, showing the model&apos;s thought process.
         </>
       }
       messages={messages}
       onSend={text => sendMessage({ text })}
       status={status}
       error={error}
-      placeholder="Draw a cozy cabin in the mountains at sunset..."
+      placeholder="Ask me anything - I can search, check weather, get time, and create images..."
       suggestions={[
-        'Draw a cat wearing a top hat',
-        'Create a futuristic city skyline',
-        'Design a logo for a coffee shop',
+        "What's the weather in Tokyo and what time is it there?",
+        'Tell me about artificial intelligence',
+        'What time is it in New York right now?',
+        'Draw a futuristic city skyline',
       ]}
     />
   );

@@ -122,7 +122,12 @@ export function toUIMessageStream(
   /**
    * State for model stream handling
    */
-  const modelState = { started: false, messageId: 'langchain-msg-1' };
+  const modelState = {
+    started: false,
+    messageId: 'langchain-msg-1',
+    reasoningStarted: false,
+    textStarted: false,
+  };
 
   /**
    * State for LangGraph stream handling
@@ -135,6 +140,8 @@ export function toUIMessageStream(
     messageConcat: {} as Record<string, AIMessageChunk>,
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
+    emittedReasoningIds: new Set<string>(),
+    messageReasoningIds: {} as Record<string, string>,
   };
 
   /**
@@ -201,7 +208,13 @@ export function toUIMessageStream(
          * Finalize based on stream type
          */
         if (streamType === 'model') {
-          if (modelState.started) {
+          if (modelState.reasoningStarted) {
+            controller.enqueue({
+              type: 'reasoning-end',
+              id: modelState.messageId,
+            });
+          }
+          if (modelState.textStarted) {
             controller.enqueue({ type: 'text-end', id: modelState.messageId });
           }
           controller.enqueue({ type: 'finish' });

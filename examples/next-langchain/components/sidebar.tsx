@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   MessageCircle,
   Cpu,
-  Settings,
+  Wrench,
   Cloud,
   BookOpen,
   Github,
@@ -36,10 +36,10 @@ const navItems: NavItem[] = [
   },
   {
     href: '/createAgent',
-    label: 'Image Generation',
-    description: 'Multimodal AI artist',
-    icon: Settings,
-    badge: 'Multimodal',
+    label: 'GPT-5 Agent',
+    description: 'Reasoning + multiple tools',
+    icon: Wrench,
+    badge: 'GPT-5',
   },
   {
     href: '/langsmith',

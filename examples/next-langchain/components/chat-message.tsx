@@ -2,6 +2,7 @@
 
 import { UIMessage } from 'ai';
 import { GeneratedImage } from './generated-image';
+import { ReasoningBlock } from './reasoning-block';
 
 interface ChatMessageProps {
   message: UIMessage;
@@ -35,6 +36,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
           }`}
         >
           {message.parts.map((part, i) => {
+            // Handle reasoning parts (extended thinking)
+            if (part.type === 'reasoning') {
+              const reasoningPart = part as { type: 'reasoning'; text: string; state?: 'streaming' | 'done' };
+              return (
+                <ReasoningBlock
+                  key={i}
+                  text={reasoningPart.text}
+                  state={reasoningPart.state || 'done'}
+                />
+              );
+            }
             if (part.type === 'text') {
               return (
                 <div key={i} className="whitespace-pre-wrap leading-relaxed">

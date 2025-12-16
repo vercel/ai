@@ -24,8 +24,8 @@ const navItems: NavItem[] = [
   },
   {
     href: '/createAgent',
-    label: 'LangChain Agent',
-    description: 'Agent with tools',
+    label: 'GPT-5 Agent',
+    description: 'Reasoning + multiple tools',
   },
   {
     href: '/langsmith',

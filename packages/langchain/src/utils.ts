@@ -125,7 +125,12 @@ export function isToolResultPart(item: unknown): item is ToolResultPart {
  */
 export function processModelChunk(
   chunk: AIMessageChunk,
-  state: { started: boolean; messageId: string },
+  state: {
+    started: boolean;
+    messageId: string;
+    reasoningStarted?: boolean;
+    textStarted?: boolean;
+  },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
   /**
@@ -133,6 +138,27 @@ export function processModelChunk(
    */
   if (chunk.id) {
     state.messageId = chunk.id;
+  }
+
+  /**
+   * Handle reasoning content from contentBlocks or response_metadata.output
+   * For direct model streams, we check both sources since there's no values event
+   * that would cause duplication (unlike LangGraph streams)
+   */
+  const reasoning =
+    extractReasoningFromContentBlocks(chunk) ||
+    extractReasoningFromValuesMessage(chunk);
+  if (reasoning) {
+    if (!state.reasoningStarted) {
+      controller.enqueue({ type: 'reasoning-start', id: state.messageId });
+      state.reasoningStarted = true;
+      state.started = true;
+    }
+    controller.enqueue({
+      type: 'reasoning-delta',
+      delta: reasoning,
+      id: state.messageId,
+    });
   }
 
   /**
@@ -155,8 +181,17 @@ export function processModelChunk(
         : '';
 
   if (text) {
-    if (!state.started) {
+    /**
+     * If reasoning was streamed before text, close reasoning first
+     */
+    if (state.reasoningStarted && !state.textStarted) {
+      controller.enqueue({ type: 'reasoning-end', id: state.messageId });
+      state.reasoningStarted = false;
+    }
+
+    if (!state.textStarted) {
       controller.enqueue({ type: 'text-start', id: state.messageId });
+      state.textStarted = true;
       state.started = true;
     }
     controller.enqueue({
@@ -170,7 +205,7 @@ export function processModelChunk(
 /**
  * Checks if a message is a plain object (not a LangChain class instance).
  * LangChain class instances have a _getType method.
- * 
+ *
  * @param msg - The message to check.
  * @returns True if the message is a plain object, false otherwise.
  */
@@ -183,10 +218,43 @@ export function isPlainMessageObject(msg: unknown): boolean {
 }
 
 /**
+ * Extracts the actual message ID from a message.
+ * Handles both class instances (msg.id) and serialized LangChain messages (msg.kwargs.id).
+ *
+ * @param msg - The message to extract the ID from.
+ * @returns The message ID string, or undefined if not found.
+ */
+export function getMessageId(msg: unknown): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  const msgObj = msg as Record<string, unknown>;
+
+  // For class instances, id is directly on the object
+  if (typeof msgObj.id === 'string') {
+    return msgObj.id;
+  }
+
+  // For serialized LangChain messages, id is in kwargs
+  if (
+    msgObj.type === 'constructor' &&
+    msgObj.kwargs &&
+    typeof msgObj.kwargs === 'object'
+  ) {
+    const kwargs = msgObj.kwargs as Record<string, unknown>;
+    if (typeof kwargs.id === 'string') {
+      return kwargs.id;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Checks if a message is an AI message chunk (works for both class instances and plain objects).
  * For class instances, only AIMessageChunk is matched (not AIMessage).
  * For plain objects from RemoteGraph API, matches type === 'ai'.
- * 
+ * For serialized LangChain messages, matches type === 'constructor' with AIMessageChunk in id path.
+ *
  * @param msg - The message to check.
  * @returns True if the message is an AI message chunk, false otherwise.
  */
@@ -202,14 +270,23 @@ export function isAIMessageChunk(
    */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
-    return 'type' in obj && obj.type === 'ai';
+    // Direct type === 'ai' (RemoteGraph format)
+    if ('type' in obj && obj.type === 'ai') return true;
+    // Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
+    if (
+      obj.type === 'constructor' &&
+      Array.isArray(obj.id) &&
+      (obj.id.includes('AIMessageChunk') || obj.id.includes('AIMessage'))
+    ) {
+      return true;
+    }
   }
   return false;
 }
 
 /**
  * Checks if a message is a Tool message (works for both class instances and plain objects).
- * 
+ *
  * @param msg - The message to check.
  * @returns True if the message is a Tool message, false otherwise.
  */
@@ -222,14 +299,23 @@ export function isToolMessageType(
    */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
-    return 'type' in obj && obj.type === 'tool';
+    // Direct type === 'tool' (RemoteGraph format)
+    if ('type' in obj && obj.type === 'tool') return true;
+    // Serialized LangChain message format
+    if (
+      obj.type === 'constructor' &&
+      Array.isArray(obj.id) &&
+      obj.id.includes('ToolMessage')
+    ) {
+      return true;
+    }
   }
   return false;
 }
 
 /**
  * Gets text content from a message (works for both class instances and plain objects).
- * 
+ *
  * @param msg - The message to get the text from.
  * @returns The text content of the message.
  */
@@ -237,14 +323,292 @@ export function getMessageText(msg: unknown): string {
   if (AIMessageChunk.isInstance(msg)) {
     return msg.text ?? '';
   }
-  /**
-   * Handle plain objects - check content property
-   */
-  if (msg != null && typeof msg === 'object' && 'content' in msg) {
-    const content = (msg as { content: unknown }).content;
+
+  if (msg == null || typeof msg !== 'object') return '';
+
+  const msgObj = msg as Record<string, unknown>;
+
+  // For serialized LangChain messages, content is in kwargs
+  const dataSource =
+    msgObj.type === 'constructor' &&
+    msgObj.kwargs &&
+    typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  if ('content' in dataSource) {
+    const content = dataSource.content;
     return typeof content === 'string' ? content : '';
   }
   return '';
+}
+
+/**
+ * Type for reasoning content block from LangChain
+ */
+interface ReasoningContentBlock {
+  type: 'reasoning';
+  reasoning: string;
+}
+
+/**
+ * Type for thinking content block from LangChain (Anthropic-style)
+ */
+interface ThinkingContentBlock {
+  type: 'thinking';
+  thinking: string;
+  signature?: string;
+}
+
+/**
+ * Checks if an object is a reasoning content block
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a reasoning content block, false otherwise.
+ */
+export function isReasoningContentBlock(
+  obj: unknown,
+): obj is ReasoningContentBlock {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: string }).type === 'reasoning' &&
+    'reasoning' in obj &&
+    typeof (obj as { reasoning: unknown }).reasoning === 'string'
+  );
+}
+
+/**
+ * Checks if an object is a thinking content block (Anthropic-style)
+ *
+ * @param obj - The object to check.
+ * @returns True if the object is a thinking content block, false otherwise.
+ */
+export function isThinkingContentBlock(
+  obj: unknown,
+): obj is ThinkingContentBlock {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: string }).type === 'thinking' &&
+    'thinking' in obj &&
+    typeof (obj as { thinking: unknown }).thinking === 'string'
+  );
+}
+
+/**
+ * Type for GPT-5 reasoning summary item
+ */
+interface ReasoningSummaryItem {
+  type: 'summary_text';
+  text: string;
+}
+
+/**
+ * Type for GPT-5 reasoning output block
+ */
+interface GPT5ReasoningOutput {
+  id: string;
+  type: 'reasoning';
+  summary: ReasoningSummaryItem[];
+}
+
+/**
+ * Checks if an object is a GPT-5 reasoning output block
+ */
+function isGPT5ReasoningOutput(obj: unknown): obj is GPT5ReasoningOutput {
+  return (
+    obj != null &&
+    typeof obj === 'object' &&
+    'type' in obj &&
+    (obj as { type: string }).type === 'reasoning' &&
+    'summary' in obj &&
+    Array.isArray((obj as { summary: unknown }).summary)
+  );
+}
+
+/**
+ * Extracts the reasoning block ID from a message (GPT-5 format).
+ * This ID is consistent across streaming and values events.
+ * Handles both class instances and serialized LangChain message objects.
+ *
+ * @param msg - The message to extract the reasoning ID from.
+ * @returns The reasoning block ID if found, undefined otherwise.
+ */
+export function extractReasoningId(msg: unknown): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  // For serialized LangChain messages, the data is in kwargs
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  // Check additional_kwargs.reasoning.id (GPT-5 streaming format)
+  const additionalKwargs = (
+    kwargs as { additional_kwargs?: { reasoning?: { id?: string } } }
+  ).additional_kwargs;
+  if (additionalKwargs?.reasoning?.id) {
+    return additionalKwargs.reasoning.id;
+  }
+
+  // Check response_metadata.output for reasoning block ID (GPT-5 final format)
+  const responseMetadata = (
+    kwargs as { response_metadata?: { output?: unknown[] } }
+  ).response_metadata;
+  if (responseMetadata && Array.isArray(responseMetadata.output)) {
+    for (const item of responseMetadata.output) {
+      if (isGPT5ReasoningOutput(item)) {
+        return item.id;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extracts reasoning content from contentBlocks or additional_kwargs.reasoning.summary
+ *
+ * IMPORTANT: This function is designed for STREAMING chunks where content is delta-based.
+ * It does NOT extract from response_metadata.output because that contains accumulated
+ * content (not deltas) and would cause duplication during streaming.
+ *
+ * For non-streaming/values events, use extractReasoningFromValuesMessage instead.
+ *
+ * Handles both class instances and serialized LangChain message objects.
+ *
+ * @param msg - The message to extract reasoning from.
+ * @returns The reasoning text if found, undefined otherwise.
+ */
+export function extractReasoningFromContentBlocks(
+  msg: unknown,
+): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  // For serialized LangChain messages, the data is in kwargs
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  // Check contentBlocks (Anthropic-style) - highest priority
+  const contentBlocks = (kwargs as { contentBlocks?: unknown[] }).contentBlocks;
+  if (Array.isArray(contentBlocks)) {
+    const reasoningParts: string[] = [];
+    for (const block of contentBlocks) {
+      if (isReasoningContentBlock(block)) {
+        reasoningParts.push(block.reasoning);
+      } else if (isThinkingContentBlock(block)) {
+        reasoningParts.push(block.thinking);
+      }
+    }
+    if (reasoningParts.length > 0) {
+      return reasoningParts.join('');
+    }
+  }
+
+  // Check additional_kwargs.reasoning.summary (GPT-5 streaming format)
+  // This contains DELTA content during streaming, not accumulated content
+  // Format can be either { type: "summary_text", text: "..." } or just { text: "..." }
+  const additionalKwargs = (
+    kwargs as { additional_kwargs?: { reasoning?: { summary?: unknown[] } } }
+  ).additional_kwargs;
+  if (
+    additionalKwargs?.reasoning &&
+    Array.isArray(additionalKwargs.reasoning.summary)
+  ) {
+    const reasoningParts: string[] = [];
+    for (const summaryItem of additionalKwargs.reasoning.summary) {
+      if (
+        typeof summaryItem === 'object' &&
+        summaryItem !== null &&
+        'text' in summaryItem &&
+        typeof (summaryItem as { text: unknown }).text === 'string'
+      ) {
+        reasoningParts.push((summaryItem as { text: string }).text);
+      }
+    }
+    if (reasoningParts.length > 0) {
+      return reasoningParts.join('');
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extracts reasoning content from a values event message.
+ * This checks response_metadata.output which contains the full accumulated reasoning.
+ *
+ * @param msg - The message to extract reasoning from.
+ * @returns The reasoning text if found, undefined otherwise.
+ */
+export function extractReasoningFromValuesMessage(
+  msg: unknown,
+): string | undefined {
+  if (msg == null || typeof msg !== 'object') return undefined;
+
+  // For serialized LangChain messages, the data is in kwargs
+  const msgObj = msg as Record<string, unknown>;
+  const kwargs =
+    msgObj.kwargs && typeof msgObj.kwargs === 'object'
+      ? (msgObj.kwargs as Record<string, unknown>)
+      : msgObj;
+
+  // Check response_metadata.output (GPT-5 final style) - for values events
+  const responseMetadata = (
+    kwargs as { response_metadata?: { output?: unknown[] } }
+  ).response_metadata;
+  if (responseMetadata && Array.isArray(responseMetadata.output)) {
+    const reasoningParts: string[] = [];
+    for (const item of responseMetadata.output) {
+      if (isGPT5ReasoningOutput(item)) {
+        // Extract text from summary array - handles both { type: "summary_text", text } and { text } formats
+        for (const summaryItem of item.summary) {
+          if (typeof summaryItem === 'object' && summaryItem !== null) {
+            const text = (summaryItem as { text?: string }).text;
+            if (typeof text === 'string' && text) {
+              reasoningParts.push(text);
+            }
+          }
+        }
+      }
+    }
+    if (reasoningParts.length > 0) {
+      return reasoningParts.join('');
+    }
+  }
+
+  // Also check additional_kwargs.reasoning.summary as fallback
+  const additionalKwargs = (
+    kwargs as { additional_kwargs?: { reasoning?: { summary?: unknown[] } } }
+  ).additional_kwargs;
+  if (
+    additionalKwargs?.reasoning &&
+    Array.isArray(additionalKwargs.reasoning.summary)
+  ) {
+    const reasoningParts: string[] = [];
+    for (const summaryItem of additionalKwargs.reasoning.summary) {
+      if (
+        typeof summaryItem === 'object' &&
+        summaryItem !== null &&
+        'text' in summaryItem &&
+        typeof (summaryItem as { text: unknown }).text === 'string'
+      ) {
+        reasoningParts.push((summaryItem as { text: string }).text);
+      }
+    }
+    if (reasoningParts.length > 0) {
+      return reasoningParts.join('');
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -264,11 +628,13 @@ interface ImageGenerationOutput {
 
 /**
  * Checks if an object is an image generation output
- * 
+ *
  * @param obj - The object to check.
  * @returns True if the object is an image generation output, false otherwise.
  */
-export function isImageGenerationOutput(obj: unknown): obj is ImageGenerationOutput {
+export function isImageGenerationOutput(
+  obj: unknown,
+): obj is ImageGenerationOutput {
   return (
     obj != null &&
     typeof obj === 'object' &&
@@ -279,7 +645,7 @@ export function isImageGenerationOutput(obj: unknown): obj is ImageGenerationOut
 
 /**
  * Extracts image generation outputs from `additional_kwargs`
- * 
+ *
  * @param additionalKwargs - The additional kwargs to extract the image generation outputs from.
  * @returns The image generation outputs.
  */
@@ -296,7 +662,7 @@ export function extractImageOutputs(
 
 /**
  * Processes a LangGraph event and emits UI message chunks.
- * 
+ *
  * @param event - The event to process.
  * @param state - The state of the LangGraph event.
  * @param controller - The controller to use to emit the UI message chunks.
@@ -311,10 +677,20 @@ export function processLangGraphEvent(
     messageConcat: Record<string, AIMessageChunk>;
     emittedToolCalls: Set<string>;
     emittedImages: Set<string>;
+    emittedReasoningIds: Set<string>;
+    /** Maps message IDs to their reasoning block IDs (for chunks that don't include the ID) */
+    messageReasoningIds: Record<string, string>;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
-  const { messageSeen, messageConcat, emittedToolCalls, emittedImages } = state;
+  const {
+    messageSeen,
+    messageConcat,
+    emittedToolCalls,
+    emittedImages,
+    emittedReasoningIds,
+    messageReasoningIds,
+  } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
 
   switch (type) {
@@ -331,30 +707,41 @@ export function processLangGraphEvent(
       const [rawMsg] = data as [BaseMessageChunk | BaseMessage | undefined];
 
       const msg = rawMsg;
+      const msgId = getMessageId(msg);
 
-      if (!msg?.id) return;
+      if (!msgId) return;
 
       /**
        * Accumulate message chunks for later reference
+       * Note: Only works for actual class instances, not serialized messages
        */
-      if (messageConcat[msg.id]) {
-        const existing = messageConcat[msg.id];
-        if (AIMessageChunk.isInstance(msg)) {
-          messageConcat[msg.id] = existing.concat(msg) as AIMessageChunk;
+      if (AIMessageChunk.isInstance(msg)) {
+        if (messageConcat[msgId]) {
+          messageConcat[msgId] = messageConcat[msgId].concat(
+            msg,
+          ) as AIMessageChunk;
+        } else {
+          messageConcat[msgId] = msg;
         }
-      } else if (AIMessageChunk.isInstance(msg)) {
-        messageConcat[msg.id] = msg;
       }
 
       if (isAIMessageChunk(msg)) {
-        const concatChunk = messageConcat[msg.id];
+        const concatChunk = messageConcat[msgId];
 
         /**
          * Handle image generation outputs from additional_kwargs.tool_outputs
+         * Handle both direct properties and serialized messages (kwargs)
          */
-        const additionalKwargs = (
-          msg as { additional_kwargs?: Record<string, unknown> }
-        ).additional_kwargs;
+        const msgObj = msg as unknown as Record<string, unknown>;
+        const dataSource =
+          msgObj.type === 'constructor' &&
+          msgObj.kwargs &&
+          typeof msgObj.kwargs === 'object'
+            ? (msgObj.kwargs as Record<string, unknown>)
+            : msgObj;
+        const additionalKwargs = dataSource.additional_kwargs as
+          | Record<string, unknown>
+          | undefined;
         const imageOutputs = extractImageOutputs(additionalKwargs);
 
         for (const imageOutput of imageOutputs) {
@@ -378,9 +765,11 @@ export function processLangGraphEvent(
 
         /**
          * Handle tool call chunks for streaming tool calls
+         * Access from dataSource to handle both direct and serialized messages
          */
-        const toolCallChunks = (msg as { tool_call_chunks?: ToolCallChunk[] })
-          .tool_call_chunks;
+        const toolCallChunks = dataSource.tool_call_chunks as
+          | ToolCallChunk[]
+          | undefined;
         if (toolCallChunks?.length) {
           for (const toolCallChunk of toolCallChunks) {
             const idx = toolCallChunk.index ?? 0;
@@ -403,16 +792,16 @@ export function processLangGraphEvent(
               `unknown`;
 
             if (toolCallChunk.args) {
-              if (!messageSeen[msg.id]?.tool?.[toolCallId]) {
+              if (!messageSeen[msgId]?.tool?.[toolCallId]) {
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
                   toolName: toolName,
                 });
 
-                messageSeen[msg.id] ??= {};
-                messageSeen[msg.id].tool ??= {};
-                messageSeen[msg.id].tool![toolCallId] = true;
+                messageSeen[msgId] ??= {};
+                messageSeen[msgId].tool ??= {};
+                messageSeen[msgId].tool![toolCallId] = true;
                 emittedToolCalls.add(toolCallId);
               }
 
@@ -428,29 +817,81 @@ export function processLangGraphEvent(
         }
 
         /**
+         * Handle reasoning content from contentBlocks
+         * Streaming chunks contain DELTA text (not accumulated), so emit directly.
+         * Use reasoning block ID for deduplication as it's consistent across streaming and values events.
+         *
+         * Important: Early chunks may have reasoning ID but no content, later chunks may
+         * have content but no reasoning ID. We capture the ID when first seen and reuse it.
+         * We also immediately add to emittedReasoningIds to prevent values events from
+         * emitting the same reasoning (values events can arrive between streaming chunks).
+         */
+        // Capture reasoning ID when we first see it (even if no content yet)
+        const chunkReasoningId = extractReasoningId(msg);
+        if (chunkReasoningId) {
+          if (!messageReasoningIds[msgId]) {
+            messageReasoningIds[msgId] = chunkReasoningId;
+          }
+          // Immediately mark as emitted to prevent values from duplicating
+          // This must happen as soon as we see the ID, before content arrives
+          emittedReasoningIds.add(chunkReasoningId);
+        }
+
+        const reasoning = extractReasoningFromContentBlocks(msg);
+        if (reasoning) {
+          // Use stored reasoning ID, or current chunk's ID, or fall back to message ID
+          const reasoningId =
+            messageReasoningIds[msgId] ?? chunkReasoningId ?? msgId;
+
+          if (!messageSeen[msgId]?.reasoning) {
+            controller.enqueue({ type: 'reasoning-start', id: msgId });
+            messageSeen[msgId] ??= {};
+            messageSeen[msgId].reasoning = true;
+          }
+
+          // Streaming chunks have delta text, emit directly without slicing
+          controller.enqueue({
+            type: 'reasoning-delta',
+            delta: reasoning,
+            id: msgId,
+          });
+          // Also ensure the reasoning ID is marked (handles case where ID wasn't in first chunk)
+          emittedReasoningIds.add(reasoningId);
+        }
+
+        /**
          * Handle text content
          */
         const text = getMessageText(msg);
         if (text) {
-          if (!messageSeen[msg.id]?.text) {
-            controller.enqueue({ type: 'text-start', id: msg.id });
-            messageSeen[msg.id] ??= {};
-            messageSeen[msg.id].text = true;
+          if (!messageSeen[msgId]?.text) {
+            controller.enqueue({ type: 'text-start', id: msgId });
+            messageSeen[msgId] ??= {};
+            messageSeen[msgId].text = true;
           }
 
           controller.enqueue({
             type: 'text-delta',
             delta: text,
-            id: msg.id,
+            id: msgId,
           });
         }
       } else if (isToolMessageType(msg)) {
-        const toolCallId = (msg as { tool_call_id?: string }).tool_call_id;
+        // Handle both direct properties and serialized messages (kwargs)
+        const msgObj = msg as unknown as Record<string, unknown>;
+        const dataSource =
+          msgObj.type === 'constructor' &&
+          msgObj.kwargs &&
+          typeof msgObj.kwargs === 'object'
+            ? (msgObj.kwargs as Record<string, unknown>)
+            : msgObj;
+
+        const toolCallId = dataSource.tool_call_id as string | undefined;
         if (toolCallId) {
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
-            output: (msg as { content?: unknown }).content,
+            output: dataSource.content,
           });
         }
       }
@@ -483,10 +924,13 @@ export function processLangGraphEvent(
           }
         }
 
-        if (seen.reasoning) controller.enqueue({ type: 'reasoning-end', id });
+        if (seen.reasoning) {
+          controller.enqueue({ type: 'reasoning-end', id });
+        }
 
         delete messageSeen[id];
         delete messageConcat[id];
+        delete messageReasoningIds[id];
       }
 
       /**
@@ -497,9 +941,10 @@ export function processLangGraphEvent(
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
           for (const msg of messages) {
-            if (!msg || typeof msg !== 'object' || !('id' in msg)) continue;
+            if (!msg || typeof msg !== 'object') continue;
 
-            const msgId = (msg as { id: string }).id;
+            // Use getMessageId to handle both class instances and serialized messages
+            const msgId = getMessageId(msg);
             if (!msgId) continue;
 
             /**
@@ -522,11 +967,10 @@ export function processLangGraphEvent(
                   }>;
                 }
               ).tool_calls;
-            }
+            } else if (isPlainMessageObject(msg)) {
             /**
              * For plain objects from RemoteGraph API
              */
-            else if (isPlainMessageObject(msg)) {
               const obj = msg as Record<string, unknown>;
               if (obj.type === 'ai') {
                 /**
@@ -538,11 +982,10 @@ export function processLangGraphEvent(
                     name: string;
                     args: unknown;
                   }[];
-                }
+                } else if (
                 /**
                  * Fall back to additional_kwargs.tool_calls (OpenAI format)
                  */
-                else if (
                   obj.additional_kwargs &&
                   typeof obj.additional_kwargs === 'object'
                 ) {
@@ -594,6 +1037,30 @@ export function processLangGraphEvent(
                     input: toolCall.args,
                   });
                 }
+              }
+            }
+
+            /**
+             * Check for reasoning content that wasn't streamed
+             * GPT-5 populates the reasoning summary only in the final values event
+             * Use reasoning block ID for deduplication as it's consistent across streaming and values
+             * If we've already streamed this reasoning, skip entirely to avoid duplication
+             */
+            const reasoningId = extractReasoningId(msg);
+            if (reasoningId && !emittedReasoningIds.has(reasoningId)) {
+              // Use extractReasoningFromValuesMessage which extracts from response_metadata.output
+              // This is the full accumulated reasoning, not deltas
+              const reasoning = extractReasoningFromValuesMessage(msg);
+
+              if (reasoning) {
+                controller.enqueue({ type: 'reasoning-start', id: msgId });
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  delta: reasoning,
+                  id: msgId,
+                });
+                controller.enqueue({ type: 'reasoning-end', id: msgId });
+                emittedReasoningIds.add(reasoningId);
               }
             }
           }

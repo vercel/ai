@@ -1,0 +1,468 @@
+[
+  {
+    "type": "start"
+  },
+  {
+    "type": "reasoning-start",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": "**Preparing",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " weather",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " and",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " time",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " data",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": "**\n\nI'm",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " planning",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " to",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " use",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " the",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " weather",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " and",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " datetime",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " tools",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " for",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " Tokyo",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ",",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " taking",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " advantage",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " of",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " the",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " fact",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " they",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " can",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " run",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " in",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " parallel",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ".",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " I",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": "’ll",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " set",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " the",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " temperature",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " to",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " Celsius",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " since",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " units",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " are",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " unspecified",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ",",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " and",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " I",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " can",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " choose",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " whether",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " to",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " use",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " a",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " full",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " or",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " short",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " format",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " for",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " the",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " time",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ".",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " I",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " think",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " a",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " full",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " format",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " with",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " the",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " day",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " sounds",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " good",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ".",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " I'll",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " call",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " both",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " functions",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " now",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " and",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " then",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " create",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " a",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " concise",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " response",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " inclusive",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " of",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " both",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " pieces",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " of",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " information",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": ".",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " Let's",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " go",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": " ahead",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-delta",
+    "delta": "!",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "reasoning-end",
+    "id": "run-019b24f7-685f-7000-8000-0ecc6fca785e"
+  },
+  {
+    "type": "tool-output-available",
+    "toolCallId": "call_i1stUubDtqlmCGOvtUD9DqUo",
+    "output": "Weather in Tokyo: 20°C, Clear skies"
+  },
+  {
+    "type": "tool-output-available",
+    "toolCallId": "call_ri3SBHWTEUcRU3Qhyy2M3gty",
+    "output": "Current date and time in Asia/Tokyo: Tuesday, December 16, 2025 at 11:22:39 AM"
+  }
+]

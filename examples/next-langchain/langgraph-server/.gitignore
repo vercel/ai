@@ -3,8 +3,5 @@ node_modules/
 dist/
 .langgraph/
 
-
 # LangGraph API
 .langgraph_api
-
-

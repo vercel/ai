@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 
 import { createAgent } from 'langchain';
 import { ChatOpenAI, tools } from '@langchain/openai';
+import { tool } from '@langchain/core/tools';
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { z } from 'zod';
 
 /**
  * Allow streaming responses up to 60 seconds for image generation
@@ -11,11 +13,15 @@ import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 export const maxDuration = 60;
 
 /**
- * The model to use for the agent (must support image generation)
+ * The model to use for the agent
+ * GPT-5 supports reasoning tokens which will be displayed in the UI
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
-  temperature: 0.7,
+  model: 'gpt-5',
+  reasoning: {
+    effort: 'low', // 'low' | 'medium' | 'high' - controls reasoning depth
+    summary: 'auto', // Enable reasoning summary output for streaming
+  },
 });
 
 /**
@@ -29,33 +35,150 @@ const imageGenerationTool = tools.imageGeneration({
 });
 
 /**
- * The LangChain agent with image generation capabilities
+ * Weather tool - simulates getting weather information
+ */
+const weatherTool = tool(
+  async ({ city, units = 'fahrenheit' }) => {
+    // Simulated weather data
+    const weatherData: Record<string, { temp: number; condition: string }> = {
+      'new york': { temp: 72, condition: 'Partly cloudy' },
+      'los angeles': { temp: 85, condition: 'Sunny' },
+      'london': { temp: 58, condition: 'Overcast with light rain' },
+      'tokyo': { temp: 68, condition: 'Clear skies' },
+      'paris': { temp: 64, condition: 'Mild with scattered clouds' },
+      'sydney': { temp: 75, condition: 'Warm and sunny' },
+    };
+
+    const cityLower = city.toLowerCase();
+    const data = weatherData[cityLower] || { temp: 70, condition: 'Unknown' };
+
+    const temp =
+      units === 'celsius'
+        ? Math.round(((data.temp - 32) * 5) / 9)
+        : data.temp;
+    const unit = units === 'celsius' ? '°C' : '°F';
+
+    return `Weather in ${city}: ${temp}${unit}, ${data.condition}`;
+  },
+  {
+    name: 'get_weather',
+    description: 'Get the current weather in a city',
+    schema: z.object({
+      city: z.string().describe('The city name to get weather for'),
+      units: z
+        .enum(['fahrenheit', 'celsius'])
+        .optional()
+        .describe('Temperature units'),
+    }),
+  },
+);
+
+/**
+ * Wikipedia search tool - simulates searching Wikipedia
+ */
+const wikiSearchTool = tool(
+  async ({ query }) => {
+    // Simulated Wikipedia search results
+    const results: Record<string, string> = {
+      python:
+        'Python is a high-level, general-purpose programming language. Its design philosophy emphasizes code readability with the use of significant indentation.',
+      javascript:
+        'JavaScript is a programming language and core technology of the Web, alongside HTML and CSS. 99% of websites use JavaScript on the client side.',
+      'artificial intelligence':
+        'Artificial intelligence (AI) is the capability of computational systems to perform tasks typically associated with human intelligence, such as learning, reasoning, problem-solving, and perception.',
+      'machine learning':
+        'Machine learning (ML) is a subset of artificial intelligence that enables systems to learn and improve from experience without being explicitly programmed.',
+      'langchain':
+        'LangChain is a framework for developing applications powered by large language models (LLMs). It provides tools for prompt management, chains, agents, and memory.',
+    };
+
+    const queryLower = query.toLowerCase();
+    for (const [key, value] of Object.entries(results)) {
+      if (queryLower.includes(key)) {
+        return `Wikipedia summary for "${query}": ${value}`;
+      }
+    }
+
+    return `No Wikipedia results found for "${query}". Try searching for: Python, JavaScript, Artificial Intelligence, Machine Learning, or LangChain.`;
+  },
+  {
+    name: 'wiki_search',
+    description:
+      'Search Wikipedia for information on a topic. Returns a brief summary.',
+    schema: z.object({
+      query: z.string().describe('The topic to search for on Wikipedia'),
+    }),
+  },
+);
+
+/**
+ * Date/Time tool - gets current date and time information
+ */
+const dateTimeTool = tool(
+  async ({ timezone = 'UTC', format = 'full' }) => {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: timezone,
+      weekday: format === 'full' ? 'long' : undefined,
+      year: 'numeric',
+      month: format === 'full' ? 'long' : 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: format === 'full' ? '2-digit' : undefined,
+    };
+
+    try {
+      const formatted = new Intl.DateTimeFormat('en-US', options).format(now);
+      return `Current date and time in ${timezone}: ${formatted}`;
+    } catch {
+      return `Error: Invalid timezone "${timezone}". Using UTC: ${now.toUTCString()}`;
+    }
+  },
+  {
+    name: 'get_datetime',
+    description: 'Get the current date and time, optionally in a specific timezone',
+    schema: z.object({
+      timezone: z
+        .string()
+        .optional()
+        .describe('IANA timezone (e.g., "America/New_York", "Europe/London", "Asia/Tokyo")'),
+      format: z
+        .enum(['full', 'short'])
+        .optional()
+        .describe('Output format - full includes weekday and seconds'),
+    }),
+  },
+);
+
+/**
+ * The LangChain agent with multiple tools including image generation
  */
 const agent = createAgent({
   model,
-  tools: [imageGenerationTool],
-  systemPrompt: `You are a creative AI artist assistant that can generate images from text descriptions.
+  tools: [imageGenerationTool, weatherTool, wikiSearchTool, dateTimeTool],
+  systemPrompt: `You are a helpful AI assistant with access to multiple tools.
 
-When a user asks you to draw, create, generate, or design an image:
-1. Use the image generation tool to create the image
-2. Describe what you created after generating it
-3. Be creative and add artistic details to make the image interesting
+Available tools:
+1. **Image Generation**: Create images from text descriptions
+2. **Weather**: Get current weather for any city
+3. **Wikipedia Search**: Look up information on various topics
+4. **Date/Time**: Get current date and time in any timezone
 
-Tips for best results:
-- Use detailed, descriptive prompts
-- Include artistic style, lighting, and mood details
-- For edits, describe what changes to make clearly
+When responding:
+- Think step-by-step about what tools you need
+- Use multiple tools when needed to answer complex questions
+- Provide helpful, detailed responses
+- For image requests, be creative with prompts
 
-You can generate various types of images including:
-- Artwork and illustrations
-- Photographs and realistic scenes
-- Logos and designs
-- Fantasy and sci-fi imagery
-- Portraits and characters`,
+Examples of things you can help with:
+- "What's the weather in Tokyo and what time is it there?"
+- "Tell me about machine learning and draw an illustration of a neural network"
+- "Search for information about Python programming"`,
 });
 
 /**
- * The API route for the LangChain agent with image generation
+ * The API route for the LangChain agent with multiple tools
  * @param req - The request object
  * @returns The response from the API
  */
@@ -69,7 +192,7 @@ export async function POST(req: Request) {
     const langchainMessages = await toBaseMessages(messages);
 
     /**
-     * Stream from the LangChain agent with image generation support
+     * Stream from the LangChain agent with multiple tools
      * Note: Type assertion needed due to LangChain type version mismatch
      */
     const stream = await agent.stream(
@@ -79,7 +202,7 @@ export async function POST(req: Request) {
 
     /**
      * Convert the LangChain stream to UI message stream
-     * Image generation results will be included in the tool outputs
+     * Tool outputs and images will be included in the response
      */
     return createUIMessageStreamResponse({
       stream: toUIMessageStream(stream as unknown as ReadableStream),

@@ -268,13 +268,19 @@ describe('processModelChunk', () => {
       content: 'Hello',
       id: 'msg-1',
     });
-    const state = { started: false, messageId: 'default' };
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
     processModelChunk(chunk, state, controller);
 
     expect(state.started).toBe(true);
+    expect(state.textStarted).toBe(true);
     expect(state.messageId).toBe('msg-1');
     expect(chunks).toEqual([
       { type: 'text-start', id: 'msg-1' },
@@ -287,7 +293,12 @@ describe('processModelChunk', () => {
       content: ' World',
       id: 'msg-1',
     });
-    const state = { started: true, messageId: 'msg-1' };
+    const state = {
+      started: true,
+      messageId: 'msg-1',
+      reasoningStarted: false,
+      textStarted: true,
+    };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -303,7 +314,12 @@ describe('processModelChunk', () => {
       content: [{ type: 'text', text: 'Array content' }],
       id: 'msg-1',
     });
-    const state = { started: false, messageId: 'default' };
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -321,7 +337,12 @@ describe('processModelChunk', () => {
       content: '',
       id: 'msg-1',
     });
-    const state = { started: false, messageId: 'default' };
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
 
@@ -329,6 +350,176 @@ describe('processModelChunk', () => {
 
     expect(chunks).toHaveLength(0);
     expect(state.started).toBe(false);
+  });
+
+  it('should handle reasoning content from contentBlocks', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Let me think...' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(state.reasoningStarted).toBe(true);
+    expect(state.started).toBe(true);
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'msg-1' },
+      { type: 'reasoning-delta', delta: 'Let me think...', id: 'msg-1' },
+    ]);
+  });
+
+  it('should handle thinking content from contentBlocks (Anthropic-style)', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'thinking', thinking: 'Analyzing...' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'msg-1' },
+      { type: 'reasoning-delta', delta: 'Analyzing...', id: 'msg-1' },
+    ]);
+  });
+
+  it('should handle GPT-5 reasoning from response_metadata.output', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(chunk, 'response_metadata', {
+      get: () => ({
+        output: [
+          {
+            id: 'rs_123',
+            type: 'reasoning',
+            summary: [
+              {
+                type: 'summary_text',
+                text: 'I need to analyze this question carefully...',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(state.reasoningStarted).toBe(true);
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'msg-1' },
+      { type: 'reasoning-delta', delta: 'I need to analyze this question carefully...', id: 'msg-1' },
+    ]);
+  });
+
+  it('should handle GPT-5 reasoning from additional_kwargs.reasoning.summary', () => {
+    const chunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+      additional_kwargs: {
+        reasoning: {
+          id: 'rs_456',
+          type: 'reasoning',
+          summary: [
+            {
+              type: 'summary_text',
+              text: 'Breaking down the problem into parts...',
+            },
+          ],
+        },
+      },
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(chunk, state, controller);
+
+    expect(state.reasoningStarted).toBe(true);
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'msg-1' },
+      { type: 'reasoning-delta', delta: 'Breaking down the problem into parts...', id: 'msg-1' },
+    ]);
+  });
+
+  it('should close reasoning when text starts', () => {
+    // First send reasoning
+    const reasoningChunk = new AIMessageChunk({
+      content: '',
+      id: 'msg-1',
+    });
+    Object.defineProperty(reasoningChunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Thinking...' }],
+    });
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processModelChunk(reasoningChunk, state, controller);
+
+    // Now send text
+    const textChunk = new AIMessageChunk({
+      content: 'Here is my answer',
+      id: 'msg-1',
+    });
+
+    processModelChunk(textChunk, state, controller);
+
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'msg-1' },
+      { type: 'reasoning-delta', delta: 'Thinking...', id: 'msg-1' },
+      { type: 'reasoning-end', id: 'msg-1' },
+      { type: 'text-start', id: 'msg-1' },
+      { type: 'text-delta', delta: 'Here is my answer', id: 'msg-1' },
+    ]);
+    expect(state.reasoningStarted).toBe(false);
+    expect(state.textStarted).toBe(true);
   });
 });
 
@@ -495,6 +686,8 @@ describe('processLangGraphEvent', () => {
     messageConcat: {} as Record<string, AIMessageChunk>,
     emittedToolCalls: new Set<string>(),
     emittedImages: new Set<string>(),
+    emittedReasoningIds: new Set<string>(),
+    messageReasoningIds: {} as Record<string, string>,
   });
 
   it('should handle custom events', () => {
@@ -672,6 +865,92 @@ describe('processLangGraphEvent', () => {
         (c as { type: string }).type === 'tool-input-start',
     );
     expect(toolInputEvents).toHaveLength(0);
+  });
+
+  it('should emit GPT-5 reasoning from values event when not streamed', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'ai',
+          content: '',
+          response_metadata: {
+            output: [
+              {
+                id: 'rs_123',
+                type: 'reasoning',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'Analyzing the user request step by step...',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
+    expect(chunks).toContainEqual({ type: 'reasoning-start', id: 'msg-1' });
+    expect(chunks).toContainEqual({
+      type: 'reasoning-delta',
+      delta: 'Analyzing the user request step by step...',
+      id: 'msg-1',
+    });
+    expect(chunks).toContainEqual({ type: 'reasoning-end', id: 'msg-1' });
+  });
+
+  it('should not duplicate reasoning already emitted during streaming', () => {
+    const state = createMockState();
+    // Mark reasoning ID as already emitted (simulates streaming having already emitted this reasoning)
+    state.emittedReasoningIds.add('rs_123');
+    state.messageSeen['msg-1'] = { reasoning: true };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const valuesData = {
+      messages: [
+        {
+          id: 'msg-1',
+          type: 'ai',
+          content: '',
+          response_metadata: {
+            output: [
+              {
+                id: 'rs_123',
+                type: 'reasoning',
+                summary: [
+                  {
+                    type: 'summary_text',
+                    text: 'This should not be emitted again...',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    processLangGraphEvent(['values', valuesData], state, controller);
+
+    // Should only emit reasoning-end (for finalization), not start/delta
+    // because we already emitted reasoning with ID 'rs_123' during streaming
+    const reasoningStartEvents = chunks.filter(
+      (c: unknown) => (c as { type: string }).type === 'reasoning-start',
+    );
+    const reasoningDeltaEvents = chunks.filter(
+      (c: unknown) => (c as { type: string }).type === 'reasoning-delta',
+    );
+    expect(reasoningStartEvents).toHaveLength(0);
+    expect(reasoningDeltaEvents).toHaveLength(0);
   });
 
   it('should handle tool calls in additional_kwargs format', () => {

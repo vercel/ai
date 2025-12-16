@@ -16,6 +16,7 @@ import {
   SystemMessage,
   ToolMessage,
 } from '@langchain/core/messages';
+import { LANGGRAPH_RESPONSE } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
   it('should emit start event on stream initialization', async () => {
@@ -470,6 +471,311 @@ describe('toUIMessageStream', () => {
       input: { city: 'LA' },
     });
   });
+
+  it('should handle reasoning content from contentBlocks', async () => {
+    // Create an AIMessageChunk with contentBlocks containing reasoning
+    const chunk = new AIMessageChunk({ id: 'msg-reason', content: '' });
+    // Simulate contentBlocks with reasoning (as the customer does with Object.defineProperty)
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Let me think about this...' }],
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "msg-reason",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think about this...",
+          "id": "msg-reason",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "msg-reason",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('should handle thinking content from contentBlocks (Anthropic-style)', async () => {
+    // Create an AIMessageChunk with contentBlocks containing thinking (Anthropic-style)
+    const chunk = new AIMessageChunk({ id: 'msg-think', content: '' });
+    Object.defineProperty(chunk, 'contentBlocks', {
+      get: () => [
+        { type: 'thinking', thinking: 'First, I need to analyze...', signature: 'abc123' },
+      ],
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "msg-think",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First, I need to analyze...",
+          "id": "msg-think",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "msg-think",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('should handle multiple reasoning chunks in sequence', async () => {
+    const chunk1 = new AIMessageChunk({ id: 'msg-reason', content: '' });
+    Object.defineProperty(chunk1, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'First...' }],
+    });
+
+    const chunk2 = new AIMessageChunk({ id: 'msg-reason', content: '' });
+    Object.defineProperty(chunk2, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Second...' }],
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1]],
+      ['messages', [chunk2]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "msg-reason",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "First...",
+          "id": "msg-reason",
+          "type": "reasoning-delta",
+        },
+        {
+          "delta": "Second...",
+          "id": "msg-reason",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "msg-reason",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('should handle reasoning followed by text content', async () => {
+    // Reasoning chunk
+    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
+    Object.defineProperty(reasoningChunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
+    });
+
+    // Text chunk
+    const textChunk = new AIMessageChunk({ id: 'msg-1', content: 'Here is my answer.' });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [reasoningChunk]],
+      ['messages', [textChunk]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "msg-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Thinking about this...",
+          "id": "msg-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is my answer.",
+          "id": "msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "msg-1",
+          "type": "text-end",
+        },
+        {
+          "id": "msg-1",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('should handle reasoning with tool calls', async () => {
+    // Reasoning before tool call
+    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
+    Object.defineProperty(reasoningChunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'I need to search for this...' }],
+    });
+
+    // Tool call chunk
+    const toolCallChunk = {
+      content: '',
+      id: 'msg-1',
+      type: 'ai',
+      tool_call_chunks: [
+        {
+          id: 'call-123',
+          name: 'search',
+          args: '{"query":"test"}',
+          index: 0,
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [reasoningChunk]],
+      ['messages', [toolCallChunk]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "msg-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "I need to search for this...",
+          "id": "msg-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "toolCallId": "call-123",
+          "toolName": "search",
+          "type": "tool-input-start",
+        },
+        {
+          "inputTextDelta": "{"query":"test"}",
+          "toolCallId": "call-123",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "msg-1",
+          "type": "reasoning-end",
+        },
+      ]
+    `);
+  });
+
+  it('should handle model stream with reasoning contentBlocks', async () => {
+    // Non-array events are treated as model stream chunks (AIMessageChunk)
+    const reasoningChunk = new AIMessageChunk({
+      content: '',
+      id: 'test-1',
+    });
+    Object.defineProperty(reasoningChunk, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Thinking...' }],
+    });
+
+    const textChunk = new AIMessageChunk({
+      content: 'Hello!',
+      id: 'test-1',
+    });
+
+    const inputStream = convertArrayToReadableStream([reasoningChunk, textChunk]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "test-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Thinking...",
+          "id": "test-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "test-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "test-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello!",
+          "id": "test-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "test-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
 });
 
 describe('convertModelMessages', () => {
@@ -675,6 +981,21 @@ describe('toBaseMessages', () => {
     expect(result[0]).toBeInstanceOf(HumanMessage);
     // Text content should be extracted
     expect(result[0].content).toBe('What is in this image?');
+  });
+});
+
+describe('toUIMessageStream with LangGraph fixture', () => {
+  it('should correctly transform LangGraph stream events to UI message events', async () => {
+    const inputStream = convertArrayToReadableStream(LANGGRAPH_RESPONSE);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Use file snapshot to avoid stack overflow with large results
+    await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
+      './__snapshots__/langgraph-stream.json',
+    );
   });
 });
 
