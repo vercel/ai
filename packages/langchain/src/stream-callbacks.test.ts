@@ -1,4 +1,7 @@
-import { createCallbacksTransformer, StreamCallbacks } from './stream-callbacks';
+import {
+  createCallbacksTransformer,
+  StreamCallbacks,
+} from './stream-callbacks';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('createCallbacksTransformer', () => {
@@ -191,4 +194,3 @@ describe('createCallbacksTransformer', () => {
     expect(onFinal).toHaveBeenCalledWith('こんにちは 🌍');
   });
 });
-
