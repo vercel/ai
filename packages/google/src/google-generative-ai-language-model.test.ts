@@ -1846,7 +1846,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       tools: [
         {
-          type: 'provider',
+          type: 'provider-defined',
           id: 'google.google_maps',
           name: 'google_maps',
           args: {},

@@ -436,7 +436,7 @@ it('should handle google maps tool', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_maps',
         name: 'google_maps',
         args: {},
@@ -453,7 +453,7 @@ it('should add warnings for google maps on unsupported models', () => {
   const result = prepareTools({
     tools: [
       {
-        type: 'provider',
+        type: 'provider-defined',
         id: 'google.google_maps',
         name: 'google_maps',
         args: {},
@@ -466,8 +466,13 @@ it('should add warnings for google maps on unsupported models', () => {
     [
       {
         "details": "The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.",
-        "feature": "provider-defined tool google.google_maps",
-        "type": "unsupported",
+        "tool": {
+          "args": {},
+          "id": "google.google_maps",
+          "name": "google_maps",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
       },
     ]
   `);
