@@ -836,6 +836,9 @@ importers:
       '@ai-sdk/rsc':
         specifier: 2.0.0-beta.158
         version: link:../../packages/rsc
+      '@ai-sdk/valibot':
+        specifier: 2.0.0-beta.51
+        version: link:../../packages/valibot
       '@ai-sdk/xai':
         specifier: 3.0.0-beta.60
         version: link:../../packages/xai
