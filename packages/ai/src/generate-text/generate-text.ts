@@ -693,14 +693,11 @@ A function that attempts to repair a tool call that failed to parse.
             toolApprovalRequests: Object.values(toolApprovalRequests),
           });
 
-          // If a provider-executed approval was denied, add a UI-visible closure without
-          // persisting it into the returned response messages (so it is not sent to providers).
-          const excludedToolResultToolCallIds = new Set<string>();
+          // If a provider-executed approval was denied, add the denied result to stepContent.
+          // The provider will receive the tool-result with execution-denied output type and
+          // can handle it appropriately (e.g., convert to error message).
           if (pendingDeniedProviderExecutedToolApprovals.length > 0) {
             for (const deniedApproval of pendingDeniedProviderExecutedToolApprovals) {
-              excludedToolResultToolCallIds.add(
-                deniedApproval.toolCall.toolCallId,
-              );
               stepContent.push({
                 type: 'tool-result',
                 toolCallId: deniedApproval.toolCall.toolCallId,
@@ -724,10 +721,6 @@ A function that attempts to repair a tool call that failed to parse.
             ...(await toResponseMessages({
               content: stepContent,
               tools,
-              excludeToolResultToolCallIds:
-                excludedToolResultToolCallIds.size > 0
-                  ? excludedToolResultToolCallIds
-                  : undefined,
             })),
           );
 

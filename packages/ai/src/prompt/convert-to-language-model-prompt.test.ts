@@ -959,6 +959,7 @@ describe('convertToLanguageModelPrompt', () => {
                     "some": "result",
                   },
                 },
+                "providerExecuted": undefined,
                 "providerOptions": undefined,
                 "toolCallId": "toolCallId",
                 "toolName": "toolName",
@@ -1488,6 +1489,7 @@ describe('convertToLanguageModelMessage', () => {
                     "some": "result",
                   },
                 },
+                "providerExecuted": undefined,
                 "providerOptions": {
                   "test-provider": {
                     "key-a": "test-value-1",
@@ -1565,6 +1567,7 @@ describe('convertToLanguageModelMessage', () => {
                     "some": "result",
                   },
                 },
+                "providerExecuted": undefined,
                 "providerOptions": {
                   "test-provider": {
                     "key-a": "test-value-1",
@@ -1708,6 +1711,7 @@ describe('convertToLanguageModelMessage', () => {
                   "some": "result",
                 },
               },
+              "providerExecuted": undefined,
               "providerOptions": undefined,
               "toolCallId": "toolCallId",
               "toolName": "toolName",
@@ -1752,6 +1756,7 @@ describe('convertToLanguageModelMessage', () => {
                   "some": "result",
                 },
               },
+              "providerExecuted": undefined,
               "providerOptions": {
                 "test-provider": {
                   "key-a": "test-value-1",
@@ -1795,6 +1800,7 @@ describe('convertToLanguageModelMessage', () => {
                   "some": "result",
                 },
               },
+              "providerExecuted": undefined,
               "providerOptions": undefined,
               "toolCallId": "toolCallId",
               "toolName": "toolName",
@@ -1911,6 +1917,7 @@ describe('convertToLanguageModelMessage', () => {
                   },
                 ],
               },
+              "providerExecuted": undefined,
               "providerOptions": undefined,
               "toolCallId": "toolCallId",
               "toolName": "toolName",
@@ -1958,6 +1965,7 @@ describe('convertToLanguageModelMessage', () => {
                   },
                 ],
               },
+              "providerExecuted": undefined,
               "providerOptions": undefined,
               "toolCallId": "toolCallId",
               "toolName": "toolName",
@@ -2009,6 +2017,7 @@ describe('convertToLanguageModelMessage', () => {
                   },
                 ],
               },
+              "providerExecuted": undefined,
               "providerOptions": undefined,
               "toolCallId": "toolCallId",
               "toolName": "toolName",

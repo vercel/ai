@@ -124,98 +124,99 @@ describe('createAgentUIStreamResponse', () => {
 
     it('should have a single call that contains the tool result as text', () => {
       expect(recordedInputs).toMatchInlineSnapshot(`
-          [
-            {
-              "abortSignal": undefined,
-              "frequencyPenalty": undefined,
-              "headers": undefined,
-              "includeRawChunks": false,
-              "maxOutputTokens": undefined,
-              "presencePenalty": undefined,
-              "prompt": [
-                {
-                  "content": [
-                    {
-                      "providerOptions": undefined,
-                      "text": "Hello, world!",
-                      "type": "text",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "user",
-                },
-                {
-                  "content": [
-                    {
-                      "input": {
-                        "input": "Hello, world!",
-                      },
-                      "providerExecuted": undefined,
-                      "providerOptions": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "example",
-                      "type": "tool-call",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "assistant",
-                },
-                {
-                  "content": [
-                    {
-                      "output": {
-                        "type": "content",
-                        "value": [
-                          {
-                            "text": "Example tool: Hello, world!",
-                            "type": "text",
-                          },
-                        ],
-                      },
-                      "providerOptions": undefined,
-                      "toolCallId": "call-1",
-                      "toolName": "example",
-                      "type": "tool-result",
-                    },
-                  ],
-                  "providerOptions": undefined,
-                  "role": "tool",
-                },
-              ],
-              "providerOptions": undefined,
-              "responseFormat": undefined,
-              "seed": undefined,
-              "stopSequences": undefined,
-              "temperature": undefined,
-              "toolChoice": {
-                "type": "auto",
-              },
-              "tools": [
-                {
-                  "description": "Example tool",
-                  "inputSchema": {
-                    "$schema": "http://json-schema.org/draft-07/schema#",
-                    "additionalProperties": false,
-                    "properties": {
-                      "input": {
-                        "type": "string",
-                      },
-                    },
-                    "required": [
-                      "input",
-                    ],
-                    "type": "object",
+        [
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "includeRawChunks": false,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "Hello, world!",
+                    "type": "text",
                   },
-                  "name": "example",
-                  "providerOptions": undefined,
-                  "type": "function",
-                },
-              ],
-              "topK": undefined,
-              "topP": undefined,
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "input": "Hello, world!",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "example",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "content",
+                      "value": [
+                        {
+                          "text": "Example tool: Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "example",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": undefined,
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": undefined,
+            "toolChoice": {
+              "type": "auto",
             },
-          ]
-        `);
+            "tools": [
+              {
+                "description": "Example tool",
+                "inputSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "input": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "input",
+                  ],
+                  "type": "object",
+                },
+                "name": "example",
+                "providerOptions": undefined,
+                "type": "function",
+              },
+            ],
+            "topK": undefined,
+            "topP": undefined,
+          },
+        ]
+      `);
     });
 
     it('should return the UI message stream response', () => {

@@ -180,6 +180,12 @@ Result of the tool call.
   output: LanguageModelV3ToolResultOutput;
 
   /**
+   * Whether this tool result is from a provider-executed tool.
+   * Providers can use this to decide how to handle the result.
+   */
+  providerExecuted?: boolean;
+
+  /**
    * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.

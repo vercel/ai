@@ -14,27 +14,16 @@ Converts the result of a `generateText` or `streamText` call to a list of respon
 export async function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
   tools,
-  excludeToolResultToolCallIds: excluded,
 }: {
   content: Array<ContentPart<TOOLS>>;
   tools: TOOLS | undefined;
-  excludeToolResultToolCallIds?: Set<string>;
 }): Promise<Array<AssistantModelMessage | ToolModelMessage>> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
 
   const content: AssistantContent = [];
   for (const part of inputContent) {
-    // Skip sources
+    // Skip sources - they are response-only content that no provider expects back
     if (part.type === 'source') {
-      continue;
-    }
-
-    // Skip excluded tool results/errors
-    if (
-      (part.type === 'tool-result' || part.type === 'tool-error') &&
-      excluded != null &&
-      excluded.has(part.toolCallId)
-    ) {
       continue;
     }
 
@@ -97,6 +86,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
+          providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
         break;
@@ -114,6 +104,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
+          providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
         break;

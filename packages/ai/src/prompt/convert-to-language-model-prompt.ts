@@ -201,6 +201,7 @@ export function convertToLanguageModelMessage({
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                   output: mapToolResultOutput(part.output),
+                  providerExecuted: part.providerExecuted,
                   providerOptions,
                 };
               }
@@ -221,6 +222,7 @@ export function convertToLanguageModelMessage({
                 toolCallId: part.toolCallId,
                 toolName: part.toolName,
                 output: mapToolResultOutput(part.output),
+                providerExecuted: part.providerExecuted,
                 providerOptions: part.providerOptions,
               };
             }

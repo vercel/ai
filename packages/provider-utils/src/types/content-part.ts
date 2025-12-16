@@ -159,6 +159,12 @@ Result of the tool call. This is a JSON-serializable object.
   output: ToolResultOutput;
 
   /**
+Whether this tool result is from a provider-executed tool.
+Providers can use this to decide how to handle the result.
+ */
+  providerExecuted?: boolean;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.

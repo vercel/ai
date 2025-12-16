@@ -246,6 +246,20 @@ export async function convertToOpenAIResponsesInput({
 
             // assistant tool result parts are from provider-executed tools:
             case 'tool-result': {
+              // Skip execution-denied results - these are synthetic results from denied
+              // approvals and have no corresponding item in OpenAI's store.
+              // Check both the direct type and if it was transformed to json with execution-denied inside
+              if (
+                part.output.type === 'execution-denied' ||
+                (part.output.type === 'json' &&
+                  typeof part.output.value === 'object' &&
+                  part.output.value != null &&
+                  'type' in part.output.value &&
+                  part.output.value.type === 'execution-denied')
+              ) {
+                break;
+              }
+
               if (store) {
                 const itemId =
                   (
@@ -363,6 +377,12 @@ export async function convertToOpenAIResponsesInput({
               approval_request_id: approvalResponse.approvalId,
               approve: approvalResponse.approved,
             });
+            continue;
+          }
+
+          // Skip provider-executed tool results - they are handled via item_reference
+          // in the assistant content for the OpenAI Responses API
+          if (part.providerExecuted === true) {
             continue;
           }
 
