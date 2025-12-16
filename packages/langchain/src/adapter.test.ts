@@ -19,6 +19,7 @@ import {
 import {
   LANGGRAPH_RESPONSE_1,
   LANGGRAPH_RESPONSE_2,
+  REACT_AGENT_TOOL_CALLING,
 } from './__fixtures__/langgraph';
 
 describe('toUIMessageStream', () => {
@@ -289,9 +290,7 @@ describe('toUIMessageStream', () => {
       ],
     };
 
-    const inputStream = convertArrayToReadableStream([
-      ['values', valuesData],
-    ]);
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
 
     const result = await convertReadableStreamToArray(
       toUIMessageStream(inputStream),
@@ -338,9 +337,7 @@ describe('toUIMessageStream', () => {
       ],
     };
 
-    const inputStream = convertArrayToReadableStream([
-      ['values', valuesData],
-    ]);
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
 
     const result = await convertReadableStreamToArray(
       toUIMessageStream(inputStream),
@@ -484,7 +481,9 @@ describe('toUIMessageStream', () => {
     const chunk = new AIMessageChunk({ id: 'msg-reason', content: '' });
     // Simulate contentBlocks with reasoning (as the customer does with Object.defineProperty)
     Object.defineProperty(chunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'Let me think about this...' }],
+      get: () => [
+        { type: 'reasoning', reasoning: 'Let me think about this...' },
+      ],
     });
 
     const inputStream = convertArrayToReadableStream([
@@ -523,7 +522,11 @@ describe('toUIMessageStream', () => {
     const chunk = new AIMessageChunk({ id: 'msg-think', content: '' });
     Object.defineProperty(chunk, 'contentBlocks', {
       get: () => [
-        { type: 'thinking', thinking: 'First, I need to analyze...', signature: 'abc123' },
+        {
+          type: 'thinking',
+          thinking: 'First, I need to analyze...',
+          signature: 'abc123',
+        },
       ],
     });
 
@@ -614,7 +617,10 @@ describe('toUIMessageStream', () => {
     });
 
     // Text chunk
-    const textChunk = new AIMessageChunk({ id: 'msg-1', content: 'Here is my answer.' });
+    const textChunk = new AIMessageChunk({
+      id: 'msg-1',
+      content: 'Here is my answer.',
+    });
 
     const inputStream = convertArrayToReadableStream([
       ['messages', [reasoningChunk]],
@@ -665,7 +671,9 @@ describe('toUIMessageStream', () => {
     // Reasoning before tool call
     const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
     Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'I need to search for this...' }],
+      get: () => [
+        { type: 'reasoning', reasoning: 'I need to search for this...' },
+      ],
     });
 
     // Tool call chunk
@@ -741,7 +749,10 @@ describe('toUIMessageStream', () => {
       id: 'test-1',
     });
 
-    const inputStream = convertArrayToReadableStream([reasoningChunk, textChunk]);
+    const inputStream = convertArrayToReadableStream([
+      reasoningChunk,
+      textChunk,
+    ]);
 
     const result = await convertReadableStreamToArray(
       toUIMessageStream(inputStream),
@@ -1027,5 +1038,17 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
       './__snapshots__/langgraph-hitl-request-2.json',
     );
   });
-});
 
+  it('should correctly transform reasoning and tool calls', async () => {
+    const inputStream = convertArrayToReadableStream(REACT_AGENT_TOOL_CALLING);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Use file snapshot to avoid stack overflow with large results
+    await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
+      './__snapshots__/react-agent-tool-calling.json',
+    );
+  });
+});

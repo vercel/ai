@@ -68,8 +68,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
               }
               return null;
             }
-            if (part.type.startsWith('tool-')) {
-              // Display tool calls (image generation comes through as 'file' parts now)
+            if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
+              // Display tool calls (static: `tool-${name}`, dynamic: `dynamic-tool`)
               return (
                 <div
                   key={i}

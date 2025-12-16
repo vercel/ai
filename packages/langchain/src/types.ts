@@ -29,3 +29,47 @@ export interface LangGraphEventState {
   /** Maps tool call key (name:argsJson) to tool call ID for HITL interrupt handling */
   emittedToolCallsByKey: Map<string, string>;
 }
+
+/**
+ * Type for reasoning content block from LangChain
+ */
+export interface ReasoningContentBlock {
+  type: 'reasoning';
+  reasoning: string;
+}
+
+/**
+ * Type for thinking content block from LangChain (Anthropic-style)
+ */
+export interface ThinkingContentBlock {
+  type: 'thinking';
+  thinking: string;
+  signature?: string;
+}
+
+/**
+ * Type for GPT-5 reasoning output block
+ */
+export interface GPT5ReasoningOutput {
+  id: string;
+  type: 'reasoning';
+  summary: {
+    type: 'summary_text';
+    text: string;
+  }[];
+}
+
+/**
+ * Type for image generation tool outputs from LangChain/OpenAI
+ */
+export interface ImageGenerationOutput {
+  id: string;
+  type: 'image_generation_call';
+  status: string;
+  result?: string; // base64 image data
+  revised_prompt?: string;
+  size?: string;
+  output_format?: string;
+  quality?: string;
+  background?: string;
+}

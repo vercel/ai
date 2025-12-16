@@ -6,6 +6,7 @@ import {
   AIMessageChunk,
   BaseMessageChunk,
   ToolCallChunk,
+  type ToolCall,
 } from '@langchain/core/messages';
 import {
   type UIMessageChunk,
@@ -14,7 +15,13 @@ import {
   type UserContent,
 } from 'ai';
 
-import { type LangGraphEventState } from './types';
+import {
+  type LangGraphEventState,
+  type ReasoningContentBlock,
+  type ThinkingContentBlock,
+  type GPT5ReasoningOutput,
+  type ImageGenerationOutput,
+} from './types';
 
 /**
  * Converts a ToolResultPart to a LangChain ToolMessage
@@ -231,12 +238,16 @@ export function getMessageId(msg: unknown): string | undefined {
 
   const msgObj = msg as Record<string, unknown>;
 
-  // For class instances, id is directly on the object
+  /**
+   * For class instances, id is directly on the object
+   */
   if (typeof msgObj.id === 'string') {
     return msgObj.id;
   }
 
-  // For serialized LangChain messages, id is in kwargs
+  /**
+   * For serialized LangChain messages, id is in kwargs
+   */
   if (
     msgObj.type === 'constructor' &&
     msgObj.kwargs &&
@@ -272,9 +283,13 @@ export function isAIMessageChunk(
    */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
-    // Direct type === 'ai' (RemoteGraph format)
+    /**
+     * Direct type === 'ai' (RemoteGraph format)
+     */
     if ('type' in obj && obj.type === 'ai') return true;
-    // Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
+    /**
+     * Serialized LangChain message format: { lc: 1, type: "constructor", id: ["...", "AIMessageChunk"], kwargs: {...} }
+     */
     if (
       obj.type === 'constructor' &&
       Array.isArray(obj.id) &&
@@ -367,23 +382,6 @@ export function getMessageText(msg: unknown): string {
 }
 
 /**
- * Type for reasoning content block from LangChain
- */
-interface ReasoningContentBlock {
-  type: 'reasoning';
-  reasoning: string;
-}
-
-/**
- * Type for thinking content block from LangChain (Anthropic-style)
- */
-interface ThinkingContentBlock {
-  type: 'thinking';
-  thinking: string;
-  signature?: string;
-}
-
-/**
  * Checks if an object is a reasoning content block
  *
  * @param obj - The object to check.
@@ -419,23 +417,6 @@ export function isThinkingContentBlock(
     'thinking' in obj &&
     typeof (obj as { thinking: unknown }).thinking === 'string'
   );
-}
-
-/**
- * Type for GPT-5 reasoning summary item
- */
-interface ReasoningSummaryItem {
-  type: 'summary_text';
-  text: string;
-}
-
-/**
- * Type for GPT-5 reasoning output block
- */
-interface GPT5ReasoningOutput {
-  id: string;
-  type: 'reasoning';
-  summary: ReasoningSummaryItem[];
 }
 
 /**
@@ -635,21 +616,6 @@ export function extractReasoningFromValuesMessage(
 }
 
 /**
- * Type for image generation tool outputs from LangChain/OpenAI
- */
-interface ImageGenerationOutput {
-  id: string;
-  type: 'image_generation_call';
-  status: string;
-  result?: string; // base64 image data
-  revised_prompt?: string;
-  size?: string;
-  output_format?: string;
-  quality?: string;
-  background?: string;
-}
-
-/**
  * Checks if an object is an image generation output
  *
  * @param obj - The object to check.
@@ -706,6 +672,7 @@ export function processLangGraphEvent(
     emittedToolCallsByKey,
   } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
+  console.log('processLangGraphEvent', JSON.stringify(event, null, 2));
 
   switch (type) {
     case 'custom': {
@@ -1036,22 +1003,14 @@ export function processLangGraphEvent(
              * Check if this is an AI message with tool calls
              */
             let toolCalls:
-              | Array<{ id: string; name: string; args: unknown }>
+              | ToolCall[]
               | undefined;
 
             /**
              * For class instances
              */
             if (AIMessageChunk.isInstance(msg) || AIMessage.isInstance(msg)) {
-              toolCalls = (
-                msg as {
-                  tool_calls?: Array<{
-                    id: string;
-                    name: string;
-                    args: unknown;
-                  }>;
-                }
-              ).tool_calls;
+              toolCalls = msg.tool_calls;
             } else if (isPlainMessageObject(msg)) {
               /**
                * For plain objects from RemoteGraph API or serialized LangChain messages
@@ -1075,11 +1034,7 @@ export function processLangGraphEvent(
                  * Try tool_calls first (normalized format)
                  */
                 if (Array.isArray(dataSource?.tool_calls)) {
-                  toolCalls = dataSource.tool_calls as {
-                    id: string;
-                    name: string;
-                    args: unknown;
-                  }[];
+                  toolCalls = dataSource.tool_calls as ToolCall[];
                 } else if (
                   /**
                    * Fall back to additional_kwargs.tool_calls (OpenAI format)
@@ -1087,10 +1042,8 @@ export function processLangGraphEvent(
                   dataSource?.additional_kwargs &&
                   typeof dataSource.additional_kwargs === 'object'
                 ) {
-                  const additionalKwargs = dataSource.additional_kwargs as Record<
-                    string,
-                    unknown
-                  >;
+                  const additionalKwargs =
+                    dataSource.additional_kwargs as Record<string, unknown>;
                   if (Array.isArray(additionalKwargs.tool_calls)) {
                     /**
                      * Convert OpenAI format to normalized format
@@ -1114,7 +1067,7 @@ export function processLangGraphEvent(
                         id: tc.id || `call_${idx}`,
                         name: functionData?.name || 'unknown',
                         args,
-                      };
+                      } as ToolCall;
                     });
                   }
                 }
@@ -1126,7 +1079,7 @@ export function processLangGraphEvent(
                 /**
                  * Only emit if we haven't already processed this tool call
                  */
-                if (!emittedToolCalls.has(toolCall.id)) {
+                if (toolCall.id && !emittedToolCalls.has(toolCall.id)) {
                   emittedToolCalls.add(toolCall.id);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
@@ -1204,7 +1157,9 @@ export function processLangGraphEvent(
 
             if (!interruptValue) continue;
 
-            // Support both camelCase (JS SDK) and snake_case (Python SDK)
+            /**
+             * Support both camelCase (JS SDK) and snake_case (Python SDK)
+             */
             const actionRequests = (interruptValue.actionRequests ||
               interruptValue.action_requests) as
               | Array<{
@@ -1219,11 +1174,15 @@ export function processLangGraphEvent(
 
             for (const actionRequest of actionRequests) {
               const toolName = actionRequest.name;
-              // Support both 'args' (JS SDK) and 'arguments' (Python SDK)
+              /**
+               * Support both 'args' (JS SDK) and 'arguments' (Python SDK)
+               */
               const input = actionRequest.args || actionRequest.arguments;
 
-              // Look up the original tool call ID using the name+args key
-              // Fall back to action request ID or generate one if not found
+              /**
+               * Look up the original tool call ID using the name+args key
+               * Fall back to action request ID or generate one if not found
+               */
               const toolCallKey = `${toolName}:${JSON.stringify(input)}`;
               const toolCallId =
                 emittedToolCallsByKey.get(toolCallKey) ||
