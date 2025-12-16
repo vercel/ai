@@ -2,10 +2,11 @@ import { EventEmitter } from 'node:events';
 import { ServerResponse } from 'node:http';
 import { describe, it, expect } from 'vitest';
 import { writeToServerResponse } from './write-to-server-response';
+import { createMockServerResponse } from '../test/mock-server-response';
 
 describe('writeToServerResponse', () => {
   it('should write data to ServerResponse', async () => {
-    const mockResponse = createSimpleMockResponse();
+    const mockResponse = createMockServerResponse();
 
     const stream = new ReadableStream({
       start(controller) {
@@ -98,7 +99,7 @@ describe('writeToServerResponse', () => {
   });
 
   it('should set headers correctly when statusText is undefined', async () => {
-    const mockResponse = createSimpleMockResponse();
+    const mockResponse = createMockServerResponse();
 
     const stream = new ReadableStream({
       start(controller) {
@@ -129,7 +130,7 @@ describe('writeToServerResponse', () => {
   });
 
   it('should set headers correctly when statusText is provided', async () => {
-    const mockResponse = createSimpleMockResponse();
+    const mockResponse = createMockServerResponse();
 
     const stream = new ReadableStream({
       start(controller) {
@@ -161,7 +162,7 @@ describe('writeToServerResponse', () => {
   });
 
   it('should set headers correctly when statusText is not set and status is not set', async () => {
-    const mockResponse = createSimpleMockResponse();
+    const mockResponse = createMockServerResponse();
 
     const stream = new ReadableStream({
       start(controller) {
@@ -189,52 +190,6 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.writtenChunks).toHaveLength(1);
   });
 });
-
-class SimpleMockResponse extends EventEmitter {
-  writtenChunks: any[] = [];
-  statusCode = 0;
-  statusMessage = '';
-  headers: Record<string, string | number | string[]> | undefined;
-  ended = false;
-
-  write(chunk: any): boolean {
-    this.writtenChunks.push(chunk);
-    return true;
-  }
-
-  end(): void {
-    this.ended = true;
-  }
-
-  writeHead(
-    statusCode: number,
-    statusMessage?: string,
-    headers?: Record<string, string | number | string[]>,
-  ): void {
-    this.statusCode = statusCode;
-
-    if (typeof statusMessage === 'string') {
-      this.statusMessage = statusMessage;
-      this.headers = headers;
-    } else {
-      this.statusMessage = '';
-      this.headers = statusMessage;
-    }
-  }
-
-  async waitForEnd() {
-    await new Promise(resolve => {
-      const checkIfEnded = () => {
-        if (this.ended) {
-          resolve(undefined);
-        } else {
-          setImmediate(checkIfEnded);
-        }
-      };
-      checkIfEnded();
-    });
-  }
-}
 
 class BackpressureMockResponse extends EventEmitter {
   writtenChunks: any[] = [];
@@ -302,10 +257,6 @@ class BackpressureMockResponse extends EventEmitter {
       checkIfEnded();
     });
   }
-}
-
-function createSimpleMockResponse(): ServerResponse & SimpleMockResponse {
-  return new SimpleMockResponse() as ServerResponse & SimpleMockResponse;
 }
 
 function createBackpressureMockResponse(): ServerResponse &
