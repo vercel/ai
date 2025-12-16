@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.47
+
+### Patch Changes
+
+- 0e182c5: Add Google Maps grounding tool support for location-aware Gemini responses
+
 ## 2.0.46
 
 ### Patch Changes
