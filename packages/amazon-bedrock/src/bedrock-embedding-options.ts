@@ -21,4 +21,18 @@ Flag indicating whether or not to normalize the output embeddings. Defaults to t
 Only supported in amazon.titan-embed-text-v2:0.
  */
   normalize: z.boolean().optional(),
+
+  /**
+Input type for Cohere embedding models on Bedrock.
+Common values: `search_document`, `search_query`, `classification`, `clustering`.
+If not set, the provider defaults to `search_document`.
+   */
+  inputType: z
+    .enum(['search_document', 'search_query', 'classification', 'clustering'])
+    .optional(),
+
+  /**
+Truncation behavior for Cohere embedding models on Bedrock.
+   */
+  truncate: z.enum(['NONE', 'START', 'END']).optional(),
 });

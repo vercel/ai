@@ -67,11 +67,23 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       })) ?? {};
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
-    const args = {
-      inputText: values[0],
-      dimensions: bedrockOptions.dimensions,
-      normalize: bedrockOptions.normalize,
-    };
+    //
+    // Note: Different embedding model families expect different request/response
+    // payloads (e.g. Titan vs Cohere). We keep the public interface stable and
+    // adapt here based on the modelId.
+    const args = this.modelId.startsWith('cohere.embed-')
+      ? {
+          // Cohere embedding models on Bedrock require `input_type`.
+          // Without it, the service attempts other schema branches and rejects the request.
+          input_type: bedrockOptions.inputType ?? 'search_query',
+          texts: [values[0]],
+          truncate: bedrockOptions.truncate,
+        }
+      : {
+          inputText: values[0],
+          dimensions: bedrockOptions.dimensions,
+          normalize: bedrockOptions.normalize,
+        };
     const url = this.getUrl(this.modelId);
     const { value: response } = await postJsonToApi({
       url,
@@ -90,15 +102,30 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       abortSignal,
     });
 
+    const embedding =
+      'embedding' in response ? response.embedding : response.embeddings[0];
+
     return {
       warnings: [],
-      embeddings: [response.embedding],
-      usage: { tokens: response.inputTextTokenCount },
+      embeddings: [embedding],
+      usage: {
+        tokens:
+          'inputTextTokenCount' in response
+            ? response.inputTextTokenCount
+            : NaN,
+      },
     };
   }
 }
 
-const BedrockEmbeddingResponseSchema = z.object({
-  embedding: z.array(z.number()),
-  inputTextTokenCount: z.number(),
-});
+const BedrockEmbeddingResponseSchema = z.union([
+  // Titan-style response
+  z.object({
+    embedding: z.array(z.number()),
+    inputTextTokenCount: z.number(),
+  }),
+  // Cohere-style response
+  z.object({
+    embeddings: z.array(z.array(z.number())),
+  }),
+]);

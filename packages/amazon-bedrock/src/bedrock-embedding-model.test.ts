@@ -16,6 +16,10 @@ const embedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encode
   'amazon.titan-embed-text-v2:0',
 )}/invoke`;
 
+const cohereEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'cohere.embed-english-v3',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -33,6 +37,19 @@ describe('doEmbed', () => {
           JSON.stringify({
             embedding: mockEmbeddings[0],
             inputTextTokenCount: 8,
+          }),
+        ),
+      },
+    },
+    [cohereEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: [mockEmbeddings[0]],
           }),
         ),
       },
@@ -85,6 +102,29 @@ describe('doEmbed', () => {
     });
 
     expect(usage?.tokens).toStrictEqual(8);
+  });
+
+  it('should support Cohere embedding models', async () => {
+    const cohereModel = new BedrockEmbeddingModel('cohere.embed-english-v3', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings, usage } = await cohereModel.doEmbed({
+      values: ['I like apples'],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(Number.isNaN(usage?.tokens)).toBe(true);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: ['I like apples'],
+      truncate: undefined,
+    });
   });
 
   it('should properly combine headers from all sources', async () => {

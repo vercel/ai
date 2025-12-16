@@ -758,6 +758,13 @@ The following optional provider options are available for Bedrock Titan embeddin
 | `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> |
 | `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> |
 
+<Note>
+  Cohere embedding models on Bedrock require an <code>input_type</code>. Set it
+  via
+  <code>providerOptions.bedrock.inputType</code> (defaults to{' '}
+  <code>search_query</code>).
+</Note>
+
 ## Reranking Models
 
 You can create models that call the [Bedrock Rerank API](https://docs.aws.amazon.com/bedrock/latest/userguide/rerank-api.html)
