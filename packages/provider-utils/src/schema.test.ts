@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { zodSchema } from './schema';
+import { asSchema, StandardSchema, zodSchema } from './schema';
 
 describe('zodSchema', () => {
   describe('zod/v4', () => {
@@ -197,6 +197,292 @@ describe('zodSchema', () => {
           value: { user: { id: 123, name: 'John' } },
           rawValue: { user: { id: '123', name: 'John' } },
         });
+      });
+    });
+  });
+});
+
+describe('StandardSchema (StandardJSONSchemaV1)', () => {
+  // Helper to create a StandardSchema mock
+  function createStandardSchema<T>(options: {
+    jsonSchema: object;
+    validate: (value: unknown) => Promise<{ value: T } | { issues: Error[] }>;
+  }): StandardSchema<T> {
+    return {
+      '~standard': {
+        version: 1,
+        vendor: 'custom',
+        validate: options.validate,
+        jsonSchema: {
+          input: () => options.jsonSchema,
+          output: () => options.jsonSchema,
+        },
+      },
+    } as StandardSchema<T>;
+  }
+
+  describe('json schema conversion', () => {
+    it('should return the JSON schema from input()', async () => {
+      const standardSchema = createStandardSchema<{
+        name: string;
+        age: number;
+      }>({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' },
+          },
+          required: ['name', 'age'],
+        },
+        validate: async value => ({
+          value: value as { name: string; age: number },
+        }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+        required: ['name', 'age'],
+      });
+    });
+
+    it('should pass target draft-07 to jsonSchema.input()', async () => {
+      let capturedTarget: string | undefined;
+
+      const standardSchema: StandardSchema<{ text: string }> = {
+        '~standard': {
+          version: 1,
+          vendor: 'custom',
+          validate: async value => ({ value: value as { text: string } }),
+          jsonSchema: {
+            input: (options: { target?: string } = {}) => {
+              capturedTarget = options.target;
+              return { type: 'object', properties: { text: { type: 'string' } } };
+            },
+            output: () => ({
+              type: 'object',
+              properties: { text: { type: 'string' } },
+            }),
+          },
+        },
+      } as StandardSchema<{ text: string }>;
+
+      const schema = asSchema(standardSchema);
+      await schema.jsonSchema;
+
+      expect(capturedTarget).toBe('draft-07');
+    });
+
+    it('should support nested objects', async () => {
+      const standardSchema = createStandardSchema<{
+        user: { name: string; email: string };
+      }>({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            user: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                email: { type: 'string' },
+              },
+              required: ['name', 'email'],
+            },
+          },
+          required: ['user'],
+        },
+        validate: async value => ({
+          value: value as { user: { name: string; email: string } },
+        }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        properties: {
+          user: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              email: { type: 'string' },
+            },
+            required: ['name', 'email'],
+          },
+        },
+        required: ['user'],
+      });
+    });
+
+    it('should support arrays', async () => {
+      const standardSchema = createStandardSchema<{ items: string[] }>({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+          },
+          required: ['items'],
+        },
+        validate: async value => ({ value: value as { items: string[] } }),
+      });
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: { type: 'string' },
+          },
+        },
+        required: ['items'],
+      });
+    });
+  });
+
+  describe('output validation', () => {
+    it('should validate and return value for valid input', async () => {
+      const standardSchema = createStandardSchema<{
+        name: string;
+        age: number;
+      }>({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' },
+          },
+        },
+        validate: async value => {
+          const obj = value as any;
+          if (
+            typeof obj === 'object' &&
+            obj !== null &&
+            typeof obj.name === 'string' &&
+            typeof obj.age === 'number'
+          ) {
+            return { value: obj };
+          }
+          return { issues: [new Error('Invalid input')] };
+        },
+      });
+
+      const schema = asSchema(standardSchema);
+      const result = await schema.validate!({ name: 'John', age: 30 });
+
+      expect(result).toStrictEqual({
+        success: true,
+        value: { name: 'John', age: 30 },
+      });
+    });
+
+    it('should return error for invalid input', async () => {
+      const standardSchema = createStandardSchema<{
+        name: string;
+        age: number;
+      }>({
+        jsonSchema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            age: { type: 'number' },
+          },
+        },
+        validate: async value => {
+          const obj = value as any;
+          if (
+            typeof obj === 'object' &&
+            obj !== null &&
+            typeof obj.name === 'string' &&
+            typeof obj.age === 'number'
+          ) {
+            return { value: obj };
+          }
+          return { issues: [new Error('Invalid input')] };
+        },
+      });
+
+      const schema = asSchema(standardSchema);
+      const result = await schema.validate!({
+        name: 'John',
+        age: 'not a number',
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(Error);
+        expect(result.error.message).toContain('Type validation failed');
+      }
+    });
+
+    it('should support transform in validation', async () => {
+      const standardSchema = createStandardSchema<{ id: number; name: string }>(
+        {
+          jsonSchema: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' }, // Input is string
+              name: { type: 'string' },
+            },
+          },
+          validate: async value => {
+            const obj = value as any;
+            // Transform string id to number
+            return {
+              value: {
+                id: parseInt(obj.id, 10),
+                name: obj.name,
+              },
+            };
+          },
+        },
+      );
+
+      const schema = asSchema(standardSchema);
+      const result = await schema.validate!({ id: '123', name: 'John' });
+
+      expect(result).toStrictEqual({
+        success: true,
+        value: { id: 123, name: 'John' },
+      });
+    });
+  });
+
+  describe('asSchema detection', () => {
+    it('should detect non-zod standard schema by vendor', async () => {
+      const standardSchema: StandardSchema<{ text: string }> = {
+        '~standard': {
+          version: 1,
+          vendor: 'valibot', // non-zod vendor
+          validate: async value => ({ value: value as { text: string } }),
+          jsonSchema: {
+            input: () => ({
+              type: 'object',
+              properties: { text: { type: 'string' } },
+            }),
+            output: () => ({
+              type: 'object',
+              properties: { text: { type: 'string' } },
+            }),
+          },
+        },
+      } as StandardSchema<{ text: string }>;
+
+      const schema = asSchema(standardSchema);
+
+      expect(await schema.jsonSchema).toStrictEqual({
+        type: 'object',
+        properties: { text: { type: 'string' } },
       });
     });
   });
