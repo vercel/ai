@@ -132,7 +132,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel },
+      { isGemmaModel, providerOptionsName },
     );
 
     const {
