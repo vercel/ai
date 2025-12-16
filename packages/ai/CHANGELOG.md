@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.114
+
+### Patch Changes
+
+- fc633bd: fix header loss when statusText is undefined in writeHead
+
 ## 5.0.113
 
 ### Patch Changes
