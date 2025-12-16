@@ -3,9 +3,6 @@ import { StandardSchemaV1 } from '@standard-schema/spec';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
-import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
-import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
-import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
 /**
@@ -85,7 +82,6 @@ export type InferSchema<SCHEMA> =
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-// TODO rename to 'schema'
 export function jsonSchema<OBJECT = unknown>(
   jsonSchema:
     | JSONSchema7
@@ -143,42 +139,15 @@ export function standardSchema<OBJECT>(
 ): Schema<OBJECT> {
   const vendor = standardSchema['~standard'].vendor;
 
-  switch (vendor) {
-    case 'zod': {
-      return zodSchema(
+  return vendor === 'zod'
+    ? zodSchema(
         standardSchema as
           | z4.core.$ZodType<any, any>
           | z3.Schema<any, z3.ZodTypeDef, any>,
-      );
-    }
-
-    case 'arktype': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        arktypeToJsonSchema,
-      );
-    }
-
-    case 'effect': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        effectToJsonSchema,
-      );
-    }
-
-    case 'valibot': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        valibotToJsonSchema,
-      );
-    }
-
-    default: {
-      return standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
+      )
+    : standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
         throw new Error(`Unsupported standard schema vendor: ${vendor}`);
       });
-    }
-  }
 }
 
 function standardSchemaWithJsonSchemaResolver<OBJECT>(

@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@standard-schema/spec": "^1.0.0",
+    "@standard-schema/spec": "^1.1.0",
     "eventsource-parser": "^3.0.6"
   },
   "devDependencies": {
