@@ -263,7 +263,10 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
           jsonSchema: {
             input: (options: { target?: string } = {}) => {
               capturedTarget = options.target;
-              return { type: 'object', properties: { text: { type: 'string' } } };
+              return {
+                type: 'object',
+                properties: { text: { type: 'string' } },
+              };
             },
             output: () => ({
               type: 'object',
