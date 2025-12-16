@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "run-p dev:next dev:langgraph",
     "dev:next": "next dev",
-    "dev:langgraph": "cd langgraph-server && npx @langchain/langgraph-cli dev --no-open",
+    "dev:langgraph": "cd langgraph-server && npx @langchain/langgraph-cli dev --no-browser",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

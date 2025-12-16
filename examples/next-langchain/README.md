@@ -27,9 +27,9 @@ Showcases LangChain's `createAgent` with the AI SDK adapter:
 
 ### 4. LangGraph Transport (`/langsmith`)
 
-Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
+Connect directly to a LangGraph app from the browser using `useLangSmithDeployment`:
 
-- Uses `LangSmithDeploymentTransport` for client-side communication
+- Uses `useLangSmithDeployment` to create a transport for client-side communication
 - No backend route needed - talks directly to the LangGraph server
 - Works with both local development server and LangSmith deployments
 - Includes a local LangGraph server for development (see below)
@@ -60,45 +60,9 @@ To run the example locally you need to:
 
 1. Sign up at [OpenAI's Developer Platform](https://platform.openai.com/signup).
 2. Go to [OpenAI's dashboard](https://platform.openai.com/account/api-keys) and create an API KEY.
-3. Set the required OpenAI environment variable in two places:
-
-   - `.env.local` in the root (for Next.js API routes)
-   - `langgraph-server/.env` (for the LangGraph server)
-
-   ```bash
-   OPENAI_API_KEY=your-openai-api-key
-   ```
-
-4. Install dependencies:
-
-   ```bash
-   pnpm install
-   cd langgraph-server && pnpm install && cd ..
-   ```
-
-5. Start the development servers:
-   ```bash
-   pnpm dev
-   ```
-
-This starts both Next.js (port 3000) and the LangGraph server (port 2024) simultaneously.
-
-### LangGraph Server Details
-
-The `/langsmith` example uses a local LangGraph server included in `langgraph-server/`. The server runs at `http://localhost:2024` and includes a simple agent with two tools:
-
-- **get_weather**: Returns mock weather data for a city
-- **calculator**: Performs basic mathematical calculations
-
-To run the servers separately:
-
-```bash
-# Terminal 1: Next.js
-pnpm dev:next
-
-# Terminal 2: LangGraph server
-pnpm dev:langgraph
-```
+3. Set the required OpenAI environment variable as the token value as shown [the example env file](./.env.local.example) but in a new file called `.env.local`.
+4. `pnpm install` to install the required dependencies.
+5. `pnpm dev` to launch the development server.
 
 ## Key Code Patterns
 
@@ -175,19 +139,18 @@ return createUIMessageStreamResponse({
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { LangSmithDeploymentTransport } from '@ai-sdk/langchain';
-
-// Create transport for local development or LangSmith deployment
-const transport = new LangSmithDeploymentTransport({
-  // Local development server
-  url: 'http://localhost:2024',
-  // Or for LangSmith deployment:
-  // url: 'https://your-deployment.langsmith.app',
-  // apiKey: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
-});
+import { useLangSmithDeployment } from '@ai-sdk/langchain';
 
 function Chat() {
-  const { messages, sendMessage, status } = useChat({ transport });
+  const { messages, sendMessage, status } = useChat({
+    transport: useLangSmithDeployment({
+      // Local development server:
+      url: 'http://localhost:2024',
+      // Or for a LangSmith deployment:
+      // url: 'https://your-deployment.langsmith.app',
+      // apiKey: process.env.NEXT_PUBLIC_LANGSMITH_API_KEY,
+    }),
+  });
 
   // ... render chat UI
 }
