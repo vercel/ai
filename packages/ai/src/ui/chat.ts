@@ -18,7 +18,7 @@ import {
 } from './process-ui-message-stream';
 import {
   InferUIMessageToolCall,
-  isToolOrDynamicToolUIPart,
+  isToolUIPart,
   UIMessagePart,
   UITools,
   type DataUIPart,
@@ -441,7 +441,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) &&
+        isToolUIPart(part) &&
         part.state === 'approval-requested' &&
         part.approval.id === id
           ? {
@@ -505,7 +505,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
       ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolOrDynamicToolUIPart(part) && part.toolCallId === toolCallId
+        isToolUIPart(part) && part.toolCallId === toolCallId
           ? ({ ...part, state, output, errorText } as typeof part)
           : part;
 

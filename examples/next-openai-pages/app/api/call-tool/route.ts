@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4'),
     system: 'You are a helpful assistant.',
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools: {
       celsiusToFahrenheit: {
         description: 'Converts celsius to fahrenheit',
