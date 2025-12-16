@@ -636,7 +636,7 @@ describe('runToolsTransformation', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
-            "error": [Error: Tool call non-existent-call not found for approval request mcp-approval-1.],
+            "error": [AI_ToolCallNotFoundError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
             "type": "error",
           },
           {

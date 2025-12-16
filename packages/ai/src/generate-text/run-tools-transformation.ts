@@ -6,6 +6,7 @@ import {
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { ToolCallNotFoundError } from '../error/tool-call-not-found-error';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
@@ -225,9 +226,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           if (toolCall == null) {
             toolResultsStreamController!.enqueue({
               type: 'error',
-              error: new Error(
-                `Tool call ${chunk.toolCallId} not found for approval request ${chunk.approvalId}.`,
-              ),
+              error: new ToolCallNotFoundError({
+                toolCallId: chunk.toolCallId,
+                approvalId: chunk.approvalId,
+              }),
             });
             break;
           }
