@@ -156,7 +156,7 @@ describe('resolveEmbeddingModel', () => {
   describe('when a string is provided and the global default provider is set', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
-        textEmbeddingModels: {
+        embeddingModels: {
           'test-model-id': new MockEmbeddingModelV3({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',

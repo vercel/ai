@@ -1,7 +1,7 @@
 import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV3Usage } from './image-model-v3-usage';
 import { ImageModelV3CallOptions } from './image-model-v3-call-options';
-import { ImageModelV3CallWarning } from './image-model-v3-call-warning';
+import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 
 export type ImageModelV3ProviderMetadata = Record<
   string,
@@ -40,8 +40,8 @@ Provider-specific model ID for logging purposes.
   /**
 Limit of how many images can be generated in a single API call.
 Can be set to a number for a fixed limit, to undefined to use
-the global limit, or a function that returns a number or undefined, 
-optionally as a promise. 
+the global limit, or a function that returns a number or undefined,
+optionally as a promise.
    */
   readonly maxImagesPerCall: number | undefined | GetMaxImagesPerCallFunction;
 
@@ -59,9 +59,9 @@ be returned as binary data.
     images: Array<string> | Array<Uint8Array>;
 
     /**
-Warnings for the call, e.g. unsupported settings.
+Warnings for the call, e.g. unsupported features.
      */
-    warnings: Array<ImageModelV3CallWarning>;
+    warnings: Array<SharedV3Warning>;
 
     /**
 Additional provider-specific metadata. They are passed through

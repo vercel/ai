@@ -128,14 +128,15 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support aspect ratio. Use `size` instead.',
-      },
-    ]);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "This model does not support aspect ratio. Use \`size\` instead.",
+          "feature": "aspectRatio",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should extract the generated images', async () => {

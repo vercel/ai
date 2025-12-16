@@ -1,4 +1,4 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -47,19 +47,19 @@ export class OpenAIImageModel implements ImageModelV3 {
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
+        type: 'unsupported',
+        feature: 'aspectRatio',
         details:
           'This model does not support aspect ratio. Use `size` instead.',
       });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -105,13 +105,16 @@ export class OpenAIImageModel implements ImageModelV3 {
       },
       providerMetadata: {
         openai: {
-          images: response.data.map(item =>
-            item.revised_prompt
-              ? {
-                  revisedPrompt: item.revised_prompt,
-                }
-              : null,
-          ),
+          images: response.data.map(item => ({
+            ...(item.revised_prompt
+              ? { revisedPrompt: item.revised_prompt }
+              : {}),
+            created: response.created ?? undefined,
+            size: response.size ?? undefined,
+            quality: response.quality ?? undefined,
+            background: response.background ?? undefined,
+            outputFormat: response.output_format ?? undefined,
+          })),
         },
       },
     };

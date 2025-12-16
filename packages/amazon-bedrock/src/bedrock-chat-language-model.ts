@@ -1,12 +1,11 @@
 import {
   JSONObject,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3Reasoning,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   LanguageModelV3FunctionTool,
 } from '@ai-sdk/provider';
@@ -32,6 +31,7 @@ import {
   bedrockProviderOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
+import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
@@ -69,7 +69,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     providerOptions,
   }: Parameters<LanguageModelV3['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
-    warnings: LanguageModelV3CallWarning[];
+    warnings: SharedV3Warning[];
     usesJsonResponseTool: boolean;
     betas: Set<string>;
   }> {
@@ -81,40 +81,40 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         schema: bedrockProviderOptions,
       })) ?? {};
 
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
+        type: 'unsupported',
+        feature: 'frequencyPenalty',
       });
     }
 
     if (presencePenalty != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
+        type: 'unsupported',
+        feature: 'presencePenalty',
       });
     }
 
     if (seed != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
+        type: 'unsupported',
+        feature: 'seed',
       });
     }
 
     if (temperature != null && temperature > 1) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
     } else if (temperature != null && temperature < 0) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: `${temperature} is below bedrock minimum of 0. clamped to 0`,
       });
       temperature = 0;
@@ -126,8 +126,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       responseFormat.type !== 'json'
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'Only text and json response formats are supported.',
       });
     }
@@ -172,8 +172,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       };
     }
 
-    const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
+    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isThinkingRequested =
+      bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
+    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -183,8 +186,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    // Adjust maxTokens if thinking is enabled
-    if (isThinking && thinkingBudget != null) {
+    if (isAnthropicThinkingEnabled && thinkingBudget != null) {
       if (inferenceConfig.maxTokens != null) {
         inferenceConfig.maxTokens += thinkingBudget;
       } else {
@@ -199,33 +201,59 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           budget_tokens: thinkingBudget,
         },
       };
+    } else if (!isAnthropicModel && thinkingBudget != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'budgetTokens',
+        details:
+          'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
+      });
     }
 
-    // Remove temperature if thinking is enabled
-    if (isThinking && inferenceConfig.temperature != null) {
+    const maxReasoningEffort =
+      bedrockOptions.reasoningConfig?.maxReasoningEffort;
+    if (maxReasoningEffort != null && !isAnthropicModel) {
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        reasoningConfig: {
+          ...(bedrockOptions.reasoningConfig?.type != null && {
+            type: bedrockOptions.reasoningConfig.type,
+          }),
+          maxReasoningEffort,
+        },
+      };
+    } else if (maxReasoningEffort != null && isAnthropicModel) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'maxReasoningEffort',
+        details:
+          'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+      });
+    }
+
+    if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
       delete inferenceConfig.temperature;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'temperature',
+        type: 'unsupported',
+        feature: 'temperature',
         details: 'temperature is not supported when thinking is enabled',
       });
     }
 
-    // Remove topP if thinking is enabled
-    if (isThinking && inferenceConfig.topP != null) {
+    if (isAnthropicThinkingEnabled && inferenceConfig.topP != null) {
       delete inferenceConfig.topP;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topP',
+        type: 'unsupported',
+        feature: 'topP',
         details: 'topP is not supported when thinking is enabled',
       });
     }
 
-    if (isThinking && inferenceConfig.topK != null) {
+    if (isAnthropicThinkingEnabled && inferenceConfig.topK != null) {
       delete inferenceConfig.topK;
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
+        type: 'unsupported',
+        feature: 'topK',
         details: 'topK is not supported when thinking is enabled',
       });
     }
@@ -262,8 +290,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           ) as typeof prompt;
 
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'toolContent',
+          type: 'unsupported',
+          feature: 'toolContent',
           details:
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });
@@ -395,7 +423,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             type: 'tool-call' as const,
             toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
             toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-            input: JSON.stringify(part.toolUse?.input ?? ''),
+            input: JSON.stringify(part.toolUse?.input ?? {}),
           });
         }
       }
@@ -425,12 +453,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         response.stopReason as BedrockStopReason,
         isJsonResponseFromTool,
       ),
-      usage: {
-        inputTokens: response.usage?.inputTokens,
-        outputTokens: response.usage?.outputTokens,
-        totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
-        cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
-      },
+      usage: convertBedrockUsage(response.usage),
       response: {
         // TODO add id, timestamp, etc
         headers: responseHeaders,
@@ -465,11 +488,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: BedrockUsage | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
 
@@ -540,15 +559,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.metadata) {
-              usage.inputTokens =
-                value.metadata.usage?.inputTokens ?? usage.inputTokens;
-              usage.outputTokens =
-                value.metadata.usage?.outputTokens ?? usage.outputTokens;
-              usage.totalTokens =
-                (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
-              usage.cachedInputTokens =
-                value.metadata.usage?.cacheReadInputTokens ??
-                usage.cachedInputTokens;
+              if (value.metadata.usage) {
+                usage = value.metadata.usage;
+              }
 
               const cacheUsage =
                 value.metadata.usage?.cacheWriteInputTokens != null
@@ -652,7 +665,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                       type: 'tool-call',
                       toolCallId: contentBlock.toolCallId,
                       toolName: contentBlock.toolName,
-                      input: contentBlock.jsonText,
+                      input:
+                        contentBlock.jsonText === ''
+                          ? '{}'
+                          : contentBlock.jsonText,
                     });
                   }
                 }
@@ -782,7 +798,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertBedrockUsage(usage),
               ...(providerMetadata && { providerMetadata }),
             });
           },

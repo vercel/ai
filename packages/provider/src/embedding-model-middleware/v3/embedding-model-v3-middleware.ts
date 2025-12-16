@@ -16,20 +16,20 @@ export type EmbeddingModelV3Middleware = {
    * Override the provider name if desired.
    * @param options.model - The embedding model instance.
    */
-  overrideProvider?: (options: { model: EmbeddingModelV3<string> }) => string;
+  overrideProvider?: (options: { model: EmbeddingModelV3 }) => string;
 
   /**
    * Override the model ID if desired.
    * @param options.model - The embedding model instance.
    */
-  overrideModelId?: (options: { model: EmbeddingModelV3<string> }) => string;
+  overrideModelId?: (options: { model: EmbeddingModelV3 }) => string;
 
   /**
    * Override the limit of how many embeddings can be generated in a single API call if desired.
    * @param options.model - The embedding model instance.
    */
   overrideMaxEmbeddingsPerCall?: (options: {
-    model: EmbeddingModelV3<string>;
+    model: EmbeddingModelV3;
   }) => PromiseLike<number | undefined> | number | undefined;
 
   /**
@@ -37,7 +37,7 @@ export type EmbeddingModelV3Middleware = {
    * @param options.model - The embedding model instance.
    */
   overrideSupportsParallelCalls?: (options: {
-    model: EmbeddingModelV3<string>;
+    model: EmbeddingModelV3;
   }) => PromiseLike<boolean> | boolean;
 
   /**
@@ -47,9 +47,9 @@ export type EmbeddingModelV3Middleware = {
    * @returns A promise that resolves to the transformed parameters.
    */
   transformParams?: (options: {
-    params: EmbeddingModelCallOptions<string>;
-    model: EmbeddingModelV3<string>;
-  }) => PromiseLike<EmbeddingModelCallOptions<string>>;
+    params: EmbeddingModelCallOptions;
+    model: EmbeddingModelV3;
+  }) => PromiseLike<EmbeddingModelCallOptions>;
 
   /**
    * Wraps the embed operation of the embedding model.
@@ -62,8 +62,8 @@ export type EmbeddingModelV3Middleware = {
    * @returns A promise that resolves to the result of the generate operation.
    */
   wrapEmbed?: (options: {
-    doEmbed: () => ReturnType<EmbeddingModelV3<string>['doEmbed']>;
-    params: EmbeddingModelCallOptions<string>;
-    model: EmbeddingModelV3<string>;
-  }) => Promise<Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>>;
+    doEmbed: () => ReturnType<EmbeddingModelV3['doEmbed']>;
+    params: EmbeddingModelCallOptions;
+    model: EmbeddingModelV3;
+  }) => Promise<Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>>;
 };

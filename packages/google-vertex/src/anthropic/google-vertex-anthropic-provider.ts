@@ -100,6 +100,8 @@ export function createVertexAnthropic(
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
+      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
+      supportsNativeStructuredOutput: false,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
@@ -117,8 +119,8 @@ export function createVertexAnthropic(
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });

@@ -152,17 +152,17 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel: () => {
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'languageModel',
+        modelId,
         modelType: 'languageModel',
       });
     },
     speech: createSpeechModel,
-    textEmbeddingModel: () => {
+    embeddingModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'textEmbeddingModel',
-        modelType: 'textEmbeddingModel',
+        modelId,
+        modelType: 'embeddingModel',
       });
     },
     transcription: createTranscriptionModel,

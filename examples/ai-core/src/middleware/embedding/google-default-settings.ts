@@ -9,9 +9,9 @@ import { print } from '../../lib/print';
 import { run } from '../../lib/run';
 
 const custom = customProvider({
-  textEmbeddingModels: {
+  embeddingModels: {
     'powerful-embedding-model': wrapEmbeddingModel({
-      model: google.textEmbedding('gemini-embedding-001'),
+      model: google.embedding('gemini-embedding-001'),
       middleware: defaultEmbeddingSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -28,7 +28,7 @@ const custom = customProvider({
 
 run(async () => {
   const result = await embed({
-    model: custom.textEmbeddingModel('powerful-embedding-model'),
+    model: custom.embeddingModel('powerful-embedding-model'),
     value: 'rainy afternoon in the city',
   });
 

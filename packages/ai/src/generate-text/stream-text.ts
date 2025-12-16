@@ -1,13 +1,15 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -39,7 +41,11 @@ import {
   ToolChoice,
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  createNullLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { UIMessage } from '../ui';
 import { createUIMessageStreamResponse } from '../ui-message-stream/create-ui-message-stream-response';
 import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
@@ -58,7 +64,6 @@ import {
 } from '../util/async-iterable-stream';
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -156,14 +161,23 @@ Callback that is set using the `onFinish` option.
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;
 
@@ -836,7 +850,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'finish-step') {
-          const stepMessages = toResponseMessages({
+          const stepMessages = await toResponseMessages({
             content: recordedContent,
             tools,
           });
@@ -894,11 +908,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
-          const totalUsage = recordedTotalUsage ?? {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          const totalUsage =
+            recordedTotalUsage ?? createNullLanguageModelUsage();
 
           // from finish:
           self._finishReason.resolve(finishReason);
@@ -930,6 +941,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             warnings: finalStep.warnings,
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
+            experimental_context,
           });
 
           // Add response information to the root span:
@@ -1130,34 +1142,41 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
+            const content: ToolContent = [];
+
+            for (const output of toolOutputs) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: output.toolCallId,
+                toolName: output.toolName,
+                output: await createToolModelOutput({
+                  toolCallId: output.toolCallId,
+                  input: output.input,
+                  tool: tools?.[output.toolName],
+                  output:
+                    output.type === 'tool-result'
+                      ? output.output
+                      : output.error,
+                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                }),
+              });
+            }
+
+            for (const toolApproval of deniedToolApprovals) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: {
+                  type: 'execution-denied' as const,
+                  reason: toolApproval.approvalResponse.reason,
+                },
+              });
+            }
+
             initialResponseMessages.push({
               role: 'tool',
-              content: [
-                // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
-                  type: 'tool-result' as const,
-                  toolCallId: output.toolCallId,
-                  toolName: output.toolName,
-                  output: createToolModelOutput({
-                    tool: tools?.[output.toolName],
-                    output:
-                      output.type === 'tool-result'
-                        ? output.output
-                        : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                  }),
-                })),
-                // add execution denied tool results for denied tool approvals:
-                ...deniedToolApprovals.map(toolApproval => ({
-                  type: 'tool-result' as const,
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  toolName: toolApproval.toolCall.toolName,
-                  output: {
-                    type: 'execution-denied' as const,
-                    reason: toolApproval.approvalResponse.reason,
-                  },
-                })),
-              ],
+              content,
             });
           } finally {
             toolExecutionStepStreamController?.close();
@@ -1186,6 +1205,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1207,6 +1227,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               activeTools: prepareStepResult?.activeTools ?? activeTools,
             });
+
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
 
           const {
             result: { stream, response, request },
@@ -1291,16 +1314,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: LanguageModelV3CallWarning[] | undefined;
+          let warnings: SharedV3Warning[] | undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
-          let stepUsage: LanguageModelUsage = {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          };
+          let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1597,12 +1616,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
-                      ...toResponseMessages({
+                      ...(await toResponseMessages({
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
                         tools,
-                      }),
+                      })),
                     );
 
                     try {
@@ -1638,11 +1657,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         await streamStep({
           currentStep: 0,
           responseMessages: initialResponseMessages,
-          usage: {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-          },
+          usage: createNullLanguageModelUsage(),
         });
       },
     }).catch(error => {

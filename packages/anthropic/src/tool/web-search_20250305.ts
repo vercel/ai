@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -29,7 +29,7 @@ export const webSearch_20250305OutputSchema = lazySchema(() =>
     z.array(
       z.object({
         url: z.string(),
-        title: z.string(),
+        title: z.string().nullable(),
         pageAge: z.string().nullable(),
         encryptedContent: z.string(),
         type: z.literal('web_search_result'),
@@ -46,7 +46,7 @@ const webSearch_20250305InputSchema = lazySchema(() =>
   ),
 );
 
-const factory = createProviderDefinedToolFactoryWithOutputSchema<
+const factory = createProviderToolFactoryWithOutputSchema<
   {
     /**
      * The search query to execute.
@@ -64,7 +64,7 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
     /**
      * The title of the source page.
      */
-    title: string;
+    title: string | null;
 
     /**
      * When the site was last updated
@@ -124,7 +124,6 @@ const factory = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'anthropic.web_search_20250305',
-  name: 'web_search',
   inputSchema: webSearch_20250305InputSchema,
   outputSchema: webSearch_20250305OutputSchema,
 });

@@ -168,10 +168,12 @@ describe('doGenerate', () => {
     };
     annotations?: Array<{
       type: 'url_citation';
-      start_index: number;
-      end_index: number;
-      url: string;
-      title: string;
+      url_citation: {
+        start_index: number;
+        end_index: number;
+        url: string;
+        title: string;
+      };
     }>;
     logprobs?: {
       content:
@@ -257,11 +259,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
@@ -370,11 +383,21 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": 20,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 0,
+          "total": 0,
+        },
+        "raw": {
+          "prompt_tokens": 20,
+          "total_tokens": 20,
+        },
       }
     `);
   });
@@ -522,6 +545,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort xhigh setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.1-codex-max');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'xhigh' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.1-codex-max',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'xhigh',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -597,7 +639,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -691,10 +732,12 @@ describe('doGenerate', () => {
       annotations: [
         {
           type: 'url_citation',
-          start_index: 24,
-          end_index: 29,
-          url: 'https://example.com/doc1.pdf',
-          title: 'Document 1',
+          url_citation: {
+            start_index: 24,
+            end_index: 29,
+            url: 'https://example.com/doc1.pdf',
+            title: 'Document 1',
+          },
         },
       ],
     });
@@ -752,56 +795,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
-
-      const model = provider.chat('gpt-4o-2024-08-06');
-
-      const { warnings } = await model.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          openai: {
-            structuredOutputs: false,
-          },
-        },
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "messages": [
-            {
-              "content": "Hello",
-              "role": "user",
-            },
-          ],
-          "model": "gpt-4o-2024-08-06",
-          "response_format": {
-            "type": "json_object",
-          },
-        }
-      `);
-
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
-    });
-
-    it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
+    it('should forward json response format as "json_object" and include schema', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -845,7 +839,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -855,7 +849,7 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should use json_schema & strict with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -899,7 +893,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -907,7 +901,7 @@ describe('doGenerate', () => {
       `);
     });
 
-    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
+    it('should set name & description with responseFormat json', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06');
@@ -954,7 +948,7 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
+              "strict": true,
             },
             "type": "json_schema",
           },
@@ -985,7 +979,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set strict with tool calls when structuredOutputs are enabled', async () => {
+    it('should set strict with tool call', async () => {
       prepareJsonResponse({
         tool_calls: [
           {
@@ -1048,7 +1042,6 @@ describe('doGenerate', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
               },
               "type": "function",
             },
@@ -1069,7 +1062,7 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set strict for tool usage when structuredOutputs are enabled', async () => {
+  it('should set strict for tool usage', async () => {
     prepareJsonResponse({
       tool_calls: [
         {
@@ -1138,7 +1131,6 @@ describe('doGenerate', () => {
                 ],
                 "type": "object",
               },
-              "strict": false,
             },
             "type": "function",
           },
@@ -1178,11 +1170,25 @@ describe('doGenerate', () => {
 
     expect(result.usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": 1152,
-        "inputTokens": 15,
-        "outputTokens": 20,
-        "reasoningTokens": undefined,
-        "totalTokens": 35,
+        "inputTokens": {
+          "cacheRead": 1152,
+          "cacheWrite": undefined,
+          "noCache": -1137,
+          "total": 15,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 20,
+          "total": 20,
+        },
+        "raw": {
+          "completion_tokens": 20,
+          "prompt_tokens": 15,
+          "prompt_tokens_details": {
+            "cached_tokens": 1152,
+          },
+          "total_tokens": 35,
+        },
       }
     `);
   });
@@ -1233,28 +1239,30 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
-      expect(result.warnings).toStrictEqual([
-        {
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'frequencyPenalty',
-          details: 'frequencyPenalty is not supported for reasoning models',
-        },
-        {
-          type: 'unsupported-setting',
-          setting: 'presencePenalty',
-          details: 'presencePenalty is not supported for reasoning models',
-        },
-      ]);
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+          {
+            "details": "topP is not supported for reasoning models",
+            "feature": "topP",
+            "type": "unsupported",
+          },
+          {
+            "details": "frequencyPenalty is not supported for reasoning models",
+            "feature": "frequencyPenalty",
+            "type": "unsupported",
+          },
+          {
+            "details": "presencePenalty is not supported for reasoning models",
+            "feature": "presencePenalty",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should convert maxOutputTokens to max_completion_tokens', async () => {
@@ -1318,11 +1326,25 @@ describe('doGenerate', () => {
 
     expect(result.usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 15,
-        "outputTokens": 20,
-        "reasoningTokens": 10,
-        "totalTokens": 35,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 15,
+          "total": 15,
+        },
+        "outputTokens": {
+          "reasoning": 10,
+          "text": 10,
+          "total": 20,
+        },
+        "raw": {
+          "completion_tokens": 20,
+          "completion_tokens_details": {
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 15,
+          "total_tokens": 35,
+        },
       }
     `);
   });
@@ -1486,12 +1508,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
@@ -1508,12 +1533,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
@@ -1530,12 +1558,15 @@ describe('doGenerate', () => {
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
     expect(requestBody.temperature).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'temperature',
-      details:
-        'temperature is not supported for the search preview models and has been removed.',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for the search preview models and has been removed.",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should send serviceTier flex processing setting', async () => {
@@ -1583,12 +1614,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'flex processing is only available for o3, o4-mini, and gpt-5 models',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "flex processing is only available for o3, o4-mini, and gpt-5 models",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow flex processing with o4-mini model without warnings', async () => {
@@ -1655,12 +1689,15 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.service_tier).toBeUndefined();
 
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'serviceTier',
-      details:
-        'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported",
+          "feature": "serviceTier",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should allow priority processing with gpt-4o model without warnings', async () => {
@@ -1924,11 +1961,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 17,
-            "outputTokens": 227,
-            "reasoningTokens": undefined,
-            "totalTokens": 244,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 17,
+              "total": 17,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 227,
+              "total": 227,
+            },
+            "raw": {
+              "completion_tokens": 227,
+              "prompt_tokens": 17,
+              "total_tokens": 244,
+            },
           },
         },
       ]
@@ -1944,7 +1992,7 @@ describe('doStream', () => {
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","url_citation":{"start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}}]},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
@@ -2110,11 +2158,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2250,11 +2309,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2394,11 +2464,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 226,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 246,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 226,
+              "total": 226,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 226,
+              "total_tokens": 246,
+            },
           },
         },
       ]
@@ -2478,11 +2559,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 53,
-            "outputTokens": 17,
-            "reasoningTokens": undefined,
-            "totalTokens": 70,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 53,
+              "total": 53,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 17,
+              "total": 17,
+            },
+            "raw": {
+              "completion_tokens": 17,
+              "prompt_tokens": 53,
+              "total_tokens": 70,
+            },
           },
         },
       ]
@@ -2526,9 +2618,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2566,9 +2667,18 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]
@@ -2729,11 +2839,25 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 1152,
-            "inputTokens": 15,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 35,
+            "inputTokens": {
+              "cacheRead": 1152,
+              "cacheWrite": undefined,
+              "noCache": -1137,
+              "total": 15,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 15,
+              "prompt_tokens_details": {
+                "cached_tokens": 1152,
+              },
+              "total_tokens": 35,
+            },
           },
         }
       `);
@@ -2777,11 +2901,26 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 15,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 35,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 15,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 123,
+                "rejected_prediction_tokens": 456,
+              },
+              "prompt_tokens": 15,
+              "total_tokens": 35,
+            },
           },
         }
       `);
@@ -2962,11 +3101,22 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 17,
-              "outputTokens": 227,
-              "reasoningTokens": undefined,
-              "totalTokens": 244,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 17,
+                "total": 17,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 227,
+                "total": 227,
+              },
+              "raw": {
+                "completion_tokens": 227,
+                "prompt_tokens": 17,
+                "total_tokens": 244,
+              },
             },
           },
         ]
@@ -3031,11 +3181,25 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]

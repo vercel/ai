@@ -39,9 +39,7 @@ export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   return getGlobalProvider().languageModel(model);
 }
 
-export function resolveEmbeddingModel<VALUE = string>(
-  model: EmbeddingModel<VALUE>,
-): EmbeddingModelV3<VALUE> {
+export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV3 {
   if (typeof model !== 'string') {
     if (
       model.specificationVersion !== 'v3' &&
@@ -58,10 +56,7 @@ export function resolveEmbeddingModel<VALUE = string>(
     return asEmbeddingModelV3(model);
   }
 
-  // TODO AI SDK 6: figure out how to cleanly support different generic types
-  return getGlobalProvider().textEmbeddingModel(
-    model,
-  ) as EmbeddingModelV3<VALUE>;
+  return getGlobalProvider().embeddingModel(model);
 }
 
 export function resolveTranscriptionModel(

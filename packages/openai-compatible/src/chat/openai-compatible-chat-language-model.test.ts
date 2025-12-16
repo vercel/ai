@@ -259,11 +259,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
@@ -327,11 +338,21 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": undefined,
-        "reasoningTokens": undefined,
-        "totalTokens": 20,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 0,
+          "total": 0,
+        },
+        "raw": {
+          "prompt_tokens": 20,
+          "total_tokens": 20,
+        },
       }
     `);
   });
@@ -640,14 +661,15 @@ describe('doGenerate', () => {
         response_format: { type: 'json_object' },
       });
 
-      expect(warnings).toEqual([
-        {
-          details:
-            'JSON response format schema is only supported with structuredOutputs',
-          setting: 'responseFormat',
-          type: 'unsupported-setting',
-        },
-      ]);
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "JSON response format schema is only supported with structuredOutputs",
+            "feature": "responseFormat",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
@@ -947,11 +969,30 @@ describe('doGenerate', () => {
 
       expect(result.usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": 5,
-          "inputTokens": 20,
-          "outputTokens": 30,
-          "reasoningTokens": 10,
-          "totalTokens": 50,
+          "inputTokens": {
+            "cacheRead": 5,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 20,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "accepted_prediction_tokens": 15,
+              "reasoning_tokens": 10,
+              "rejected_prediction_tokens": 5,
+            },
+            "prompt_tokens": 20,
+            "prompt_tokens_details": {
+              "cached_tokens": 5,
+            },
+            "total_tokens": 50,
+          },
         }
       `);
       expect(result.providerMetadata).toMatchInlineSnapshot(`
@@ -1002,11 +1043,28 @@ describe('doGenerate', () => {
 
       expect(result.usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": 5,
-          "inputTokens": 20,
-          "outputTokens": 30,
-          "reasoningTokens": 10,
-          "totalTokens": 50,
+          "inputTokens": {
+            "cacheRead": 5,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 20,
+            "total": 30,
+          },
+          "raw": {
+            "completion_tokens": 30,
+            "completion_tokens_details": {
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 20,
+            "prompt_tokens_details": {
+              "cached_tokens": 5,
+            },
+            "total_tokens": 50,
+          },
         }
       `);
     });
@@ -1124,11 +1182,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1214,11 +1283,21 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1304,11 +1383,21 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1380,11 +1469,21 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
           },
         },
       ]
@@ -1515,11 +1614,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1655,11 +1765,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1786,11 +1907,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 226,
-            "outputTokens": 20,
-            "reasoningTokens": undefined,
-            "totalTokens": 246,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 226,
+              "total": 226,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 226,
+              "total_tokens": 246,
+            },
           },
         },
       ]
@@ -1870,11 +2002,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1948,11 +2091,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 18,
-            "outputTokens": 439,
-            "reasoningTokens": undefined,
-            "totalTokens": 457,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+              "total_tokens": 457,
+            },
           },
         },
       ]
@@ -1990,11 +2144,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -2032,11 +2193,18 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]
@@ -2223,11 +2391,29 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 5,
-            "inputTokens": 20,
-            "outputTokens": 30,
-            "reasoningTokens": 10,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": 5,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 20,
+            },
+            "outputTokens": {
+              "reasoning": 10,
+              "text": 20,
+              "total": 30,
+            },
+            "raw": {
+              "completion_tokens": 30,
+              "completion_tokens_details": {
+                "accepted_prediction_tokens": 15,
+                "reasoning_tokens": 10,
+                "rejected_prediction_tokens": 5,
+              },
+              "prompt_tokens": 20,
+              "prompt_tokens_details": {
+                "cached_tokens": 5,
+              },
+            },
           },
         }
       `);
@@ -2285,11 +2471,28 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": 5,
-            "inputTokens": 20,
-            "outputTokens": 30,
-            "reasoningTokens": 10,
-            "totalTokens": 50,
+            "inputTokens": {
+              "cacheRead": 5,
+              "cacheWrite": undefined,
+              "noCache": 15,
+              "total": 20,
+            },
+            "outputTokens": {
+              "reasoning": 10,
+              "text": 20,
+              "total": 30,
+            },
+            "raw": {
+              "completion_tokens": 30,
+              "completion_tokens_details": {
+                "reasoning_tokens": 10,
+              },
+              "prompt_tokens": 20,
+              "prompt_tokens_details": {
+                "cached_tokens": 5,
+              },
+              "total_tokens": 50,
+            },
           },
         }
       `);
@@ -2496,11 +2699,18 @@ describe('raw chunks', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]

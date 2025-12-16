@@ -31,14 +31,14 @@ export interface ProviderRegistryProvider<
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): LanguageModelV3;
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]>}`
       : never,
-  ): EmbeddingModelV3<string>;
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  ): EmbeddingModelV3;
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): EmbeddingModelV3<string>;
+  ): EmbeddingModelV3;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -162,7 +162,7 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel'
@@ -186,7 +186,7 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel'
@@ -229,18 +229,18 @@ class DefaultProviderRegistry<
     return model;
   }
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): EmbeddingModelV3<string> {
-    const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
-    const provider = this.getProvider(providerId, 'textEmbeddingModel');
+  ): EmbeddingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'embeddingModel');
+    const provider = this.getProvider(providerId, 'embeddingModel');
 
-    const model = provider.textEmbeddingModel?.(modelId);
+    const model = provider.embeddingModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
-        modelType: 'textEmbeddingModel',
+        modelType: 'embeddingModel',
       });
     }
 

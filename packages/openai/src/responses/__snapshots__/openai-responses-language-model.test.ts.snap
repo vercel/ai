@@ -1,5 +1,21 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > apply_patch tool > create_file operation > should include apply_patch tool call and result in content 1`] = `
+[
+  {
+    "input": "{"callId":"call_CdXiGtcRl49Q6Ek20tG9lYOr","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Apples\\n+- [ ] Coffee\\n+\\n"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_0b04c5f8dfc43af500692749bd60908197b0e453c38f30191a",
+      },
+    },
+    "toolCallId": "call_CdXiGtcRl49Q6Ek20tG9lYOr",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > should include code interpreter tool call, result, and annotations in content 1`] = `
 [
   {
@@ -16,7 +32,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"import random\\r\\n\\r\\ntrials = 10000\\r\\nsums = []\\r\\nfor _ in range(trials):\\r\\n    die1 = random.randint(1,6)\\r\\n    die2 = random.randint(1,6)\\r\\n    sums.append(die1 + die2)\\r\\ntotal_sum = sum(sums)\\r\\nlen(sums), total_sum\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf34e2b08193a689f71dcc3724f7",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -29,7 +45,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       ],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf34e2b08193a689f71dcc3724f7",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -46,7 +62,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"filename = \\"/mnt/data/two_dice_sums_10000.txt\\"\\r\\nwith open(filename, \\"w\\") as f:\\r\\n    for s in sums:\\r\\n        f.write(str(s) + \\"\\\\n\\")\\r\\n    f.write(\\"TOTAL: \\" + str(total_sum) + \\"\\\\n\\")\\r\\nfilename, os.path.getsize(filename)\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf38f1f08193a0b46ddc935fa028",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -54,7 +70,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       "outputs": [],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf38f1f08193a0b46ddc935fa028",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -71,7 +87,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
     "input": "{"code":"import os\\r\\nfilename = \\"/mnt/data/two_dice_sums_10000.txt\\"\\r\\nwith open(filename, \\"w\\") as f:\\r\\n    for s in sums:\\r\\n        f.write(str(s) + \\"\\\\n\\")\\r\\n    f.write(\\"TOTAL: \\" + str(total_sum) + \\"\\\\n\\")\\r\\nos.path.getsize(filename), filename\\n","containerId":"cntr_6903bf2c0470819090b2b1e63e0b66800c139a5d654a42ec"}",
     "providerExecuted": true,
     "toolCallId": "ci_024ee52fc1900767006903bf3e05b48193bbb2367cbc9a299e",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -84,7 +100,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > code interpreter tool > sho
       ],
     },
     "toolCallId": "ci_024ee52fc1900767006903bf3e05b48193bbb2367cbc9a299e",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -157,7 +173,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > with res
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -217,7 +233,7 @@ providers and models, and which ones are available in the AI SDK.",
       ],
     },
     "toolCallId": "fs_0365d26c32c64c650068cabb04aa388194b53c59de50a3951e",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -279,7 +295,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -293,7 +309,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > file search tool > without 
       "results": null,
     },
     "toolCallId": "fs_0a098396a8feca410068caae3cab5c8196a54fd00498464e62",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -355,7 +371,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-call",
   },
   {
@@ -363,7 +379,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > image generation tool > sho
       "result": "UklGRoitEQBXRUJQVlA4TEGzEAAv/8P/AM1AbNtGkITZhU4fH9J/wTOT+xIi+j8BuT4kABkCibNAZrlwIPyQ7W/bH5L2RHMzMBKgXmfZeYi9tLtrrQkZvN1yXHLLgG71gPkpDxmI/gc03YFulQR...AA9lhA0Y9rVdqQs/W4w/MOxeRW5+R1/UXmmNVi9yQ7x/vG0q2VRk01seZIuj5OmRYhD+yY82dZqMH1BCueTeOcNfGKxQ==",
     },
     "toolCallId": "ig_0a33d15155cb126d0068c96c59bc14819599154c9988b82996",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -408,7 +424,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
       },
     },
     "toolCallId": "call_XWgeTylovOiS8xLNz2TONOgO",
-    "toolName": "local_shell",
+    "toolName": "shell",
     "type": "tool-call",
   },
 ]
@@ -420,7 +436,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -484,7 +500,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "listTools",
     },
     "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -501,7 +517,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -513,7 +529,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "call",
     },
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -552,166 +568,454 @@ Would you like me to pull official certified results from the NYC Board of Elect
 ]
 `;
 
-exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should include web search tool call and result in content 1`] = `
+exports[`OpenAIResponsesLanguageModel > doGenerate > shell tool > should include shell tool call and result in content 1`] = `
+[
+  {
+    "input": "{"action":{"commands":["cd ~ && pwd","cd ~/Desktop && pwd","cd ~/Desktop && echo 'THIS WORKS!' > dec1.txt && ls -l dec1.txt && cat dec1.txt"]}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_0f0d479976b1e9a600692f61bec0e08197a0864dc5ddf1d38c",
+      },
+    },
+    "toolCallId": "call_udkLUvR8lWvG8cDO2B6GNpvZ",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > web search sources schema resilience > should accept api-type sources without throwing 1`] = `
 [
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
+    "toolCallId": "ws_api_sources",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": "Vercel AI SDK next version features",
+        "query": "current price of BTC",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://vercel.com/blog",
+          "url": "https://example.com?a=1&utm_source=openai",
         },
         {
-          "type": "url",
-          "url": "https://github.com/vercel/ai",
+          "name": "oai-finance",
+          "type": "api",
         },
       ],
     },
-    "toolCallId": "ws_67cf2b3051e88190b006770db6fdb13d",
-    "toolName": "web_search",
+    "toolCallId": "ws_api_sources",
+    "toolName": "webSearch",
     "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_done",
+      },
+    },
+    "text": "BTC is trading at ...",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > web search tool > should include web search tool call and result in content 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee1741200693330620ffc8195a85077fdd02c8d2d",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
+    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": undefined,
+        "query": "tech news today December 5 2025",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://vercel.com/ai",
+          "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+        },
+        {
+          "type": "url",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+        },
+        {
+          "type": "url",
+          "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
+        },
+        {
+          "type": "url",
+          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
+        },
+        {
+          "type": "url",
+          "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701",
+        },
+        {
+          "type": "url",
+          "url": "https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199",
+        },
+        {
+          "type": "url",
+          "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
+        },
+        {
+          "type": "url",
+          "url": "https://vercel.com/blog/series-f",
+        },
+        {
+          "type": "url",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+        },
+        {
+          "type": "url",
+          "url": "https://www.nasdaq.com/press-release/vercel-announces-%24150m-in-series-d-funding-at-a-%242.5b-valuation-to-further-fuel",
+        },
+        {
+          "type": "url",
+          "url": "https://www.mexc.com/en-NG/news/77540",
+        },
+        {
+          "type": "url",
+          "url": "https://www.theinformation.com/briefings/vercel-lands-unsolicited-investment-offers-9-billion",
+        },
+        {
+          "type": "url",
+          "url": "https://www.mexc.com/en-NG/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
+        },
+        {
+          "type": "url",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+        },
+        {
+          "type": "url",
+          "url": "https://www.aol.com/exclusive-vercel-completes-250-million-144101876.html",
+        },
+        {
+          "type": "url",
+          "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/",
         },
       ],
     },
-    "toolCallId": "ws_67cf2b3051e88190b006234456fdb13d",
-    "toolName": "web_search",
+    "toolCallId": "ws_0953eda47ee1741200693330682c988195aaa470a8cc51dfe4",
+    "toolName": "webSearch",
     "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee17412006933306a4f188195b2870a804561da54",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
+    "toolName": "webSearch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "type": "openPage",
+        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+      },
+    },
+    "toolCallId": "ws_0953eda47ee17412006933306f501c8195b9d3dfba4c547834",
+    "toolName": "webSearch",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee174120069333071b0e08195a5b1d1ded4df6f3d",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
+    "toolName": "webSearch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "pattern": "Vercel",
+        "type": "findInPage",
+        "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+      },
+    },
+    "toolCallId": "ws_0953eda47ee1741200693330740e248195a2c77632e480424b",
+    "toolName": "webSearch",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0953eda47ee174120069333075d5e48195b354c3bf3d30fb47",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
   },
   {
     "providerMetadata": {
       "openai": {
         "annotations": [
           {
-            "end_index": 606,
-            "start_index": 486,
-            "title": "Bruce Lee statue to be installed in SF Chinatown",
+            "end_index": 517,
+            "start_index": 426,
+            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
             "type": "url_citation",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
           },
           {
-            "end_index": 1035,
-            "start_index": 912,
-            "title": "The Bay Area is set to make an office leasing comeback",
+            "end_index": 778,
+            "start_index": 647,
+            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
             "type": "url_citation",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
           },
           {
-            "end_index": 1472,
-            "start_index": 1346,
-            "title": "Where to see spring blooms in the Bay Area",
+            "end_index": 1047,
+            "start_index": 907,
+            "title": "5 Things to Know Before the Stock Market Opens",
             "type": "url_citation",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+            "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
           },
           {
-            "end_index": 2023,
-            "start_index": 1884,
-            "title": "Oceanfront Great Highway park set to open in April",
+            "end_index": 1343,
+            "start_index": 1295,
+            "title": "Towards the AI Cloud: Our Series F - Vercel",
             "type": "url_citation",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+            "url": "https://vercel.com/blog/series-f",
           },
           {
-            "end_index": 2540,
-            "start_index": 2404,
-            "title": "San Francisco's spring seasons are getting warmer",
+            "end_index": 1594,
+            "start_index": 1489,
+            "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
             "type": "url_citation",
-            "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+            "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
+          },
+          {
+            "end_index": 1926,
+            "start_index": 1835,
+            "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
+            "type": "url_citation",
+            "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+          },
+          {
+            "end_index": 2080,
+            "start_index": 2009,
+            "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
+            "type": "url_citation",
+            "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+          },
+          {
+            "end_index": 2341,
+            "start_index": 2210,
+            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+            "type": "url_citation",
+            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+          },
+          {
+            "end_index": 2635,
+            "start_index": 2502,
+            "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
+            "type": "url_citation",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+          },
+          {
+            "end_index": 2822,
+            "start_index": 2774,
+            "title": "Towards the AI Cloud: Our Series F - Vercel",
+            "type": "url_citation",
+            "url": "https://vercel.com/blog/series-f",
           },
         ],
-        "itemId": "msg_67cf2b35467481908f24412e4fd40d66",
+        "itemId": "msg_0953eda47ee17412006933308e32f08195bdfb73a410a2abfc",
       },
     },
-    "text": "Last week in San Francisco, several notable events and developments took place:
+    "text": "Short answer first — yes. I pulled several tech-news pages published today (December 5, 2025) and searched each for the keyword pattern "vercel". Below is a brief “today in tech” digest followed by the exact results of the on-page searches.
 
-**Bruce Lee Statue in Chinatown**
+Today’s top tech stories (December 5, 2025) — quick highlights
+- OpenAI declared a “code red” for ChatGPT as pressure increases from rivals (discussion and analysis on The Vergecast). ([theverge.com](https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast))  
+- The EU opened a formal antitrust probe into Meta’s WhatsApp AI policy, which regulators say could block rival AI assistants. ([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/))  
+- A major media deal: reports that Netflix is pursuing an $83B acquisition of Warner Bros. Discovery (market coverage today). ([investopedia.com](https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai))  
+- Vercel-related funding and valuation news continued to circulate: Vercel disclosed a large funding/tender transaction and company posts describe a Series F round positioning the company as AI/cloud-focused. (see company blog + news coverage). ([vercel.com](https://vercel.com/blog/series-f))  
+- Security note: a recently disclosed Next.js cache-poisoning/CVE issue was documented (affects certain Next.js versions; patch was released). ([sentinelone.com](https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai))
 
-The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
+Pages I opened and the results of searching those pages for the pattern "vercel"
+- The Verge (podcast/story “It’s code red for ChatGPT”) — search for "vercel": no occurrences on that page. (I opened the Dec 5 Verge piece and searched it.) ([theverge.com](https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast))  
+- WIRED (Big Interview 2025 recap) — search for "vercel": no occurrences found. ([wired.com](https://www.wired.com/story/the-big-interview-2025-recap))  
+- TechStartups (Technology News Today — Dec 5, 2025 roundup) — search for "vercel": no occurrences found on that roundup page. ([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/))  
+- Bloomberg (article: “Vercel Notches $9.3 Billion Valuation…” / Vercel coverage) — search for "vercel": found (article is about Vercel’s funding/valuation). ([bloomberg.com](https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round))  
+- Vercel’s own blog post (“Towards the AI Cloud: Our Series F”) — search for "vercel": found (company announcement / Series F details). ([vercel.com](https://vercel.com/blog/series-f))
 
-**Office Leasing Revival**
-
-The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
-
-**Spring Blooms in the Bay Area**
-
-With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
-
-**Oceanfront Great Highway Park**
-
-San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
-
-**Warmer Spring Seasons**
-
-An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
-
-
-# Key San Francisco Developments Last Week:
-- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
-- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
-- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
+Would you like me to:
+- open more tech sites from today (e.g., TechCrunch, Reuters, The Information) and run the same "vercel" search across them, or  
+- search for a different keyword or company on today’s tech pages?",
     "type": "text",
   },
   {
     "id": "id-0",
     "sourceType": "url",
-    "title": "Bruce Lee statue to be installed in SF Chinatown",
+    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
     "type": "source",
-    "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
   },
   {
     "id": "id-1",
     "sourceType": "url",
-    "title": "The Bay Area is set to make an office leasing comeback",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
     "type": "source",
-    "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
   },
   {
     "id": "id-2",
     "sourceType": "url",
-    "title": "Where to see spring blooms in the Bay Area",
+    "title": "5 Things to Know Before the Stock Market Opens",
     "type": "source",
-    "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+    "url": "https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai",
   },
   {
     "id": "id-3",
     "sourceType": "url",
-    "title": "Oceanfront Great Highway park set to open in April",
+    "title": "Towards the AI Cloud: Our Series F - Vercel",
     "type": "source",
-    "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+    "url": "https://vercel.com/blog/series-f",
   },
   {
     "id": "id-4",
     "sourceType": "url",
-    "title": "San Francisco's spring seasons are getting warmer",
+    "title": "CVE-2025-49826: Vercel Next.js Cache Poisoning DOS Flaw",
     "type": "source",
-    "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+    "url": "https://www.sentinelone.com/vulnerability-database/cve-2025-49826/?utm_source=openai",
+  },
+  {
+    "id": "id-5",
+    "sourceType": "url",
+    "title": "Why OpenAI declared a code red for ChatGPT | The Verge",
+    "type": "source",
+    "url": "https://www.theverge.com/podcast/838932/openai-chatgpt-code-red-vergecast",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": "Check Out Highlights From WIRED’s 2025 Big Interview Event | WIRED",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "title": "Vercel Notches $9.3 Billion Valuation in Latest AI Funding Round - Bloomberg",
+    "type": "source",
+    "url": "https://www.bloomberg.com/news/articles/2025-09-30/vercel-notches-9-3-billion-valuation-in-latest-ai-funding-round",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "title": "Towards the AI Cloud: Our Series F - Vercel",
+    "type": "source",
+    "url": "https://vercel.com/blog/series-f",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > should handle apply_patch tool calls in streaming mode 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-11-26T18:07:47.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Fresh fruit\\n+- [ ] Coffee\\n"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_0372d86dfc1762fe00692741f3f3dc8190879cba489ff2fc8b",
+      },
+    },
+    "toolCallId": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 642,
+        "total": 642,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 67,
+        "total": 67,
+      },
+      "raw": {
+        "input_tokens": 642,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 67,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
   },
 ]
 `;
@@ -751,7 +1055,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1142,7 +1446,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"import random, math\\nN=10000\\nsums=[]\\ns=0\\nfor _ in range(N):\\n    a=random.randint(1,6)\\n    b=random.randint(1,6)\\n    sm=a+b\\n    sums.append(sm)\\n    s+=sm\\nmin(sums), max(sums), sum(sums), sum(sums)/N\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1155,7 +1459,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e6f7b72c8193ba1f552552c8dc9202d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -1181,7 +1485,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1552,7 +1856,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"import csv, pathlib\\npath = pathlib.Path('/mnt/data/roll2dice_sums_10000.csv')\\nwith open(path, 'w', newline='') as f:\\n    writer = csv.writer(f)\\n    writer.writerow(['sum'])\\n    for val in sums:\\n        writer.writerow([val])\\npath, path.exists(), len(sums)\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1565,7 +1869,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e6fd57948193aa93df6bdb00a86d02d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -1591,7 +1895,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
   {
     "id": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
     "providerExecuted": true,
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-input-start",
   },
   {
@@ -1637,7 +1941,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "input": "{"code":"sums[:20]\\n","containerId":"cntr_68c2e6f380d881908a57a82d394434ff02f484f5344062e9"}",
     "providerExecuted": true,
     "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-call",
   },
   {
@@ -1650,7 +1954,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
       ],
     },
     "toolCallId": "ci_68c2e701a23081939c93b6fb5bb952d302d3a5742c7ddae9",
-    "toolName": "code_interpreter",
+    "toolName": "codeExecution",
     "type": "tool-result",
   },
   {
@@ -2782,11 +3086,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2944,
-      "inputTokens": 6047,
-      "outputTokens": 1623,
-      "reasoningTokens": 1408,
-      "totalTokens": 7670,
+      "inputTokens": {
+        "cacheRead": 2944,
+        "cacheWrite": undefined,
+        "noCache": 3103,
+        "total": 6047,
+      },
+      "outputTokens": {
+        "reasoning": 1408,
+        "text": 215,
+        "total": 1623,
+      },
+      "raw": {
+        "input_tokens": 6047,
+        "input_tokens_details": {
+          "cached_tokens": 2944,
+        },
+        "output_tokens": 1623,
+        "output_tokens_details": {
+          "reasoning_tokens": 1408,
+        },
+      },
     },
   },
 ]
@@ -2828,7 +3148,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -2887,7 +3207,7 @@ providers and models, and which ones are available in the AI SDK.",
       ],
     },
     "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -3334,11 +3654,27 @@ providers and models, and which ones are available in the AI SDK.",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3748,
-      "outputTokens": 543,
-      "reasoningTokens": 448,
-      "totalTokens": 4291,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1444,
+        "total": 3748,
+      },
+      "outputTokens": {
+        "reasoning": 448,
+        "text": 95,
+        "total": 543,
+      },
+      "raw": {
+        "input_tokens": 3748,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 543,
+        "output_tokens_details": {
+          "reasoning_tokens": 448,
+        },
+      },
     },
   },
 ]
@@ -3380,7 +3716,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-call",
   },
   {
@@ -3393,7 +3729,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
       "results": null,
     },
     "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
-    "toolName": "file_search",
+    "toolName": "fileSearch",
     "type": "tool-result",
   },
   {
@@ -3859,11 +4195,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3737,
-      "outputTokens": 621,
-      "reasoningTokens": 512,
-      "totalTokens": 4358,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1433,
+        "total": 3737,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 109,
+        "total": 621,
+      },
+      "raw": {
+        "input_tokens": 3737,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 621,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
     },
   },
 ]
@@ -3905,7 +4257,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-call",
   },
   {
@@ -3914,7 +4266,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -3922,7 +4274,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
       "result": "UklGRuIWGQBXRUJQVlA4TKAwGAAv/8X/ABlJbiNJkgRDwkID67D/P9gjl9nuEf2fgPyZzj1Jyu97SlIDX5iPbDv2F3U/+UU+JIlr+wVtEwKO7xiJ7dh26zu3NgZIasDGMcSYOIltx8MpJGFWJAaDE8g4AzhJzCAkCedAeJ17KsRCTxd5r4c1SfLsHwzwZ/2/f67rukb7R1yzavfWH3mdtqpvK4HU00+v2a1qb/...AAAPZYQFuWuM6Be+taQrxy8eMnvFntuAhnHLJbzoq1L9GGMdWs/9hArxYpBl4GS+zJ3eoEsBEkmxChF9k+m5HNgnA2uzI=",
     },
     "toolCallId": "ig_0df93c0bb83a72f20068c979f589c0819e9f0fc2d1a27aa1b8",
-    "toolName": "image_generation",
+    "toolName": "generateImage",
     "type": "tool-result",
   },
   {
@@ -3953,11 +4305,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 1920,
-      "inputTokens": 2941,
-      "outputTokens": 1249,
-      "reasoningTokens": 1024,
-      "totalTokens": 4190,
+      "inputTokens": {
+        "cacheRead": 1920,
+        "cacheWrite": undefined,
+        "noCache": 1021,
+        "total": 2941,
+      },
+      "outputTokens": {
+        "reasoning": 1024,
+        "text": 225,
+        "total": 1249,
+      },
+      "raw": {
+        "input_tokens": 2941,
+        "input_tokens_details": {
+          "cached_tokens": 1920,
+        },
+        "output_tokens": 1249,
+        "output_tokens_details": {
+          "reasoning_tokens": 1024,
+        },
+      },
     },
   },
 ]
@@ -4003,7 +4371,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
       },
     },
     "toolCallId": "call_h3nm8hUG0KO9tVNuRACkL1ri",
-    "toolName": "local_shell",
+    "toolName": "shell",
     "type": "tool-call",
   },
   {
@@ -4016,11 +4384,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 407,
-      "outputTokens": 151,
-      "reasoningTokens": 128,
-      "totalTokens": 558,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 407,
+        "total": 407,
+      },
+      "outputTokens": {
+        "reasoning": 128,
+        "text": 23,
+        "total": 151,
+      },
+      "raw": {
+        "input_tokens": 407,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 151,
+        "output_tokens_details": {
+          "reasoning_tokens": 128,
+        },
+      },
     },
   },
 ]
@@ -4042,7 +4426,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4106,7 +4490,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "listTools",
     },
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -4133,7 +4517,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4145,7 +4529,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -4172,7 +4556,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-call",
   },
   {
@@ -4184,7 +4568,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "mcp",
+    "toolName": "MCP",
     "type": "tool-result",
   },
   {
@@ -5966,11 +6350,938 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 11791,
-      "outputTokens": 963,
-      "reasoningTokens": 512,
-      "totalTokens": 12754,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 11791,
+        "total": 11791,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 451,
+        "total": 963,
+      },
+      "raw": {
+        "input_tokens": 11791,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 963,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream shell tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0434d6d64b12b08900692f639c40408195a50fd07b77ce08a7",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-12-02T22:09:32.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{"action":{"commands":["ls -a ~/Desktop"]}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "sh_0434d6d64b12b08900692f639c9f0481959c30e03ca0bb2ef8",
+      },
+    },
+    "toolCallId": "call_pbxjNs1tMJUahLZKAS9qLtvw",
+    "toolName": "shell",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_0434d6d64b12b08900692f639d784481959af65f985b9c13e2",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-12-02T22:09:33.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " are",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " files",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " folders",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " \`",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "~/",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Desktop",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "\`",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " directory",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " .
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ..
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " .",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "DS",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "_",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Store",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " .",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "localized",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-dev",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ny",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "c",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-app",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-dev",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ny",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "c",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-st",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "arter",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sdk",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-open",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "router",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-provider",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chat",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sdk",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-m",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cp",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dec",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".txt",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " oll",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ama",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-ai",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-provider",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " port",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "key",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-ver",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-provider",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Screenshot",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "26",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "58",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "16",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "AM",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".png",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Screenshot",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "26",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "12",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "21",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "45",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "PM",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".png",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Screenshot",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "26",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "12",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "27",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "48",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "PM",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".png",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Screenshot",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "202",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "11",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "28",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "17",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "53",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "PM",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".png",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " test",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-server",
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0434d6d64b12b08900692f639dc53c819594ea97586113d73b",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0434d6d64b12b08900692f639d784481959af65f985b9c13e2",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 331,
+        "total": 331,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 166,
+        "total": 166,
+      },
+      "raw": {
+        "input_tokens": 331,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 166,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]
@@ -5991,7 +7302,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
   {
     "id": "ws_test",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
@@ -6002,7 +7313,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "input": "{}",
     "providerExecuted": true,
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
@@ -6013,7 +7324,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
       },
     },
     "toolCallId": "ws_test",
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
@@ -6048,11 +7359,27 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 50,
-      "outputTokens": 25,
-      "reasoningTokens": 0,
-      "totalTokens": 75,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 50,
+        "total": 50,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 25,
+        "total": 25,
+      },
+      "raw": {
+        "input_tokens": 50,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 25,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]
@@ -6065,465 +7392,1222 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should stre
     "warnings": [],
   },
   {
-    "id": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
-    "modelId": "gpt-5-nano-2025-08-07",
-    "timestamp": 2025-09-10T14:14:36.000Z,
+    "id": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-05T19:48:22.000Z,
     "type": "response-metadata",
   },
   {
-    "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187cc87a88192b58352081364836c05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333706f5748198ad6f9d56c74ba528",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
-    "id": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": "Berlin news today",
+        "query": "tech news today December 5 2025",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+          "url": "https://www.wired.com/story/the-big-interview-2025-recap",
         },
         {
           "type": "url",
-          "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+          "url": "https://www.barrons.com/articles/stock-movers-7c77880d",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/75th_Berlin_International_Film_Festival",
+          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-ai-stock/",
         },
         {
           "type": "url",
-          "url": "https://apnews.com/article/ecf774eea5cdc7cbf88adf3887102d9b",
+          "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html",
         },
         {
           "type": "url",
-          "url": "https://apnews.com/article/1710be90a0e733d016e32db4d8353e1c",
+          "url": "https://www.finsmes.com/2025/10/vercel-closes-300m-series-f-funding-at-9-3-billion-valuation.html",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/Rave_The_Planet_Parade",
+          "url": "https://www.mexc.co/en-IN/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/2025_DFB-Pokal_final",
+          "url": "https://finance.yahoo.com/news/vercel-closes-series-f-9-150000846.html",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/2025_Berlin_Tennis_Open",
+          "url": "https://www.financialcontent.com/article/bizwire-2025-9-30-vercel-closes-series-f-at-93b-valuation-to-scale-the-ai-cloud",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/Parkb%C3%BChne_Wuhlheide",
+          "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/",
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/2025_Berlin_Tennis_Open_%E2%80%93_Singles",
-        },
-        {
-          "type": "url",
-          "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-        },
-        {
-          "type": "url",
-          "url": "https://helloberl.in/berlin-events-feb-27-march-2nd-2025/",
+          "url": "https://www.mexc.com/en-TR/news/us-cloud-platform-vercel-achieves-9-billion-valuation-amid-rapid-growth-in-ai-integration/77540",
         },
       ],
     },
-    "toolCallId": "ws_68c187d0973881928c78c79e50ae028805ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e006933370e71cc81989ece73cbdfe67d25",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
-    "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d2484881929a3908a9ad4e745f05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333710f97081989fba3cbe0726ee76",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
-    "id": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": undefined,
+        "query": "site:theverge.com "December 5, 2025" "technology"",
         "type": "search",
       },
       "sources": [
         {
           "type": "url",
-          "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+          "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/walmart-backed-phonepe-winds-down-its-pincode-app-in-yet-another-e-commerce-step-back/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/in-its-first-dsa-penalty-eu-fines-x-e120m-for-deceptive-blue-check-verification-system/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/new-knoway-robotaxis-cause-chaos-in-upcoming-grand-theft-auto-online-dlc/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/esim-adoption-is-on-the-rise-thanks-to-travel-and-device-compatibility/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/new-streaming-channel-launches-to-give-viewers-a-peek-into-city-council-meetings/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/aws-reinvent-was-an-all-in-pitch-for-ai-customers-might-not-be-ready/",
+        },
+        {
+          "type": "url",
+          "url": "https://techcrunch.com/2025/12/05/energy-storage-industry-set-aggressive-goals-for-2025-and-already-crushed-them/",
         },
       ],
     },
-    "toolCallId": "ws_68c187d3954881929c1d6d96c46e4fef05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e0069333715b11c81988f3c9b9af6a95481",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
-    "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d42c0481929f8e156e064bd0a105ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e00693337185c648198ab92fcd140ad72a8",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
-    "id": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": undefined,
-        "type": "search",
+        "type": "openPage",
+        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
       },
-      "sources": [
-        {
-          "type": "url",
-          "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
-        },
-      ],
     },
-    "toolCallId": "ws_68c187d4dd548192ab8473f8c95a4d8d05ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e006933371c82e48198aba79879e266ea8c",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
-    "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d592f481929b10ff6121241b1d05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e006933371ff26081989c3ff8fefad9c804",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
     "providerExecuted": true,
-    "toolName": "web_search",
+    "toolName": "webSearch",
     "type": "tool-input-start",
   },
   {
-    "id": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
     "providerExecuted": true,
-    "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "toolName": "webSearch",
     "type": "tool-call",
   },
   {
     "result": {
       "action": {
-        "query": undefined,
-        "type": "search",
+        "pattern": "vercel",
+        "type": "findInPage",
+        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
       },
-      "sources": [
-        {
-          "type": "url",
-          "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
-        },
-      ],
     },
-    "toolCallId": "ws_68c187d70ba88192aad48510cff1b4c905ca09a4773fcd25",
-    "toolName": "web_search",
+    "toolCallId": "ws_0cc96ac817fdc57e0069333721f6a081989f8e6a18dbc1e47a",
+    "toolName": "webSearch",
     "type": "tool-result",
   },
   {
-    "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-start",
   },
   {
-    "id": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25:0",
+    "id": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "rs_68c187d87fb481929fc9d6593d88c3dd05ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e0069333724535c8198b39ab21fa3f4e559",
         "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
   },
   {
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "providerExecuted": true,
+    "toolName": "webSearch",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "toolName": "webSearch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "pattern": "Vercel",
+        "type": "findInPage",
+        "url": "https://www.wired.com/story/the-big-interview-2025-recap",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e00693337281754819898dbc2297d80e2df",
+    "toolName": "webSearch",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933372e866c81988386fd0b0408eb28",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "providerExecuted": true,
+    "toolName": "webSearch",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "toolName": "webSearch",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "action": {
+        "pattern": "vercel",
+        "type": "findInPage",
+        "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/",
+      },
+    },
+    "toolCallId": "ws_0cc96ac817fdc57e00693337335db881989d7938ef5e5dcd6b",
+    "toolName": "webSearch",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0cc96ac817fdc57e006933373641e8819899b5ecb68564ac56",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
       },
     },
     "type": "text-start",
   },
   {
-    "delta": "Here’s what’s notable in Berlin today (September 10, 2025), based on three quick web searches:
+    "delta": "I checked today’s",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tech headlines (today = December",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 5, 2025",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ") and opened a few news",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages — then searched those pages",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for the keyword pattern "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel" (case-insensitive",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "). Summary:
 
-- Berlin Art Week 2025 kicks off today and runs through September 14. The city’s autumn art season opens with more than 100 venues, featuring exhibitions from Patti Smith, Mark Leckey, Katharina Grosse, Carrie Mae Weems, and more. ([wallpaper.com](https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025))
-
-- The city is highlighting its 200-year Museum Island anniversary this year, with ongoing events and exhibitions around Berlin’s historic center. This is part of Berlin’s big year of cultural highlights. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-- 49h ICC: Open House is scheduled for September 11–14, offering guided tours and design talks at the former ICC Berlin. It’s one of the major architecture/design events associated with Berlin 2025. ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-- Open Monument Day is coming up on September 13–14, when many",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+Top",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tech headlines",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I opened (brief",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "):
+- Petco disclosed a",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " customer-data exposure / security lapse",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai))  ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-0",
     "sourceType": "url",
-    "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
     "type": "source",
-    "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+  },
+  {
+    "delta": "
+- The New York",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Times sued AI search/startup",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Perplexity for copyright infringement",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai))  
+- Meta signed commercial",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
   },
   {
     "id": "id-1",
     "sourceType": "url",
-    "title": "Berlin 2025 – the main events | visitBerlin.de",
+    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
     "type": "source",
-    "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+  },
+  {
+    "delta": " AI data agreements",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with a set of",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " publishers so Meta AI can",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " surface real‑",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "time news.",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai))  
+- Reports of a",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
   },
   {
     "id": "id-2",
     "sourceType": "url",
-    "title": "Berlin 2025 – the main events | visitBerlin.de",
+    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
     "type": "source",
-    "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
   },
   {
-    "delta": " historic sites around Berlin open to the public with special programs. If you’re in town this weekend, it’s a good chance to explore landmarks that aren’t usually accessible.",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " major media deal: Netflix",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
-
-- If you’re a sports fan, Berlin will host NFL games",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " to acquire Warner Bros",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (headline on TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " today). ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai))  
+- WIRED",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-3",
     "sourceType": "url",
-    "title": "Berlin 2025 – the main events | visitBerlin.de",
+    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
     "type": "source",
-    "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
   },
   {
-    "delta": " in November 2025 (three regular-season games in the Olympic Stadium, with the Indianapolis Colts among",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " published a recap of its “",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " the teams). It’s part of Berlin’s ongoing slate of major events this year",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": "Big Interview” event (Dec",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": ". ([visitberlin.de](https://www.visitberlin.de/en/berlin-2025-the-main-events))
+    "delta": " 4). ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([wired.com](https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai))
 
-- For some broader",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+Pages I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-4",
     "sourceType": "url",
-    "title": "Berlin 2025 – the main events | visitBerlin.de",
+    "title": "Check Out Highlights From WIRED's Big Interview Event",
     "type": "source",
-    "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
   },
   {
-    "delta": " context, Berlin has been discussing its role in postwar security arrangements for Ukraine, with",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " searched for the pattern "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " German officials signaling readiness to increase support but delaying a formal deployment decision until broader conditions are",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": "cel"
+- TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " clearer. This",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " — Petco data-breach",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " was reported for early September 2025. ([reuters.com](https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/))",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": " article (Dec 5,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2025). I opened",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and searched the page: no",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai))  
+- TechCrunch —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
     "id": "id-5",
     "sourceType": "url",
-    "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+    "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
     "type": "source",
-    "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+    "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
   },
   {
-    "delta": "
+    "delta": " NYT vs Perplexity",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 5, ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025). I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " searched the page",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ": no mention of "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai))  
+- TechCrunch",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-6",
+    "sourceType": "url",
+    "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+  },
+  {
+    "delta": " — Meta commercial AI data agreements",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 5, 202",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5). I opened and searched",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the page:",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " no mention of",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " "ver",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "cel".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai))",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-7",
+    "sourceType": "url",
+    "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+  },
+  {
+    "delta": "  
+- TechCrunch — Netflix",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/Warner",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Bros coverage (Dec",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 5,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 202",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "5).",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I opened",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and searched the page: no",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techcrunch.com](https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai))  
+- WIRED —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-8",
+    "sourceType": "url",
+    "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+    "type": "source",
+    "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+  },
+  {
+    "delta": " Big Interview recap",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (Dec 4, ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025). I opened and",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " searched the page: no mention",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of "",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "vercel".",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([wired.com](https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai))",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-9",
+    "sourceType": "url",
+    "title": "Check Out Highlights From WIRED's Big Interview Event",
+    "type": "source",
+    "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+  },
+  {
+    "delta": "  
+- TechStartups —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " daily roundup (Dec 5",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", 2025). I",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " opened and searched the page:",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " no mention of "vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "". ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([techstartups.com](https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai))
 
-Would you like me to pull live updates or focus on a specific topic (arts,",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+So: none of those specific “today” stories",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "delta": " politics, sports) from today?",
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "id": "id-10",
+    "sourceType": "url",
+    "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+    "type": "source",
+    "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+  },
+  {
+    "delta": "/pages contained the string "",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "type": "text-delta",
   },
   {
-    "id": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+    "delta": "vercel".
+
+Related note —",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " there is recent",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Verc",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "el news (",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "not on the Dec 5",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pages above): Vercel",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (the AI/web developer",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " platform) closed a large funding",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " round / Series F ($300",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "M) at about a $",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "9.3",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "B valuation (reported",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sept 30,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2025 / Oct ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2025 by Reuters,",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Business Wire and others). If",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you want I can open",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " those funding stories and extract",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " details (investors, use",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of proceeds, v0",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " agent metrics, etc.).",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "([finance.yahoo.com](https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai)",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+Would you like",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "id-11",
+    "sourceType": "url",
+    "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
+    "type": "source",
+    "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
+  },
+  {
+    "delta": " me to:
+- search more",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " news sites today specifically for",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " any new V",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ercel mentions (I can",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do a live search across more",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " outlets), or  
+- open",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Vercel funding/",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": "coverage pages and pull",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "delta": " out more details now?",
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
     "providerMetadata": {
       "openai": {
         "annotations": [
           {
-            "end_index": 414,
-            "start_index": 327,
-            "title": "What to see at Berlin Art Week 2025 | Wallpaper*",
+            "end_index": 411,
+            "start_index": 277,
+            "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.wallpaper.com/art/exhibitions-shows/berlin-art-week-2025",
+            "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
           },
           {
-            "end_index": 697,
-            "start_index": 620,
-            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "end_index": 635,
+            "start_index": 497,
+            "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+            "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
           },
           {
-            "end_index": 975,
-            "start_index": 898,
-            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "end_index": 910,
+            "start_index": 746,
+            "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+            "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
           },
           {
-            "end_index": 1292,
-            "start_index": 1215,
-            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "end_index": 1149,
+            "start_index": 1009,
+            "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+            "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
           },
           {
-            "end_index": 1602,
-            "start_index": 1525,
-            "title": "Berlin 2025 – the main events | visitBerlin.de",
+            "end_index": 1305,
+            "start_index": 1216,
+            "title": "Check Out Highlights From WIRED's Big Interview Event",
             "type": "url_citation",
-            "url": "https://www.visitberlin.de/en/berlin-2025-the-main-events",
+            "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
           },
           {
-            "end_index": 2029,
-            "start_index": 1900,
-            "title": "Berlin holds off decision on participation in postwar Ukraine force | Reuters",
+            "end_index": 1606,
+            "start_index": 1472,
+            "title": "Petco confirms security lapse exposed customers’ personal data | TechCrunch",
             "type": "url_citation",
-            "url": "https://www.reuters.com/world/europe/berlin-postpones-decision-military-engagement-regarding-ukraine-2025-09-04/",
+            "url": "https://techcrunch.com/2025/12/05/petco-confirms-security-lapse-exposed-customers-personal-data/?utm_source=openai",
+          },
+          {
+            "end_index": 1851,
+            "start_index": 1713,
+            "title": "The New York Times is suing Perplexity for copyright infringement | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/the-new-york-times-is-suing-perplexity-for-copyright-infringement/?utm_source=openai",
+          },
+          {
+            "end_index": 2139,
+            "start_index": 1975,
+            "title": "Meta signs commercial AI data agreements with publishers to offer real-time news on Meta AI | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/meta-signs-commercial-ai-data-agreements-with-publishers-to-offer-real-time-news-on-meta-ai/?utm_source=openai",
+          },
+          {
+            "end_index": 2397,
+            "start_index": 2257,
+            "title": "Netflix to acquire Warner Bros. in a disruptive deal valued at $82.7B | TechCrunch",
+            "type": "url_citation",
+            "url": "https://techcrunch.com/2025/12/05/netflix-to-acquire-warner-bros-in-a-disruptive-deal-valued-at-82-7b/?utm_source=openai",
+          },
+          {
+            "end_index": 2590,
+            "start_index": 2501,
+            "title": "Check Out Highlights From WIRED's Big Interview Event",
+            "type": "url_citation",
+            "url": "https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai",
+          },
+          {
+            "end_index": 2844,
+            "start_index": 2695,
+            "title": "Technology News Today – The Latest in Tech, AI & Startup News, December 5, 2025 - Tech Startups",
+            "type": "url_citation",
+            "url": "https://techstartups.com/2025/12/05/technology-news-today-the-latest-in-tech-ai-startup-news-december-5-2025/?utm_source=openai",
+          },
+          {
+            "end_index": 3427,
+            "start_index": 3309,
+            "title": "AI coding startup Vercel raises $300 million, valued at $9.3 billion",
+            "type": "url_citation",
+            "url": "https://finance.yahoo.com/news/ai-coding-startup-vercel-raises-163055044.html?utm_source=openai",
           },
         ],
-        "itemId": "msg_68c187e279048192be3775da689aa25105ca09a4773fcd25",
+        "itemId": "msg_0cc96ac817fdc57e006933374a84348198a4e1ac9bc0c4607b",
       },
     },
     "type": "text-end",
@@ -6532,60 +8616,34 @@ Would you like me to pull live updates or focus on a specific topic (arts,",
     "finishReason": "stop",
     "providerMetadata": {
       "openai": {
-        "responseId": "resp_68c187cc09508192aa225af9734e2ed905ca09a4773fcd25",
+        "responseId": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",
         "serviceTier": "default",
       },
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 34560,
-      "inputTokens": 60093,
-      "outputTokens": 4080,
-      "reasoningTokens": 3648,
-      "totalTokens": 64173,
-    },
-  },
-]
-`;
-
-exports[`OpenAIResponsesLanguageModel > web search sources schema resilience > should accept api-type sources without throwing 1`] = `
-[
-  {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
-    "type": "tool-call",
-  },
-  {
-    "result": {
-      "action": {
-        "query": "current price of BTC",
-        "type": "search",
+      "inputTokens": {
+        "cacheRead": 3712,
+        "cacheWrite": undefined,
+        "noCache": 27361,
+        "total": 31073,
       },
-      "sources": [
-        {
-          "type": "url",
-          "url": "https://example.com?a=1&utm_source=openai",
+      "outputTokens": {
+        "reasoning": 3712,
+        "text": 704,
+        "total": 4416,
+      },
+      "raw": {
+        "input_tokens": 31073,
+        "input_tokens_details": {
+          "cached_tokens": 3712,
         },
-        {
-          "name": "oai-finance",
-          "type": "api",
+        "output_tokens": 4416,
+        "output_tokens_details": {
+          "reasoning_tokens": 3712,
         },
-      ],
-    },
-    "toolCallId": "ws_api_sources",
-    "toolName": "web_search",
-    "type": "tool-result",
-  },
-  {
-    "providerMetadata": {
-      "openai": {
-        "itemId": "msg_done",
       },
     },
-    "text": "BTC is trading at ...",
-    "type": "text",
   },
 ]
 `;

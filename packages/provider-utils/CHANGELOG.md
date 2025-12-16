@@ -1,5 +1,120 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- c1efac4: feat: add input arg to toModelOutput
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- e9e157f: fix: generate zod4 json schema from input schema
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 81e29ab: chore: update docs
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+
 ## 4.0.0-beta.34
 
 ### Patch Changes

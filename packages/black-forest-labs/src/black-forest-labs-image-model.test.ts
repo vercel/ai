@@ -290,11 +290,15 @@ describe('BlackForestLabsImageModel', () => {
         aspectRatio: undefined,
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Deriving aspect_ratio from size.',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.",
+            "feature": "size",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('warns and ignores size when both size and aspectRatio are provided', async () => {
@@ -309,11 +313,15 @@ describe('BlackForestLabsImageModel', () => {
         aspectRatio: '16:9',
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'size',
-        details: 'Black Forest Labs ignores size when aspectRatio is provided.',
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them",
+            "feature": "size",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('handles API errors with message and detail', async () => {

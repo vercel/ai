@@ -10,7 +10,7 @@ export class NoSuchModelError extends AISDKError {
   readonly modelId: string;
   readonly modelType:
     | 'languageModel'
-    | 'textEmbeddingModel'
+    | 'embeddingModel'
     | 'imageModel'
     | 'transcriptionModel'
     | 'speechModel'
@@ -26,7 +26,7 @@ export class NoSuchModelError extends AISDKError {
     modelId: string;
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel'

@@ -89,20 +89,12 @@ export function createAssemblyAI(
     });
   };
 
-  provider.textEmbeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'AssemblyAI does not provide text embedding models',
-    });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
 
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'AssemblyAI does not provide image models',
-    });
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider as AssemblyAIProvider;

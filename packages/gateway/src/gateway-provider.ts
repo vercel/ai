@@ -50,9 +50,7 @@ Returns credit information for the authenticated user.
   /**
 Creates a model for generating text embeddings.
 */
-  textEmbeddingModel(
-    modelId: GatewayEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for generating images.
@@ -233,7 +231,7 @@ export function createGatewayProvider(
     });
   };
   provider.languageModel = createLanguageModel;
-  provider.textEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
+  provider.embeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
       baseURL,

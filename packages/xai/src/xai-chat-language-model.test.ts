@@ -190,11 +190,22 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": undefined,
-          "inputTokens": 20,
-          "outputTokens": 5,
-          "reasoningTokens": undefined,
-          "totalTokens": 25,
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 20,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 5,
+            "total": 5,
+          },
+          "raw": {
+            "completion_tokens": 5,
+            "prompt_tokens": 20,
+            "total_tokens": 25,
+          },
         }
       `);
     });
@@ -382,7 +393,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -858,11 +869,22 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 4,
-              "outputTokens": 32,
-              "reasoningTokens": undefined,
-              "totalTokens": 36,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 32,
+                "total": 32,
+              },
+              "raw": {
+                "completion_tokens": 32,
+                "prompt_tokens": 4,
+                "total_tokens": 36,
+              },
             },
           },
         ]
@@ -922,11 +944,22 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 4,
-              "outputTokens": 32,
-              "reasoningTokens": undefined,
-              "totalTokens": 36,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 32,
+                "total": 32,
+              },
+              "raw": {
+                "completion_tokens": 32,
+                "prompt_tokens": 4,
+                "total_tokens": 36,
+              },
             },
           },
         ]
@@ -1001,11 +1034,22 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "tool-calls",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 183,
-              "outputTokens": 133,
-              "reasoningTokens": undefined,
-              "totalTokens": 316,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 183,
+                "total": 183,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 133,
+                "total": 133,
+              },
+              "raw": {
+                "completion_tokens": 133,
+                "prompt_tokens": 183,
+                "total_tokens": 316,
+              },
             },
           },
         ]
@@ -1092,7 +1136,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -1188,11 +1232,22 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 4,
-              "outputTokens": 30,
-              "reasoningTokens": undefined,
-              "totalTokens": 34,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 30,
+                "total": 30,
+              },
+              "raw": {
+                "completion_tokens": 30,
+                "prompt_tokens": 4,
+                "total_tokens": 34,
+              },
             },
           },
         ]
@@ -1315,11 +1370,25 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
-          "cachedInputTokens": undefined,
-          "inputTokens": 15,
-          "outputTokens": 20,
-          "reasoningTokens": 10,
-          "totalTokens": 35,
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 15,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 10,
+            "total": 20,
+          },
+          "raw": {
+            "completion_tokens": 20,
+            "completion_tokens_details": {
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 15,
+            "total_tokens": 35,
+          },
         }
       `);
     });
@@ -1398,11 +1467,25 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1489,11 +1572,25 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokens": 15,
-              "outputTokens": 20,
-              "reasoningTokens": 10,
-              "totalTokens": 35,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
             },
           },
         ]
@@ -1633,11 +1730,22 @@ describe('doStream with raw chunks', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 10,
-            "outputTokens": 5,
-            "reasoningTokens": undefined,
-            "totalTokens": 15,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]

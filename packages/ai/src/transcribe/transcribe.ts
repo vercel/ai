@@ -4,10 +4,7 @@ import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-err
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import {
-  TranscriptionWarning,
-  TranscriptionModel,
-} from '../types/transcription-model';
+import { TranscriptionModel } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -18,6 +15,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
 import { resolveTranscriptionModel } from '../model/resolve-model';
+import { Warning } from '../types';
 /**
 Generates transcripts using a transcription model.
 
@@ -147,7 +145,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
-  readonly warnings: Array<TranscriptionWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, JSONObject>;
 
@@ -160,7 +158,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
-    warnings: Array<TranscriptionWarning>;
+    warnings: Array<Warning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, JSONObject> | undefined;
   }) {

@@ -61,7 +61,7 @@ const vertex = createVertex({
 });
 ```
 
-Google Vertex supports two different authentication implementations depending on your runtime environment.
+Google Vertex supports multiple authentication methods depending on your runtime environment and requirements.
 
 #### Node.js Runtime
 
@@ -229,6 +229,25 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+#### Express Mode
+
+Express mode provides a simplified authentication method using an API key instead of OAuth or service account credentials. When using express mode, the `project` and `location` settings are not required.
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+
+const vertex = createVertex({
+  apiKey: process.env.GOOGLE_VERTEX_API_KEY,
+});
+```
+
+##### Optional Provider Settings
+
+- **apiKey** _string_
+
+  The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
+  It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
+
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
@@ -382,6 +401,32 @@ const result = await generateText({
 });
 ```
 
+#### Google Maps
+
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    google_maps: vertex.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt: 'What are the best Italian restaurants nearby?',
+});
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
+
 #### Reasoning (Thinking Tokens)
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
@@ -394,7 +439,7 @@ import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'; // Note: imp
 import { generateText, streamText } from 'ai';
 
 // For generateText:
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
     google: {
@@ -408,8 +453,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   prompt: 'Explain quantum computing in simple terms.',
 });
 
-console.log('Reasoning:', reasoning);
-console.log('Reasoning Details:', reasoningDetails);
+console.log('Reasoning:', reasoningText);
+console.log('Reasoning Details:', reasoning);
 console.log('Final Text:', text);
 
 // For streamText:
@@ -438,7 +483,7 @@ for await (const part of result.fullStream) {
 
 When `includeThoughts` is true, parts of the API response marked with `thought: true` will be processed as reasoning.
 
-- In `generateText`, these contribute to the `reasoning` (string) and `reasoningDetails` (array) fields.
+- In `generateText`, these contribute to the `reasoningText` (string) and `reasoning` (array) fields.
 - In `streamText`, these are emitted as `reasoning` stream parts.
 
 <Note>
@@ -591,10 +636,10 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Embedding Models
 
-You can create models that call the Google Vertex AI embeddings API using the `.textEmbeddingModel()` factory method:
+You can create models that call the Google Vertex AI embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
-const model = vertex.textEmbeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-004');
 ```
 
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
@@ -603,7 +648,7 @@ Google Vertex AI embedding models support additional settings. You can pass them
 import { vertex } from '@ai-sdk/google-vertex';
 import { embed } from 'ai';
 
-const model = vertex.textEmbeddingModel('text-embedding-004');
+const model = vertex.embeddingModel('text-embedding-004');
 
 const { embedding } = await embed({
   model,
@@ -666,7 +711,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -680,7 +725,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
@@ -720,7 +765,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -732,14 +777,14 @@ console.log(
 
 #### Model Capabilities
 
-| Model                                     | Aspect Ratios             |
-| ----------------------------------------- | ------------------------- |
-| `imagen-3.0-generate-001`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-generate-002`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-fast-generate-001`            | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-generate-preview-06-06`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-fast-generate-preview-06-06`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-ultra-generate-preview-06-06` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                           | Aspect Ratios             |
+| ------------------------------- | ------------------------- |
+| `imagen-3.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 
@@ -970,7 +1015,7 @@ and specifying a thinking budget in tokens.
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertexAnthropic('claude-3-7-sonnet@20250219'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -980,8 +1025,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
@@ -1159,10 +1204,10 @@ const computerTool = vertexAnthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  toModelOutput(result) {
-    return typeof result === 'string'
-      ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```

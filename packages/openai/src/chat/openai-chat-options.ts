@@ -40,6 +40,9 @@ export type OpenAIChatModelId =
   | 'gpt-5-chat-latest'
   | 'gpt-5.1'
   | 'gpt-5.1-chat-latest'
+  | 'gpt-5.2'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazySchema(() =>
@@ -79,7 +82,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
       reasoningEffort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high'])
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
         .optional(),
 
       /**
@@ -103,13 +106,6 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       prediction: z.record(z.string(), z.any()).optional(),
 
       /**
-       * Whether to use structured outputs.
-       *
-       * @default true
-       */
-      structuredOutputs: z.boolean().optional(),
-
-      /**
        * Service tier for the request.
        * - 'auto': Default service tier. The request will be processed with the service tier configured in the
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
@@ -124,7 +120,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
       /**
        * Whether to use strict JSON schema validation.
        *
-       * @default false
+       * @default true
        */
       strictJsonSchema: z.boolean().optional(),
 

@@ -201,11 +201,15 @@ describe('doGenerate', () => {
       voice: 'different-voice',
     });
 
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toMatchObject({
-      type: 'unsupported-setting',
-      setting: 'voice',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS models embed the voice in the model ID. The voice parameter "different-voice" was ignored. Use the model ID to select a voice (e.g., "aura-2-helena-en").",
+          "feature": "voice",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should warn about unsupported speed parameter', async () => {
@@ -216,11 +220,15 @@ describe('doGenerate', () => {
       speed: 1.5,
     });
 
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toMatchObject({
-      type: 'unsupported-setting',
-      setting: 'speed',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS REST API does not support speed adjustment. Speed parameter was ignored.",
+          "feature": "speed",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should warn about unsupported language parameter', async () => {
@@ -231,11 +239,15 @@ describe('doGenerate', () => {
       language: 'en',
     });
 
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toMatchObject({
-      type: 'unsupported-setting',
-      setting: 'language',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS models are language-specific via the model ID. Language parameter "en" was ignored. Select a model with the appropriate language suffix (e.g., "-en" for English).",
+          "feature": "language",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should warn about unsupported instructions parameter', async () => {
@@ -246,11 +258,15 @@ describe('doGenerate', () => {
       instructions: 'Speak slowly',
     });
 
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toMatchObject({
-      type: 'unsupported-setting',
-      setting: 'instructions',
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Deepgram TTS REST API does not support instructions. Instructions parameter was ignored.",
+          "feature": "instructions",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should include request body in response', async () => {

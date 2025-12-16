@@ -1,5 +1,285 @@
 # @ai-sdk/langchain
 
+## 2.0.0-beta.156
+
+### Patch Changes
+
+- Updated dependencies [2406576]
+  - ai@6.0.0-beta.156
+
+## 2.0.0-beta.155
+
+### Patch Changes
+
+- ai@6.0.0-beta.155
+
+## 2.0.0-beta.154
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - ai@6.0.0-beta.154
+
+## 2.0.0-beta.153
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - ai@6.0.0-beta.153
+
+## 2.0.0-beta.152
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - ai@6.0.0-beta.152
+
+## 2.0.0-beta.151
+
+### Patch Changes
+
+- Updated dependencies [dcdac8c]
+  - ai@6.0.0-beta.151
+
+## 2.0.0-beta.150
+
+### Patch Changes
+
+- Updated dependencies [db62f7d]
+  - ai@6.0.0-beta.150
+
+## 2.0.0-beta.149
+
+### Patch Changes
+
+- Updated dependencies [4e2b04d]
+  - ai@6.0.0-beta.149
+
+## 2.0.0-beta.148
+
+### Patch Changes
+
+- ai@6.0.0-beta.148
+
+## 2.0.0-beta.147
+
+### Patch Changes
+
+- Updated dependencies [637eaa4]
+  - ai@6.0.0-beta.147
+
+## 2.0.0-beta.146
+
+### Patch Changes
+
+- ai@6.0.0-beta.146
+
+## 2.0.0-beta.145
+
+### Patch Changes
+
+- ai@6.0.0-beta.145
+
+## 2.0.0-beta.144
+
+### Patch Changes
+
+- Updated dependencies [ab6f01a]
+  - ai@6.0.0-beta.144
+
+## 2.0.0-beta.143
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - ai@6.0.0-beta.143
+
+## 2.0.0-beta.142
+
+### Patch Changes
+
+- Updated dependencies [7169511]
+- Updated dependencies [bbdcb81]
+  - ai@6.0.0-beta.142
+
+## 2.0.0-beta.141
+
+### Patch Changes
+
+- Updated dependencies [b1405bf]
+  - ai@6.0.0-beta.141
+
+## 2.0.0-beta.140
+
+### Patch Changes
+
+- Updated dependencies [7fdd89d]
+  - ai@6.0.0-beta.140
+
+## 2.0.0-beta.139
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - ai@6.0.0-beta.139
+
+## 2.0.0-beta.138
+
+### Patch Changes
+
+- ai@6.0.0-beta.138
+
+## 2.0.0-beta.137
+
+### Patch Changes
+
+- Updated dependencies [9ba4324]
+  - ai@6.0.0-beta.137
+
+## 2.0.0-beta.136
+
+### Patch Changes
+
+- Updated dependencies [3d83f38]
+  - ai@6.0.0-beta.136
+
+## 2.0.0-beta.135
+
+### Patch Changes
+
+- Updated dependencies [afe7093]
+  - ai@6.0.0-beta.135
+
+## 2.0.0-beta.134
+
+### Patch Changes
+
+- Updated dependencies [686103c]
+  - ai@6.0.0-beta.134
+
+## 2.0.0-beta.133
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - ai@6.0.0-beta.133
+
+## 2.0.0-beta.132
+
+### Patch Changes
+
+- Updated dependencies [af9dab3]
+  - ai@6.0.0-beta.132
+
+## 2.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - ai@6.0.0-beta.131
+
+## 2.0.0-beta.130
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - ai@6.0.0-beta.130
+
+## 2.0.0-beta.129
+
+### Patch Changes
+
+- Updated dependencies [67a407c]
+  - ai@6.0.0-beta.129
+
+## 2.0.0-beta.128
+
+### Patch Changes
+
+- ai@6.0.0-beta.128
+
+## 2.0.0-beta.127
+
+### Patch Changes
+
+- Updated dependencies [614599a]
+  - ai@6.0.0-beta.127
+
+## 2.0.0-beta.126
+
+### Patch Changes
+
+- Updated dependencies [b67d224]
+  - ai@6.0.0-beta.126
+
+## 2.0.0-beta.125
+
+### Patch Changes
+
+- Updated dependencies [0d6c0d8]
+  - ai@6.0.0-beta.125
+
+## 2.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - ai@6.0.0-beta.124
+
+## 2.0.0-beta.123
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - ai@6.0.0-beta.123
+
+## 2.0.0-beta.122
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - ai@6.0.0-beta.122
+
+## 2.0.0-beta.121
+
+### Patch Changes
+
+- ai@6.0.0-beta.121
+
+## 2.0.0-beta.120
+
+### Patch Changes
+
+- Updated dependencies [457318b]
+  - ai@6.0.0-beta.120
+
+## 2.0.0-beta.119
+
+### Patch Changes
+
+- Updated dependencies [b59d924]
+  - ai@6.0.0-beta.119
+
+## 2.0.0-beta.118
+
+### Patch Changes
+
+- Updated dependencies [8d9e8ad]
+  - ai@6.0.0-beta.118
+
+## 2.0.0-beta.117
+
+### Patch Changes
+
+- ai@6.0.0-beta.117
+
+## 2.0.0-beta.116
+
+### Patch Changes
+
+- Updated dependencies [4ece5f9]
+  - ai@6.0.0-beta.116
+
 ## 2.0.0-beta.115
 
 ### Patch Changes

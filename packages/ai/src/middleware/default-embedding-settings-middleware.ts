@@ -9,17 +9,14 @@ export function defaultEmbeddingSettingsMiddleware({
   settings,
 }: {
   settings: Partial<{
-    headers?: EmbeddingModelCallOptions<string>['headers'];
-    providerOptions?: EmbeddingModelCallOptions<string>['providerOptions'];
+    headers?: EmbeddingModelCallOptions['headers'];
+    providerOptions?: EmbeddingModelCallOptions['providerOptions'];
   }>;
 }): EmbeddingModelMiddleware {
   return {
     specificationVersion: 'v3',
     transformParams: async ({ params }) => {
-      return mergeObjects(
-        settings,
-        params,
-      ) as EmbeddingModelCallOptions<string>;
+      return mergeObjects(settings, params) as EmbeddingModelCallOptions;
     },
   };
 }

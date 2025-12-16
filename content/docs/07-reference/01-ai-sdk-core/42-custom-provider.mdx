@@ -70,7 +70,7 @@ export const myOpenAI = customProvider({
         'A record of language models, where keys are model IDs and values are LanguageModel instances.',
     },
     {
-      name: 'textEmbeddingModels',
+      name: '.embeddingModels',
       type: 'Record<string, EmbeddingModel<string>>',
       isOptional: true,
       description:
@@ -106,7 +106,7 @@ The `customProvider` function returns a `Provider` instance. It has the followin
         'A function that returns a language model by its id (format: providerId:modelId)',
     },
     {
-      name: 'textEmbeddingModel',
+      name: 'embeddingModel',
       type: '(id: string) => EmbeddingModel<string>',
       description:
         'A function that returns a text embedding model by its id (format: providerId:modelId)',

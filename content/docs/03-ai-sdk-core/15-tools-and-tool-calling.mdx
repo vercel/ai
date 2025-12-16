@@ -6,11 +6,12 @@ description: Learn about tool calling and multi-step calls (using stopWhen) with
 # Tool Calling
 
 As covered under Foundations, [tools](/docs/foundations/tools) are objects that can be called by the model to perform a specific task.
-AI SDK Core tools contain three elements:
+AI SDK Core tools contain several core elements:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
 - **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schemas) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input parameters. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the inputs from the tool call. It produces a value of type `RESULT` (generic type). It is optional because you might want to forward tool calls to the client or to a queue instead of executing them in the same process.
+- **`strict`**: _(optional, boolean)_ Enables strict tool calling when supported by the provider
 
 <Note className="mb-2">
   You can use the [`tool`](/docs/reference/ai-sdk-core/tool) helper function to
@@ -21,10 +22,11 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool } from 'ai';
+import { generateText, tool, stopWhen } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -37,6 +39,7 @@ const result = await generateText({
       }),
     }),
   },
+  stopWhen: stepCountIs(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -48,6 +51,176 @@ const result = await generateText({
 
 Tool calling is not restricted to only text generation.
 You can also use it to render user interfaces (Generative UI).
+
+## Strict Mode
+
+When enabled, language model providers that support strict tool calling will only generate tool calls that are valid according to your defined `inputSchema`.
+This increases the reliability of tool calling.
+However, not all schemas may be supported in strict mode, and what is supported depends on the specific provider.
+
+By default, strict mode is disabled. You can enable it per-tool by setting `strict: true`:
+
+```ts
+tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  strict: true, // Enable strict validation for this tool
+  execute: async ({ location }) => ({
+    // ...
+  }),
+});
+```
+
+<Note>
+  Not all providers or models support strict mode. For those that do not, this
+  option is ignored.
+</Note>
+
+## Input Examples
+
+You can specify example inputs for your tools to help guide the model on how input data should be structured.
+When supported by providers, input examples can help when JSON schema itself does not fully specify the intended
+usage or when there are optional values.
+
+```ts
+tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  inputExamples: [
+    { input: { location: 'San Francisco' } },
+    { input: { location: 'London' } },
+  ],
+  execute: async ({ location }) => {
+    // ...
+  },
+});
+```
+
+<Note>
+  Only the Anthropic providers supports tool input examples natively. Other
+  providers ignore the setting.
+</Note>
+
+## Tool Execution Approval
+
+By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution by setting `needsApproval`:
+
+```ts highlight="13"
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const runCommand = tool({
+  description: 'Run a shell command',
+  inputSchema: z.object({
+    command: z.string().describe('The shell command to execute'),
+  }),
+  needsApproval: true,
+  execute: async ({ command }) => {
+    // your command execution logic here
+  },
+});
+```
+
+This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
+
+### How It Works
+
+When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
+
+Here's the complete flow:
+
+1. Call `generateText` with a tool that has `needsApproval: true`
+2. Model generates a tool call
+3. `generateText` returns with `tool-approval-request` parts in `result.content`
+4. Your app requests an approval and collects the user's decision
+5. Add a `tool-approval-response` to the messages array
+6. Call `generateText` again with the updated messages
+7. If approved, the tool runs and returns a result. If denied, the model sees the denial and responds accordingly.
+
+### Handling Approval Requests
+
+After calling `generateText` or `streamText`, check `result.content` for `tool-approval-request` parts:
+
+```ts
+import { type ModelMessage, generateText } from 'ai';
+
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Remove the most recent file' },
+];
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  messages,
+});
+
+messages.push(...result.response.messages);
+
+for (const part of result.content) {
+  if (part.type === 'tool-approval-request') {
+    console.log(part.approvalId); // Unique ID for this approval request
+    console.log(part.toolCall); // Contains toolName, input, etc.
+  }
+}
+```
+
+To respond, create a `tool-approval-response` and add it to your messages:
+
+```ts
+import { type ToolApprovalResponse } from 'ai';
+
+const approvals: ToolApprovalResponse[] = [];
+
+for (const part of result.content) {
+  if (part.type === 'tool-approval-request') {
+    const response: ToolApprovalResponse = {
+      type: 'tool-approval-response',
+      approvalId: part.approvalId,
+      approved: true, // or false to deny
+      reason: 'User confirmed the command', // Optional context for the model
+    };
+    approvals.push(response);
+  }
+}
+
+// add approvals to messages
+messages.push({ role: 'tool', content: approvals });
+```
+
+Then call `generateText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+
+<Note>
+  When a tool execution is denied, consider adding a system instruction like
+  "When a tool execution is not approved, do not retry it" to prevent the model
+  from attempting the same call again.
+</Note>
+
+### Dynamic Approval
+
+You can make approval decisions based on tool input by providing an async function:
+
+```ts
+const paymentTool = tool({
+  description: 'Process a payment',
+  inputSchema: z.object({
+    amount: z.number(),
+    recipient: z.string(),
+  }),
+  needsApproval: async ({ amount }) => amount > 1000,
+  execute: async ({ amount, recipient }) => {
+    return await processPayment(amount, recipient);
+  },
+});
+```
+
+In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
+
+### Tool Execution Approval with useChat
+
+When using `useChat`, the approval flow is handled through UI state. See [Chatbot Tool Usage](/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval) for details on handling approvals in your UI with `addToolApprovalResponse`.
 
 ## Multi-Step Calls (using stopWhen)
 
@@ -79,9 +252,10 @@ In the following example, there are two steps:
 ```ts highlight="18-19"
 import { z } from 'zod';
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -111,9 +285,10 @@ It contains all the text, tool calls, tool results, and more from each step.
 
 ```ts highlight="3,9-10"
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   stopWhen: stepCountIs(10),
   // ...
 });
@@ -151,6 +326,7 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
+- `experimental_context`: The context passed via the `experimental_context` setting (experimental).
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -256,7 +432,7 @@ When using both static and dynamic tools, use the `dynamic` flag for type narrow
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     // Static tool with known types
     weather: weatherTool,
@@ -332,9 +508,10 @@ It supports the following settings:
 ```ts highlight="18"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -435,9 +612,10 @@ You can access them in the second parameter of the `execute` function and e.g. a
 ```ts highlight="6,11,14"
 import { z } from 'zod';
 import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   abortSignal: myAbortSignal, // signal that will be forwarded to tools
   tools: {
     weather: tool({
@@ -490,10 +668,11 @@ The following tool input lifecycle hooks are available:
 
 ```ts highlight="15-23"
 import { streamText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     getWeather: tool({
       description: 'Get the weather in a location',
@@ -536,8 +715,8 @@ and `TypedToolResult<TOOLS extends ToolSet>` can be used to
 extract the tool call and tool result types from the tools.
 
 ```ts highlight="18-19,23-24"
-import { openai } from '@ai-sdk/openai';
 import { TypedToolCall, TypedToolResult, generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const myToolSet = {
@@ -562,7 +741,7 @@ async function generateSomething(prompt: string): Promise<{
   toolResults: Array<MyToolResult>; // typed tool results
 }> {
   return generateText({
-    model: 'anthropic/claude-sonnet-4.5',
+    model: __MODEL__,
     tools: myToolSet,
     prompt,
   });
@@ -689,7 +868,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: 'anthropic/claude-sonnet-4.5',
+      model: __MODEL__,
       schema: tool.inputSchema,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +
@@ -783,9 +962,10 @@ By default, the value is `undefined` and all tools are active.
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: myToolSet,
   activeTools: ['firstTool'],
 });
@@ -808,7 +988,7 @@ Here is an example for converting a screenshot into a content part:
 
 ```ts highlight="22-27"
 const result = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: __MODEL__,
   tools: {
     computer: anthropic.tools.computer_20241022({
       // ...
@@ -829,13 +1009,13 @@ const result = await generateText({
       },
 
       // map to tool result content for LLM consumption:
-      toModelOutput(result) {
+      toModelOutput({ output }) {
         return {
           type: 'content',
           value:
-            typeof result === 'string'
-              ? [{ type: 'text', text: result }]
-              : [{ type: 'media', data: result.data, mediaType: 'image/png' }],
+            typeof output === 'string'
+              ? [{ type: 'text', text: output }]
+              : [{ type: 'media', data: output.data, mediaType: 'image/png' }],
         };
       },
     }),

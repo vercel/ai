@@ -1,19 +1,16 @@
-import {
-  JSONObject,
-  SpeechModelV3,
-  SpeechModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { JSONObject, SpeechModelV3 } from '@ai-sdk/provider';
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vitest,
   vi,
+  vitest,
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
+import { Warning } from '../types/warning';
 import { generateSpeech } from './generate-speech';
 import {
   DefaultGeneratedAudioFile,
@@ -37,7 +34,7 @@ vi.mock('../version', () => {
 
 const createMockResponse = (options: {
   audio: GeneratedAudioFile;
-  warnings?: SpeechModelV3CallWarning[];
+  warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -136,14 +133,14 @@ describe('generateSpeech', () => {
   });
 
   it('should call logWarnings with the correct warnings', async () => {
-    const expectedWarnings: SpeechModelV3CallWarning[] = [
+    const expectedWarnings: Warning[] = [
       {
         type: 'other',
         message: 'Setting is not supported',
       },
       {
-        type: 'unsupported-setting',
-        setting: 'voice',
+        type: 'unsupported',
+        feature: 'voice',
         details: 'Voice parameter not supported',
       },
     ];

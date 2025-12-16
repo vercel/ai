@@ -143,8 +143,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.languageModel = createChatLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
   provider.imageModel = createImageModel;
   provider.image = createImageModel;

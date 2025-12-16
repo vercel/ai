@@ -416,16 +416,18 @@ console.log(
 
 ## Reasoning
 
-Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
+Amazon Bedrock supports model creator-specific reasoning features:
 
-You can enable it using the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+- Anthropic (e.g. `claude-3-7-sonnet-20250219`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+- Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
-  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+// Anthropic example
+const anthropicResult = await generateText({
+  model: bedrock('us.anthropclaude-3-7-sonnet-20250219-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     bedrock: {
@@ -434,9 +436,22 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
-console.log(text); // text response
+console.log(anthropicResult.reasoningText); // reasoning text
+console.log(anthropicResult.text); // text response
+
+// Nova 2 example
+const amazonResult = await generateText({
+  model: bedrock('us.amazon.nova-2-lite-v1:0'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    bedrock: {
+      reasoningConfig: { type: 'enabled', maxReasoningEffort: 'medium' },
+    },
+  },
+});
+
+console.log(amazonResult.reasoningText); // reasoning text
+console.log(amazonResult.text); // text response
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
@@ -603,10 +618,10 @@ const computerTool = anthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  toModelOutput(result) {
-    return typeof result === 'string'
-      ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -697,10 +712,10 @@ These tools can be used in conjunction with the `anthropic.claude-3-5-sonnet-202
 ## Embedding Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html)
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v1');
+const model = bedrock.embedding('amazon.titan-embed-text-v1');
 ```
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several additional settings.
@@ -710,7 +725,7 @@ You can pass them as an options argument:
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { embed } from 'ai';
 
-const model = bedrock.textEmbedding('amazon.titan-embed-text-v2:0');
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
 
 const { embedding } = await embed({
   model,

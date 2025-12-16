@@ -18,7 +18,7 @@ export interface Route<NAME extends string> {
  */
 export class SemanticRouter<ROUTES extends Array<Route<string>>> {
   readonly routes: ROUTES;
-  readonly embeddingModel: EmbeddingModel<string>;
+  readonly embeddingModel: EmbeddingModel;
   readonly similarityThreshold: number;
 
   private routeValues:
@@ -31,7 +31,7 @@ export class SemanticRouter<ROUTES extends Array<Route<string>>> {
     similarityThreshold,
   }: {
     routes: ROUTES;
-    embeddingModel: EmbeddingModel<string>;
+    embeddingModel: EmbeddingModel;
     similarityThreshold: number;
   }) {
     this.routes = routes;
