@@ -688,7 +688,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -735,7 +735,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -1070,7 +1070,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -1108,7 +1108,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -1354,7 +1354,7 @@ const result = await generateText({
         {
           type: 'file',
           mediaType: 'audio/mpeg',
-          data: fs.readFileSync('./data/galileo.mp3'),
+          data: readFileSync('./data/galileo.mp3'),
         },
       ],
     },
@@ -1536,11 +1536,7 @@ OpenAI's `gpt-image-1` model supports powerful image editing capabilities. Pass 
 Transform an existing image using text prompts:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: openai.image('gpt-image-1'),
@@ -1556,12 +1552,8 @@ const { images } = await generateImage({
 Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const image = fs.readFileSync('./input-image.png');
-const mask = fs.readFileSync('./mask.png'); // Transparent areas = edit regions
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
 
 const { images } = await generateImage({
   model: openai.image('gpt-image-1'),
@@ -1578,11 +1570,7 @@ const { images } = await generateImage({
 Remove the background from an image by setting `background` to `transparent`:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: openai.image('gpt-image-1'),
@@ -1604,14 +1592,10 @@ const { images } = await generateImage({
 Combine multiple reference images into a single output. `gpt-image-1` supports up to 16 input images:
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const cat = fs.readFileSync('./cat.png');
-const dog = fs.readFileSync('./dog.png');
-const owl = fs.readFileSync('./owl.png');
-const bear = fs.readFileSync('./bear.png');
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+const owl = readFileSync('./owl.png');
+const bear = readFileSync('./bear.png');
 
 const { images } = await generateImage({
   model: openai.image('gpt-image-1'),
