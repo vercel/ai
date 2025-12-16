@@ -3,6 +3,7 @@ import {
   ToolApprovalRequest,
   ToolApprovalResponse,
 } from '@ai-sdk/provider-utils';
+import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -80,7 +81,9 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
       toolApprovalRequestsByApprovalId[approvalResponse.approvalId];
 
     if (approvalRequest == null) {
-      continue;
+      throw new InvalidToolApprovalError({
+        approvalId: approvalResponse.approvalId,
+      });
     }
 
     if (toolResults[approvalRequest.toolCallId] != null) {

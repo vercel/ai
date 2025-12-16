@@ -266,44 +266,41 @@ describe('collectToolApprovals', () => {
     `);
   });
 
-  it('should skip approval response with unknown approvalId', () => {
-    const result = collectToolApprovals({
-      messages: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: { value: 'test-input' },
-            },
-            {
-              type: 'tool-approval-request',
-              approvalId: 'approval-id-1',
-              toolCallId: 'call-1',
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-approval-response',
-              approvalId: 'unknown-approval-id', // doesn't match any request
-              approved: true,
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "approvedToolApprovals": [],
-        "deniedToolApprovals": [],
-      }
-    `);
+  it('should throw when approval response has unknown approvalId', () => {
+    expect(() =>
+      collectToolApprovals({
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: { value: 'test-input' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-id-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'unknown-approval-id', // doesn't match any request
+                approved: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(
+      'Tool approval response references unknown approvalId: "unknown-approval-id"',
+    );
   });
 
   it('should skip approval response when referenced tool call does not exist', () => {
