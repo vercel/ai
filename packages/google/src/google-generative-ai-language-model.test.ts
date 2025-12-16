@@ -199,6 +199,39 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates grounding metadata with maps chunks', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+            title: 'Best Italian Restaurant',
+            text: 'A great Italian restaurant',
+            placeId: 'ChIJ12345',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].maps with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates metadata with empty retrievalMetadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -1003,6 +1036,56 @@ describe('doGenerate', () => {
         `);
   });
 
+  it('should extract sources from maps grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with Maps',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=12345',
+              title: 'Best Italian Restaurant',
+              placeId: 'ChIJ12345',
+            },
+          },
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=67890',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with Maps",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Best Italian Restaurant",
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=12345",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=67890",
+        },
+      ]
+    `);
+  });
+
   it('should handle mixed source types with correct title defaults', async () => {
     prepareJsonResponse({
       content: 'test response with mixed sources',
@@ -1749,6 +1832,46 @@ describe('doGenerate', () => {
       generationConfig: {
         imageConfig: {
           aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
+  it('should pass retrievalConfig in provider options', async () => {
+    prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
+
+    const gemini2Model = provider.chat('gemini-2.0-flash-exp');
+
+    await gemini2Model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'google.google_maps',
+          name: 'google_maps',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        google: {
+          retrievalConfig: {
+            latLng: {
+              latitude: 34.090199,
+              longitude: -117.881081,
+            },
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: {
+            latitude: 34.090199,
+            longitude: -117.881081,
+          },
         },
       },
     });

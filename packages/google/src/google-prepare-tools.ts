@@ -161,6 +161,18 @@ export function prepareTools({
             });
           }
           break;
+        case 'google.google_maps':
+          if (isGemini2orNewer) {
+            googleTools.push({ googleMaps: {} });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.',
+            });
+          }
+          break;
         default:
           toolWarnings.push({ type: 'unsupported-tool', tool });
           break;
