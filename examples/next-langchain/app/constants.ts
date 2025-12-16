@@ -4,6 +4,7 @@ import {
   Wrench,
   Cloud,
   Shield,
+  Sparkles,
   LucideIcon,
 } from 'lucide-react';
 
@@ -21,6 +22,12 @@ export const navItems: NavItem[] = [
     label: 'Basic Chat',
     description: 'Simple LangChain streaming',
     icon: MessageCircle,
+  },
+  {
+    href: '/completion',
+    label: 'Text Completion',
+    description: 'useCompletion streaming',
+    icon: Sparkles,
   },
   {
     href: '/langgraph',
