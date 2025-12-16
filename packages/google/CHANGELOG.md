@@ -1,5 +1,46 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
 ## 3.0.0-beta.72
 
 ### Patch Changes

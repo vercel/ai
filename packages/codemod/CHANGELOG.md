@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- 7e4eb2e: chore(codemod): add codemod for destructuring the toModelOutput param
+
 ## 3.0.0-beta.5
 
 ### Patch Changes

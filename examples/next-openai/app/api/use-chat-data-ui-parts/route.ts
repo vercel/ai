@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  const modelMessages = await convertToModelMessages(messages);
 
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
             },
           },
         },
-        messages: convertToModelMessages(messages),
+        messages: modelMessages,
       });
 
       writer.merge(result.toUIMessageStream());

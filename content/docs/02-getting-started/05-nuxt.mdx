@@ -115,7 +115,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = streamText({
       model: gateway('anthropic/claude-sonnet-4.5'),
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
     });
 
     return result.toUIMessageStreamResponse();
@@ -280,7 +280,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = streamText({
       model: gateway('anthropic/claude-sonnet-4.5'),
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       tools: {
         weather: tool({
           description: 'Get the weather in a location (fahrenheit)',
@@ -402,7 +402,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = streamText({
       model: gateway('anthropic/claude-sonnet-4.5'),
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       tools: {
         weather: tool({
@@ -459,7 +459,7 @@ export default defineLazyEventHandler(async () => {
 
     const result = streamText({
       model: gateway('anthropic/claude-sonnet-4.5'),
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       stopWhen: stepCountIs(5),
       tools: {
         weather: tool({
