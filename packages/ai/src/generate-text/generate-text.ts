@@ -1,7 +1,6 @@
 import {
   LanguageModelV3,
   LanguageModelV3Content,
-  LanguageModelV3ToolApprovalRequest,
   LanguageModelV3ToolCall,
 } from '@ai-sdk/provider';
 import {
@@ -24,6 +23,7 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { ToolCallNotFoundError } from '../error/tool-call-not-found-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -1046,20 +1046,20 @@ function asContent<TOOLS extends ToolSet>({
         }
 
         case 'tool-approval-request': {
-          const approval = part as LanguageModelV3ToolApprovalRequest;
           const toolCall = toolCalls.find(
-            toolCall => toolCall.toolCallId === approval.toolCallId,
+            toolCall => toolCall.toolCallId === part.toolCallId,
           );
 
           if (toolCall == null) {
-            throw new Error(
-              `Tool call ${approval.toolCallId} not found for approval request ${approval.approvalId}.`,
-            );
+            throw new ToolCallNotFoundError({
+              toolCallId: part.toolCallId,
+              approvalId: part.approvalId,
+            });
           }
 
           return {
             type: 'tool-approval-request' as const,
-            approvalId: approval.approvalId,
+            approvalId: part.approvalId,
             toolCall,
           };
         }

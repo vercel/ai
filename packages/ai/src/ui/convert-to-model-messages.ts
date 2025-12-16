@@ -172,14 +172,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
 
-                const isProviderExecutedAwaitingApprovalExecution =
-                  part.providerExecuted === true &&
-                  part.state === 'approval-responded';
-
-                if (
-                  part.state !== 'input-streaming' &&
-                  !isProviderExecutedAwaitingApprovalExecution
-                ) {
+                if (part.state !== 'input-streaming') {
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -205,6 +198,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
                   if (
                     part.providerExecuted === true &&
+                    part.state !== 'approval-responded' &&
                     (part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
