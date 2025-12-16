@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.157
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/gateway@2.0.0-beta.83
+
 ## 6.0.0-beta.156
 
 ### Patch Changes
