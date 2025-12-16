@@ -25,7 +25,7 @@ Only supported in amazon.titan-embed-text-v2:0.
   /**
 Input type for Cohere embedding models on Bedrock.
 Common values: `search_document`, `search_query`, `classification`, `clustering`.
-If not set, the provider defaults to `search_document`.
+If not set, the provider defaults to `search_query`.
    */
   inputType: z
     .enum(['search_document', 'search_query', 'classification', 'clustering'])
