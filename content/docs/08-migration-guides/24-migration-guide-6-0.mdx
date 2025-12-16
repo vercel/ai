@@ -61,6 +61,7 @@ every file.
 | `rename-core-message-to-model-message`                   | Renames the `CoreMessage` type to `ModelMessage`                                                   |
 | `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
 | `rename-vertex-provider-metadata-key`                    | Renames `google` to `vertex` in `providerMetadata` and `providerOptions` for Google Vertex files   |
+| `wrap-tomodeloutput-parameter`                           | Wraps `toModelOutput` parameter in object destructuring (`output` → `{ output }`)                  |
 
 ## AI SDK Core
 
@@ -227,6 +228,11 @@ const someTool = tool({
   },
 });
 ```
+
+<Note>
+  Use the `wrap-tomodeloutput-parameter` codemod to automatically update your
+  codebase.
+</Note>
 
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 

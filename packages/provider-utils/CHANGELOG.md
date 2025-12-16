@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+
 ## 4.0.0-beta.51
 
 ### Patch Changes

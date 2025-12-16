@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.101
+
+### Patch Changes
+
+- 3220329: fix openai responses input: process all provider tool outputs (shell/apply_patch) so parallel tool results aren’t dropped and apply_patch outputs are forwarded.
+- 5648ec0: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+
 ## 3.0.0-beta.100
 
 ### Patch Changes

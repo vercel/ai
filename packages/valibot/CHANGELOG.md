@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 2.0.0-beta.52
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
 ## 2.0.0-beta.51
 
 ### Patch Changes
