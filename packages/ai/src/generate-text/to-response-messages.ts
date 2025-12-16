@@ -14,15 +14,13 @@ Converts the result of a `generateText` or `streamText` call to a list of respon
 export async function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,
   tools,
-  excludeToolResultToolCallIds,
+  excludeToolResultToolCallIds: excluded,
 }: {
   content: Array<ContentPart<TOOLS>>;
   tools: TOOLS | undefined;
   excludeToolResultToolCallIds?: Set<string>;
 }): Promise<Array<AssistantModelMessage | ToolModelMessage>> {
   const responseMessages: Array<AssistantModelMessage | ToolModelMessage> = [];
-
-  const excluded = excludeToolResultToolCallIds;
 
   const content: AssistantContent = [];
   for (const part of inputContent) {
