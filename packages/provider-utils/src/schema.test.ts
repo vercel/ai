@@ -1,6 +1,3 @@
-import { type } from 'arktype';
-import { Schema as EffectSchema } from 'effect';
-import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
@@ -201,49 +198,6 @@ describe('zodSchema', () => {
           rawValue: { user: { id: '123', name: 'John' } },
         });
       });
-    });
-  });
-});
-
-describe('standardSchema', () => {
-  describe('arktype', () => {
-    it('should create a schema with simple types', async () => {
-      const schema = standardSchema(
-        type({
-          text: 'string',
-          number: 'number',
-        }),
-      );
-
-      expect(await schema.jsonSchema).toMatchSnapshot();
-    });
-  });
-
-  describe('effect', () => {
-    it('should create a schema with simple types', async () => {
-      const schema = standardSchema(
-        EffectSchema.standardSchemaV1(
-          EffectSchema.Struct({
-            text: EffectSchema.String,
-            number: EffectSchema.Number,
-          }),
-        ),
-      );
-
-      expect(await schema.jsonSchema).toMatchSnapshot();
-    });
-  });
-
-  describe('valibot', () => {
-    it('should create a schema with simple types', async () => {
-      const schema = standardSchema(
-        v.object({
-          text: v.string(),
-          number: v.number(),
-        }),
-      );
-
-      expect(await schema.jsonSchema).toMatchSnapshot();
     });
   });
 });

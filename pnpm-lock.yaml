@@ -2533,6 +2533,9 @@ importers:
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
       msw:
         specifier: 2.7.0
         version: 2.7.0(@types/node@20.17.24)(typescript@5.8.3)

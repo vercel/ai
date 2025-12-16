@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.7.0",
     "tsup": "^8",
     "typescript": "5.8.3",
