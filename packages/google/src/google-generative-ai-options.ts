@@ -164,6 +164,23 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           imageSize: z.enum(['1K', '2K', '4K']).optional(),
         })
         .optional(),
+
+      /**
+       * Optional. Configuration for grounding retrieval.
+       * Used to provide location context for Google Maps and Google Search grounding.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+       */
+      retrievalConfig: z
+        .object({
+          latLng: z
+            .object({
+              latitude: z.number(),
+              longitude: z.number(),
+            })
+            .optional(),
+        })
+        .optional(),
     }),
   ),
 );

@@ -1,5 +1,30 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- Updated dependencies [87db851]
+  - @ai-sdk/anthropic@3.0.0-beta.88
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- Updated dependencies [32a6c13]
+  - @ai-sdk/google@3.0.0-beta.77
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/anthropic@3.0.0-beta.87
+  - @ai-sdk/google@3.0.0-beta.76
+
 ## 4.0.0-beta.117
 
 ### Patch Changes

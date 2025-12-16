@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.0-beta.156
+
+### Patch Changes
+
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+
+## 6.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/gateway@2.0.0-beta.82
+
 ## 6.0.0-beta.154
 
 ### Patch Changes
