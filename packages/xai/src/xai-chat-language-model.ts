@@ -126,7 +126,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       model: this.modelId,
 
       // standard generation settings
-      max_tokens: maxOutputTokens,
+      max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       seed,

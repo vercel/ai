@@ -382,6 +382,32 @@ const result = await generateText({
 });
 ```
 
+#### Google Maps
+
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    google_maps: vertex.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt: 'What are the best Italian restaurants nearby?',
+});
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
+
 #### Reasoning (Thinking Tokens)
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
