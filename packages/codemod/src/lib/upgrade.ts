@@ -86,6 +86,7 @@ const bundle = [
   'v6/rename-core-message-to-model-message',
   'v6/rename-converttocoremessages-to-converttomodelmessages',
   'v6/rename-vertex-provider-metadata-key',
+  'v6/wrap-tomodeloutput-parameter',
 ];
 
 const log = debug('codemod:upgrade');

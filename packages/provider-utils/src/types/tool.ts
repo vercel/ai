@@ -189,12 +189,25 @@ functionality that can be fully encapsulated in the provider.
      * If not provided, the tool result will be sent as a JSON object.
      */
     toModelOutput?: (options: {
+      /**
+       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+       */
+      toolCallId: string;
+
+      /**
+       * The input of the tool call.
+       */
+      input: [INPUT] extends [never] ? unknown : INPUT;
+
+      /**
+       * The output of the tool call.
+       */
       output: 0 extends 1 & OUTPUT
         ? any
         : [OUTPUT] extends [never]
           ? any
           : NoInfer<OUTPUT>;
-    }) => ToolResultOutput;
+    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
   } & (
     | {
         /**
@@ -268,7 +281,22 @@ export function dynamicTool(tool: {
    *
    * If not provided, the tool result will be sent as a JSON object.
    */
-  toModelOutput?: (options: { output: unknown }) => ToolResultOutput;
+  toModelOutput?: (options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * The input of the tool call.
+     */
+    input: unknown;
+
+    /**
+     * The output of the tool call.
+     */
+    output: unknown;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
 
   /**
    * Whether the tool needs approval before it can be executed.

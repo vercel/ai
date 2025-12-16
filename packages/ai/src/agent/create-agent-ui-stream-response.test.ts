@@ -84,7 +84,7 @@ describe('createAgentUIStreamResponse', () => {
 
       response = await createAgentUIStreamResponse({
         agent,
-        messages: [
+        uiMessages: [
           {
             role: 'user',
             id: 'msg-1',

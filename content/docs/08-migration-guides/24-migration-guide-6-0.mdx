@@ -61,6 +61,7 @@ every file.
 | `rename-core-message-to-model-message`                   | Renames the `CoreMessage` type to `ModelMessage`                                                   |
 | `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
 | `rename-vertex-provider-metadata-key`                    | Renames `google` to `vertex` in `providerMetadata` and `providerOptions` for Google Vertex files   |
+| `wrap-tomodeloutput-parameter`                           | Wraps `toModelOutput` parameter in object destructuring (`output` → `{ output }`)                  |
 
 ## AI SDK Core
 
@@ -77,8 +78,14 @@ const coreMessages = convertToCoreMessages(messages); // CoreMessage[]
 ```tsx filename="AI SDK 6"
 import { convertToModelMessages, type ModelMessage } from 'ai';
 
-const modelMessages = convertToModelMessages(messages); // ModelMessage[]
+const modelMessages = await convertToModelMessages(messages); // ModelMessage[]
 ```
+
+<Note>
+  Use the `rename-core-message-to-model-message` and
+  `rename-converttocoremessages-to-converttomodelmessages` codemods to
+  automatically update your codebase.
+</Note>
 
 ### `generateObject` and `streamObject` Deprecation
 
@@ -178,6 +185,22 @@ for await (const partialObject of partialOutputStream) {
 
 Learn more about [generating structured data](/docs/ai-sdk-core/generating-structured-data).
 
+### async `convertToModelMessages`
+
+`convertToModelMessages()` is async in AI SDK 6 to support async `Tool.toModelOutput()`.
+
+```tsx filename="AI SDK 5"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = convertToModelMessages(uiMessages);
+```
+
+```tsx filename="AI SDK 6"
+import { convertToModelMessages } from 'ai';
+
+const modelMessages = await convertToModelMessages(uiMessages);
+```
+
 ### `Tool.toModelOutput` changes
 
 `toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
@@ -206,6 +229,11 @@ const someTool = tool({
 });
 ```
 
+<Note>
+  Use the `wrap-tomodeloutput-parameter` codemod to automatically update your
+  codebase.
+</Note>
+
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 
 `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` have been deprecated.
@@ -217,6 +245,11 @@ and `reasoningTokens` with `outputTokenDetails.reasoningTokens`.
 
 The `ToolCallOptions` type has been renamed to `ToolExecutionOptions`
 and is now deprecated.
+
+<Note>
+  Use the `rename-tool-call-options-to-tool-execution-options` codemod to
+  automatically update your codebase.
+</Note>
 
 ### Per-Tool Strict Mode
 
@@ -348,6 +381,11 @@ const { embedding } = await embed({
   value: 'sunny day at the beach',
 });
 ```
+
+<Note>
+  Use the `rename-text-embedding-to-embedding` codemod to automatically update
+  your codebase.
+</Note>
 
 ### Warning Logger
 
@@ -639,6 +677,11 @@ const result = await generateText({
 console.log(result.providerMetadata?.vertex?.safetyRatings);
 ```
 
+<Note>
+  Use the `rename-vertex-provider-metadata-key` codemod to automatically update
+  your codebase.
+</Note>
+
 ## `ai/test`
 
 ### Mock Classes
@@ -666,3 +709,7 @@ import {
   MockTranscriptionModelV3,
 } from 'ai/test';
 ```
+
+<Note>
+  Use the `rename-mock-v2-to-v3` codemod to automatically update your codebase.
+</Note>
