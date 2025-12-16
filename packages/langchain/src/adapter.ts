@@ -18,6 +18,7 @@ import {
   isToolResultPart,
 } from './utils';
 import { type LangGraphEventState } from './types';
+import { type StreamCallbacks } from './stream-callbacks';
 
 /**
  * Converts AI SDK UIMessages to LangChain BaseMessage objects.
@@ -96,6 +97,7 @@ export function convertModelMessages(
  * - LangGraph streams (ReadableStream with `streamMode: ['values', 'messages']`)
  *
  * @param stream - A stream from LangChain model.stream() or LangGraph graph.stream().
+ * @param callbacks - Optional callbacks for stream lifecycle events.
  * @returns A ReadableStream of UIMessageChunk objects.
  *
  * @example
@@ -119,7 +121,13 @@ export function convertModelMessages(
  */
 export function toUIMessageStream(
   stream: AsyncIterable<AIMessageChunk> | ReadableStream,
+  callbacks?: StreamCallbacks,
 ): ReadableStream<UIMessageChunk> {
+  /**
+   * Track text chunks for onFinal callback
+   */
+  const textChunks: string[] = [];
+
   /**
    * State for model stream handling
    */
@@ -177,8 +185,37 @@ export function toUIMessageStream(
 
   const iterator = getAsyncIterator();
 
+  /**
+   * Create a wrapper around the controller to intercept text chunks for callbacks
+   */
+  const createCallbackController = (
+    originalController: ReadableStreamDefaultController<UIMessageChunk>,
+  ): ReadableStreamDefaultController<UIMessageChunk> => {
+    return {
+      get desiredSize() {
+        return originalController.desiredSize;
+      },
+      close: () => originalController.close(),
+      error: (e?: unknown) => originalController.error(e),
+      enqueue: (chunk: UIMessageChunk) => {
+        /**
+         * Intercept text-delta chunks for callbacks
+         */
+        if (callbacks && chunk.type === 'text-delta' && chunk.delta) {
+          textChunks.push(chunk.delta);
+          callbacks.onToken?.(chunk.delta);
+          callbacks.onText?.(chunk.delta);
+        }
+        originalController.enqueue(chunk);
+      },
+    };
+  };
+
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
+      await callbacks?.onStart?.();
+
+      const wrappedController = createCallbackController(controller);
       controller.enqueue({ type: 'start' });
 
       try {
@@ -201,12 +238,16 @@ export function toUIMessageStream(
            * Process based on detected type
            */
           if (streamType === 'model') {
-            processModelChunk(value as AIMessageChunk, modelState, controller);
+            processModelChunk(
+              value as AIMessageChunk,
+              modelState,
+              wrappedController,
+            );
           } else {
             processLangGraphEvent(
               value as unknown[],
               langGraphState,
-              controller,
+              wrappedController,
             );
           }
         }
@@ -226,6 +267,11 @@ export function toUIMessageStream(
           }
           controller.enqueue({ type: 'finish' });
         }
+
+        /**
+         * Call onFinal callback with aggregated text
+         */
+        await callbacks?.onFinal?.(textChunks.join(''));
       } catch (error) {
         controller.enqueue({
           type: 'error',

@@ -8,3 +8,7 @@ export {
   useLangSmithDeployment,
   type LangSmithDeploymentTransportOptions,
 } from './transport';
+
+export {
+  type StreamCallbacks,
+} from './stream-callbacks';

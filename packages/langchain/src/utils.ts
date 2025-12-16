@@ -672,7 +672,6 @@ export function processLangGraphEvent(
     emittedToolCallsByKey,
   } = state;
   const [type, data] = event.length === 3 ? event.slice(1) : event;
-  console.log('processLangGraphEvent', JSON.stringify(event, null, 2));
 
   switch (type) {
     case 'custom': {
