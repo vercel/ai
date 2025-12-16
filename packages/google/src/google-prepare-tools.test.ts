@@ -431,3 +431,44 @@ it('should handle url context tool alone', () => {
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
+
+it('should handle google maps tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([{ googleMaps: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should add warnings for google maps on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.",
+        "feature": "provider-defined tool google.google_maps",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});

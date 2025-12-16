@@ -175,7 +175,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
-        toolConfig: googleToolConfig,
+        toolConfig: googleOptions?.retrievalConfig
+          ? {
+              ...googleToolConfig,
+              retrievalConfig: googleOptions.retrievalConfig,
+            }
+          : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
       },
@@ -749,6 +754,16 @@ function extractSources({
           filename: fileSearchStore.split('/').pop(),
         });
       }
+    } else if (chunk.maps != null) {
+      if (chunk.maps.uri) {
+        sources.push({
+          type: 'source',
+          sourceType: 'url',
+          id: generateId(),
+          url: chunk.maps.uri,
+          title: chunk.maps.title ?? undefined,
+        });
+      }
     }
   }
 
@@ -772,6 +787,14 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+            })
+            .nullish(),
+          maps: z
+            .object({
+              uri: z.string().nullish(),
+              title: z.string().nullish(),
+              text: z.string().nullish(),
+              placeId: z.string().nullish(),
             })
             .nullish(),
         }),
