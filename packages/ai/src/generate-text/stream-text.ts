@@ -9,6 +9,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -849,7 +850,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'finish-step') {
-          const stepMessages = toResponseMessages({
+          const stepMessages = await toResponseMessages({
             content: recordedContent,
             tools,
           });
@@ -1141,34 +1142,41 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
+            const content: ToolContent = [];
+
+            for (const output of toolOutputs) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: output.toolCallId,
+                toolName: output.toolName,
+                output: await createToolModelOutput({
+                  toolCallId: output.toolCallId,
+                  input: output.input,
+                  tool: tools?.[output.toolName],
+                  output:
+                    output.type === 'tool-result'
+                      ? output.output
+                      : output.error,
+                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                }),
+              });
+            }
+
+            for (const toolApproval of deniedToolApprovals) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: {
+                  type: 'execution-denied' as const,
+                  reason: toolApproval.approvalResponse.reason,
+                },
+              });
+            }
+
             initialResponseMessages.push({
               role: 'tool',
-              content: [
-                // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
-                  type: 'tool-result' as const,
-                  toolCallId: output.toolCallId,
-                  toolName: output.toolName,
-                  output: createToolModelOutput({
-                    tool: tools?.[output.toolName],
-                    output:
-                      output.type === 'tool-result'
-                        ? output.output
-                        : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                  }),
-                })),
-                // add execution denied tool results for denied tool approvals:
-                ...deniedToolApprovals.map(toolApproval => ({
-                  type: 'tool-result' as const,
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  toolName: toolApproval.toolCall.toolName,
-                  output: {
-                    type: 'execution-denied' as const,
-                    reason: toolApproval.approvalResponse.reason,
-                  },
-                })),
-              ],
+              content,
             });
           } finally {
             toolExecutionStepStreamController?.close();
@@ -1608,12 +1616,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
-                      ...toResponseMessages({
+                      ...(await toResponseMessages({
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
                         tools,
-                      }),
+                      })),
                     );
 
                     try {
