@@ -53,6 +53,11 @@ Creates a model for generating text embeddings.
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+
+  /**
 Creates a model for generating images.
 */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
@@ -231,7 +236,7 @@ export function createGatewayProvider(
     });
   };
   provider.languageModel = createLanguageModel;
-  provider.embeddingModel = (modelId: GatewayEmbeddingModelId) => {
+  const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
       baseURL,
@@ -240,6 +245,8 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider;
 }
