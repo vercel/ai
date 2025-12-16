@@ -8,7 +8,7 @@ for Valibot schemas.
 ## Setup
 
 ```bash
-npm i @ai-sdk/valibot
+npm install @ai-sdk/valibot
 ```
 
 ## Example
