@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.0-beta.159
+
+### Patch Changes
+
+- 3071620: fix header loss when statusText is undefined in writeHead
+- Updated dependencies [870297d]
+  - @ai-sdk/gateway@2.0.0-beta.85
+
 ## 6.0.0-beta.158
 
 ### Patch Changes
