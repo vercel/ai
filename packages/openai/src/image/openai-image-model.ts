@@ -2,6 +2,7 @@ import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
+  convertToFormData,
   createJsonResponseHandler,
   postFormDataToApi,
   postJsonToApi,
@@ -76,7 +77,7 @@ export class OpenAIImageModel implements ImageModelV3 {
           modelId: this.modelId,
         }),
         headers: combineHeaders(this.config.headers(), headers),
-        formData: inputToFormData({
+        formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
           image: await Promise.all(
@@ -200,7 +201,7 @@ export class OpenAIImageModel implements ImageModelV3 {
   }
 }
 
-type Input = {
+type OpenAIImageEditInput = {
   /**
    * Allows to set transparency for the background of the generated image(s).
    * This parameter is only supported for `gpt-image-1`. Must be one of
@@ -280,31 +281,6 @@ type Input = {
    */
   user?: string;
 };
-
-function inputToFormData(input: Input): FormData {
-  const formData = new FormData();
-  for (const [key, value] of Object.entries(input)) {
-    if (value == null) {
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      if (value.length === 1) {
-        formData.append(key, value[0] as string | Blob);
-        continue;
-      }
-
-      for (const item of value) {
-        formData.append(`${key}[]`, item as string | Blob);
-      }
-      continue;
-    }
-
-    formData.append(key, value as string | string);
-  }
-
-  return formData;
-}
 
 async function downloadImageAsBlob(url: string): Promise<Blob> {
   const response = await fetch(url);

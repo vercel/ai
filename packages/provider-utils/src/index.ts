@@ -8,6 +8,7 @@ export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertToFormData } from './convert-to-form-data';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';

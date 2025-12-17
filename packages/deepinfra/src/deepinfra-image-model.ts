@@ -7,6 +7,7 @@ import {
   FetchFunction,
   combineHeaders,
   convertBase64ToUint8Array,
+  convertToFormData,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postFormDataToApi,
@@ -60,7 +61,7 @@ export class DeepInfraImageModel implements ImageModelV3 {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
         headers: combineHeaders(this.config.headers(), headers),
-        formData: inputToFormData({
+        formData: convertToFormData<DeepInfraFormDataInput>({
           model: this.modelId,
           prompt,
           image: await Promise.all(files.map(file => fileToBlob(file))),
@@ -165,7 +166,7 @@ export const deepInfraEditResponseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string() })),
 });
 
-type FormDataInput = {
+type DeepInfraFormDataInput = {
   model: string;
   prompt: string | undefined;
   image: Blob | Blob[];
@@ -174,31 +175,6 @@ type FormDataInput = {
   size: `${number}x${number}` | undefined;
   [key: string]: unknown;
 };
-
-function inputToFormData(input: FormDataInput): FormData {
-  const formData = new FormData();
-  for (const [key, value] of Object.entries(input)) {
-    if (value == null) {
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      if (value.length === 1) {
-        formData.append(key, value[0] as string | Blob);
-        continue;
-      }
-
-      for (const item of value) {
-        formData.append(`${key}[]`, item as string | Blob);
-      }
-      continue;
-    }
-
-    formData.append(key, value as string | Blob);
-  }
-
-  return formData;
-}
 
 async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
   if (file.type === 'url') {
