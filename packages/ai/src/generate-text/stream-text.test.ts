@@ -541,6 +541,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -769,6 +770,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -876,6 +878,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -977,6 +980,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -1101,6 +1105,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -1370,6 +1375,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "tool-calls",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -1573,6 +1579,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -3962,6 +3969,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -6205,6 +6213,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -7979,6 +7988,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9552,6 +9562,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -9798,6 +9809,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -10624,6 +10636,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -12048,6 +12061,7 @@ describe('streamText', () => {
                   type: 'finish',
                   finishReason: 'stop',
                   totalUsage: createNullLanguageModelUsage(),
+                  providerMetadata: undefined,
                 });
 
                 return;
@@ -12137,6 +12151,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -13627,6 +13642,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14659,6 +14675,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14896,6 +14913,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15273,6 +15291,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15647,6 +15666,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15903,6 +15923,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -16330,6 +16351,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -16646,6 +16668,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -16948,6 +16971,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "providerMetadata": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {

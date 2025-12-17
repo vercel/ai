@@ -40,6 +40,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   },
   {
     "finishReason": "stop",
+    "providerMetadata": undefined,
     "totalUsage": {
       "cachedInputTokens": 0,
       "inputTokenDetails": {
