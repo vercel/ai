@@ -83,7 +83,7 @@ export type PrepareStepResult<
        * for this step.
        */
       messages?: Array<ModelMessage>;
-  
+
       providerOptions?: ProviderOptions;
 
       /**
