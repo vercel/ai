@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.104
+
+### Patch Changes
+
+- 61c52dc: feat (provider/openai): add gpt-image-1.5 model support
+
 ## 3.0.0-beta.103
 
 ### Patch Changes
