@@ -1,4 +1,4 @@
-import { DownloadError } from "./download-error";
+import { DownloadError } from './download-error';
 
 /**
  * Download a file from a URL and return it as a Blob.
