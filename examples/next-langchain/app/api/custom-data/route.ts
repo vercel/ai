@@ -13,11 +13,7 @@ import {
 } from '@langchain/langgraph';
 
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import {
-  ProgressData,
-  StatusData,
-  FileStatusData,
-} from '../../types';
+import { ProgressData, StatusData, FileStatusData } from '../../types';
 
 /**
  * Allow streaming responses up to 60 seconds
