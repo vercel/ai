@@ -1852,6 +1852,171 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('programmatic tool calling', () => {
+      it('should include caller info when tool_use has caller field from code_execution', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'query_database',
+                input: { sql: 'SELECT * FROM users' },
+                caller: {
+                  type: 'code_execution_20250825',
+                  tool_id: 'srvtoolu_01CodeExec',
+                },
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"sql":"SELECT * FROM users"}",
+              "providerMetadata": {
+                "anthropic": {
+                  "caller": {
+                    "toolId": "srvtoolu_01CodeExec",
+                    "type": "code_execution_20250825",
+                  },
+                },
+              },
+              "toolCallId": "toolu_01Test",
+              "toolName": "query_database",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include caller info when tool_use has direct caller type', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'get_weather',
+                input: { city: 'Tokyo' },
+                caller: { type: 'direct' },
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"city":"Tokyo"}",
+              "providerMetadata": {
+                "anthropic": {
+                  "caller": {
+                    "toolId": undefined,
+                    "type": "direct",
+                  },
+                },
+              },
+              "toolCallId": "toolu_01Test",
+              "toolName": "get_weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should not include caller info when tool_use has no caller field', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'get_weather',
+                input: { city: 'Tokyo' },
+                // No caller field
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"city":"Tokyo"}",
+              "toolCallId": "toolu_01Test",
+              "toolName": "get_weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('web search tool', () => {
       describe('with fixture', () => {
         let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
@@ -5912,6 +6077,189 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('programmatic tool calling', () => {
+      it('should include caller info when tool_use has caller field from code_execution', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"query_database","input":{},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"sql\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"SELECT * FROM users\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.input).toBe('{"sql": "SELECT * FROM users"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should include caller info when tool_use has direct caller type', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{},"caller":{"type":"direct"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"Tokyo\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'direct',
+              toolId: undefined,
+            },
+          },
+        });
+      });
+
+      it('should use non-empty input from content_block_start for deferred tool calls', async () => {
+        // In programmatic tool calling, deferred tool calls may have complete input
+        // in content_block_start with no deltas following
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Deferred","name":"query_database","input":{"sql":"SELECT COUNT(*) FROM orders"},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.toolCallId).toBe('toolu_01Deferred');
+        expect(toolCall?.input).toBe('{"sql":"SELECT COUNT(*) FROM orders"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should NOT prepend empty {} input when deltas follow content_block_start', async () => {
+        // This tests the fix for the bug where empty {} in content_block_start
+        // was being prepended to the actual input from deltas
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            // Note: input is {} (empty object) - this should NOT be used as initial input
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"London\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        // The input should be ONLY the streamed content, NOT "{}{"city": "London"}"
+        expect(toolCall?.input).toBe('{"city": "London"}');
       });
     });
 
