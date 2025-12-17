@@ -407,33 +407,5 @@ describe('GoogleGenerativeAIImageModel', () => {
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     });
-
-    it('should throw error when both files and mask are provided', async () => {
-      await expect(
-        model.doGenerate({
-          prompt: 'Edit this image',
-          files: [
-            {
-              type: 'file',
-              data: 'base64-source-image',
-              mediaType: 'image/png',
-            },
-          ],
-          mask: {
-            type: 'file',
-            data: 'base64-mask-image',
-            mediaType: 'image/png',
-          },
-          n: 1,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Google Generative AI does not support image editing. ' +
-          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
-      );
-    });
   });
 });
