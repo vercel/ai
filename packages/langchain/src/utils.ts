@@ -675,9 +675,34 @@ export function processLangGraphEvent(
 
   switch (type) {
     case 'custom': {
+      /**
+       * Extract custom event type from the data's 'type' field if present.
+       * This allows users to emit custom events like:
+       *   writer({ type: 'progress', value: 50 })  -> { type: 'data-progress', data: {...} }
+       *   writer({ type: 'status', message: '...' }) -> { type: 'data-status', data: {...} }
+       *   writer({ key: 'value' })                  -> { type: 'data-custom', data: {...} } (fallback)
+       *
+       * The 'id' field can be used to make parts persistent and updateable.
+       * Parts with an 'id' are NOT transient (added to message.parts).
+       * Parts without an 'id' are transient (only passed to onData callback).
+       */
+      let customTypeName = 'custom';
+      let partId: string | undefined;
+
+      if (data != null && typeof data === 'object' && !Array.isArray(data)) {
+        const dataObj = data as Record<string, unknown>;
+        if (typeof dataObj.type === 'string' && dataObj.type) {
+          customTypeName = dataObj.type;
+        }
+        if (typeof dataObj.id === 'string' && dataObj.id) {
+          partId = dataObj.id;
+        }
+      }
+
       controller.enqueue({
-        type: `data-${type}` as 'data-custom',
-        transient: true,
+        type: `data-${customTypeName}` as `data-${string}`,
+        id: partId,
+        transient: partId == null,
         data,
       });
       break;

@@ -106,6 +106,7 @@ describe('toUIMessageStream', () => {
           "data": {
             "custom": "data",
           },
+          "id": undefined,
           "transient": true,
           "type": "data-custom",
         },
@@ -132,6 +133,7 @@ describe('toUIMessageStream', () => {
           "data": {
             "data": "value",
           },
+          "id": undefined,
           "transient": true,
           "type": "data-custom",
         },

@@ -734,7 +734,7 @@ describe('processLangGraphEvent', () => {
     emittedToolCallsByKey: new Map<string, string>(),
   });
 
-  it('should handle custom events', () => {
+  it('should handle custom events without type field (fallback to data-custom)', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -742,7 +742,97 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['custom', { data: 'value' }], state, controller);
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with type field (data-{type})', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', { type: 'progress', value: 50, message: 'Processing...' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 50, message: 'Processing...' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with id field (persistent, not transient)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'custom',
+        { type: 'progress', id: 'progress-1', value: 50, message: 'Half done' },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: 'progress-1',
+        transient: false, // Has id, so NOT transient
+        data: {
+          type: 'progress',
+          id: 'progress-1',
+          value: 50,
+          message: 'Half done',
+        },
+      },
+    ]);
+  });
+
+  it('should handle custom events with different type names', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // Test status event
+    processLangGraphEvent(
+      ['custom', { type: 'status', step: 'fetching', complete: false }],
+      state,
+      controller,
+    );
+
+    // Test analytics event
+    processLangGraphEvent(
+      ['custom', { type: 'analytics', event: 'tool_called', tool: 'weather' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-status',
+        id: undefined,
+        transient: true,
+        data: { type: 'status', step: 'fetching', complete: false },
+      },
+      {
+        type: 'data-analytics',
+        id: undefined,
+        transient: true,
+        data: { type: 'analytics', event: 'tool_called', tool: 'weather' },
+      },
     ]);
   });
 
@@ -758,7 +848,71 @@ describe('processLangGraphEvent', () => {
     );
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle three-element arrays with namespace and type field', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['namespace', 'custom', { type: 'progress', value: 75 }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 75 },
+      },
+    ]);
+  });
+
+  it('should handle custom events with string data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(['custom', 'simple string data'], state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: 'simple string data',
+      },
+    ]);
+  });
+
+  it('should handle custom events with array data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', [1, 2, 3, { type: 'ignored' }]],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: [1, 2, 3, { type: 'ignored' }],
+      },
     ]);
   });
 
