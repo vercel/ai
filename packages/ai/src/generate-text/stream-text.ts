@@ -2173,6 +2173,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   ...(messageMetadataValue != null
                     ? { messageMetadata: messageMetadataValue }
                     : {}),
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
                 });
               }
               break;

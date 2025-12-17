@@ -1832,7 +1832,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish","finishReason":"stop","providerMetadata":{"testProvider":{"testKey":"testValue"}}}
 
         ",
           "data: [DONE]
@@ -1903,7 +1903,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop"}
+          "data: {"type":"finish","finishReason":"stop","providerMetadata":{"testProvider":{"testKey":"testValue"}}}
 
         ",
           "data: [DONE]
@@ -2328,6 +2328,11 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": {
+                "testProvider": {
+                  "testKey": "testValue",
+                },
+              },
               "type": "finish",
             },
           ]
@@ -2648,6 +2653,11 @@ describe('streamText', () => {
               "finishReason": "stop",
               "messageMetadata": {
                 "key8": "value8",
+              },
+              "providerMetadata": {
+                "testProvider": {
+                  "testKey": "testValue",
+                },
               },
               "type": "finish",
             },
@@ -3194,6 +3204,11 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": {
+                "testProvider": {
+                  "testKey": "testValue",
+                },
+              },
               "type": "finish",
             },
           ]
@@ -3248,6 +3263,11 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": {
+                "testProvider": {
+                  "testKey": "testValue",
+                },
+              },
               "type": "finish",
             },
           ]
@@ -3622,7 +3642,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop"}
+            "data: {"type":"finish","finishReason":"stop","providerMetadata":{"testProvider":{"testKey":"testValue"}}}
 
           ",
             "data: [DONE]
@@ -3689,7 +3709,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop"}
+            "data: {"type":"finish","finishReason":"stop","providerMetadata":{"testProvider":{"testKey":"testValue"}}}
 
           ",
             "data: [DONE]
