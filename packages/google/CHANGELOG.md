@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.48
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+
 ## 2.0.47
 
 ### Patch Changes

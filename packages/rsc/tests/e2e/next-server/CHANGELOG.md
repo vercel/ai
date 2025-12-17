@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@5.0.115
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [fc633bd]
   - ai@5.0.114
 
