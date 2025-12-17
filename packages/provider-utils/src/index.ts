@@ -7,8 +7,8 @@ export {
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
+export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
 export * from './fetch-function';
-export { convertImageModelFileToDataUri } from './file-to-data-uri';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
