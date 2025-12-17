@@ -1,5 +1,429 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- 6c38080: fix(anthropic): support pdf responses in web_fetch_tool_result schema validation
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- 05d5b9a: fix(anthropic): make title field nullable in web_fetch and web_search tool output schemas
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 9e1e758: fix(anthropic): use default thinking budget when unspecified
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- b2dbfbf: add context_management for anthropic
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 0ae783e: feat(anthropic): add the new tool search tools
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- 03849b0: throw 500 error when the first stream chunk is an error
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 6fc35cb: Retain user-supplied betas.
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- 2109385: 'fix(anthropic): Opus 4.5 `maxOutputTokens` bump `32000` -> `64000`'
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- 83aaad8: Opus 4.5 and `effort` provider option
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- b8ea36e: feat(provider/anthropic): Anthropic-native structured outputs
+
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- 983e394: chore(provider/anthropic): add missing provider options jsdoc
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- 1d15673: fix(provider/anthropic): clamp temperature to valid 0-1 range with warnings
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- 1742445: Support for custom provider name in google and anthropic providers
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- cf4e2a9: Add support for tool calling with structured output
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- 7c4328e: Adds url-based pdf and image support for anthropic tool results
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- 21f378c: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- 80894b3: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
+## 3.0.0-beta.33
+
+### Patch Changes
+
+- 0e38a79: support ANTHROPIC_BASE_URL
+
 ## 3.0.0-beta.32
 
 ### Patch Changes

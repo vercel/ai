@@ -9,7 +9,7 @@ import {
 import { StreamingToolCallsMessage } from '../api/use-chat-streaming-tool-calls/route';
 
 export default function Chat() {
-  const { messages, status, sendMessage, addToolResult } =
+  const { messages, status, sendMessage, addToolOutput } =
     useChat<StreamingToolCallsMessage>({
       transport: new DefaultChatTransport({
         api: '/api/use-chat-streaming-tool-calls',
@@ -21,7 +21,7 @@ export default function Chat() {
       async onToolCall({ toolCall }) {
         if (toolCall.toolName === 'showWeatherInformation') {
           // display tool. add tool result that informs the llm that the tool was executed.
-          addToolResult({
+          addToolOutput({
             tool: 'showWeatherInformation',
             toolCallId: toolCall.toolCallId,
             output: 'Weather information was shown to the user.',

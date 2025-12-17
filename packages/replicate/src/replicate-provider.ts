@@ -40,6 +40,11 @@ export interface ReplicateProvider extends ProviderV3 {
    * Creates a Replicate image generation model.
    */
   imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 /**
@@ -66,21 +71,25 @@ export function createReplicate(
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
+    specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: () => {
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'languageModel',
+        modelId,
         modelType: 'languageModel',
       });
     },
-    textEmbeddingModel: () => {
-      throw new NoSuchModelError({
-        modelId: 'textEmbeddingModel',
-        modelType: 'textEmbeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

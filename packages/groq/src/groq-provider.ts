@@ -37,6 +37,11 @@ Creates a model for transcription.
    * Tools provided by Groq.
    */
   tools: typeof groqTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GroqProviderSettings {
@@ -113,12 +118,14 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
 
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

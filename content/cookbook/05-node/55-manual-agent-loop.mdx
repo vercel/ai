@@ -19,7 +19,6 @@ This pattern is useful when you want to:
 ## Example
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { ModelMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import z from 'zod';
@@ -38,7 +37,7 @@ const messages: ModelMessage[] = [
 async function main() {
   while (true) {
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: 'openai/gpt-4o',
       messages,
       tools: {
         getWeather: tool({

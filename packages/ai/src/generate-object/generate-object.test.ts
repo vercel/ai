@@ -1,6 +1,6 @@
 import {
   JSONParseError,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
@@ -31,11 +31,17 @@ vi.mock('../version', () => {
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: {
-    inputTokens: 10,
-    outputTokens: 20,
-    totalTokens: 30,
-    reasoningTokens: undefined,
-    cachedInputTokens: undefined,
+    inputTokens: {
+      total: 10,
+      noCache: 10,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 20,
+      text: 20,
+      reasoning: undefined,
+    },
   },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
   warnings: [],
@@ -180,14 +186,14 @@ describe('generateObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV3Warning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
@@ -205,7 +211,11 @@ describe('generateObject', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -222,7 +232,11 @@ describe('generateObject', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     describe('result.request', () => {
@@ -327,25 +341,25 @@ describe('generateObject', () => {
         ]
       `);
         expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
-        {
-          "description": undefined,
-          "name": undefined,
-          "schema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "content": {
-                "type": "number",
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "content",
+              ],
+              "type": "object",
             },
-            "required": [
-              "content",
-            ],
-            "type": "object",
-          },
-          "type": "json",
-        }
-      `);
+            "type": "json",
+          }
+        `);
       });
 
       it('should generate object when using zod prePreprocess', async () => {
@@ -701,7 +715,16 @@ describe('generateObject', () => {
           },
           usage: {
             inputTokens: 10,
+            inputTokenDetails: {
+              noCacheTokens: 10,
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+            },
             outputTokens: 20,
+            outputTokenDetails: {
+              textTokens: 20,
+              reasoningTokens: undefined,
+            },
             totalTokens: 30,
             reasoningTokens: undefined,
             cachedInputTokens: undefined,

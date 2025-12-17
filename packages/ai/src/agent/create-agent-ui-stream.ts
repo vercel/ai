@@ -1,4 +1,4 @@
-import { UIMessageStreamOptions } from '../generate-text';
+import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { InferUIMessageChunk } from '../ui-message-stream';
@@ -12,39 +12,57 @@ import { Agent } from './agent';
  * Runs the agent and stream the output as a UI message stream.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
+ * @param abortSignal - The abort signal. Optional.
+ * @param options - The options for the agent.
+ * @param experimental_transform - The stream transformations. Optional.
  *
  * @returns The UI message stream.
  */
 export async function createAgentUIStream<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   agent,
-  messages,
+  uiMessages,
+  options,
+  abortSignal,
+  experimental_transform,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<TOOLS, OUTPUT>;
-  messages: unknown[];
+  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  uiMessages: unknown[];
+  abortSignal?: AbortSignal;
+  options?: CALL_OPTIONS;
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamOptions<
-  UIMessage<never, never, InferUITools<TOOLS>>
+  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
 >): Promise<
   AsyncIterableStream<
-    InferUIMessageChunk<UIMessage<never, never, InferUITools<TOOLS>>>
+    InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
   const validatedMessages = await validateUIMessages<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
-    messages,
+    messages: uiMessages,
     tools: agent.tools,
   });
 
-  const modelMessages = convertToModelMessages(validatedMessages, {
+  const modelMessages = await convertToModelMessages(validatedMessages, {
     tools: agent.tools,
   });
 
-  const result = agent.stream({ prompt: modelMessages });
+  const result = await agent.stream({
+    prompt: modelMessages,
+    options: options as CALL_OPTIONS,
+    abortSignal,
+    experimental_transform,
+  });
 
   return result.toUIMessageStream(uiMessageStreamOptions);
 }

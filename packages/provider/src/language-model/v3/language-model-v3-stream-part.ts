@@ -1,5 +1,5 @@
 import { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
-import { LanguageModelV3CallWarning } from './language-model-v3-call-warning';
+import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import { LanguageModelV3File } from './language-model-v3-file';
 import { LanguageModelV3FinishReason } from './language-model-v3-finish-reason';
 import { LanguageModelV3ResponseMetadata } from './language-model-v3-response-metadata';
@@ -53,6 +53,7 @@ export type LanguageModelV3StreamPart =
       providerMetadata?: SharedV3ProviderMetadata;
       providerExecuted?: boolean;
       dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -75,7 +76,7 @@ export type LanguageModelV3StreamPart =
   // stream start event with warnings for the call, e.g. unsupported settings:
   | {
       type: 'stream-start';
-      warnings: Array<LanguageModelV3CallWarning>;
+      warnings: Array<SharedV3Warning>;
     }
 
   // metadata for the response.

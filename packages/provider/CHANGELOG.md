@@ -1,5 +1,131 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- 53f3368: feat(provider): support embedding model call warnings in specification
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+
+## 3.0.0-beta.22
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+
+## 3.0.0-beta.21
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+
+## 3.0.0-beta.20
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+
+## 3.0.0-beta.19
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+## 3.0.0-beta.18
+
+### Patch Changes
+
+- 10d819b: fix(packages/provider): fix CallWarning and allow strings as type
+
+## 3.0.0-beta.17
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- bb36798: fix(spec): `LanguageModelV3ToolResult["result"]` change from `unknown` to `NonNullable<JSONValue>`
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- af3780b: chore(provider): remove providerExecuted from LanguageModelV3ToolResult
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+
+## 3.0.0-beta.12
+
+### Patch Changes
+
+- d1bdadb: Added reranking model
+
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- 4c44a5b: fix(spec): allow `undefined` values in `JSONObject` type
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- a755db5: feat(provider): Add SharedV3Warning type
+
 ## 3.0.0-beta.8
 
 ### Patch Changes

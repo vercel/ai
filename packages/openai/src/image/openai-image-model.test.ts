@@ -127,18 +127,19 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.warnings).toStrictEqual([
-      {
-        type: 'unsupported-setting',
-        setting: 'aspectRatio',
-        details:
-          'This model does not support aspect ratio. Use `size` instead.',
-      },
-      {
-        type: 'unsupported-setting',
-        setting: 'seed',
-      },
-    ]);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "This model does not support aspect ratio. Use \`size\` instead.",
+          "feature": "aspectRatio",
+          "type": "unsupported",
+        },
+        {
+          "feature": "seed",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 
   it('should respect maxImagesPerCall setting', async () => {
@@ -238,6 +239,46 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
+  it('should handle null revised_prompt responses', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            revised_prompt: null,
+            b64_json: 'base64-image-1',
+          },
+        ],
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['base64-image-1']);
+    expect(result.warnings).toStrictEqual([]);
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        images: [
+          {
+            created: 1733837122,
+            size: undefined,
+            quality: undefined,
+            background: undefined,
+            outputFormat: undefined,
+          },
+        ],
+      },
+    });
+  });
+
   it('should include response_format for dall-e-3', async () => {
     prepareJsonResponse();
 
@@ -273,10 +314,59 @@ describe('doGenerate', () => {
           {
             revisedPrompt:
               'A charming visual illustration of a baby sea otter swimming joyously.',
+            created: 1733837122,
+            size: undefined,
+            quality: undefined,
+            background: undefined,
+            outputFormat: undefined,
           },
-          null,
+          {
+            created: 1733837122,
+            size: undefined,
+            quality: undefined,
+            background: undefined,
+            outputFormat: undefined,
+          },
         ],
       },
+    });
+  });
+
+  it('should map OpenAI usage to usage', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            b64_json: 'base64-image-1',
+          },
+        ],
+        usage: {
+          input_tokens: 12,
+          output_tokens: 0,
+          total_tokens: 12,
+          input_tokens_details: {
+            image_tokens: 7,
+            text_tokens: 5,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.usage).toStrictEqual({
+      inputTokens: 12,
+      outputTokens: 0,
+      totalTokens: 12,
     });
   });
 });

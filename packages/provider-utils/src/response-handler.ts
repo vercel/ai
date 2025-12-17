@@ -101,41 +101,6 @@ export const createEventSourceResponseHandler =
     };
   };
 
-export const createJsonStreamResponseHandler =
-  <T>(
-    chunkSchema: ZodType<T>,
-  ): ResponseHandler<ReadableStream<ParseResult<T>>> =>
-  async ({ response }: { response: Response }) => {
-    const responseHeaders = extractResponseHeaders(response);
-
-    if (response.body == null) {
-      throw new EmptyResponseBodyError({});
-    }
-
-    let buffer = '';
-
-    return {
-      responseHeaders,
-      value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
-        new TransformStream<string, ParseResult<T>>({
-          async transform(chunkText, controller) {
-            if (chunkText.endsWith('\n')) {
-              controller.enqueue(
-                await safeParseJSON({
-                  text: buffer + chunkText,
-                  schema: chunkSchema,
-                }),
-              );
-              buffer = '';
-            } else {
-              buffer += chunkText;
-            }
-          },
-        }),
-      ),
-    };
-  };
-
 export const createJsonResponseHandler =
   <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<T> =>
   async ({ response, url, requestBodyValues }) => {

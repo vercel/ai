@@ -2,21 +2,23 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockImageModelV3 } from '../test/mock-image-model-v3';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockProviderV2 } from '../test/mock-provider-v2';
-import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
+import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV3();
 const mockEmbeddingModel = new MockEmbeddingModelV3();
+const mockRerankingModel = new MockRerankingModelV3();
 const mockFallbackProvider = {
+  specificationVersion: 'v3' as const,
   languageModel: vi.fn(),
-  textEmbeddingModel: vi.fn(),
+  embeddingModel: vi.fn(),
   imageModel: vi.fn(),
   transcriptionModel: vi.fn(),
   speechModel: vi.fn(),
+  rerankingModel: vi.fn(),
 };
 
 describe('languageModel', () => {
@@ -49,24 +51,24 @@ describe('languageModel', () => {
   });
 });
 
-describe('textEmbeddingModel', () => {
+describe('embeddingModel', () => {
   it('should return the embedding model if it exists', () => {
     const provider = customProvider({
-      textEmbeddingModels: { 'test-model': mockEmbeddingModel },
+      embeddingModels: { 'test-model': mockEmbeddingModel },
     });
 
-    expect(provider.textEmbeddingModel('test-model')).toBe(mockEmbeddingModel);
+    expect(provider.embeddingModel('test-model')).toBe(mockEmbeddingModel);
   });
 
   it('should use fallback provider if model not found and fallback exists', () => {
-    mockFallbackProvider.textEmbeddingModel.mockReturnValue(mockEmbeddingModel);
+    mockFallbackProvider.embeddingModel.mockReturnValue(mockEmbeddingModel);
 
     const provider = customProvider({
       fallbackProvider: mockFallbackProvider,
     });
 
-    expect(provider.textEmbeddingModel('test-model')).toBe(mockEmbeddingModel);
-    expect(mockFallbackProvider.textEmbeddingModel).toHaveBeenCalledWith(
+    expect(provider.embeddingModel('test-model')).toBe(mockEmbeddingModel);
+    expect(mockFallbackProvider.embeddingModel).toHaveBeenCalledWith(
       'test-model',
     );
   });
@@ -74,7 +76,7 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
 
-    expect(() => provider.textEmbeddingModel('test-model')).toThrow(
+    expect(() => provider.embeddingModel('test-model')).toThrow(
       NoSuchModelError,
     );
   });
@@ -174,5 +176,36 @@ describe('speechModel', () => {
     const provider = customProvider({});
 
     expect(() => provider.speechModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('rerankingModel', () => {
+  it('should return the reranking model if it exists', () => {
+    const provider = customProvider({
+      rerankingModels: { 'test-model': mockRerankingModel },
+    });
+
+    expect(provider.rerankingModel('test-model')).toBe(mockRerankingModel);
+  });
+
+  it('should use fallback provider if model not found and fallback exists', () => {
+    mockFallbackProvider.rerankingModel.mockReturnValue(mockRerankingModel);
+
+    const provider = customProvider({
+      fallbackProvider: mockFallbackProvider,
+    });
+
+    expect(provider.rerankingModel('test-model')).toBe(mockRerankingModel);
+    expect(mockFallbackProvider.rerankingModel).toHaveBeenCalledWith(
+      'test-model',
+    );
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.rerankingModel('test-model')).toThrow(
+      NoSuchModelError,
+    );
   });
 });

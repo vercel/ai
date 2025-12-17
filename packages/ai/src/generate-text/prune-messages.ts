@@ -81,7 +81,7 @@ export function pruneMessages({
     const keptApprovalIds: Set<string> = new Set();
 
     if (keepLastMessagesCount != null) {
-      for (const message of messages.slice(0, -keepLastMessagesCount)) {
+      for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&
           typeof message.content !== 'string'

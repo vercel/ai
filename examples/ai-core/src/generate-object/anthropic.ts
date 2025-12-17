@@ -1,11 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateObject({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-sonnet-4-5'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),
@@ -21,10 +21,7 @@ async function main() {
     prompt: 'Generate a lasagna recipe.',
   });
 
-  console.log(JSON.stringify(result.object, null, 2));
+  console.dir(result.request.body, { depth: Infinity });
   console.log();
-  console.log('Token usage:', result.usage);
-  console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+  console.log(JSON.stringify(result.object, null, 2));
+});

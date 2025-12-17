@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -104,22 +104,20 @@ type ImageGenerationArgs = {
   size?: 'auto' | '1024x1024' | '1024x1536' | '1536x1024';
 };
 
-const imageGenerationToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
-    {},
-    {
-      /**
-       * The generated image encoded in base64.
-       */
-      result: string;
-    },
-    ImageGenerationArgs
-  >({
-    id: 'openai.image_generation',
-    name: 'image_generation',
-    inputSchema: imageGenerationInputSchema,
-    outputSchema: imageGenerationOutputSchema,
-  });
+const imageGenerationToolFactory = createProviderToolFactoryWithOutputSchema<
+  {},
+  {
+    /**
+     * The generated image encoded in base64.
+     */
+    result: string;
+  },
+  ImageGenerationArgs
+>({
+  id: 'openai.image_generation',
+  inputSchema: imageGenerationInputSchema,
+  outputSchema: imageGenerationOutputSchema,
+});
 
 export const imageGeneration = (
   args: ImageGenerationArgs = {}, // default

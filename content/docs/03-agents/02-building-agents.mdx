@@ -24,10 +24,11 @@ Define an agent by instantiating the ToolLoopAgent class with your desired confi
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const myAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: 'You are a helpful assistant.',
+  model: __MODEL__,
+  instructions: 'You are a helpful assistant.',
   tools: {
     // Your tools here
   },
@@ -38,14 +39,15 @@ const myAgent = new ToolLoopAgent({
 
 The Agent class accepts all the same settings as `generateText` and `streamText`. Configure:
 
-### Model and System Prompt
+### Model and System Instructions
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: 'You are an expert software engineer.',
+  model: __MODEL__,
+  instructions: 'You are an expert software engineer.',
 });
 ```
 
@@ -55,10 +57,11 @@ Provide tools that the agent can use to accomplish tasks:
 
 ```ts
 import { ToolLoopAgent, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const codeAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     runCode: tool({
       description: 'Execute Python code',
@@ -82,9 +85,10 @@ To let agents call multiple tools in sequence, configure `stopWhen` to allow mor
 
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   stopWhen: stepCountIs(20), // Allow up to 20 steps
 });
 ```
@@ -100,9 +104,10 @@ You can combine multiple conditions:
 
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   stopWhen: [
     stepCountIs(20), // Maximum 20 steps
     yourCustomCondition(), // Custom logic for when to stop
@@ -118,9 +123,10 @@ Control how the agent uses tools:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     // your tools here
   },
@@ -134,9 +140,10 @@ You can also force the use of a specific tool:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
+  model: __MODEL__,
   tools: {
     weather: weatherTool,
     cityAttractions: attractionsTool,
@@ -154,11 +161,12 @@ Define structured output schemas:
 
 ```ts
 import { ToolLoopAgent, Output, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const analysisAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  experimental_output: Output.object({
+  model: __MODEL__,
+  output: Output.object({
     schema: z.object({
       sentiment: z.enum(['positive', 'neutral', 'negative']),
       summary: z.string(),
@@ -168,23 +176,23 @@ const analysisAgent = new ToolLoopAgent({
   stopWhen: stepCountIs(10),
 });
 
-const { experimental_output: output } = await analysisAgent.generate({
+const { output } = await analysisAgent.generate({
   prompt: 'Analyze customer feedback from the last quarter',
 });
 ```
 
-## Define Agent Behavior with System Prompts
+## Define Agent Behavior with System Instructions
 
-System prompts define your agent's behavior, personality, and constraints. They set the context for all interactions and guide how the agent responds to user queries and uses tools.
+System instructions define your agent's behavior, personality, and constraints. They set the context for all interactions and guide how the agent responds to user queries and uses tools.
 
-### Basic System Prompts
+### Basic System Instructions
 
 Set the agent's role and expertise:
 
 ```ts
 const agent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system:
+  model: __MODEL__,
+  instructions:
     'You are an expert data analyst. You provide clear insights from complex data.',
 });
 ```
@@ -195,8 +203,8 @@ Provide specific guidelines for agent behavior:
 
 ```ts
 const codeReviewAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: `You are a senior software engineer conducting code reviews.
+  model: __MODEL__,
+  instructions: `You are a senior software engineer conducting code reviews.
 
   Your approach:
   - Focus on security vulnerabilities first
@@ -213,8 +221,8 @@ Set boundaries and ensure consistent behavior:
 
 ```ts
 const customerSupportAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: `You are a customer support specialist for an e-commerce platform.
+  model: __MODEL__,
+  instructions: `You are a customer support specialist for an e-commerce platform.
 
   Rules:
   - Never make promises about refunds without checking the policy
@@ -236,8 +244,8 @@ Guide how the agent should use available tools:
 
 ```ts
 const researchAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: `You are a research assistant with access to search and document tools.
+  model: __MODEL__,
+  instructions: `You are a research assistant with access to search and document tools.
 
   When researching:
   1. Always start with a broad search to understand the topic
@@ -259,8 +267,8 @@ Control the output format and communication style:
 
 ```ts
 const technicalWriterAgent = new ToolLoopAgent({
-  model: 'openai/gpt-4o',
-  system: `You are a technical documentation writer.
+  model: __MODEL__,
+  instructions: `You are a technical documentation writer.
 
   Writing style:
   - Use clear, simple language

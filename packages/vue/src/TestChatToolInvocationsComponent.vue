@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { isToolUIPart } from 'ai';
+import { isStaticToolUIPart } from 'ai';
 import { Chat } from './chat.vue';
 
-const chat = new Chat({
-  maxSteps: 5,
-});
+const chat = new Chat({});
 </script>
 
 <template>
@@ -15,7 +13,7 @@ const chat = new Chat({
       :data-testid="`message-${idx}`"
     >
       <div
-        v-for="(toolPart, toolIdx) in m.parts.filter(isToolUIPart)"
+        v-for="(toolPart, toolIdx) in m.parts.filter(isStaticToolUIPart)"
         :key="toolPart.toolCallId"
       >
         {{ JSON.stringify(toolPart) }}
@@ -23,8 +21,9 @@ const chat = new Chat({
           v-if="toolPart.state === 'input-available'"
           :data-testid="`add-result-${toolIdx}`"
           @click="
-            chat.addToolResult({
+            chat.addToolOutput({
               toolCallId: toolPart.toolCallId,
+              tool: 'test-tool',
               output: 'test-result',
             })
           "

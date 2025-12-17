@@ -105,8 +105,9 @@ const model = claudeCode('opus');
 
 Claude Code supports the following models:
 
-- **opus**: Claude 4 Opus (most capable)
-- **sonnet**: Claude 4 Sonnet (balanced performance)
+- **opus**: Claude 4.1 Opus (most capable)
+- **sonnet**: Claude 4.5 Sonnet (balanced performance)
+- **haiku**: Claude 4.5 Haiku (fastest, most cost-effective)
 
 ### Example: Generate Text
 
@@ -146,6 +147,7 @@ Claude Code language models can also be used in the `streamText`, `generateObjec
 | -------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `opus`   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `sonnet` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `haiku`  | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The ❌ for "Tool Usage" and "Tool Streaming" refers specifically to the AI

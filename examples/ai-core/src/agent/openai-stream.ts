@@ -4,11 +4,11 @@ import { run } from '../lib/run';
 
 const agent = new ToolLoopAgent({
   model: openai('gpt-5'),
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
 });
 
 run(async () => {
-  const result = agent.stream({
+  const result = await agent.stream({
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

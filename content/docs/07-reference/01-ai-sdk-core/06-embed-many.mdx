@@ -12,11 +12,10 @@ by the embedding model.
 has a limit on how many embeddings can be generated in a single call.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
 
 const { embeddings } = await embedMany({
-  model: openai.textEmbeddingModel('text-embedding-3-small'),
+  model: 'openai/text-embedding-3-small',
   values: [
     'sunny day at the beach',
     'rainy afternoon in the city',
@@ -39,7 +38,7 @@ const { embeddings } = await embedMany({
       name: 'model',
       type: 'EmbeddingModel',
       description:
-        "The embedding model to use. Example: openai.textEmbeddingModel('text-embedding-3-small')",
+        "The embedding model to use. Example: openai.embeddingModel('text-embedding-3-small')",
     },
     {
       name: 'values',
@@ -151,15 +150,15 @@ const { embeddings } = await embedMany({
               type: 'number',
               description: 'The total number of input tokens.',
             },
-            {
-              name: 'body',
-              type: 'unknown',
-              isOptional: true,
-              description: 'The response body.',
-            },
           ],
         },
       ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
       name: 'providerMetadata',

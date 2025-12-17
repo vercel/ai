@@ -1,13 +1,10 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import {
-  TranscriptionWarning,
-  TranscriptionModel,
-} from '../types/transcription-model';
+import { TranscriptionModel } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
@@ -18,6 +15,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
 import { resolveTranscriptionModel } from '../model/resolve-model';
+import { Warning } from '../types';
 /**
 Generates transcripts using a transcription model.
 
@@ -117,7 +115,11 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  logWarnings(result.warnings);
+  logWarnings({
+    warnings: result.warnings,
+    provider: resolvedModel.provider,
+    model: resolvedModel.modelId,
+  });
 
   if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
@@ -143,9 +145,9 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
-  readonly warnings: Array<TranscriptionWarning>;
+  readonly warnings: Array<Warning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 
   constructor(options: {
     text: string;
@@ -156,9 +158,9 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
-    warnings: Array<TranscriptionWarning>;
+    warnings: Array<Warning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
+    providerMetadata: Record<string, JSONObject> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;

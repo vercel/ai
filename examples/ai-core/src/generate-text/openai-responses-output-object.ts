@@ -4,7 +4,7 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const { experimental_output } = await generateText({
+  const { output } = await generateText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
       weather: tool({
@@ -19,7 +19,7 @@ async function main() {
         }),
       }),
     },
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         location: z.string(),
         temperature: z.number(),
@@ -30,7 +30,7 @@ async function main() {
   });
 
   // { location: 'San Francisco', temperature: 81 }
-  console.log(experimental_output);
+  console.log(output);
 }
 
 main().catch(console.error);

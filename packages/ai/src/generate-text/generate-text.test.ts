@@ -1,10 +1,10 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3FilePart,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -41,12 +41,18 @@ vi.mock('../version', () => {
   };
 });
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
 
 const dummyResponseValues = {
@@ -226,6 +232,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -429,6 +436,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -709,6 +717,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -726,6 +735,7 @@ describe('generateText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
@@ -785,6 +795,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -815,6 +826,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "tool1",
                   "type": "tool-call",
@@ -880,8 +892,18 @@ describe('generateText', () => {
               },
               "usage": {
                 "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
                 "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
@@ -896,6 +918,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -915,15 +938,34 @@ describe('generateText', () => {
           ],
           "totalUsage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -991,11 +1033,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1025,6 +1073,7 @@ describe('generateText', () => {
           }),
           tools: {
             tool1: tool({
+              title: 'Tool One',
               inputSchema: z.object({ value: z.string() }),
               execute: async (args, options) => {
                 expect(args).toStrictEqual({ value: 'value' });
@@ -1064,26 +1113,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1106,9 +1174,11 @@ describe('generateText', () => {
       let onStepFinishResults: StepResult<any>[];
       let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
+        modelId: string;
         stepNumber: number;
         steps: Array<StepResult<any>>;
         messages: Array<ModelMessage>;
+        experimental_context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -1137,11 +1207,17 @@ describe('generateText', () => {
                   ],
                   finishReason: 'tool-calls',
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 5,
-                    totalTokens: 15,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
                   },
                   response: {
                     id: 'test-id-1-from-model',
@@ -1182,16 +1258,30 @@ describe('generateText', () => {
               },
             }),
           },
+          experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          prepareStep: async ({ model, stepNumber, steps, messages }) => {
-            prepareStepCalls.push({ stepNumber, steps, messages });
+          prepareStep: async ({
+            model,
+            stepNumber,
+            steps,
+            messages,
+            experimental_context,
+          }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps,
+              messages,
+              experimental_context,
+            });
 
             if (stepNumber === 0) {
               expect(steps).toStrictEqual([]);
+
               return {
                 model: trueModel,
                 toolChoice: {
@@ -1205,6 +1295,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { context: 'state2' },
               };
             }
 
@@ -1214,6 +1305,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { context: 'state3' },
               };
             }
           },
@@ -1224,12 +1316,16 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
+              "experimental_context": {
+                "context": "state1",
+              },
               "messages": [
                 {
                   "content": "test-input",
                   "role": "user",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -1240,6 +1336,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1298,8 +1395,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1367,8 +1474,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1377,6 +1494,9 @@ describe('generateText', () => {
               ],
             },
             {
+              "experimental_context": {
+                "context": "state2",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -1412,6 +1532,7 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -1422,6 +1543,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1480,8 +1602,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1549,8 +1681,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1684,26 +1826,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1755,11 +1916,17 @@ describe('generateText', () => {
                     ],
                     finishReason: 'tool-calls',
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1818,6 +1985,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1876,8 +2044,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1896,6 +2074,7 @@ describe('generateText', () => {
                       },
                       "providerExecuted": undefined,
                       "providerMetadata": undefined,
+                      "title": undefined,
                       "toolCallId": "call-1",
                       "toolName": "tool1",
                       "type": "tool-call",
@@ -1954,8 +2133,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -2067,7 +2256,7 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
         | undefined;
 
       await generateText({
@@ -2556,6 +2745,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -2608,9 +2798,8 @@ describe('generateText', () => {
           }),
           tools: {
             web_search: {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},
@@ -2630,6 +2819,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2651,6 +2841,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2679,6 +2870,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2689,6 +2881,7 @@ describe('generateText', () => {
               },
               "providerExecuted": true,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-call",
@@ -2763,7 +2956,7 @@ describe('generateText', () => {
   });
 
   describe('options.output', () => {
-    describe('no output', () => {
+    describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
           model: new MockLanguageModelV3({
@@ -2775,9 +2968,7 @@ describe('generateText', () => {
           prompt: 'prompt',
         });
 
-        expect(() => {
-          result.experimental_output;
-        }).toThrow('No output specified');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
     });
 
@@ -2791,10 +2982,10 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
-        expect(result.experimental_output).toStrictEqual('Hello, world!');
+        expect(result.output).toStrictEqual('Hello, world!');
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
@@ -2811,7 +3002,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.text(),
+          output: Output.text(),
         });
 
         expect(callOptions!).toMatchInlineSnapshot(`
@@ -2861,12 +3052,12 @@ describe('generateText', () => {
             }),
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
 
-        expect(result.experimental_output).toEqual({ value: 'test-value' });
+        expect(result.output).toEqual({ value: 'test-value' });
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
@@ -2883,7 +3074,7 @@ describe('generateText', () => {
             },
           }),
           prompt: 'prompt',
-          experimental_output: Output.object({
+          output: Output.object({
             schema: z.object({ value: z.string() }),
           }),
         });
@@ -2938,6 +3129,159 @@ describe('generateText', () => {
       });
     });
 
+    describe('array output', () => {
+      it('should generate an array with 3 elements', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  elements: [
+                    { content: 'element 1' },
+                    { content: 'element 2' },
+                    { content: 'element 3' },
+                  ],
+                }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.array({
+            element: z.object({ content: z.string() }),
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toMatchInlineSnapshot(`
+        [
+          {
+            "content": "element 1",
+          },
+          {
+            "content": "element 2",
+          },
+          {
+            "content": "element 3",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "elements": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "content",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "elements",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
+    describe('choice output', () => {
+      it('should generate a choice value', async () => {
+        const model = new MockLanguageModelV3({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({ result: 'sunny' }),
+              },
+            ],
+          },
+        });
+
+        const result = await generateText({
+          model,
+          output: Output.choice({
+            options: ['sunny', 'rainy', 'snowy'],
+          }),
+          prompt: 'prompt',
+        });
+
+        expect(result.output).toEqual('sunny');
+        expect(model.doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+        ]
+      `);
+        expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+      });
+    });
+
     it('should not parse output when finish reason is tool-calls', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({
@@ -2956,7 +3300,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({ summary: z.string() }),
         }),
         tools: {
@@ -2967,10 +3311,10 @@ describe('generateText', () => {
         },
       });
 
-      // experimental_output should be undefined when finish reason is tool-calls
+      // output should be undefined when finish reason is tool-calls
       expect(() => {
-        result.experimental_output;
-      }).toThrow('No output specified');
+        result.output;
+      }).toThrow('No output generated');
 
       // But tool calls should work normally
       expect(result.toolCalls).toHaveLength(1);
@@ -3018,6 +3362,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
@@ -3125,6 +3470,7 @@ describe('generateText', () => {
             },
             "providerExecuted": true,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "providerTool",
             "type": "tool-call",
@@ -3211,6 +3557,7 @@ describe('generateText', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "dynamicTool",
             "type": "tool-call",
@@ -3232,11 +3579,11 @@ describe('generateText', () => {
     });
   });
 
-  describe('tool execution context', () => {
+  describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -3272,6 +3619,52 @@ describe('generateText', () => {
         context: 'test',
       });
     });
+
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
+    it('should send context in onFinish callback', async () => {
+      let recordedContext: unknown | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: 'stop',
+          }),
+        }),
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+        onFinish: ({ experimental_context }) => {
+          recordedContext = experimental_context;
+        },
+      });
+
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
   });
 
   describe('invalid tool calls', () => {
@@ -3284,9 +3677,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [
@@ -3330,6 +3731,9 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3416,9 +3820,17 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
               finishReason: 'tool-calls',
               content: [
@@ -3466,6 +3878,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
@@ -3499,6 +3912,7 @@ describe('generateText', () => {
                   },
                   "providerExecuted": undefined,
                   "providerMetadata": undefined,
+                  "title": undefined,
                   "toolCallId": "call-1",
                   "toolName": "cityAttractions",
                   "type": "tool-call",
@@ -3564,8 +3978,20 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 10,
+                },
                 "inputTokens": 10,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 20,
+                },
                 "outputTokens": 20,
+                "raw": undefined,
+                "reasoningTokens": undefined,
                 "totalTokens": 30,
               },
               "warnings": [],
@@ -3584,8 +4010,8 @@ describe('generateText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
@@ -3602,7 +4028,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith(expectedWarnings);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: expectedWarnings,
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings once for each step with warnings from that step', async () => {
@@ -3658,8 +4088,16 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, [warning1]);
-      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, [warning2]);
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(1, {
+        warnings: [warning1],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
+      expect(logWarningsSpy).toHaveBeenNthCalledWith(2, {
+        warnings: [warning2],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
@@ -3675,7 +4113,11 @@ describe('generateText', () => {
       });
 
       expect(logWarningsSpy).toHaveBeenCalledOnce();
-      expect(logWarningsSpy).toHaveBeenCalledWith([]);
+      expect(logWarningsSpy).toHaveBeenCalledWith({
+        warnings: [],
+        provider: 'mock-provider',
+        model: 'mock-model-id',
+      });
     });
   });
 
@@ -3733,6 +4175,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3745,6 +4188,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
@@ -3848,6 +4292,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3858,6 +4303,7 @@ describe('generateText', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",
@@ -3880,6 +4326,7 @@ describe('generateText', () => {
                 },
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",

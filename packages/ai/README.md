@@ -2,7 +2,7 @@
 
 # AI SDK
 
-The [AI SDK](https://ai-sdk.dev/docs) is a TypeScript toolkit designed to help you build AI-powered applications and agents using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
+The [AI SDK](https://ai-sdk.dev/docs) is a provider-agnostic TypeScript toolkit designed to help you build AI-powered applications and agents using popular UI frameworks like Next.js, React, Svelte, Vue, Angular, and runtimes like Node.js.
 
 To learn more about how to use the AI SDK, check out our [API Reference](https://ai-sdk.dev/docs/reference) and [Documentation](https://ai-sdk.dev/docs).
 
@@ -75,7 +75,7 @@ const sandboxAgent = new ToolLoopAgent({
   model: 'openai/gpt-5-codex',
   system: 'You are an agent with access to a shell environment.',
   tools: {
-    local_shell: openai.tools.localShell({
+    shell: openai.tools.localShell({
       execute: async ({ action }) => {
         const [cmd, ...args] = action.command;
         const sandbox = await getSandbox(); // Vercel Sandbox
@@ -106,7 +106,7 @@ import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 export const imageGenerationAgent = new ToolLoopAgent({
   model: openai('gpt-5'),
   tools: {
-    image_generation: openai.tools.imageGeneration({
+    generateImage: openai.tools.imageGeneration({
       partialImages: 3,
     }),
   },
@@ -182,7 +182,7 @@ export default function Page() {
             switch (part.type) {
               case 'text':
                 return <div key={index}>{part.text}</div>;
-              case 'tool-image_generation':
+              case 'tool-generateImage':
                 return <ImageGenerationView key={index} invocation={part} />;
             }
           })}
@@ -207,7 +207,7 @@ We've built [templates](https://ai-sdk.dev/docs/introduction#templates) that inc
 
 ## Community
 
-The AI SDK community can be found on [GitHub Discussions](https://github.com/vercel/ai/discussions) where you can ask questions, voice ideas, and share your projects with other people.
+The AI SDK community can be found on [the Vercel Community](https://community.vercel.com/c/ai-sdk/62) where you can ask questions, voice ideas, and share your projects with other people.
 
 ## Contributing
 

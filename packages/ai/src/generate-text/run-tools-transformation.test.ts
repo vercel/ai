@@ -1,4 +1,7 @@
-import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import {
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
+} from '@ai-sdk/provider';
 import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -11,13 +14,20 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
+
 describe('runToolsTransformation', () => {
   it('should forward text parts', async () => {
     const inputStream: ReadableStream<LanguageModelV3StreamPart> =
@@ -68,8 +78,18 @@ describe('runToolsTransformation', () => {
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -98,6 +118,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => `${value}-sync-result`,
         },
@@ -121,6 +142,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -141,8 +163,18 @@ describe('runToolsTransformation', () => {
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
               "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
@@ -171,6 +203,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         syncTool: {
+          title: 'Sync Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: ({ value }) => `${value}-sync-result`,
         },
@@ -194,6 +227,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": "Sync Tool",
             "toolCallId": "call-1",
             "toolName": "syncTool",
             "type": "tool-call",
@@ -214,8 +248,18 @@ describe('runToolsTransformation', () => {
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
               "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
@@ -244,6 +288,7 @@ describe('runToolsTransformation', () => {
       generateId: mockId({ prefix: 'id' }),
       tools: {
         delayedTool: {
+          title: 'Delayed Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
             await delay(0); // Simulate delayed execution
@@ -271,6 +316,7 @@ describe('runToolsTransformation', () => {
           },
           "providerExecuted": undefined,
           "providerMetadata": undefined,
+          "title": "Delayed Tool",
           "toolCallId": "call-1",
           "toolName": "delayedTool",
           "type": "tool-call",
@@ -291,8 +337,18 @@ describe('runToolsTransformation', () => {
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -354,6 +410,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "correctTool",
             "type": "tool-call",
@@ -374,8 +431,18 @@ describe('runToolsTransformation', () => {
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
               "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
@@ -496,6 +563,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -506,8 +574,18 @@ describe('runToolsTransformation', () => {
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
               "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
@@ -576,6 +654,7 @@ describe('runToolsTransformation', () => {
             },
             "providerExecuted": undefined,
             "providerMetadata": undefined,
+            "title": undefined,
             "toolCallId": "call-1",
             "toolName": "onInputAvailableTool",
             "type": "tool-call",
@@ -588,6 +667,7 @@ describe('runToolsTransformation', () => {
               },
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "title": undefined,
               "toolCallId": "call-1",
               "toolName": "onInputAvailableTool",
               "type": "tool-call",
@@ -600,8 +680,18 @@ describe('runToolsTransformation', () => {
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
               "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },

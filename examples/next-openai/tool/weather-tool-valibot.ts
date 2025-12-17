@@ -1,5 +1,6 @@
 import { UIToolInvocation, tool } from 'ai';
 import * as v from 'valibot';
+import { valibotSchema } from '@ai-sdk/valibot';
 
 function randomWeather() {
   const weatherOptions = ['sunny', 'cloudy', 'rainy', 'windy'];
@@ -8,12 +9,14 @@ function randomWeather() {
 
 export const weatherToolValibot = tool({
   description: 'Get the weather in a location',
-  inputSchema: v.object({ city: v.string() }),
+  inputSchema: valibotSchema(v.object({ city: v.string() })),
   async *execute() {
     yield { state: 'loading' as const };
 
-    // Add artificial delay of 5 seconds
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Add randomized delay of 1 and 5 seconds (to mix up tool result ordering)
+    await new Promise(resolve =>
+      setTimeout(resolve, 1000 + Math.floor(Math.random() * 4000)),
+    );
 
     yield {
       state: 'ready' as const,

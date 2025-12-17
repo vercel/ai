@@ -1,4 +1,8 @@
-import { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Middleware,
+} from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { describe, it, expect, vi } from 'vitest';
@@ -11,7 +15,7 @@ describe('wrapLanguageModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -24,7 +28,7 @@ describe('wrapLanguageModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideModelId: ({ model }) => 'override-model',
         },
       });
@@ -38,7 +42,7 @@ describe('wrapLanguageModel', () => {
           modelId: 'test-model',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
         modelId: 'override-model',
       });
@@ -54,7 +58,7 @@ describe('wrapLanguageModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -67,7 +71,7 @@ describe('wrapLanguageModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideProvider: ({ model }) => 'override-provider',
         },
       });
@@ -81,7 +85,7 @@ describe('wrapLanguageModel', () => {
           provider: 'test-provider',
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
         providerId: 'override-provider',
       });
@@ -99,7 +103,7 @@ describe('wrapLanguageModel', () => {
       const wrappedModel = wrapLanguageModel({
         model: new MockLanguageModelV3({ supportedUrls }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
         },
       });
 
@@ -114,7 +118,7 @@ describe('wrapLanguageModel', () => {
           },
         }),
         middleware: {
-          middlewareVersion: 'v3',
+          specificationVersion: 'v3',
           overrideSupportedUrls: ({ model }) => ({
             'override/*': [/^https:\/\/.*$/],
           }),
@@ -139,7 +143,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         transformParams,
       },
     });
@@ -173,7 +177,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         wrapGenerate,
       },
     });
@@ -205,7 +209,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         transformParams,
       },
     });
@@ -236,7 +240,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v3',
+        specificationVersion: 'v3',
         wrapStream,
       },
     });
@@ -281,7 +285,7 @@ describe('wrapLanguageModel', () => {
 
     const wrappedModel = wrapLanguageModel({
       model,
-      middleware: { middlewareVersion: 'v3' },
+      middleware: { specificationVersion: 'v3' },
     });
 
     expect(await wrappedModel.supportedUrls).toStrictEqual(model.value);
@@ -307,11 +311,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams2,
           },
         ],
@@ -361,11 +365,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             transformParams: transformParams2,
           },
         ],
@@ -417,11 +421,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapGenerate: wrapGenerate1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapGenerate: wrapGenerate2,
           },
         ],
@@ -463,11 +467,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapStream: wrapStream1,
           },
           {
-            middlewareVersion: 'v3',
+            specificationVersion: 'v3',
             wrapStream: wrapStream2,
           },
         ],
@@ -483,6 +487,32 @@ describe('wrapLanguageModel', () => {
       expect(result).toBe('wrapStream1(wrapStream2(final stream result))');
       expect(wrapStream1).toHaveBeenCalled();
       expect(wrapStream2).toHaveBeenCalled();
+    });
+
+    it('should not mutate the middleware array argument', async () => {
+      const middleware1 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middleware2 = {
+        specificationVersion: 'v3',
+        wrapStream: vi.fn(),
+      };
+
+      const middlewares = [
+        middleware1,
+        middleware2,
+      ] as LanguageModelV3Middleware[];
+
+      wrapLanguageModel({
+        model: new MockLanguageModelV3(),
+        middleware: middlewares,
+      });
+
+      expect(middlewares.length).toBe(2);
+      expect(middlewares[0]).toBe(middleware1);
+      expect(middlewares[1]).toBe(middleware2);
     });
   });
 });

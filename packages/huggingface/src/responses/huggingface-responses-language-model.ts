@@ -1,11 +1,10 @@
 import {
   APICallError,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,6 +18,10 @@ import {
 import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
+import {
+  HuggingFaceResponsesUsage,
+  convertHuggingFaceResponsesUsage,
+} from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
@@ -59,32 +62,26 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     toolChoice,
     responseFormat,
   }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
     const { input, warnings: messageWarnings } =
@@ -137,6 +134,13 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
       ...(preparedTools && { tools: preparedTools }),
       ...(preparedToolChoice && { tool_choice: preparedToolChoice }),
+      ...(huggingfaceOptions?.reasoningEffort != null && {
+        reasoning: {
+          ...(huggingfaceOptions?.reasoningEffort != null && {
+            effort: huggingfaceOptions.reasoningEffort,
+          }),
+        },
+      }),
     };
 
     return { args: baseArgs, warnings };
@@ -217,6 +221,21 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
           break;
         }
 
+        case 'reasoning': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'reasoning',
+              text: contentPart.text,
+              providerMetadata: {
+                huggingface: {
+                  itemId: part.id,
+                },
+              },
+            });
+          }
+          break;
+        }
+
         case 'mcp_call': {
           content.push({
             type: 'tool-call',
@@ -232,7 +251,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
               toolCallId: part.id,
               toolName: part.name,
               result: part.output,
-              providerExecuted: true,
             });
           }
           break;
@@ -253,7 +271,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
               toolCallId: part.id,
               toolName: 'list_tools',
               result: { tools: part.tools },
-              providerExecuted: true,
             });
           }
           break;
@@ -289,14 +306,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       finishReason: mapHuggingFaceResponsesFinishReason(
         response.incomplete_details?.reason ?? 'stop',
       ),
-      usage: {
-        inputTokens: response.usage?.input_tokens ?? 0,
-        outputTokens: response.usage?.output_tokens ?? 0,
-        totalTokens:
-          response.usage?.total_tokens ??
-          (response.usage?.input_tokens ?? 0) +
-            (response.usage?.output_tokens ?? 0),
-      },
+      usage: convertHuggingFaceResponsesUsage(response.usage),
       request: { body },
       response: {
         id: response.id,
@@ -341,11 +351,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
     let responseId: string | null = null;
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: HuggingFaceResponsesUsage | undefined = undefined;
 
     return {
       stream: response.pipeThrough(
@@ -397,6 +403,16 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                  providerMetadata: {
+                    huggingface: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
               }
               return;
             }
@@ -441,13 +457,25 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                 value.response.incomplete_details?.reason ?? 'stop',
               );
               if (value.response.usage) {
-                usage.inputTokens = value.response.usage.input_tokens;
-                usage.outputTokens = value.response.usage.output_tokens;
-                usage.totalTokens =
-                  value.response.usage.total_tokens ??
-                  value.response.usage.input_tokens +
-                    value.response.usage.output_tokens;
+                usage = value.response.usage;
               }
+              return;
+            }
+
+            if (isReasoningDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: value.item_id,
+                delta: value.delta,
+              });
+              return;
+            }
+
+            if (isReasoningEndChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: value.item_id,
+              });
               return;
             }
 
@@ -465,7 +493,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertHuggingFaceResponsesUsage(usage),
               providerMetadata: {
                 huggingface: {
                   responseId,
@@ -485,7 +513,69 @@ const huggingfaceResponsesProviderOptionsSchema = z.object({
   metadata: z.record(z.string(), z.string()).optional(),
   instructions: z.string().optional(),
   strictJsonSchema: z.boolean().optional(),
+  reasoningEffort: z.string().optional(),
 });
+
+const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('message'),
+    id: z.string(),
+    role: z.string().optional(),
+    status: z.string().optional(),
+    content: z.array(
+      z.object({
+        type: z.literal('output_text'),
+        text: z.string(),
+        annotations: z.array(z.any()).optional(),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    status: z.string().optional(),
+    content: z.array(
+      z.object({
+        type: z.literal('reasoning_text'),
+        text: z.string(),
+      }),
+    ),
+    summary: z
+      .array(
+        z
+          .object({
+            type: z.literal('reasoning_summary'),
+            text: z.string(),
+          })
+          .optional(),
+      )
+      .optional(),
+  }),
+  z.object({
+    type: z.literal('function_call'),
+    id: z.string(),
+    call_id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_call'),
+    id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_list_tools'),
+    id: z.string(),
+    server_label: z.string(),
+    tools: z.array(z.any()).optional(),
+    status: z.string().optional(),
+  }),
+]);
 
 const huggingfaceResponsesResponseSchema = z.object({
   id: z.string(),
@@ -525,7 +615,7 @@ const huggingfaceResponsesResponseSchema = z.object({
     })
     .nullable()
     .optional(),
-  output: z.array(z.any()),
+  output: z.array(huggingfaceResponsesOutputSchema),
   output_text: z.string().nullable().optional(),
 });
 
@@ -539,6 +629,13 @@ const responseOutputItemAddedSchema = z.object({
       role: z.string().optional(),
       status: z.string().optional(),
       content: z.array(z.any()).optional(),
+    }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
     }),
     z.object({
       type: z.literal('mcp_list_tools'),
@@ -605,6 +702,13 @@ const responseOutputItemDoneSchema = z.object({
       output: z.string().optional(),
       error: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
+    }),
   ]),
   sequence_number: z.number(),
 });
@@ -615,6 +719,24 @@ const textDeltaChunkSchema = z.object({
   output_index: z.number(),
   content_index: z.number(),
   delta: z.string(),
+  sequence_number: z.number(),
+});
+
+const reasoningTextDeltaChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  delta: z.string(),
+  sequence_number: z.number(),
+});
+
+const reasoningTextEndChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  text: z.string(),
   sequence_number: z.number(),
 });
 
@@ -638,6 +760,8 @@ const responseCreatedChunkSchema = z.object({
 const huggingfaceResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
+  reasoningTextDeltaChunkSchema,
+  reasoningTextEndChunkSchema,
   textDeltaChunkSchema,
   responseCompletedChunkSchema,
   responseCreatedChunkSchema,
@@ -660,6 +784,18 @@ function isTextDeltaChunk(
   chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
 ): chunk is z.infer<typeof textDeltaChunkSchema> {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isReasoningDeltaChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextDeltaChunkSchema> {
+  return chunk.type === 'response.reasoning_text.delta';
+}
+
+function isReasoningEndChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextEndChunkSchema> {
+  return chunk.type === 'response.reasoning_text.done';
 }
 
 function isResponseCompletedChunk(

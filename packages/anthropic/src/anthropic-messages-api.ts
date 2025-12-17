@@ -35,6 +35,7 @@ export interface AnthropicAssistantMessage {
     | AnthropicCodeExecutionToolResultContent
     | AnthropicWebFetchToolResultContent
     | AnthropicWebSearchToolResultContent
+    | AnthropicToolSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
     | AnthropicMcpToolUseContent
@@ -114,7 +115,10 @@ export interface AnthropicServerToolUseContent {
     | 'code_execution'
     // code execution 20250825:
     | 'bash_code_execution'
-    | 'text_editor_code_execution';
+    | 'text_editor_code_execution'
+    // tool search:
+    | 'tool_search_tool_regex'
+    | 'tool_search_tool_bm25';
   input: unknown;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -161,11 +165,29 @@ export interface AnthropicWebSearchToolResultContent {
   tool_use_id: string;
   content: Array<{
     url: string;
-    title: string;
+    title: string | null;
     page_age: string | null;
     encrypted_content: string;
     type: string;
   }>;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicToolSearchToolResultContent {
+  type: 'tool_search_tool_result';
+  tool_use_id: string;
+  content:
+    | {
+        type: 'tool_search_tool_search_result';
+        tool_references: Array<{
+          type: 'tool_reference';
+          tool_name: string;
+        }>;
+      }
+    | {
+        type: 'tool_search_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -278,6 +300,12 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      strict?: boolean;
+      /**
+       * When true, this tool is deferred and will only be loaded when
+       * discovered via the tool search tool.
+       */
+      defer_loading?: boolean;
     }
   | {
       type: 'code_execution_20250522';
@@ -343,6 +371,14 @@ export type AnthropicTool =
         timezone?: string;
       };
       cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      type: 'tool_search_tool_regex_20251119';
+      name: string;
+    }
+  | {
+      type: 'tool_search_tool_bm25_20251119';
+      name: string;
     };
 
 export type AnthropicToolChoice =
@@ -356,6 +392,68 @@ export type AnthropicContainer = {
     skill_id: string;
     version?: string;
   }> | null;
+};
+
+export type AnthropicInputTokensTrigger = {
+  type: 'input_tokens';
+  value: number;
+};
+
+export type AnthropicToolUsesTrigger = {
+  type: 'tool_uses';
+  value: number;
+};
+
+export type AnthropicContextManagementTrigger =
+  | AnthropicInputTokensTrigger
+  | AnthropicToolUsesTrigger;
+
+export type AnthropicClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  trigger?: AnthropicContextManagementTrigger;
+  keep?: {
+    type: 'tool_uses';
+    value: number;
+  };
+  clear_at_least?: {
+    type: 'input_tokens';
+    value: number;
+  };
+  clear_tool_inputs?: boolean;
+  exclude_tools?: string[];
+};
+
+export type AnthropicClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  keep?: 'all' | { type: 'thinking_turns'; value: number };
+};
+
+export type AnthropicContextManagementEdit =
+  | AnthropicClearToolUsesEdit
+  | AnthropicClearThinkingBlockEdit;
+
+export type AnthropicContextManagementConfig = {
+  edits: AnthropicContextManagementEdit[];
+};
+
+export type AnthropicResponseClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  cleared_tool_uses: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  cleared_thinking_turns: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseContextManagementEdit =
+  | AnthropicResponseClearToolUsesEdit
+  | AnthropicResponseClearThinkingBlockEdit;
+
+export type AnthropicResponseContextManagement = {
+  applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -452,11 +550,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -557,6 +662,26 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
+              }),
+            ]),
+          }),
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -580,6 +705,24 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               }),
             )
             .nullish(),
+        })
+        .nullish(),
+      context_management: z
+        .object({
+          applied_edits: z.array(
+            z.union([
+              z.object({
+                type: z.literal('clear_tool_uses_20250919'),
+                cleared_tool_uses: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('clear_thinking_20251015'),
+                cleared_thinking_turns: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+            ]),
+          ),
         })
         .nullish(),
     }),
@@ -660,11 +803,18 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -762,6 +912,26 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 new_start: z.number().nullable(),
                 old_lines: z.number().nullable(),
                 old_start: z.number().nullable(),
+              }),
+            ]),
+          }),
+          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
+          z.object({
+            type: z.literal('tool_search_tool_result'),
+            tool_use_id: z.string(),
+            content: z.union([
+              z.object({
+                type: z.literal('tool_search_tool_search_result'),
+                tool_references: z.array(
+                  z.object({
+                    type: z.literal('tool_reference'),
+                    tool_name: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('tool_search_tool_result_error'),
+                error_code: z.string(),
               }),
             ]),
           }),
@@ -849,6 +1019,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   }),
                 )
                 .nullish(),
+            })
+            .nullish(),
+          context_management: z
+            .object({
+              applied_edits: z.array(
+                z.union([
+                  z.object({
+                    type: z.literal('clear_tool_uses_20250919'),
+                    cleared_tool_uses: z.number(),
+                    cleared_input_tokens: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('clear_thinking_20251015'),
+                    cleared_thinking_turns: z.number(),
+                    cleared_input_tokens: z.number(),
+                  }),
+                ]),
+              ),
             })
             .nullish(),
         }),

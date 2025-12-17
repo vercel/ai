@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { UIMessageStreamOptions } from '../generate-text';
+import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
@@ -12,11 +12,13 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
  */
 export async function pipeAgentUIStreamToResponse<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   response,
   headers,
@@ -26,11 +28,16 @@ export async function pipeAgentUIStreamToResponse<
   ...options
 }: {
   response: ServerResponse;
-  agent: Agent<TOOLS, OUTPUT>;
-  messages: unknown[];
+  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  uiMessages: unknown[];
+  abortSignal?: AbortSignal;
+  options?: CALL_OPTIONS;
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >): Promise<void> {
   pipeUIMessageStreamToResponse({
     response,

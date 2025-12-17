@@ -1,4 +1,4 @@
-import { UIMessageStreamOptions } from '../generate-text';
+import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
@@ -11,13 +11,15 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * Runs the agent and returns a response object with a UI message stream.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
  *
  * @returns The response object.
  */
 export async function createAgentUIStreamResponse<
+  CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
+  MESSAGE_METADATA = unknown,
 >({
   headers,
   status,
@@ -25,11 +27,16 @@ export async function createAgentUIStreamResponse<
   consumeSseStream,
   ...options
 }: {
-  agent: Agent<TOOLS, OUTPUT>;
-  messages: unknown[];
+  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  uiMessages: unknown[];
+  abortSignal?: AbortSignal;
+  options?: CALL_OPTIONS;
+  experimental_transform?:
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
-    UIMessage<never, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >): Promise<Response> {
   return createUIMessageStreamResponse({
     headers,

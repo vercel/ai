@@ -4,9 +4,9 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const { experimental_output } = await generateText({
+  const { output } = await generateText({
     model: google('gemini-2.5-flash'),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         name: z.string(),
         age: z.number().nullable().describe('Age of the person.'),
@@ -24,7 +24,7 @@ async function main() {
     prompt: 'Generate an example person for testing.',
   });
 
-  console.log(experimental_output);
+  console.log(output);
 }
 
 main().catch(console.error);

@@ -437,7 +437,7 @@ it('should handle null type correctly', () => {
     type: 'object',
     properties: {
       nullableField: {
-        type: 'string',
+        anyOf: [{ type: 'string' }],
         nullable: true,
       },
       explicitNullField: {
@@ -580,4 +580,49 @@ it('should convert nullable string enum', () => {
       },
     },
   });
+});
+
+it('should handle type arrays with multiple non-null types plus null', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      multiTypeField: {
+        type: ['string', 'number', 'null'],
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      multiTypeField: {
+        anyOf: [{ type: 'string' }, { type: 'number' }],
+        nullable: true,
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should convert type arrays without null to anyOf', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      multiTypeField: {
+        type: ['string', 'number'],
+      },
+    },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      multiTypeField: {
+        anyOf: [{ type: 'string' }, { type: 'number' }],
+      },
+    },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });

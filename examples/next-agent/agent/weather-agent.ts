@@ -4,7 +4,7 @@ import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const weatherAgent = new ToolLoopAgent({
   model: openai('gpt-4o'),
-  system: 'You are a helpful assistant.',
+  instructions: 'You are a helpful assistant.',
   tools: {
     weather: weatherTool,
   },

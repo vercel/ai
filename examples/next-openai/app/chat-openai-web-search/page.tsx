@@ -13,7 +13,7 @@ export default function TestOpenAIWebSearch() {
   const { error, status, sendMessage, messages, regenerate } =
     useChat<OpenAIWebSearchMessage>({
       transport: new DefaultChatTransport({
-        api: 'http://localhost:8080/chat',
+        api: '/api/chat-openai-web-search',
       }),
     });
 
@@ -32,7 +32,7 @@ export default function TestOpenAIWebSearch() {
               case 'reasoning': {
                 return <ReasoningView part={part} key={index} />;
               }
-              case 'tool-web_search': {
+              case 'tool-webSearch': {
                 return <OpenAIWebSearchView invocation={part} key={index} />;
               }
             }

@@ -1,5 +1,369 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.84
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 2.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 2.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 2.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 2.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 2.0.0-beta.78
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
+## 2.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 2.0.0-beta.76
+
+### Patch Changes
+
+- 34ee8d0: feat (provider/gateway): add support for request-scoped byok
+
+## 2.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 2.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 2.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 2.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 2.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 2.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 2.0.0-beta.69
+
+### Patch Changes
+
+- b1624f0: feat (provider/gateway): add trinity-mini model id
+
+## 2.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+
+## 2.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+
+## 2.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+
+## 2.0.0-beta.65
+
+### Patch Changes
+
+- cdd0bc2: feat (provider/gateway): add intellect-3 model id
+
+## 2.0.0-beta.64
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 2.0.0-beta.63
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 2.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- e8694af: feat(provider/gateway): Server-side image request splitting
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- 1425df5: feat(provider/gateway): Add Imagen 4 Ultra Generate to model string autocomplete list
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- bca7e61: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- 5f66123: chore(provider/gateway): Update gateway language model settings
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 3782645: bump `@vercel/oidc` to 3.0.5
+
+## 2.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 2.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+
+## 2.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 2.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+
+## 2.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 2.0.0-beta.47
+
+### Patch Changes
+
+- 96322b7: feat(provider/gateway): Add GPT OSS Safeguard 20B to Gateway model string autocomplete
+
+## 2.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+
+## 2.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 2.0.0-beta.44
+
+### Patch Changes
+
+- 7d73922: feat(provider/gateway): Add MiniMax M2 to Gateway autocomplete
+
+## 2.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 2.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 2.0.0-beta.41
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 2.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 2.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+
+## 2.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+
+## 2.0.0-beta.37
+
+### Patch Changes
+
+- 2b6a848: feat (provider/gateway): add models provider option for model routing
+
+## 2.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+
 ## 2.0.0-beta.35
 
 ### Patch Changes

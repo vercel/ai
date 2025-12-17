@@ -15,6 +15,8 @@ export default function TestAnthropicCodeExecution() {
       }),
     });
 
+  console.log(structuredClone(messages));
+
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       <h1 className="mb-4 text-xl font-bold">Anthropic Code Execution Test</h1>

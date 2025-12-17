@@ -3,8 +3,8 @@ import { embedMany } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const { embeddings, usage } = await embedMany({
-    model: vertex.textEmbeddingModel('text-embedding-004'),
+  const { embeddings, usage, warnings } = await embedMany({
+    model: vertex.embeddingModel('text-embedding-004'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
@@ -14,6 +14,7 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
+  console.log(warnings);
 }
 
 main().catch(console.error);

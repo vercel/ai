@@ -1,5 +1,726 @@
 # ai
 
+## 6.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/gateway@2.0.0-beta.84
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 6.0.0-beta.157
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/gateway@2.0.0-beta.83
+
+## 6.0.0-beta.156
+
+### Patch Changes
+
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+
+## 6.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/gateway@2.0.0-beta.82
+
+## 6.0.0-beta.154
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/gateway@2.0.0-beta.81
+
+## 6.0.0-beta.153
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/gateway@2.0.0-beta.80
+
+## 6.0.0-beta.152
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/gateway@2.0.0-beta.79
+
+## 6.0.0-beta.151
+
+### Patch Changes
+
+- dcdac8c: chore(ai): rename tool helpers
+
+## 6.0.0-beta.150
+
+### Patch Changes
+
+- db62f7d: Added schema name and description for generateText and output
+
+## 6.0.0-beta.149
+
+### Patch Changes
+
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
+## 6.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/gateway@2.0.0-beta.78
+
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
+## 6.0.0-beta.143
+
+### Patch Changes
+
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/gateway@2.0.0-beta.75
+
+## 6.0.0-beta.142
+
+### Patch Changes
+
+- 7169511: feat(agent): support context in onFinish callback
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+
+## 6.0.0-beta.141
+
+### Patch Changes
+
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+
+## 6.0.0-beta.140
+
+### Patch Changes
+
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+
+## 6.0.0-beta.139
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/gateway@2.0.0-beta.74
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 6.0.0-beta.138
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/gateway@2.0.0-beta.73
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 6.0.0-beta.137
+
+### Patch Changes
+
+- 9ba4324: feat(ai): support SystemModelMessage[] in system and instructions properties
+
+## 6.0.0-beta.136
+
+### Patch Changes
+
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+
+## 6.0.0-beta.135
+
+### Patch Changes
+
+- afe7093: feat: add middleware for tool input examples
+
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
+## 6.0.0-beta.133
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/gateway@2.0.0-beta.72
+
+## 6.0.0-beta.132
+
+### Patch Changes
+
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+
+## 6.0.0-beta.131
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/gateway@2.0.0-beta.71
+
+## 6.0.0-beta.130
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+  - @ai-sdk/gateway@2.0.0-beta.70
+
+## 6.0.0-beta.129
+
+### Patch Changes
+
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+
+## 6.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [b1624f0]
+  - @ai-sdk/gateway@2.0.0-beta.69
+
+## 6.0.0-beta.127
+
+### Patch Changes
+
+- 614599a: chore(ai): deprecate generateObject and streamObject
+
+## 6.0.0-beta.126
+
+### Patch Changes
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+
+## 6.0.0-beta.125
+
+### Patch Changes
+
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+
+## 6.0.0-beta.124
+
+### Patch Changes
+
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- Updated dependencies [544d4e8]
+  - @ai-sdk/provider-utils@4.0.0-beta.40
+  - @ai-sdk/provider@3.0.0-beta.22
+  - @ai-sdk/gateway@2.0.0-beta.68
+
+## 6.0.0-beta.123
+
+### Patch Changes
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- Updated dependencies [954c356]
+  - @ai-sdk/provider-utils@4.0.0-beta.39
+  - @ai-sdk/provider@3.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.67
+
+## 6.0.0-beta.122
+
+### Patch Changes
+
+- 03849b0: move DelayedPromise into provider utils
+- Updated dependencies [03849b0]
+  - @ai-sdk/provider-utils@4.0.0-beta.38
+  - @ai-sdk/gateway@2.0.0-beta.66
+
+## 6.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [cdd0bc2]
+  - @ai-sdk/gateway@2.0.0-beta.65
+
+## 6.0.0-beta.120
+
+### Patch Changes
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- Updated dependencies [457318b]
+  - @ai-sdk/provider@3.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.64
+  - @ai-sdk/provider-utils@4.0.0-beta.37
+
+## 6.0.0-beta.119
+
+### Patch Changes
+
+- b59d924: feat(ai): support SystemModelMessage in system and instructions properties
+
+## 6.0.0-beta.118
+
+### Patch Changes
+
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- Updated dependencies [8d9e8ad]
+  - @ai-sdk/provider@3.0.0-beta.19
+  - @ai-sdk/gateway@2.0.0-beta.63
+  - @ai-sdk/provider-utils@4.0.0-beta.36
+
+## 6.0.0-beta.117
+
+### Patch Changes
+
+- Updated dependencies [10d819b]
+  - @ai-sdk/provider@3.0.0-beta.18
+  - @ai-sdk/gateway@2.0.0-beta.62
+  - @ai-sdk/provider-utils@4.0.0-beta.35
+
+## 6.0.0-beta.116
+
+### Patch Changes
+
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+
+## 6.0.0-beta.115
+
+### Patch Changes
+
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
+## 6.0.0-beta.114
+
+### Patch Changes
+
+- 69768c2: chore(ai): remove UI message reference from model message validation
+
+## 6.0.0-beta.113
+
+### Patch Changes
+
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+
+## 6.0.0-beta.112
+
+### Patch Changes
+
+- e06b663: feat(agent): support experimental stream transforms
+
+## 6.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [e8694af]
+  - @ai-sdk/gateway@2.0.0-beta.61
+
+## 6.0.0-beta.110
+
+### Patch Changes
+
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- Updated dependencies [db913bd]
+  - @ai-sdk/provider@3.0.0-beta.17
+  - @ai-sdk/gateway@2.0.0-beta.60
+  - @ai-sdk/provider-utils@4.0.0-beta.34
+
+## 6.0.0-beta.109
+
+### Patch Changes
+
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+
+## 6.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [5dd4c6a]
+  - @ai-sdk/gateway@2.0.0-beta.59
+
+## 6.0.0-beta.107
+
+### Patch Changes
+
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+
+## 6.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [1425df5]
+  - @ai-sdk/gateway@2.0.0-beta.58
+
+## 6.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [bca7e61]
+  - @ai-sdk/gateway@2.0.0-beta.57
+
+## 6.0.0-beta.104
+
+### Patch Changes
+
+- 2d166e4: feat(provider/gateway): add support for image models
+- Updated dependencies [2d166e4]
+  - @ai-sdk/gateway@2.0.0-beta.56
+
+## 6.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [cc5170d]
+  - @ai-sdk/gateway@2.0.0-beta.55
+
+## 6.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [5f66123]
+  - @ai-sdk/gateway@2.0.0-beta.54
+
+## 6.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [3782645]
+  - @ai-sdk/gateway@2.0.0-beta.53
+
+## 6.0.0-beta.100
+
+### Patch Changes
+
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+
+## 6.0.0-beta.99
+
+### Patch Changes
+
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+
+## 6.0.0-beta.98
+
+### Patch Changes
+
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- Updated dependencies [b681d7d]
+  - @ai-sdk/provider@3.0.0-beta.16
+  - @ai-sdk/gateway@2.0.0-beta.52
+  - @ai-sdk/provider-utils@4.0.0-beta.33
+
+## 6.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [32d8dbb]
+  - @ai-sdk/provider-utils@4.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.51
+
+## 6.0.0-beta.96
+
+### Patch Changes
+
+- a322efa: Added finishReason on useChat onFinish callbck
+
+## 6.0.0-beta.95
+
+### Patch Changes
+
+- eb8d1cb: fix not catching of empty arrays in validateUIMessage
+
+## 6.0.0-beta.94
+
+### Patch Changes
+
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+
+## 6.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [bb36798]
+  - @ai-sdk/provider@3.0.0-beta.15
+  - @ai-sdk/gateway@2.0.0-beta.50
+  - @ai-sdk/provider-utils@4.0.0-beta.31
+
+## 6.0.0-beta.92
+
+### Patch Changes
+
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+
+## 6.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [4f16c37]
+  - @ai-sdk/provider-utils@4.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.49
+
+## 6.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [af3780b]
+  - @ai-sdk/provider@3.0.0-beta.14
+  - @ai-sdk/gateway@2.0.0-beta.48
+  - @ai-sdk/provider-utils@4.0.0-beta.29
+
+## 6.0.0-beta.89
+
+### Patch Changes
+
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+
+## 6.0.0-beta.88
+
+### Patch Changes
+
+- 22ef5c6: feat(ai): Output.text() is default output mode
+
+## 6.0.0-beta.87
+
+### Patch Changes
+
+- ca13d26: feat(ai): add output to StreamTextResult
+
+## 6.0.0-beta.86
+
+### Patch Changes
+
+- 36b175c: chore(ai): change output generics
+
+## 6.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [96322b7]
+  - @ai-sdk/gateway@2.0.0-beta.47
+
+## 6.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [016b111]
+  - @ai-sdk/provider-utils@4.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.46
+
+## 6.0.0-beta.83
+
+### Patch Changes
+
+- e1f6e8e: feat(ai): add Output.json()
+
+## 6.0.0-beta.82
+
+### Patch Changes
+
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- Updated dependencies [37c58a0]
+  - @ai-sdk/provider@3.0.0-beta.13
+  - @ai-sdk/gateway@2.0.0-beta.45
+  - @ai-sdk/provider-utils@4.0.0-beta.27
+
+## 6.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [7d73922]
+  - @ai-sdk/gateway@2.0.0-beta.44
+
+## 6.0.0-beta.80
+
+### Patch Changes
+
+- 9524761: chore(ai): rename relevanceScore to score
+
+## 6.0.0-beta.79
+
+### Patch Changes
+
+- d1bdadb: Added experimental_rerank support
+- Updated dependencies [d1bdadb]
+  - @ai-sdk/provider@3.0.0-beta.12
+  - @ai-sdk/gateway@2.0.0-beta.43
+  - @ai-sdk/provider-utils@4.0.0-beta.26
+
+## 6.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [4c44a5b]
+  - @ai-sdk/provider@3.0.0-beta.11
+  - @ai-sdk/gateway@2.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.25
+
+## 6.0.0-beta.77
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- Updated dependencies [0c3b58b]
+  - @ai-sdk/provider@3.0.0-beta.10
+  - @ai-sdk/gateway@2.0.0-beta.41
+  - @ai-sdk/provider-utils@4.0.0-beta.24
+
+## 6.0.0-beta.76
+
+### Patch Changes
+
+- a755db5: feat(ai): improve warnings with provider and model id
+- Updated dependencies [a755db5]
+  - @ai-sdk/provider@3.0.0-beta.9
+  - @ai-sdk/gateway@2.0.0-beta.40
+  - @ai-sdk/provider-utils@4.0.0-beta.23
+
+## 6.0.0-beta.75
+
+### Patch Changes
+
+- 58920e0: fix(ai): do not drop custom headers in HttpChatTransport
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- Updated dependencies [58920e0]
+  - @ai-sdk/provider-utils@4.0.0-beta.22
+  - @ai-sdk/gateway@2.0.0-beta.39
+
+## 6.0.0-beta.74
+
+### Patch Changes
+
+- 293a6b7: Added a title to the tools
+- Updated dependencies [293a6b7]
+  - @ai-sdk/provider-utils@4.0.0-beta.21
+  - @ai-sdk/gateway@2.0.0-beta.38
+
+## 6.0.0-beta.73
+
+### Patch Changes
+
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+
+## 6.0.0-beta.72
+
+### Patch Changes
+
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+## 6.0.0-beta.71
+
+### Patch Changes
+
+- 077aea3: feat(ai): stable structured output on generateText, streamText, and ToolLoopAgent
+
+## 6.0.0-beta.70
+
+### Patch Changes
+
+- d7bae86: feat(ai): add Output.choice()
+
+## 6.0.0-beta.69
+
+### Patch Changes
+
+- d5b25ee: feat(ai): add Output.array()
+
+## 6.0.0-beta.68
+
+### Patch Changes
+
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+## 6.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [2b6a848]
+  - @ai-sdk/gateway@2.0.0-beta.37
+
+## 6.0.0-beta.66
+
+### Patch Changes
+
+- fca786b: feat(agent): configurable call options
+- Updated dependencies [fca786b]
+  - @ai-sdk/provider-utils@4.0.0-beta.20
+  - @ai-sdk/gateway@2.0.0-beta.36
+
+## 6.0.0-beta.65
+
+### Patch Changes
+
+- dce4e7b: chore(agent): rename system to instructions
+
 ## 6.0.0-beta.64
 
 ### Patch Changes

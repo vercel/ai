@@ -4,6 +4,7 @@ import { generateText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
 const logProviderMetadataMiddleware: LanguageModelV3Middleware = {
+  specificationVersion: 'v3',
   transformParams: async ({ params }) => {
     console.log(
       'providerOptions: ' + JSON.stringify(params.providerOptions, null, 2),

@@ -1,4 +1,4 @@
-import { SpeechModelV3, SpeechModelV3CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -111,7 +111,7 @@ export class HumeSpeechModel implements SpeechModelV3 {
     language,
     providerOptions,
   }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SpeechModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
@@ -141,8 +141,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
         requestBody.format = { type: outputFormat as 'mp3' | 'pcm' | 'wav' };
       } else {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'outputFormat',
+          type: 'unsupported',
+          feature: 'outputFormat',
           details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }
@@ -186,8 +186,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
 
     if (language) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'language',
+        type: 'unsupported',
+        feature: 'language',
         details: `Hume speech models do not support language selection. Language parameter "${language}" was ignored.`,
       });
     }

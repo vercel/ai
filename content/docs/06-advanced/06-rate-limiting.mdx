@@ -18,8 +18,8 @@ and [Upstash Ratelimit](https://github.com/upstash/ratelimit).
 
 ```tsx filename='app/api/generate/route.ts'
 import kv from '@vercel/kv';
-import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+__PROVIDER_IMPORT__;
 import { Ratelimit } from '@upstash/ratelimit';
 import { NextRequest } from 'next/server';
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-3.5-turbo'),
+    model: __MODEL__,
     messages,
   });
 

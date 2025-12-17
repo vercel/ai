@@ -81,7 +81,7 @@ import { runpod } from '@runpod/ai-sdk-provider';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: runpod('deep-cogito/deep-cogito-v2-llama-70b'),
+  model: runpod('qwen/qwen3-32b-awq'),
   prompt: 'What is the capital of Germany?',
 });
 ```
@@ -99,7 +99,7 @@ import { runpod } from '@runpod/ai-sdk-provider';
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: runpod('deep-cogito/deep-cogito-v2-llama-70b'),
+  model: runpod('qwen/qwen3-32b-awq'),
   prompt:
     'Write a short poem about artificial intelligence in exactly 4 lines.',
   temperature: 0.7,
@@ -112,16 +112,18 @@ for await (const delta of textStream) {
 
 ### Model Capabilities
 
-| Model ID                               | Description                                                         | Streaming           | Object Generation   | Tool Usage          | Reasoning Notes                                              |
-| -------------------------------------- | ------------------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------------------------------------------------ |
-| `deep-cogito/deep-cogito-v2-llama-70b` | 70B parameter general-purpose LLM with advanced reasoning           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | Emits `<think>…</think>` inline; no separate reasoning parts |
-| `qwen/qwen3-32b-awq`                   | 32B parameter multilingual model with strong reasoning capabilities | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | Standard reasoning events                                    |
+| Model ID              | Description                                                         | Streaming           | Object Generation   | Tool Usage          | Reasoning Notes           |
+| --------------------- | ------------------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------------- |
+| `qwen/qwen3-32b-awq`  | 32B parameter multilingual model with strong reasoning capabilities | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | Standard reasoning events |
+| `openai/gpt-oss-120b` | 120B parameter open-source GPT model                                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | Standard reasoning events |
+
+**Note:** An up-to-date list of all available models can be found in the [Runpod Public Endpoint Reference](https://docs.runpod.io/hub/public-endpoint-reference).
 
 ### Chat Conversations
 
 ```ts
 const { text } = await generateText({
-  model: runpod('deep-cogito/deep-cogito-v2-llama-70b'),
+  model: runpod('qwen/qwen3-32b-awq'),
   messages: [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: 'What is the capital of France?' },
@@ -136,7 +138,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text, toolCalls } = await generateText({
-  model: runpod('deep-cogito/deep-cogito-v2-llama-70b'),
+  model: runpod('openai/gpt-oss-120b'),
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -239,6 +241,8 @@ writeFileSync('landscape.jpg', image.uint8Array);
 | `qwen/qwen-image-edit`                 | Image editing (prompt-guided)   | 1:1, 4:3, 3:4                         |
 
 **Note**: The provider uses strict validation for image parameters. Unsupported aspect ratios (like `16:9`, `9:16`, `3:2`, `2:3`) will throw an `InvalidArgumentError` with a clear message about supported alternatives.
+
+An up-to-date list of all available image models can be found in the [Runpod Public Endpoint Reference](https://docs.runpod.io/hub/public-endpoint-reference).
 
 ### Advanced Parameters
 
