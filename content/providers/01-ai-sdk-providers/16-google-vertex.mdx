@@ -382,6 +382,23 @@ const result = await generateText({
 });
 ```
 
+#### Enterprise Web Search
+
+[Enterprise Web Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/web-grounding-enterprise) provides grounding using a compliance-focused web index designed for highly-regulated industries such as finance, healthcare, and the public sector. Unlike standard Google Search grounding, Enterprise Web Search does not log customer data and supports VPC service controls. Supported models: Gemini 2.0 and newer.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
+  },
+  prompt: 'What are the latest FDA regulations for clinical trials?',
+});
+```
+
 #### Google Maps
 
 Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
