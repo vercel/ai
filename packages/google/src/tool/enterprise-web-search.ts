@@ -16,4 +16,3 @@ export const enterpriseWebSearch = createProviderToolFactory<
   id: 'google.enterprise_web_search',
   inputSchema: lazySchema(() => zodSchema(z.object({}))),
 });
-

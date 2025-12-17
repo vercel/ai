@@ -105,8 +105,7 @@ export function prepareTools({
             toolWarnings.push({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
-              details:
-                'Enterprise Web Search requires Gemini 2.0 or newer.',
+              details: 'Enterprise Web Search requires Gemini 2.0 or newer.',
             });
           }
           break;
