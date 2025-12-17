@@ -62,6 +62,7 @@ every file.
 | `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
 | `rename-vertex-provider-metadata-key`                    | Renames `google` to `vertex` in `providerMetadata` and `providerOptions` for Google Vertex files   |
 | `wrap-tomodeloutput-parameter`                           | Wraps `toModelOutput` parameter in object destructuring (`output` → `{ output }`)                  |
+| `add-await-converttomodelmessages`                       | Adds `await` to `convertToModelMessages` calls (now async in AI SDK 6)                             |
 
 ## AI SDK Core
 
@@ -200,6 +201,11 @@ import { convertToModelMessages } from 'ai';
 
 const modelMessages = await convertToModelMessages(uiMessages);
 ```
+
+<Note>
+  Use the `add-await-converttomodelmessages` codemod to automatically update
+  your codebase.
+</Note>
 
 ### `Tool.toModelOutput` changes
 
