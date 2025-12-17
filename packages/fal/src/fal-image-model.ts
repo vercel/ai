@@ -1,21 +1,17 @@
-import type {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
@@ -80,7 +76,7 @@ export class FalImageModel implements ImageModelV3 {
     // Handle image editing: convert files to image_url
     if (files != null && files.length > 0) {
       // Use first file as the primary image_url
-      requestBody.image_url = await fileToDataUri(files[0]);
+      requestBody.image_url = convertImageModelFileToDataUri(files[0]);
 
       if (files.length > 1) {
         warnings.push({
@@ -93,7 +89,7 @@ export class FalImageModel implements ImageModelV3 {
 
     // Handle mask for inpainting
     if (mask != null) {
-      requestBody.mask_url = await fileToDataUri(mask);
+      requestBody.mask_url = convertImageModelFileToDataUri(mask);
     }
 
     if (falOptions) {
@@ -357,24 +353,3 @@ const falFailedResponseHandler = createJsonErrorResponseHandler({
     return error.message ?? 'Unknown fal error';
   },
 });
-
-/**
- * Converts an ImageModelV3File to a data URI string.
- */
-async function fileToDataUri(file: ImageModelV3File): Promise<string> {
-  if (file.type === 'url') {
-    return file.url;
-  }
-
-  const mediaType = file.mediaType ?? 'image/png';
-
-  if (typeof file.data === 'string') {
-    // Already base64 string
-    return `data:${mediaType};base64,${file.data}`;
-  }
-
-  // Uint8Array - convert to base64
-  const base64 = convertUint8ArrayToBase64(file.data);
-  return `data:${mediaType};base64,${base64}`;
-}
-

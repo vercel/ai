@@ -1,10 +1,7 @@
-import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   FetchFunction,
@@ -13,7 +10,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   zodSchema,
-  convertUint8ArrayToBase64
 } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
@@ -84,7 +80,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
     // Handle image input from files
     let imageUrl: string | undefined;
     if (files != null && files.length > 0) {
-      imageUrl = await fileToImageUrl(files[0]);
+      imageUrl = convertImageModelFileToDataUri(files[0]);
 
       if (files.length > 1) {
         warnings.push({
@@ -153,24 +149,6 @@ const togetheraiErrorSchema = z.object({
     message: z.string(),
   }),
 });
-
-/**
- * Convert an ImageModelV3File to a URL or data URI string for Together AI.
- * Together AI accepts both URLs and base64 data URIs via the image_url parameter.
- */
-async function fileToImageUrl(file: ImageModelV3File): Promise<string> {
-  if (file.type === 'url') {
-    return file.url;
-  }
-  // file.type === 'file' - data can be base64 string or Uint8Array
-  if (typeof file.data === 'string') {
-    // Already base64 encoded
-    return `data:${file.mediaType};base64,${file.data}`;
-  }
-  // Uint8Array - convert to base64
-  const base64 = convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType};base64,${base64}`;
-}
 
 /**
  * Provider options schema for Together AI image generation.

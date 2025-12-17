@@ -1,11 +1,7 @@
-import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createStatusCodeErrorResponseHandler,
   FetchFunction,
@@ -146,7 +142,7 @@ export class FireworksImageModel implements ImageModelV3 {
     let inputImage: string | undefined;
 
     if (hasInputImage) {
-      inputImage = fileToDataUri(files[0]);
+      inputImage = convertImageModelFileToDataUri(files[0]);
 
       if (files.length > 1) {
         warnings.push({
@@ -197,24 +193,4 @@ export class FireworksImageModel implements ImageModelV3 {
       },
     };
   }
-}
-
-/**
- * Converts an ImageModelV3File to a data URI string or URL.
- */
-function fileToDataUri(file: ImageModelV3File): string {
-  if (file.type === 'url') {
-    return file.url;
-  }
-
-  const mediaType = file.mediaType ?? 'image/png';
-
-  if (typeof file.data === 'string') {
-    // Already base64 string
-    return `data:${mediaType};base64,${file.data}`;
-  }
-
-  // Uint8Array - convert to base64
-  const base64 = convertUint8ArrayToBase64(file.data);
-  return `data:${mediaType};base64,${base64}`;
 }

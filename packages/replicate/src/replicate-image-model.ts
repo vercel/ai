@@ -1,14 +1,11 @@
-import type {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   getFromApi,
   InferSchema,
   lazySchema,
@@ -16,7 +13,6 @@ import {
   postJsonToApi,
   resolve,
   zodSchema,
-  convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
@@ -75,7 +71,7 @@ export class ReplicateImageModel implements ImageModelV3 {
     // Handle image input from files
     let imageInput: string | undefined;
     if (files != null && files.length > 0) {
-      imageInput = await fileToDataUri(files[0]);
+      imageInput = convertImageModelFileToDataUri(files[0]);
 
       if (files.length > 1) {
         warnings.push({
@@ -89,7 +85,7 @@ export class ReplicateImageModel implements ImageModelV3 {
     // Handle mask input
     let maskInput: string | undefined;
     if (mask != null) {
-      maskInput = await fileToDataUri(mask);
+      maskInput = convertImageModelFileToDataUri(mask);
     }
 
     const {
@@ -159,23 +155,6 @@ export class ReplicateImageModel implements ImageModelV3 {
 const replicateImageResponseSchema = z.object({
   output: z.union([z.array(z.string()), z.string()]),
 });
-
-/**
- * Convert an ImageModelV3File to a data URI or URL string.
- */
-async function fileToDataUri(file: ImageModelV3File): Promise<string> {
-  if (file.type === 'url') {
-    return file.url;
-  }
-  // file.type === 'file' - data can be base64 string or Uint8Array
-  if (typeof file.data === 'string') {
-    // Already base64 encoded
-    return `data:${file.mediaType};base64,${file.data}`;
-  }
-  // Uint8Array - convert to base64
-  const base64 = convertUint8ArrayToBase64(file.data);
-  return `data:${file.mediaType};base64,${base64}`;
-}
 
 /**
  * Provider options schema for Replicate image generation.
