@@ -2,12 +2,14 @@ import {
   LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3ToolCall,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  Tool,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -421,6 +423,9 @@ A function that attempts to repair a tool call that failed to parse.
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
+        // Track tools injected via prepareStep (persist across steps)
+        let accumulatedDynamicTools: Record<string, Tool> = {};
+
         do {
           const stepInputMessages = [...initialMessages, ...responseMessages];
 
@@ -431,6 +436,67 @@ A function that attempts to repair a tool call that failed to parse.
             messages: stepInputMessages,
             experimental_context,
           });
+
+          // Collect warnings for tool collisions
+          const prepareStepWarnings: SharedV3Warning[] = [];
+
+          // APPEND new tools (never removes existing)
+          if (prepareStepResult?.tools != null) {
+            const newTools = prepareStepResult.tools;
+
+            // Warn about tool name collisions (existing tools being overridden)
+            for (const toolName of Object.keys(newTools)) {
+              if (tools?.[toolName] != null) {
+                prepareStepWarnings.push({
+                  type: 'other',
+                  message: `prepareStep: Tool "${toolName}" already exists and will be overridden`,
+                });
+              } else if (accumulatedDynamicTools[toolName] != null) {
+                prepareStepWarnings.push({
+                  type: 'other',
+                  message: `prepareStep: Previously injected tool "${toolName}" will be overridden`,
+                });
+              }
+            }
+
+            accumulatedDynamicTools = {
+              ...accumulatedDynamicTools,
+              ...newTools,
+            };
+          }
+
+          // All available tools = original + all injected
+          const allAvailableTools =
+            Object.keys(accumulatedDynamicTools).length > 0
+              ? { ...tools, ...accumulatedDynamicTools }
+              : tools;
+
+          // activeTools filtering:
+          // - If prepareStep returns activeTools: use it (temporary filter for this step)
+          // - If original activeTools was set: expand it to include injected tool names
+          // - Otherwise: all tools are active
+          let stepActiveTools: Array<string> | undefined;
+
+          if (prepareStepResult?.activeTools != null) {
+            // User explicitly wants to filter this step
+            stepActiveTools = prepareStepResult.activeTools as Array<string>;
+          } else if (activeTools != null) {
+            // Original activeTools was set - auto-expand with injected tools
+            // PREVENT DUPLICATES: Only add tools not already in activeTools
+            const originalActiveTools = activeTools as Array<string>;
+            const newToolNames = Object.keys(accumulatedDynamicTools).filter(
+              name => !originalActiveTools.includes(name),
+            );
+
+            if (newToolNames.length > 0) {
+              stepActiveTools = [...originalActiveTools, ...newToolNames];
+            } else {
+              stepActiveTools = originalActiveTools;
+            }
+          } else {
+            // No filtering - all tools available
+            stepActiveTools = undefined;
+          }
 
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
@@ -450,9 +516,9 @@ A function that attempts to repair a tool call that failed to parse.
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({
-              tools,
+              tools: allAvailableTools as TOOLS | undefined,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools as Array<keyof TOOLS> | undefined,
             });
 
           currentModelResponse = await retry(() =>
@@ -576,7 +642,7 @@ A function that attempts to repair a tool call that failed to parse.
               .map(toolCall =>
                 parseToolCall({
                   toolCall,
-                  tools,
+                  tools: allAvailableTools as TOOLS | undefined,
                   repairToolCall,
                   system,
                   messages: stepInputMessages,
@@ -594,7 +660,7 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools?.[toolCall.toolName];
+            const tool = allAvailableTools?.[toolCall.toolName];
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,
@@ -614,7 +680,7 @@ A function that attempts to repair a tool call that failed to parse.
 
             if (
               await isApprovalNeeded({
-                tool,
+                tool: tool as TOOLS[keyof TOOLS],
                 toolCall,
                 messages: stepInputMessages,
                 experimental_context,
@@ -652,7 +718,7 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => !toolCall.providerExecuted,
           );
 
-          if (tools != null) {
+          if (allAvailableTools != null) {
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
@@ -660,7 +726,7 @@ A function that attempts to repair a tool call that failed to parse.
                     !toolCall.invalid &&
                     toolApprovalRequests[toolCall.toolCallId] == null,
                 ),
-                tools,
+                tools: allAvailableTools as TOOLS,
                 tracer,
                 telemetry,
                 messages: stepInputMessages,
@@ -682,16 +748,25 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...(await toResponseMessages({
               content: stepContent,
-              tools,
+              tools: allAvailableTools as TOOLS | undefined,
             })),
           );
+
+          // Merge prepareStep warnings with model warnings
+          const stepWarnings =
+            prepareStepWarnings.length > 0 || currentModelResponse.warnings
+              ? [
+                  ...prepareStepWarnings,
+                  ...(currentModelResponse.warnings ?? []),
+                ]
+              : currentModelResponse.warnings;
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
             finishReason: currentModelResponse.finishReason,
             usage: asLanguageModelUsage(currentModelResponse.usage),
-            warnings: currentModelResponse.warnings,
+            warnings: stepWarnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: currentModelResponse.request ?? {},
             response: {
@@ -702,7 +777,7 @@ A function that attempts to repair a tool call that failed to parse.
           });
 
           logWarnings({
-            warnings: currentModelResponse.warnings ?? [],
+            warnings: stepWarnings,
             provider: stepModel.provider,
             model: stepModel.modelId,
           });
