@@ -115,6 +115,19 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       return acc;
     }, {});
 
+    let maskValue: string | undefined;
+    if (mask) {
+      if (mask.type === 'url') {
+        maskValue = mask.url;
+      } else {
+        if (typeof mask.data === 'string') {
+          maskValue = mask.data;
+        } else {
+          maskValue = Buffer.from(mask.data).toString('base64');
+        }
+      }
+    }
+
     const body: Record<string, unknown> = {
       prompt,
       seed,
@@ -126,7 +139,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       image_prompt_strength: bflOptions?.imagePromptStrength,
       image_prompt: bflOptions?.imagePrompt,
       ...inputImagesObj,
-      mask,
+      mask: maskValue,
       output_format: bflOptions?.outputFormat,
       prompt_upsampling: bflOptions?.promptUpsampling,
       raw: bflOptions?.raw,
