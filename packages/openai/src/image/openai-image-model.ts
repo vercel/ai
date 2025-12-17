@@ -267,13 +267,7 @@ type Input = {
   /**
    * The size of the generated images. Must be one of `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait), or `auto` (default value) for `gpt-image-1`, and one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`.
    */
-  size?: // | '256x256'
-  // | '512x512'
-  // | '1024x1024'
-  // | '1536x1024'
-  // | '1024x1536'
-  // | 'auto';
-  `${number}x${number}`;
+  size?: `${number}x${number}`;
   /**
    * Edit the image in streaming mode. Defaults to `false`. See the
    * [Image generation guide](https://platform.openai.com/docs/guides/image-generation) for more information.
