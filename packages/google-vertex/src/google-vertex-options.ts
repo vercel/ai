@@ -19,6 +19,7 @@ export type GoogleVertexModelId =
   | 'gemini-1.0-pro-vision-001'
   | 'gemini-1.0-pro'
   | 'gemini-1.0-pro-002'
+  | 'gemini-3-flash'
   // Preview models
   | 'gemini-2.0-flash-lite-preview-02-05'
   | 'gemini-2.5-flash-lite-preview-09-2025'
