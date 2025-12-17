@@ -178,11 +178,7 @@ Replicate supports image editing through various models. Pass input images via `
 Transform an existing image using text prompts:
 
 ```ts
-import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: replicate.image('black-forest-labs/flux-kontext-dev'),
@@ -204,12 +200,8 @@ const { images } = await generateImage({
 Edit specific parts of an image using a mask. For FLUX Fill models, white areas in the mask indicate where the image should be edited:
 
 ```ts
-import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const image = fs.readFileSync('./input-image.png');
-const mask = fs.readFileSync('./mask.png'); // White = inpaint, black = keep
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // White = inpaint, black = keep
 
 const { images } = await generateImage({
   model: replicate.image('black-forest-labs/flux-fill-pro'),

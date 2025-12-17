@@ -213,11 +213,7 @@ Fireworks supports image editing through FLUX Kontext models (`flux-kontext-pro`
 Transform an existing image using text prompts:
 
 ```ts
-import { fireworks } from '@ai-sdk/fireworks';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: fireworks.image('accounts/fireworks/models/flux-kontext-pro'),
@@ -238,11 +234,7 @@ const { images } = await generateImage({
 Apply artistic styles to an image:
 
 ```ts
-import { fireworks } from '@ai-sdk/fireworks';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: fireworks.image('accounts/fireworks/models/flux-kontext-pro'),

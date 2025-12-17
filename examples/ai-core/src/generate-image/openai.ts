@@ -6,7 +6,7 @@ import 'dotenv/config';
 async function main() {
   const prompt = 'A blue cream Persian cat in Kyoto in the style of ukiyo-e';
   const result = await generateImage({
-    model: openai.image('gpt-image-1-mini'),
+    model: openai.image('gpt-image-1.5'),
     prompt,
     n: 3,
   });

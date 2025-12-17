@@ -25,12 +25,7 @@ run(async () => {
     prompt: {
       text: prompt,
       images: [imageBuffer],
-    },
-    providerOptions: {
-      fireworks: {
-        output_format: 'jpeg',
-      },
-    },
+    }
   });
 
   console.log('OUTPUT IMAGE:');

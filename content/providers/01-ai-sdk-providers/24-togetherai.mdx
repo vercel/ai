@@ -184,11 +184,7 @@ Together AI supports image editing through FLUX Kontext models. Pass input image
 Transform an existing image using text prompts:
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
-import fs from 'fs';
-
-const imageBuffer = fs.readFileSync('./input-image.png');
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-kontext-pro'),
@@ -210,9 +206,6 @@ const { images } = await generateImage({
 You can also pass image URLs directly:
 
 ```ts
-import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
-
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-kontext-pro'),
   prompt: {
