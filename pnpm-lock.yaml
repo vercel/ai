@@ -141,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.0-beta.103
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
