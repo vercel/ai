@@ -73,7 +73,9 @@ export function ChatContainer({
             {messages.map(message => (
               <ChatMessage key={message.id} message={message} />
             ))}
-            <ThinkingIndicator isStreaming={status === 'submitted' || status === 'streaming'} />
+            <ThinkingIndicator
+              isStreaming={status === 'submitted' || status === 'streaming'}
+            />
             <div ref={messagesEndRef} />
           </>
         )}

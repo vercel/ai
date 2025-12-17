@@ -25,7 +25,16 @@ Showcases LangChain's `createAgent` with the AI SDK adapter:
 - Define tools with `@langchain/core/tools`
 - Stream responses using `toUIMessageStream`
 
-### 4. LangGraph Transport (`/langsmith`)
+### 4. Custom Data Parts (`/custom-data`)
+
+Demonstrates custom streaming events from LangGraph tools:
+
+- Emit typed progress/status updates using `config.writer()`
+- Custom data with `type` field becomes `data-{type}` events (e.g., `data-progress`)
+- Include `id` field to persist data in `message.parts` for rendering
+- Transient data (no `id`) is delivered via `onData` callback only
+
+### 5. LangGraph Transport (`/langsmith`)
 
 Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
 
@@ -131,6 +140,41 @@ const stream = await agent.stream(
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(stream),
 });
+```
+
+### Streaming Custom Data from Tools
+
+```typescript
+import { tool, type ToolRuntime } from 'langchain';
+import { z } from 'zod';
+
+const analyzeDataTool = tool(
+  async ({ dataSource }, config: ToolRuntime) => {
+    // Emit progress updates - becomes 'data-progress' in the UI
+    config.writer?.({
+      type: 'progress',
+      id: 'analysis-1', // Include 'id' to persist in message.parts
+      step: 'processing',
+      message: 'Running analysis...',
+      progress: 50,
+    });
+
+    // ... perform work ...
+
+    return 'Analysis complete';
+  },
+  {
+    name: 'analyze_data',
+    description: 'Analyze data with progress updates',
+    schema: z.object({ dataSource: z.string() }),
+  },
+);
+
+// Enable 'custom' stream mode
+const stream = await graph.stream(
+  { messages: langchainMessages },
+  { streamMode: ['values', 'messages', 'custom'] },
+);
 ```
 
 ### Connecting to LangGraph (Client-Side)

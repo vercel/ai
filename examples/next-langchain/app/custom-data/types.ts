@@ -46,7 +46,7 @@ export type CustomDataTypes = {
   progress: ProgressData;
   status: StatusData;
   'file-status': FileStatusData;
-}
+};
 
 /**
  * Tool definitions matching the LangGraph agent's tools.
@@ -68,11 +68,10 @@ export type AgentTools = {
     };
     output: string;
   };
-}
+};
 
 /**
  * Fully typed UIMessage for the custom-data agent.
  * Includes custom data types and tool types.
  */
 export type CustomDataMessage = UIMessage<unknown, CustomDataTypes, AgentTools>;
-

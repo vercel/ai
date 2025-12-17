@@ -31,7 +31,6 @@ export function File({ url, mediaType }: FileProps) {
   return null;
 }
 
-
 /**
  * Ensure base64 string has proper data URI prefix
  */

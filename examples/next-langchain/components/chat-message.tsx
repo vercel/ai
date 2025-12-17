@@ -8,14 +8,8 @@ import {
   isToolUIPart,
 } from 'ai';
 import { Reasoning, Text, File, ToolInvocation } from './message-parts';
-import {
-  DataProgress,
-  DataStatus,
-  DataFileStatus,
-} from './data-parts';
-import {
-  CustomDataMessage,
-} from '../app/custom-data/types';
+import { DataProgress, DataStatus, DataFileStatus } from './data-parts';
+import { CustomDataMessage } from '../app/custom-data/types';
 
 interface ChatMessageProps {
   message: CustomDataMessage;
@@ -67,9 +61,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
             // Handle file parts (including generated images)
             if (isFileUIPart(part)) {
-              return (
-                <File key={i} url={part.url} mediaType={part.mediaType} />
-              );
+              return <File key={i} url={part.url} mediaType={part.mediaType} />;
             }
 
             // Handle tool parts

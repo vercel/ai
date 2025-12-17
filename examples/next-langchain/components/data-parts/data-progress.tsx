@@ -39,4 +39,3 @@ export function DataProgress({
     </div>
   );
 }
-

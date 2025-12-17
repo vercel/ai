@@ -8,8 +8,5 @@ interface TextProps {
  * Renders a text message part
  */
 export function Text({ text }: TextProps) {
-  return (
-    <div className="whitespace-pre-wrap leading-relaxed">{text}</div>
-  );
+  return <div className="whitespace-pre-wrap leading-relaxed">{text}</div>;
 }
-

@@ -45,4 +45,3 @@ export function DataStatus({ status, message }: DataStatusProps) {
     </div>
   );
 }
-

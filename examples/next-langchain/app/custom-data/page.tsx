@@ -22,9 +22,12 @@ export default function CustomDataPage() {
           <>
             Demonstrates <strong>typed custom streaming events</strong> with
             LangGraph. Tools emit progress updates using{' '}
-            <code>config.writer(&#123; type: &apos;progress&apos;, ... &#125;)</code>, which the
-            adapter converts to typed data parts like <code>data-progress</code>
-            . Watch the live panel on the right for real-time events!
+            <code>
+              config.writer(&#123; type: &apos;progress&apos;, ... &#125;)
+            </code>
+            , which the adapter converts to typed data parts like{' '}
+            <code>data-progress</code>. Watch the live panel on the right for
+            real-time events!
           </>
         }
         messages={messages}

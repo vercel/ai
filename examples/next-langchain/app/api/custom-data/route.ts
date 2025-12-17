@@ -1,19 +1,23 @@
 import { createUIMessageStreamResponse, UIMessage } from 'ai';
 import { NextResponse } from 'next/server';
 
+import { z } from 'zod';
+import { tool, type ToolRuntime } from 'langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { tool } from '@langchain/core/tools';
 import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 import {
   StateGraph,
   MessagesAnnotation,
   START,
   END,
-  LangGraphRunnableConfig,
 } from '@langchain/langgraph';
-import { z } from 'zod';
+
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { ProgressData, StatusData, FileStatusData } from '../../custom-data/types';
+import {
+  ProgressData,
+  StatusData,
+  FileStatusData,
+} from '../../custom-data/types';
 
 /**
  * Allow streaming responses up to 60 seconds
@@ -34,7 +38,7 @@ const model = new ChatOpenAI({
 const analyzeDataTool = tool(
   async (
     { dataSource, analysisType },
-    config: LangGraphRunnableConfig,
+    config: ToolRuntime,
   ): Promise<string> => {
     const steps = [
       { step: 'connecting', message: `Connecting to ${dataSource}...` },
@@ -109,7 +113,7 @@ const analyzeDataTool = tool(
  * File processing tool - demonstrates status updates
  */
 const processFileTool = tool(
-  async ({ filename, operation }, config: LangGraphRunnableConfig) => {
+  async ({ filename, operation }, config: ToolRuntime) => {
     // Use a unique ID for this file operation to make it persistent
     const fileOpId = `file-${filename}-${Date.now()}`;
 
@@ -225,4 +229,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

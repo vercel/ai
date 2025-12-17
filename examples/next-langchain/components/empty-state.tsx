@@ -11,10 +11,7 @@ export function EmptyState({ onSend, suggestions }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center">
       <div className="w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-amber-600/20 to-yellow-500/20 flex items-center justify-center">
-        <MessageCircle
-          className="w-8 h-8 text-amber-400"
-          strokeWidth={1.5}
-        />
+        <MessageCircle className="w-8 h-8 text-amber-400" strokeWidth={1.5} />
       </div>
       <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
         Start a conversation
@@ -46,4 +43,3 @@ export function EmptyState({ onSend, suggestions }: EmptyStateProps) {
     </div>
   );
 }
-

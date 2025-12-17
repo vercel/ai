@@ -9,7 +9,11 @@ interface ToolInvocationProps {
 /**
  * Renders a tool invocation message part
  */
-export function ToolInvocation({ toolName, input, output }: ToolInvocationProps) {
+export function ToolInvocation({
+  toolName,
+  input,
+  output,
+}: ToolInvocationProps) {
   return (
     <div className="p-3 bg-[var(--background-secondary)] rounded-lg border border-[var(--border)] text-sm">
       <div className="flex items-center gap-2 mb-2">
@@ -37,4 +41,3 @@ export function ToolInvocation({ toolName, input, output }: ToolInvocationProps)
     </div>
   );
 }
-
