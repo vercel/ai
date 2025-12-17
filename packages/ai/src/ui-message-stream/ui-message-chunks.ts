@@ -165,7 +165,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'unknown',
           ] as const satisfies readonly FinishReason[])
           .optional(),
-        providerMetadata: providerMetadataSchema.optional(),
         messageMetadata: z.unknown().optional(),
       }),
       z.strictObject({
@@ -322,7 +321,6 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       finishReason?: FinishReason;
-      providerMetadata?: ProviderMetadata;
       messageMetadata?: METADATA;
     }
   | {
