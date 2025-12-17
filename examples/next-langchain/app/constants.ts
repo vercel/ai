@@ -5,6 +5,7 @@ import {
   Cloud,
   Shield,
   Sparkles,
+  Activity,
   LucideIcon,
 } from 'lucide-react';
 
@@ -48,6 +49,12 @@ export const navItems: NavItem[] = [
     description: 'Tool approval workflow',
     icon: Shield,
     badge: 'HITL',
+  },
+  {
+    href: '/custom-data',
+    label: 'Custom Data Parts',
+    description: 'Typed streaming events',
+    icon: Activity,
   },
   {
     href: '/langsmith',
