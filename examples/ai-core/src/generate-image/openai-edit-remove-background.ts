@@ -20,7 +20,7 @@ run(async () => {
   console.log('Removing background...');
 
   const { images } = await generateImage({
-    model: openai.image('gpt-image-1'),
+    model: openai.image('gpt-image-1.5'),
     prompt: {
       text: 'do not change anything',
       images: [imageBuffer],
