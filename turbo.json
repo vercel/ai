@@ -6,6 +6,7 @@
       "dependsOn": ["^build"],
       "env": [
         "AI_GATEWAY_API_KEY",
+        "AI_SDK_DEVTOOLS_PORT",
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_BASE_URL",
         "ANTHROPIC_MICROSOFT_RESOURCE_NAME",
@@ -31,6 +32,7 @@
         "GOOGLE_GENERATIVE_AI_API_KEY",
         "GOOGLE_PRIVATE_KEY",
         "GOOGLE_PRIVATE_KEY_ID",
+        "GOOGLE_VERTEX_API_KEY",
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",

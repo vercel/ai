@@ -32,6 +32,11 @@ Creates a model for text generation.
   messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
+
+  /**
 Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
@@ -130,6 +135,7 @@ export function createAnthropic(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

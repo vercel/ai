@@ -528,7 +528,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 url: z.string().nullish(),
               }),
               z.object({
-                type: z.literal('find'),
+                type: z.literal('find_in_page'),
                 url: z.string().nullish(),
                 pattern: z.string().nullish(),
               }),
@@ -870,7 +870,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   url: z.string().nullish(),
                 }),
                 z.object({
-                  type: z.literal('find'),
+                  type: z.literal('find_in_page'),
                   url: z.string().nullish(),
                   pattern: z.string().nullish(),
                 }),

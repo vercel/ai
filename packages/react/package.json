@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "3.0.0-beta.140",
+  "version": "3.0.0-beta.162",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -55,7 +55,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "react": "^18 || ^19"
+    "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1"
   },
   "engines": {
     "node": ">=18"

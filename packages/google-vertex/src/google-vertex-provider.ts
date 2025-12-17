@@ -3,6 +3,7 @@ import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
+  loadOptionalSetting,
   loadSetting,
   resolve,
   Resolvable,
@@ -17,6 +18,20 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+
+const EXPRESS_MODE_BASE_URL =
+  'https://aiplatform.googleapis.com/v1/publishers/google';
+
+function createExpressModeFetch(
+  apiKey: string,
+  customFetch?: FetchFunction,
+): FetchFunction {
+  return async (url, init) => {
+    const urlWithKey = new URL(url.toString());
+    urlWithKey.searchParams.set('key', apiKey);
+    return (customFetch ?? fetch)(urlWithKey.toString(), init);
+  };
+}
 
 export interface GoogleVertexProvider extends ProviderV3 {
   /**
@@ -37,9 +52,23 @@ Creates a model for image generation.
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   tools: typeof googleVertexTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(
+    modelId: GoogleVertexEmbeddingModelId,
+  ): GoogleVertexEmbeddingModel;
 }
 
 export interface GoogleVertexProviderSettings {
+  /**
+   * Optional. The API key for the Google Cloud project. If provided, the
+   * provider will use express mode with API key authentication. Defaults to
+   * the value of the `GOOGLE_VERTEX_API_KEY` environment variable.
+   */
+  apiKey?: string;
+
   /**
 Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
    */
@@ -80,6 +109,11 @@ Create a Google Vertex AI provider instance.
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
 ): GoogleVertexProvider {
+  const apiKey = loadOptionalSetting({
+    settingValue: options.apiKey,
+    environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
+  });
+
   const loadVertexProject = () =>
     loadSetting({
       settingValue: options.project,
@@ -97,6 +131,10 @@ export function createVertex(
     });
 
   const loadBaseURL = () => {
+    if (apiKey) {
+      return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
+    }
+
     const region = loadVertexLocation();
     const project = loadVertexProject();
 
@@ -111,7 +149,6 @@ export function createVertex(
   };
 
   const createConfig = (name: string): GoogleVertexConfig => {
-    // Create a function that adds the user-agent suffix to headers
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
@@ -123,7 +160,9 @@ export function createVertex(
     return {
       provider: `google.vertex.${name}`,
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch: apiKey
+        ? createExpressModeFetch(apiKey, options.fetch)
+        : options.fetch,
       baseURL: loadBaseURL(),
     };
   };
@@ -162,6 +201,7 @@ export function createVertex(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleVertexTools;

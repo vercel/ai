@@ -1,10 +1,10 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,17 +17,18 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
+import { xaiFailedResponseHandler } from '../xai-error';
+import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
+import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
+import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
-import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
   XaiResponsesModelId,
   xaiResponsesProviderOptions,
 } from './xai-responses-options';
-import { xaiFailedResponseHandler } from '../xai-error';
-import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
 type XaiResponsesConfig = {
@@ -113,7 +114,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
-      max_tokens: maxOutputTokens,
+      max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       seed,
@@ -270,12 +271,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapXaiResponsesFinishReason(response.status),
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.total_tokens,
-        reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
-      },
+      usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -314,11 +310,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -454,11 +446,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const response = event.response;
 
               if (response.usage) {
-                usage.inputTokens = response.usage.input_tokens;
-                usage.outputTokens = response.usage.output_tokens;
-                usage.totalTokens = response.usage.total_tokens;
-                usage.reasoningTokens =
-                  response.usage.output_tokens_details?.reasoning_tokens;
+                usage = convertXaiResponsesUsage(response.usage);
               }
 
               if (response.status) {
@@ -620,7 +608,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({ type: 'finish', finishReason, usage: usage! });
           },
         }),
       ),

@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+
 ## 3.0.0-beta.25
 
 ### Patch Changes

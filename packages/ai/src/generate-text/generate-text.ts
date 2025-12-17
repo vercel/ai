@@ -30,7 +30,11 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types';
-import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  addLanguageModelUsage,
+  asLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
@@ -85,14 +89,23 @@ Callback that is set using the `onFinish` option.
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
     /**
-Details for all steps.
-   */
+     * Details for all steps.
+     */
     readonly steps: StepResult<TOOLS>[];
 
     /**
-Total usage for all steps. This is the sum of the usage of all steps.
+     * Total usage for all steps. This is the sum of the usage of all steps.
      */
     readonly totalUsage: LanguageModelUsage;
+
+    /**
+     * Context that is passed into tool execution.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @default undefined
+     */
+    experimental_context: unknown;
   },
 ) => PromiseLike<void> | void;
 
@@ -359,34 +372,43 @@ A function that attempts to repair a tool call that failed to parse.
             experimental_context,
           });
 
+          const toolContent: Array<any> = [];
+
+          // add regular tool results for approved tool calls:
+          for (const output of toolOutputs) {
+            const modelOutput = await createToolModelOutput({
+              toolCallId: output.toolCallId,
+              input: output.input,
+              tool: tools?.[output.toolName],
+              output:
+                output.type === 'tool-result' ? output.output : output.error,
+              errorMode: output.type === 'tool-error' ? 'json' : 'none',
+            });
+
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: output.toolCallId,
+              toolName: output.toolName,
+              output: modelOutput,
+            });
+          }
+
+          // add execution denied tool results for denied tool approvals:
+          for (const toolApproval of deniedToolApprovals) {
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              output: {
+                type: 'execution-denied' as const,
+                reason: toolApproval.approvalResponse.reason,
+              },
+            });
+          }
+
           responseMessages.push({
             role: 'tool',
-            content: [
-              // add regular tool results for approved tool calls:
-              ...toolOutputs.map(output => ({
-                type: 'tool-result' as const,
-                toolCallId: output.toolCallId,
-                toolName: output.toolName,
-                output: createToolModelOutput({
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                }),
-              })),
-              // add execution denied tool results for denied tool approvals:
-              ...deniedToolApprovals.map(toolApproval => ({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: {
-                  type: 'execution-denied' as const,
-                  reason: toolApproval.approvalResponse.reason,
-                },
-              })),
-            ],
+            content: toolContent,
           });
         }
 
@@ -407,6 +429,7 @@ A function that attempts to repair a tool call that failed to parse.
             steps,
             stepNumber: steps.length,
             messages: stepInputMessages,
+            experimental_context,
           });
 
           const stepModel = resolveLanguageModel(
@@ -421,6 +444,9 @@ A function that attempts to repair a tool call that failed to parse.
             supportedUrls: await stepModel.supportedUrls,
             download,
           });
+
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({
@@ -527,15 +553,18 @@ A function that attempts to repair a tool call that failed to parse.
                       ),
 
                       // TODO rename telemetry attributes to inputTokens and outputTokens
-                      'ai.usage.promptTokens': result.usage.inputTokens,
-                      'ai.usage.completionTokens': result.usage.outputTokens,
+                      'ai.usage.promptTokens': result.usage.inputTokens.total,
+                      'ai.usage.completionTokens':
+                        result.usage.outputTokens.total,
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                      'gen_ai.usage.input_tokens':
+                        result.usage.inputTokens.total,
+                      'gen_ai.usage.output_tokens':
+                        result.usage.outputTokens.total,
                     },
                   }),
                 );
@@ -659,17 +688,17 @@ A function that attempts to repair a tool call that failed to parse.
 
           // append to messages for potential next step:
           responseMessages.push(
-            ...toResponseMessages({
+            ...(await toResponseMessages({
               content: stepContent,
               tools,
-            }),
+            })),
           );
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
             finishReason: currentModelResponse.finishReason,
-            usage: currentModelResponse.usage,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
             request: currentModelResponse.request ?? {},
@@ -719,9 +748,10 @@ A function that attempts to repair a tool call that failed to parse.
               ),
 
               // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens': currentModelResponse.usage.inputTokens,
+              'ai.usage.promptTokens':
+                currentModelResponse.usage.inputTokens.total,
               'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens,
+                currentModelResponse.usage.outputTokens.total,
             },
           }),
         );
@@ -762,6 +792,7 @@ A function that attempts to repair a tool call that failed to parse.
           providerMetadata: lastStep.providerMetadata,
           steps,
           totalUsage,
+          experimental_context,
         });
 
         // parse output only if the last step was finished with "stop":

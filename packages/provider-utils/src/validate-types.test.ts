@@ -1,9 +1,9 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { describe, expect, it } from 'vitest';
 import { safeValidateTypes, validateTypes } from './validate-types';
+import { StandardSchema } from './schema';
 
-const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
+const customSchema: StandardSchema<{ name: string; age: number }> = {
   '~standard': {
     version: 1,
     vendor: 'custom',
@@ -16,6 +16,22 @@ const customSchema: StandardSchemaV1<{ name: string; age: number }> = {
         typeof value.age === 'number'
         ? { value }
         : { issues: [new Error('Invalid input')] };
+    },
+    jsonSchema: {
+      input: () => ({
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+      }),
+      output: () => ({
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+      }),
     },
   },
 };

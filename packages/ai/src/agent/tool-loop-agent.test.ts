@@ -19,10 +19,17 @@ describe('ToolLoopAgent', () => {
             finishReason: 'stop',
             usage: {
               cachedInputTokens: undefined,
-              inputTokens: 3,
-              outputTokens: 10,
-              reasoningTokens: undefined,
-              totalTokens: 13,
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
             },
             warnings: [],
           };
@@ -261,11 +268,17 @@ describe('ToolLoopAgent', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 usage: {
-                  inputTokens: 3,
-                  outputTokens: 10,
-                  totalTokens: 13,
-                  reasoningTokens: undefined,
-                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
                 },
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },

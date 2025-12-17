@@ -243,7 +243,7 @@ export async function POST(req: Request) {
             stopWhen: stepCountIs(10),
             system:
               'You are a helpful assistant with access to protected tools.',
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
           });
 
           writer.merge(

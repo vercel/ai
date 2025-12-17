@@ -9,10 +9,8 @@ import {
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
   LanguageModelV3ToolCall,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
   SharedV3Warning,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -35,13 +33,17 @@ import {
   AnthropicToolCallMetadata,
 } from './anthropic-message-metadata';
 import {
+  AnthropicMessagesUsage,
+  convertAnthropicMessagesUsage,
+} from './convert-anthropic-messages-usage';
+import {
   AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
-  Citation,
   AnthropicResponseContextManagement,
+  Citation,
 } from './anthropic-messages-api';
 import {
   AnthropicMessagesModelId,
@@ -104,6 +106,11 @@ type AnthropicMessagesConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
   generateId?: () => string;
+
+  /**
+   * When false, the model will use JSON tool fallback for structured outputs.
+   */
+  supportsNativeStructuredOutput?: boolean;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
@@ -205,9 +212,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
-      supportsStructuredOutput,
+      supportsStructuredOutput: modelSupportsStructuredOutput,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    const supportsStructuredOutput =
+      (this.config.supportsNativeStructuredOutput ?? true) &&
+      modelSupportsStructuredOutput;
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
@@ -263,7 +274,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -378,9 +389,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (isThinking) {
       if (thinkingBudget == null) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'thinking requires a budget',
+        warnings.push({
+          type: 'compatibility',
+          feature: 'extended thinking',
+          details:
+            'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
+
+        baseArgs.thinking = {
+          type: 'enabled',
+          budget_tokens: 1024,
+        };
+
+        thinkingBudget = 1024;
       }
 
       if (baseArgs.temperature != null) {
@@ -411,7 +432,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
@@ -473,7 +494,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // structured output:
-    if (useStructuredOutput) {
+    // Only pass beta when actually using native output_format
+    const usingNativeOutputFormat =
+      useStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null;
+
+    if (usingNativeOutputFormat) {
       betas.add('structured-outputs-2025-11-13');
     }
 
@@ -954,12 +981,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         finishReason: response.stop_reason,
         isJsonResponseFromTool,
       }),
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
-        cachedInputTokens: response.usage.cache_read_input_tokens ?? undefined,
-      },
+      usage: convertAnthropicMessagesUsage(response.usage),
       request: { body: args },
       response: {
         id: response.id ?? undefined,
@@ -1027,10 +1049,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     });
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    const usage: AnthropicMessagesUsage = {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
     };
 
     const contentBlocks: Record<
@@ -1643,9 +1666,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_start': {
-              usage.inputTokens = value.message.usage.input_tokens;
-              usage.cachedInputTokens =
-                value.message.usage.cache_read_input_tokens ?? undefined;
+              usage.input_tokens = value.message.usage.input_tokens;
+              usage.cache_read_input_tokens =
+                value.message.usage.cache_read_input_tokens ?? 0;
+              usage.cache_creation_input_tokens =
+                value.message.usage.cache_creation_input_tokens ?? 0;
 
               rawUsage = {
                 ...(value.message.usage as JSONObject),
@@ -1664,9 +1689,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_delta': {
-              usage.outputTokens = value.usage.output_tokens;
-              usage.totalTokens =
-                (usage.inputTokens ?? 0) + (value.usage.output_tokens ?? 0);
+              usage.output_tokens = value.usage.output_tokens;
 
               finishReason = mapAnthropicStopReason({
                 finishReason: value.delta.stop_reason,
@@ -1706,7 +1729,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'finish',
                 finishReason,
-                usage,
+                usage: convertAnthropicMessagesUsage(usage),
                 providerMetadata: {
                   anthropic: {
                     usage: (rawUsage as JSONObject) ?? null,

@@ -557,7 +557,7 @@ File Search responses include citations via the normal `sources` field and expos
 
 Google provides a provider-defined URL context tool.
 
-The URL context tool allows the you to provide specific URLs that you want the model to analyze directly in from the prompt.
+The URL context tool allows you to provide specific URLs that you want the model to analyze directly in from the prompt.
 
 ```ts highlight="9,13-17"
 import { google } from '@ai-sdk/google';
@@ -660,6 +660,60 @@ const metadata = providerMetadata?.google as
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
+
+### Google Maps Grounding
+
+With [Google Maps grounding](https://ai.google.dev/gemini-api/docs/maps-grounding),
+the model has access to Google Maps data for location-aware responses. This enables providing local data and geospatial context, such as finding nearby restaurants.
+
+```ts highlight="7-16"
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_maps: google.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt:
+    'What are the best Italian restaurants within a 15-minute walk from here?',
+});
+
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context, including Google Maps and Google Search.
+
+When Google Maps grounding is enabled, the model's response will include sources pointing to Google Maps URLs. The grounding metadata includes `maps` chunks with place information:
+
+```json
+{
+  "groundingMetadata": {
+    "groundingChunks": [
+      {
+        "maps": {
+          "uri": "https://maps.google.com/?cid=12345",
+          "title": "Restaurant Name",
+          "placeId": "places/ChIJ..."
+        }
+      }
+    ]
+  }
+}
+```
+
+<Note>Google Maps grounding is supported on Gemini 2.0 and newer models.</Note>
 
 ### RAG Engine Grounding
 
@@ -993,7 +1047,7 @@ import { google } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('imagen-3.0-generate-002'),
+  model: google.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -1007,7 +1061,7 @@ import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('imagen-3.0-generate-002'),
+  model: google.image('imagen-4.0-generate-001'),
   providerOptions: {
     google: {
       personGeneration: 'dont_allow',
@@ -1031,4 +1085,4 @@ The following provider options are available:
 
 | Model                     | Aspect Ratios             |
 | ------------------------- | ------------------------- |
-| `imagen-3.0-generate-002` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |

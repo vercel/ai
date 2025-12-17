@@ -41,53 +41,20 @@ using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-cal
 
 ## Schemas
 
-Schemas are used to define the parameters for tools and to validate the [tool calls](/docs/ai-sdk-core/tools-and-tool-calling).
+Schemas are used to define and validate the [tool input](/docs/ai-sdk-core/tools-and-tool-calling), tools outputs, and structured output generation.
 
-The AI SDK supports both raw JSON schemas (using the [`jsonSchema` function](/docs/reference/ai-sdk-core/json-schema))
-and [Zod](https://zod.dev/) schemas (either directly or using the [`zodSchema` function](/docs/reference/ai-sdk-core/zod-schema)).
+The AI SDK supports the following schemas:
 
-[Zod](https://zod.dev/) is a popular TypeScript schema validation library.
-You can install it with:
-
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add zod" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install zod" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add zod" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add zod" dark />
-  </Tab>
-</Tabs>
-
-You can then specify a Zod schema, for example:
-
-```ts
-import z from 'zod';
-
-const recipeSchema = z.object({
-  recipe: z.object({
-    name: z.string(),
-    ingredients: z.array(
-      z.object({
-        name: z.string(),
-        amount: z.string(),
-      }),
-    ),
-    steps: z.array(z.string()),
-  }),
-});
-```
+- [Zod](https://zod.dev/) v3 and v4 directly or via [`zodSchema()`](/docs/reference/ai-sdk-core/zod-schema)
+- [Valibot](https://valibot.dev/) via [`valibotSchema()`](/docs/reference/ai-sdk-core/valibot-schema) from `@ai-sdk/valibot`
+- [Standard JSON Schema](https://standardschema.dev/json-schema) compatible schemas
+- Raw JSON schemas via [`jsonSchema()`](/docs/reference/ai-sdk-core/json-schema)
 
 <Note>
   You can also use schemas for structured output generation with
-  [`generateObject`](/docs/reference/ai-sdk-core/generate-object) and
-  [`streamObject`](/docs/reference/ai-sdk-core/stream-object).
+  [`generateText`](/docs/reference/ai-sdk-core/generate-text) and
+  [`streamText`](/docs/reference/ai-sdk-core/stream-text) using the `output`
+  setting.
 </Note>
 
 ## Tool Packages
@@ -156,6 +123,7 @@ These packages provide pre-built tools you can install and use immediately:
 - **[StackOne ToolSet](https://docs.stackone.com/agents/typescript/frameworks/vercel-ai-sdk)** - Agentic integrations for hundreds of [enterprise SaaS](https://www.stackone.com/integrations) platforms.
 - **[agentic](https://docs.agentic.so/marketplace/ts-sdks/ai-sdk)** - A collection of 20+ tools that connect to external APIs such as [Exa](https://exa.ai/) or [E2B](https://e2b.dev/).
 - **[Amazon Bedrock AgentCore](https://github.com/aws/bedrock-agentcore-sdk-typescript)** - Fully managed AI agent services including [**Browser**](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/built-in-tools.html) (a fast and secure cloud-based browser runtime to enable agents to interact with web applications, fill forms, navigate websites, and extract information) and [**Code Interpreter**](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/built-in-tools.html) (an isolated sandbox environment for agents to execute code in Python, JavaScript, and TypeScript, enhancing accuracy and expanding ability to solve complex end-to-end tasks).
+- **[@airweave/vercel-ai-sdk](https://www.npmjs.com/package/@airweave/vercel-ai-sdk)** - Unified semantic search across 35+ data sources (Notion, Slack, Google Drive, databases, and more) for AI agents.
 - **[Composio](https://docs.composio.dev/providers/vercel)** - 250+ tools like GitHub, Gmail, Salesforce and [more](https://composio.dev/tools).
 - **[JigsawStack](http://www.jigsawstack.com/docs/integration/vercel)** - Over 30+ small custom fine-tuned models available for specific uses.
 - **[AI Tools Registry](https://ai-tools-registry.vercel.app)** - A Shadcn-compatible tool definitions and components registry for the AI SDK.

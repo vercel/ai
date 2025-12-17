@@ -24,7 +24,7 @@ const messages: UIMessage[] = [
 
 const result = await generateText({
   // ...
-  messages: convertToModelMessages(messages),
+  messages: await convertToModelMessages(messages),
 });
 ```
 

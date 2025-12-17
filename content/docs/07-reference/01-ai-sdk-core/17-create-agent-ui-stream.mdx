@@ -5,7 +5,7 @@ description: API Reference for the createAgentUIStream utility.
 
 # `createAgentUIStream`
 
-The `createAgentUIStream` function runs an [Agent](/docs/reference/ai-sdk-core/agent) and returns a streaming UI message stream as an async iterable. This allows you to consume an agent's reasoning and UI messages incrementally in your own server, edge function, or background job—ideal for building custom streaming interfaces or piping the data to different outputs.
+The `createAgentUIStream` function executes an [Agent](/docs/reference/ai-sdk-core/agent), consumes an array of UI messages, and streams the agent's output as UI message chunks via an async iterable. This enables real-time, incremental rendering of AI assistant output with full access to tool use, intermediate reasoning, and interactive UI features in your own runtime—perfect for building chat APIs, dashboards, or bots powered by agents.
 
 ## Import
 
@@ -24,18 +24,18 @@ const agent = new ToolLoopAgent({
 });
 
 export async function* streamAgent(
-  messages: unknown[],
+  uiMessages: unknown[],
   abortSignal?: AbortSignal,
 ) {
   const stream = await createAgentUIStream({
     agent,
-    messages,
+    uiMessages,
     abortSignal,
-    // ...other options
+    // ...other options (see below)
   });
 
   for await (const chunk of stream) {
-    yield chunk; // UI message chunk object (see UIMessageStream)
+    yield chunk; // Each chunk is a UI message output from the agent.
   }
 }
 ```
@@ -49,35 +49,49 @@ export async function* streamAgent(
       type: 'Agent',
       isRequired: true,
       description:
-        'The agent instance to run. Must define its tools and implement `.stream({ prompt })`.',
+        'The agent to run. Must define its `tools` and implement `.stream({ prompt, ... })`.',
     },
     {
-      name: 'messages',
+      name: 'uiMessages',
       type: 'unknown[]',
       isRequired: true,
       description:
-        'Array of input UI messages sent to the agent (e.g., from user/assistant).',
+        'Array of input UI message objects (e.g., user/assistant/chat history). These will be validated and converted for the agent.',
     },
     {
       name: 'abortSignal',
       type: 'AbortSignal',
       isRequired: false,
       description:
-        'Optional abort signal to cancel the agent streaming, e.g., in response to client disconnection.',
+        'Optional abort signal to cancel the stream early (for example, if the client disconnects).',
     },
     {
-      name: '...options',
+      name: 'options',
+      type: 'CALL_OPTIONS',
+      isRequired: false,
+      description:
+        'Optional agent call options, only needed if your agent expects extra configuration (see agent generic parameters).',
+    },
+    {
+      name: 'experimental_transform',
+      type: 'StreamTextTransform | StreamTextTransform[]',
+      isRequired: false,
+      description:
+        'Optional transformations to apply to the agent output stream (experimental).',
+    },
+    {
+      name: '...UIMessageStreamOptions',
       type: 'UIMessageStreamOptions',
       isRequired: false,
       description:
-        'Additional options for customizing UI message streaming, such as source inclusion or error formatting.',
+        'Additional options to control the output stream, such as including sources or usage data.',
     },
   ]}
 />
 
 ## Returns
 
-A `Promise<AsyncIterableStream<UIMessageChunk>>`, where each yielded value is a UI message chunk representing incremental agent UI output. This stream can be piped to HTTP responses, processed for dashboards, or logged.
+A `Promise<AsyncIterableStream<UIMessageChunk>>`, where each yielded chunk is a UI message output from the agent (see [`UIMessage`](/docs/reference/ai-sdk-core/ui-message)). This can be consumed with any async iterator loop, or piped to a streaming HTTP response, socket, or any other sink.
 
 ## Example
 
@@ -88,32 +102,34 @@ const controller = new AbortController();
 
 const stream = await createAgentUIStream({
   agent,
-  messages: [{ role: 'user', content: 'What is the weather in SF today?' }],
+  uiMessages: [{ role: 'user', content: 'What is the weather in SF today?' }],
   abortSignal: controller.signal,
   sendStart: true,
+  // ...other UIMessageStreamOptions
 });
 
 for await (const chunk of stream) {
-  // Process each UI message chunk (e.g., send to client)
+  // Each chunk is a UI message update — stream it to your client, dashboard, logs, etc.
   console.log(chunk);
 }
 
-// Call controller.abort() to stop streaming early if needed.
+// Call controller.abort() to cancel the agent operation early.
 ```
 
 ## How It Works
 
-1. **Message Validation:** The incoming array of `messages` is validated and normalized according to the agent's tools and requirements. Invalid messages will cause an error.
-2. **Model Message Conversion:** The validated UI messages are converted into the model message format the agent expects.
-3. **Agent Streaming:** The agent's `.stream({ prompt, abortSignal })` method is invoked to produce a low-level result stream. If an `abortSignal` is provided and triggered, streaming will be canceled promptly.
-4. **UI Message Stream:** That result stream is exposed as a streaming async iterable of UI message chunks.
+1. **UI Message Validation:** The input `uiMessages` array is validated and normalized using the agent's `tools` definition. Any invalid messages cause an error.
+2. **Conversion to Model Messages:** The validated UI messages are converted into model-specific message format, as required by the agent.
+3. **Agent Streaming:** The agent's `.stream({ prompt, ... })` method is invoked with the converted model messages, optional call options, abort signal, and any experimental transforms.
+4. **UI Message Stream Building:** The result stream is converted and exposed as a streaming async iterable of UI message chunks for you to consume.
 
 ## Notes
 
-- The agent **must** define its `tools` and a `.stream({ prompt })` method.
-- This utility returns an async iterator for full streaming flexibility. To produce an HTTP response, see [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) or [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response).
-- You can provide UI message stream options (see [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options)) for fine-grained control over the output.
-- To cancel a streaming agent operation, supply an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) via the `abortSignal` option.
+- The agent **must** implement the `.stream({ prompt, ... })` method and define its supported `tools` property.
+- This utility returns an async iterable for maximal streaming flexibility. For HTTP responses, see [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) (Web) or [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response) (Node.js).
+- The `uiMessages` parameter is named `uiMessages`, **not** just `messages`.
+- You can provide advanced options via [`UIMessageStreamOptions`](/docs/reference/ai-sdk-core/ui-message-stream-options) (for example, to include sources or usage).
+- To cancel the stream, pass an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) via the `abortSignal` parameter.
 
 ## See Also
 
