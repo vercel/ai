@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- d129d89: chore(anthropic): remove unnecessary doc
+
 ## 3.0.0-beta.90
 
 ### Patch Changes
