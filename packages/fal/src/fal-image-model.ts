@@ -81,7 +81,6 @@ export class FalImageModel implements ImageModelV3 {
       // Use first file as the primary image_url
       requestBody.image_url = await fileToDataUri(files[0]);
 
-      // Additional images can be passed via provider options if needed
       if (files.length > 1) {
         warnings.push({
           type: 'other',
