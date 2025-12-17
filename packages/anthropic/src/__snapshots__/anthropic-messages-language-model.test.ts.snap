@@ -734,6 +734,14 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 v
   },
   {
     "input": "{"location":"San Francisco, CA"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
     "toolCallId": "toolu_01PFQG18bVLaXcEaCxTZtX4G",
     "toolName": "get_weather",
     "type": "tool-call",
@@ -767,6 +775,14 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex 
   },
   {
     "input": "{"location":"San Francisco, CA","unit":"fahrenheit"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
     "toolCallId": "toolu_01X4r989CAhzqnFqDJn1gVvp",
     "toolName": "get_temp_data",
     "type": "tool-call",
@@ -12225,6 +12241,14 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
   {
     "input": "{"location": "San Francisco, CA"}",
     "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
     "toolCallId": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
     "toolName": "get_weather",
     "type": "tool-call",
@@ -12529,6 +12553,14 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
   {
     "input": "{"location": "San Francisco, CA"}",
     "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
     "toolCallId": "toolu_01UmPwkecewaEpMupy2ywk8b",
     "toolName": "get_temp_data",
     "type": "tool-call",

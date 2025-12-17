@@ -320,16 +320,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           })),
         }),
 
-      // container with agent skills:
+      // container: For programmatic tool calling (just an ID string) or agent skills (object with id and skills)
       ...(anthropicOptions?.container && {
-        container: {
-          id: anthropicOptions.container.id,
-          skills: anthropicOptions.container.skills?.map(skill => ({
-            type: skill.type,
-            skill_id: skill.skillId,
-            version: skill.version,
-          })),
-        } satisfies AnthropicContainer,
+        container:
+          anthropicOptions.container.skills &&
+          anthropicOptions.container.skills.length > 0
+            ? // Object format when skills are provided (agent skills feature)
+              ({
+                id: anthropicOptions.container.id,
+                skills: anthropicOptions.container.skills.map(skill => ({
+                  type: skill.type,
+                  skill_id: skill.skillId,
+                  version: skill.version,
+                })),
+              } satisfies AnthropicContainer)
+            : // String format for container ID only (programmatic tool calling)
+              anthropicOptions.container.id,
       }),
 
       // prompt:
@@ -716,11 +722,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else {
+            // Extract caller info for type-safe access
+            const caller = part.caller;
+            const callerInfo = caller
+              ? {
+                  type: caller.type,
+                  toolId: 'tool_id' in caller ? caller.tool_id : undefined,
+                }
+              : undefined;
+
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
+              // Programmatic tool calling: include caller info if present
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: {
+                    caller: callerInfo,
+                  },
+                },
+              }),
             });
           }
 
@@ -1037,6 +1060,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          // Programmatic tool calling: caller info for tool_use triggered by code execution
+          caller?: {
+            type: 'code_execution_20250825' | 'direct';
+            toolId?: string;
+          };
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -1153,12 +1181,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                     });
                   } else {
+                    // Extract caller info for type-safe access
+                    const caller = part.caller;
+                    const callerInfo = caller
+                      ? {
+                          type: caller.type,
+                          toolId:
+                            'tool_id' in caller ? caller.tool_id : undefined,
+                        }
+                      : undefined;
+
+                    // Programmatic tool calling: for deferred tool calls from code_execution,
+                    // input may be present directly in content_block_start.
+                    // Only use if non-empty (empty {} means input comes via deltas)
+                    const hasNonEmptyInput =
+                      part.input && Object.keys(part.input).length > 0;
+                    const initialInput = hasNonEmptyInput
+                      ? JSON.stringify(part.input)
+                      : '';
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
                       toolName: part.name,
-                      input: '',
-                      firstDelta: true,
+                      input: initialInput,
+                      firstDelta: initialInput.length === 0,
+                      // Programmatic tool calling: store caller info if present
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1479,6 +1528,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         input:
                           contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
+                        // Programmatic tool calling: include caller info if present
+                        ...(contentBlock.caller && {
+                          providerMetadata: {
+                            anthropic: {
+                              caller: contentBlock.caller,
+                            },
+                          },
+                        }),
                       });
                     }
                     break;

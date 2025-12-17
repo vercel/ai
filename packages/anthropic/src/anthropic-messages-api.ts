@@ -97,11 +97,29 @@ export interface AnthropicDocumentContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+/**
+ * The caller information for programmatic tool calling.
+ * Present when a tool is called from within code execution.
+ */
+export type AnthropicToolCallCaller =
+  | {
+      type: 'code_execution_20250825';
+      tool_id: string;
+    }
+  | {
+      type: 'direct';
+    };
+
 export interface AnthropicToolCallContent {
   type: 'tool_use';
   id: string;
   name: string;
   input: unknown;
+  /**
+   * Present when this tool call was triggered by a server-executed tool
+   * (e.g., code execution calling a user-defined tool programmatically).
+   */
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -306,6 +324,14 @@ export type AnthropicTool =
        * discovered via the tool search tool.
        */
       defer_loading?: boolean;
+      /**
+       * Programmatic tool calling: specifies which server-executed tools
+       * are allowed to call this tool. When set, only the specified callers
+       * can invoke this tool programmatically.
+       *
+       * @example ['code_execution_20250825']
+       */
+      allowed_callers?: Array<'code_execution_20250825'>;
     }
   | {
       type: 'code_execution_20250522';
@@ -513,6 +539,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -762,6 +800,20 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            // Programmatic tool calling: input may be present directly for deferred tool calls
+            input: z.record(z.string(), z.unknown()).optional(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),
