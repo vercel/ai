@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.94
+
+### Patch Changes
+
+- 3ea80e7: feat(provider/google): add enterpriseWebSearch tool
+- Updated dependencies [3ea80e7]
+  - @ai-sdk/google@2.0.49
+
 ## 3.0.93
 
 ### Patch Changes
