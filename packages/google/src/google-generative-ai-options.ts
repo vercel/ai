@@ -31,6 +31,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-preview-09-2025'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
+  | 'gemini-3-flash-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -54,7 +55,9 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
           // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
-          thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
+          thinkingLevel: z
+            .enum(['minimal', 'low', 'medium', 'high'])
+            .optional(),
         })
         .optional(),
 
