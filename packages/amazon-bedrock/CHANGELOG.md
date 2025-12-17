@@ -1,5 +1,62 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/anthropic@3.0.0-beta.89
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [87db851]
+  - @ai-sdk/anthropic@3.0.0-beta.88
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/anthropic@3.0.0-beta.87
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/anthropic@3.0.0-beta.86
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/anthropic@3.0.0-beta.85
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/anthropic@3.0.0-beta.84
+
 ## 4.0.0-beta.93
 
 ### Patch Changes

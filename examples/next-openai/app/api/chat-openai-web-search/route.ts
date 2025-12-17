@@ -2,11 +2,11 @@ import { openaiWebSearchAgent } from '@/agent/openai-web-search-agent';
 import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const body = await req.json();
 
   return createAgentUIStreamResponse({
     agent: openaiWebSearchAgent,
-    messages,
+    uiMessages: body.messages,
     sendSources: true,
   });
 }

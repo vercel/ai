@@ -6,7 +6,7 @@ export async function POST(req: Request) {
 
   return createAgentUIStreamResponse({
     agent: xaiWebSearchAgent,
-    messages,
+    uiMessages: messages,
     sendSources: true,
   });
 }

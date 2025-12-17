@@ -1,5 +1,42 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- c1efac4: feat: add input arg to toModelOutput
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+
 ## 4.0.0-beta.47
 
 ### Patch Changes

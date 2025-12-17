@@ -488,7 +488,7 @@ import { streamText, convertToModelMessages } from 'ai';
 export async function POST(request) {
   const { id, messages } = await request.json();
 
-  const coreMessages = convertToModelMessages(messages);
+  const coreMessages = await convertToModelMessages(messages);
 
   const result = streamText({
     model: __MODEL__,

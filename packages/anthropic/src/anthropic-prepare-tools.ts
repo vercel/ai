@@ -81,6 +81,10 @@ export async function prepareTools({
             : {}),
         });
 
+        if (supportsStructuredOutput === true) {
+          betas.add('structured-outputs-2025-11-13');
+        }
+
         if (tool.inputExamples != null) {
           betas.add('advanced-tool-use-2025-11-20');
         }
