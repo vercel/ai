@@ -1616,6 +1616,7 @@ const { images } = await generateImage({
 
 | Model              | Sizes                           |
 | ------------------ | ------------------------------- |
+| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
 | `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
@@ -1625,7 +1626,7 @@ You can pass optional `providerOptions` to the image model. These are prone to c
 
 ```ts
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-1'),
+  model: openai.image('gpt-image-1.5'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },
