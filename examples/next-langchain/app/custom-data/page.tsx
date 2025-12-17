@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { ChatContainer } from '../../components/chat-container';
-import { CustomDataMessage } from './types';
+import { CustomDataMessage } from '../types';
 
 const transport = new DefaultChatTransport({
   api: '/api/custom-data',

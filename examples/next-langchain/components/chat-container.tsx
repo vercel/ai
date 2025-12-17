@@ -7,7 +7,7 @@ import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ThinkingIndicator } from './thinking-indicator';
 import { EmptyState } from './empty-state';
-import { CustomDataMessage } from '../app/custom-data/types';
+import { type CustomDataMessage } from '../app/types';
 
 interface ChatContainerProps {
   messages: CustomDataMessage[];

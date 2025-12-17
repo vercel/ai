@@ -17,7 +17,7 @@ import {
   ProgressData,
   StatusData,
   FileStatusData,
-} from '../../custom-data/types';
+} from '../../types';
 
 /**
  * Allow streaming responses up to 60 seconds
