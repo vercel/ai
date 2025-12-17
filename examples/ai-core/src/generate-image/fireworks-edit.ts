@@ -25,7 +25,7 @@ run(async () => {
     prompt: {
       text: prompt,
       images: [imageBuffer],
-    }
+    },
   });
 
   console.log('OUTPUT IMAGE:');

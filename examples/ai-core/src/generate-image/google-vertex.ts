@@ -1,6 +1,6 @@
 import {
   GoogleVertexImageProviderOptions,
-  vertex
+  vertex,
 } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
