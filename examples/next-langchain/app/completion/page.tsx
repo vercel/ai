@@ -5,16 +5,10 @@ import { useState, FormEvent, KeyboardEvent } from 'react';
 import { Send, Sparkles, AlertCircle, Square } from 'lucide-react';
 
 export default function CompletionPage() {
-  const {
-    completion,
-    error,
-    isLoading,
-    stop,
-    complete,
-    setCompletion,
-  } = useCompletion({
-    api: '/api/completion',
-  });
+  const { completion, error, isLoading, stop, complete, setCompletion } =
+    useCompletion({
+      api: '/api/completion',
+    });
 
   const [input, setInput] = useState('');
 
@@ -72,10 +66,7 @@ export default function CompletionPage() {
         {!completion && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-amber-600/20 to-yellow-500/20 flex items-center justify-center">
-              <Sparkles
-                className="w-8 h-8 text-amber-400"
-                strokeWidth={1.5}
-              />
+              <Sparkles className="w-8 h-8 text-amber-400" strokeWidth={1.5} />
             </div>
             <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
               Start a completion
@@ -146,7 +137,11 @@ export default function CompletionPage() {
                   onClick={stop}
                   className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 transition-all"
                 >
-                  <Square className="w-3 h-3" strokeWidth={2} fill="currentColor" />
+                  <Square
+                    className="w-3 h-3"
+                    strokeWidth={2}
+                    fill="currentColor"
+                  />
                   Stop
                 </button>
               </div>
