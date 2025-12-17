@@ -17156,6 +17156,143 @@ describe('streamText', () => {
   });
 
   describe('prepareStep with dynamic tool injection', () => {
+    it('should enable tool discovery → same-turn execution flow', async () => {
+      // This test demonstrates the primary use case:
+      // 1. Model calls toolSearch to discover available tools
+      // 2. prepareStep injects the discovered tool
+      // 3. Model calls the discovered tool in the next step
+      // 4. The discovered tool executes successfully
+
+      const executionLog: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async options => {
+            const toolNames = options.tools?.map(t => t.name) ?? [];
+
+            // Step 1: Model calls toolSearch
+            if (!toolNames.includes('webSearch')) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'toolSearch',
+                    input: JSON.stringify({ category: 'web' }),
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            }
+
+            // Step 2: Model calls the discovered webSearch tool
+            if (toolNames.includes('webSearch')) {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-2',
+                    toolName: 'webSearch',
+                    input: JSON.stringify({ query: 'AI SDK documentation' }),
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: 'tool-calls',
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            }
+
+            throw new Error('Unexpected state');
+          },
+        }),
+        tools: {
+          // Bootstrap tool that "discovers" other tools
+          toolSearch: tool({
+            inputSchema: z.object({ category: z.string() }),
+            execute: async ({ category }) => {
+              executionLog.push(`toolSearch executed: ${category}`);
+              // Return discovered tools metadata
+              return {
+                discoveredTools: [
+                  { name: 'webSearch', description: 'Search the web' },
+                ],
+              };
+            },
+          }),
+        },
+        prompt: 'Find web tools and search for AI SDK docs',
+        stopWhen: stepCountIs(2),
+        prepareStep: async ({ steps }) => {
+          // Check if toolSearch was called in the previous step
+          const lastStep = steps[steps.length - 1];
+          const toolSearchResult = lastStep?.toolResults?.find(
+            r => r.toolName === 'toolSearch',
+          );
+
+          if (toolSearchResult) {
+            const discovered = (toolSearchResult.output as any)
+              ?.discoveredTools;
+            if (discovered?.some((t: any) => t.name === 'webSearch')) {
+              // Inject the discovered tool
+              return {
+                tools: {
+                  webSearch: dynamicTool({
+                    description: 'Search the web',
+                    inputSchema: z.object({ query: z.string() }),
+                    execute: async input => {
+                      const { query } = input as { query: string };
+                      executionLog.push(`webSearch executed: ${query}`);
+                      return { results: [`Found docs for: ${query}`] };
+                    },
+                  }),
+                },
+              };
+            }
+          }
+        },
+      });
+
+      const steps = await result.steps;
+
+      // Verify the execution flow
+      expect(executionLog).toEqual([
+        'toolSearch executed: web',
+        'webSearch executed: AI SDK documentation',
+      ]);
+
+      // Step 1: toolSearch was called
+      expect(steps[0].toolCalls[0].toolName).toBe('toolSearch');
+      expect(steps[0].toolResults[0].output).toEqual({
+        discoveredTools: [{ name: 'webSearch', description: 'Search the web' }],
+      });
+
+      // Step 2: webSearch (discovered tool) was called and executed
+      expect(steps[1].toolCalls[0].toolName).toBe('webSearch');
+      expect(steps[1].toolResults[0].output).toEqual({
+        results: ['Found docs for: AI SDK documentation'],
+      });
+    });
+
     it('should inject tools via prepareStep and make them available in subsequent steps', async () => {
       const doStreamCalls: Array<LanguageModelV3CallOptions> = [];
       let injectedToolExecuted = false;
