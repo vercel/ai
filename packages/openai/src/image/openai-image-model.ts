@@ -4,6 +4,7 @@ import {
   convertBase64ToUint8Array,
   convertToFormData,
   createJsonResponseHandler,
+  downloadBlob,
   postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -95,7 +96,7 @@ export class OpenAIImageModel implements ImageModelV3 {
                     ],
                     { type: file.mediaType },
                   )
-                : downloadImageAsBlob(file.url),
+                : downloadBlob(file.url),
             ),
           ),
           n,
@@ -281,13 +282,3 @@ type OpenAIImageEditInput = {
    */
   user?: string;
 };
-
-async function downloadImageAsBlob(url: string): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download image from URL: ${url}. Status: ${response.status} ${response.statusText}`,
-    );
-  }
-  return await response.blob();
-}

@@ -488,8 +488,8 @@ describe('doGenerate - image editing', () => {
     });
 
     const multipart = await server.calls[0].requestBodyMultipart;
-    expect(multipart.model).toBe('gpt-image-1');
-    expect(multipart.image).toBeDefined();
+    expect(multipart?.model).toBe('gpt-image-1');
+    expect(multipart?.image).toBeDefined();
   });
 
   it('should send multiple images as form data array', async () => {
@@ -518,7 +518,7 @@ describe('doGenerate - image editing', () => {
     });
 
     const multipart = await server.calls[0].requestBodyMultipart;
-    expect(multipart['image[]']).toBeDefined();
+    expect(multipart?.['image[]']).toBeDefined();
   });
 
   it('should pass provider options in form data', async () => {

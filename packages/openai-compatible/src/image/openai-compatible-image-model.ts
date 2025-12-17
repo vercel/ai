@@ -9,6 +9,7 @@ import {
   convertToFormData,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  downloadBlob,
   FetchFunction,
   postFormDataToApi,
   postJsonToApi,
@@ -168,7 +169,7 @@ type OpenAICompatibleFormDataInput = {
 
 async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadImageAsBlob(file.url);
+    return downloadBlob(file.url);
   }
 
   const data =
@@ -177,14 +178,4 @@ async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
       : convertBase64ToUint8Array(file.data);
 
   return new Blob([data as BlobPart], { type: file.mediaType });
-}
-
-async function downloadImageAsBlob(url: string): Promise<Blob> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download image from URL: ${url}. Status: ${response.status} ${response.statusText}`,
-    );
-  }
-  return await response.blob();
 }
