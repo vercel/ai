@@ -875,6 +875,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1025,6 +1032,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1305,6 +1319,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for HITL tools
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-hitl-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-hitl-1',
@@ -1367,6 +1388,21 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
+    // Check both tool starts
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-delete-1',
+      toolName: 'delete_file',
+      dynamic: true,
+    });
+
     // Check both tool inputs
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1427,7 +1463,19 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
-    // Should have generated a fallback ID
+    // Should have generated a fallback ID and emit tool-input-start first
+    const toolStartChunk = chunks.find(
+      (
+        c,
+      ): c is {
+        type: 'tool-input-start';
+        toolCallId: string;
+        toolName: string;
+      } => (c as { type: string }).type === 'tool-input-start',
+    );
+    expect(toolStartChunk).toBeDefined();
+    expect(toolStartChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+
     const toolInputChunk = chunks.find(
       (
         c,
@@ -1440,6 +1488,7 @@ describe('processLangGraphEvent', () => {
     );
     expect(toolInputChunk).toBeDefined();
     expect(toolInputChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+    expect(toolInputChunk?.toolCallId).toBe(toolStartChunk?.toolCallId);
 
     const approvalChunk = chunks.find(
       (
@@ -1487,6 +1536,14 @@ describe('processLangGraphEvent', () => {
     };
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    // Should emit tool-input-start before tool-input-available
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: expect.stringMatching(/^hitl-send_email-/),
+      toolName: 'send_email',
+      dynamic: true,
+    });
 
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1546,10 +1603,12 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
-    // Should NOT emit another tool-input-available (already emitted)
+    // Should NOT emit tool-input-start or tool-input-available (already emitted)
     expect(
       chunks.filter(
-        c => (c as { type: string }).type === 'tool-input-available',
+        c =>
+          (c as { type: string }).type === 'tool-input-start' ||
+          (c as { type: string }).type === 'tool-input-available',
       ),
     ).toHaveLength(0);
 

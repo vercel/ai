@@ -1081,6 +1081,17 @@ export function processLangGraphEvent(
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
+                  /**
+                   * Emit tool-input-start first to ensure proper lifecycle.
+                   * Tool calls that weren't streamed (no tool_call_chunks) need
+                   * the start event before tool-input-available.
+                   */
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    dynamic: true,
+                  });
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -1187,11 +1198,18 @@ export function processLangGraphEvent(
                 `hitl-${toolName}-${Date.now()}`;
 
               /**
-               * First emit tool-input-available so the UI knows what tool is being called
+               * First emit tool-input-start then tool-input-available
+               * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
                 emittedToolCalls.add(toolCallId);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  toolCallId,
+                  toolName,
+                  dynamic: true,
+                });
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,

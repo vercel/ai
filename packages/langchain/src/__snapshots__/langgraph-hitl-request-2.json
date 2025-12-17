@@ -3,6 +3,12 @@
     "type": "start"
   },
   {
+    "type": "tool-input-start",
+    "toolCallId": "call_LOd3dMxgYxmNLWZVWXra9xWQ",
+    "toolName": "delete_file",
+    "dynamic": true
+  },
+  {
     "type": "tool-input-available",
     "toolCallId": "call_LOd3dMxgYxmNLWZVWXra9xWQ",
     "toolName": "delete_file",
