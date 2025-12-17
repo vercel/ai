@@ -15,6 +15,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
@@ -373,14 +374,7 @@ async function fileToDataUri(file: ImageModelV3File): Promise<string> {
   }
 
   // Uint8Array - convert to base64
-  const base64 = uint8ArrayToBase64(file.data);
+  const base64 = convertUint8ArrayToBase64(file.data);
   return `data:${mediaType};base64,${base64}`;
 }
 
-function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}

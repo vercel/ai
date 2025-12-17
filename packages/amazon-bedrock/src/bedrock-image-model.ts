@@ -7,6 +7,7 @@ import {
   FetchFunction,
   Resolvable,
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
@@ -273,19 +274,11 @@ function getBase64Data(file: ImageModelV3File): string {
   }
 
   if (file.data instanceof Uint8Array) {
-    return uint8ArrayToBase64(file.data);
+    return convertUint8ArrayToBase64(file.data);
   }
 
   // Already base64 string
   return file.data;
-}
-
-function uint8ArrayToBase64(uint8Array: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
-  }
-  return btoa(binary);
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation

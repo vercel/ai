@@ -13,6 +13,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   zodSchema,
+  convertUint8ArrayToBase64
 } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
@@ -55,7 +56,6 @@ export class TogetherAIImageModel implements ImageModelV3 {
   > {
     const warnings: Array<SharedV3Warning> = [];
 
-    // Together AI does not support mask-based inpainting
     if (mask != null) {
       throw new Error(
         'Together AI does not support mask-based image editing. ' +
@@ -75,7 +75,6 @@ export class TogetherAIImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    // Parse provider options
     const togetheraiOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
@@ -169,19 +168,8 @@ async function fileToImageUrl(file: ImageModelV3File): Promise<string> {
     return `data:${file.mediaType};base64,${file.data}`;
   }
   // Uint8Array - convert to base64
-  const base64 = uint8ArrayToBase64(file.data);
+  const base64 = convertUint8ArrayToBase64(file.data);
   return `data:${file.mediaType};base64,${base64}`;
-}
-
-/**
- * Convert a Uint8Array to a base64 string.
- */
-function uint8ArrayToBase64(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary);
 }
 
 /**

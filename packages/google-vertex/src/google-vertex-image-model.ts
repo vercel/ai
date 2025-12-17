@@ -6,6 +6,7 @@ import {
 import {
   Resolvable,
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -283,13 +284,5 @@ function getBase64Data(file: ImageModelV3File): string {
   }
 
   // Convert Uint8Array to base64
-  return uint8ArrayToBase64(file.data);
-}
-
-function uint8ArrayToBase64(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary);
+  return convertUint8ArrayToBase64(file.data);
 }
