@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.49
+
+### Patch Changes
+
+- 3ea80e7: feat(provider/google): add enterpriseWebSearch tool
+
 ## 2.0.48
 
 ### Patch Changes
