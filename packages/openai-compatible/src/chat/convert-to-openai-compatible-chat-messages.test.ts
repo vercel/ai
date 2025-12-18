@@ -3,18 +3,18 @@ import { describe, it, expect } from 'vitest';
 
 describe('user messages', () => {
   it('should convert messages with only a text part to a string content', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [{ type: 'text', text: 'Hello' }],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
   it('should convert messages with image parts', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -26,7 +26,7 @@ describe('user messages', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -43,7 +43,7 @@ describe('user messages', () => {
   });
 
   it('should convert messages with image parts from Uint8Array', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -55,7 +55,7 @@ describe('user messages', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -72,7 +72,7 @@ describe('user messages', () => {
   });
 
   it('should handle URL-based images', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -83,7 +83,7 @@ describe('user messages', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -101,7 +101,7 @@ describe('user messages', () => {
 
 describe('tool calls', () => {
   it('should stringify arguments to tool calls', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         content: [
@@ -124,7 +124,7 @@ describe('tool calls', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -150,7 +150,7 @@ describe('tool calls', () => {
   });
 
   it('should handle text output type in tool results', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         content: [
@@ -173,7 +173,7 @@ describe('tool calls', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -201,7 +201,7 @@ describe('tool calls', () => {
 
 describe('provider-specific metadata merging', () => {
   it('should merge system message metadata', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'system',
         content: 'You are a helpful assistant.',
@@ -211,7 +211,7 @@ describe('provider-specific metadata merging', () => {
           },
         },
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -223,7 +223,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should merge user message content metadata', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -238,7 +238,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -250,7 +250,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should prioritize content-level metadata when merging', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         providerOptions: {
@@ -270,7 +270,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -282,7 +282,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle tool calls with metadata', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         content: [
@@ -299,7 +299,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -322,7 +322,7 @@ describe('provider-specific metadata merging', () => {
 
   it('should handle image content with metadata', async () => {
     const imageUrl = new URL('https://example.com/image.jpg');
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -338,7 +338,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -355,7 +355,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should omit non-openaiCompatible metadata', async () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'system',
         content: 'Hello',
@@ -365,7 +365,7 @@ describe('provider-specific metadata merging', () => {
           },
         },
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -376,7 +376,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle a user message with multiple content parts (text + image)', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -401,7 +401,7 @@ describe('provider-specific metadata merging', () => {
           openaiCompatible: { priority: 'high' },
         },
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -426,7 +426,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle a user message with multiple text parts (flattening disabled)', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         content: [
@@ -434,7 +434,7 @@ describe('provider-specific metadata merging', () => {
           { type: 'text', text: 'Part 2' },
         ],
       },
-    ]);
+    ] });
 
     // Because there are multiple text parts, the converter won't flatten them
     expect(result).toEqual([
@@ -449,7 +449,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle an assistant message with text plus multiple tool calls', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         content: [
@@ -472,7 +472,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -502,7 +502,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle a single tool role message with multiple tool-result parts', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'tool',
         providerOptions: {
@@ -527,7 +527,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -545,7 +545,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle multiple content parts with multiple metadata layers', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'user',
         providerOptions: {
@@ -571,7 +571,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -596,7 +596,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle different tool metadata vs. message-level metadata', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         providerOptions: {
@@ -617,7 +617,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -640,7 +640,7 @@ describe('provider-specific metadata merging', () => {
   });
 
   it('should handle metadata collisions and overwrites in tool calls', () => {
-    const result = convertToOpenAICompatibleChatMessages([
+    const result = convertToOpenAICompatibleChatMessages({ prompt: [
       {
         role: 'assistant',
         providerOptions: {
@@ -664,7 +664,7 @@ describe('provider-specific metadata merging', () => {
           },
         ],
       },
-    ]);
+    ] });
 
     expect(result).toEqual([
       {
@@ -684,6 +684,185 @@ describe('provider-specific metadata merging', () => {
             sharedKey: 'toolLevel',
           },
         ],
+      },
+    ]);
+  });
+});
+
+describe('reasoning content', () => {
+  it('should include reasoning_content when sendReasoning is true', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Let me think about this.' },
+            { type: 'reasoning', text: 'First, I need to consider...' },
+            { type: 'text', text: 'The answer is 42.' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Let me think about this.The answer is 42.',
+        reasoning_content: 'First, I need to consider...',
+      },
+    ]);
+  });
+
+  it('should omit reasoning_content when sendReasoning is false (default)', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Let me think about this.' },
+            { type: 'reasoning', text: 'First, I need to consider...' },
+            { type: 'text', text: 'The answer is 42.' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Let me think about this.The answer is 42.',
+      },
+    ]);
+  });
+
+  it('should omit reasoning_content when sendReasoning is not provided', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Response text.' },
+            { type: 'reasoning', text: 'Internal reasoning.' },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Response text.',
+      },
+    ]);
+  });
+
+  it('should concatenate multiple reasoning parts when sendReasoning is true', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'First step: analyze the problem. ' },
+            { type: 'reasoning', text: 'Second step: formulate solution.' },
+            { type: 'text', text: 'Here is the solution.' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Here is the solution.',
+        reasoning_content:
+          'First step: analyze the problem. Second step: formulate solution.',
+      },
+    ]);
+  });
+
+  it('should handle reasoning with tool calls when sendReasoning is true', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'I need to check the weather.' },
+            {
+              type: 'reasoning',
+              text: 'The user asked about weather, so I should use the weather tool.',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'getWeather',
+              input: { location: 'Paris' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'I need to check the weather.',
+        reasoning_content:
+          'The user asked about weather, so I should use the weather tool.',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'getWeather',
+              arguments: JSON.stringify({ location: 'Paris' }),
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle assistant message with only reasoning content', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Thinking through the problem...' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        reasoning_content: 'Thinking through the problem...',
+      },
+    ]);
+  });
+
+  it('should omit reasoning_content field entirely when no reasoning and sendReasoning is true', () => {
+    const result = convertToOpenAICompatibleChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Just a regular response.' }],
+        },
+      ],
+      sendReasoning: true,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Just a regular response.',
       },
     ]);
   });
