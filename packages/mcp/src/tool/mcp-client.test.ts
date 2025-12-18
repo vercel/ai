@@ -253,10 +253,12 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    await expect(client.experimental_listPrompts()).rejects.toThrow(MCPClientError);
-    await expect(client.experimental_getPrompt({ name: 'code_review' })).rejects.toThrow(
+    await expect(client.experimental_listPrompts()).rejects.toThrow(
       MCPClientError,
     );
+    await expect(
+      client.experimental_getPrompt({ name: 'code_review' }),
+    ).rejects.toThrow(MCPClientError);
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {
