@@ -895,20 +895,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           codeInterpreter?: {
             containerId: string;
           };
-        }
-      | undefined
-    > = {};
-
-    const applyPatchStreams: Record<
-      string,
-      | {
-          callId: string;
-          outputIndex: number;
-          operation: ApplyPatchOperation;
-          hasDiff: boolean;
-          endEmitted: boolean;
-          prefixDelta: string;
-          suffixDelta: string | null;
+          applyPatch?: {
+            operation: ApplyPatchOperation;
+            hasDiff: boolean;
+            endEmitted: boolean;
+            prefixDelta: string;
+            suffixDelta: string | null;
+          };
         }
       | undefined
     > = {};
@@ -1072,20 +1065,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = {
                   toolName: toolNameMapping.toCustomToolName('apply_patch'),
                   toolCallId: callId,
-                };
-
-                const prefixDelta = `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}"${operation.type === 'delete_file' ? '' : ',"diff":"'}`;
-                const suffixDelta =
-                  operation.type === 'delete_file' ? '}}' : '"}}';
-
-                applyPatchStreams[value.item.id] = {
-                  callId,
-                  outputIndex: value.output_index,
-                  operation,
-                  hasDiff: operation.type === 'delete_file' ? true : false,
-                  endEmitted: false,
-                  prefixDelta,
-                  suffixDelta,
+                  applyPatch: {
+                    operation,
+                    hasDiff: operation.type === 'delete_file',
+                    endEmitted: false,
+                    prefixDelta: `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}"${operation.type === 'delete_file' ? '' : ',"diff":"'}`,
+                    suffixDelta:
+                      operation.type === 'delete_file' ? '}}' : '"}}',
+                  },
                 };
 
                 controller.enqueue({
@@ -1097,10 +1084,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: callId,
-                  delta: prefixDelta,
+                  delta: ongoingToolCalls[value.output_index]!.applyPatch!
+                    .prefixDelta,
                 });
 
                 if (operation.type === 'delete_file') {
+                  const suffixDelta =
+                    ongoingToolCalls[value.output_index]!.applyPatch!
+                      .suffixDelta;
+
                   if (suffixDelta != null) {
                     controller.enqueue({
                       type: 'tool-input-delta',
@@ -1114,7 +1106,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     id: callId,
                   });
 
-                  applyPatchStreams[value.item.id]!.endEmitted = true;
+                  ongoingToolCalls[value.output_index]!.applyPatch!.endEmitted =
+                    true;
                 }
               } else if (value.item.type === 'shell_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1309,9 +1302,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'apply_patch_call') {
-                ongoingToolCalls[value.output_index] = undefined;
-
-                const streamState = applyPatchStreams[value.item.id];
+                const streamState =
+                  ongoingToolCalls[value.output_index]?.applyPatch;
 
                 if (streamState != null && !streamState.endEmitted) {
                   if (
@@ -1321,7 +1313,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   ) {
                     controller.enqueue({
                       type: 'tool-input-delta',
-                      id: streamState.callId,
+                      id: ongoingToolCalls[value.output_index]!.toolCallId,
                       delta: value.item.operation.diff,
                     });
                   }
@@ -1329,14 +1321,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   if (streamState.suffixDelta != null) {
                     controller.enqueue({
                       type: 'tool-input-delta',
-                      id: streamState.callId,
+                      id: ongoingToolCalls[value.output_index]!.toolCallId,
                       delta: streamState.suffixDelta,
                     });
                   }
 
                   controller.enqueue({
                     type: 'tool-input-end',
-                    id: streamState.callId,
+                    id: ongoingToolCalls[value.output_index]!.toolCallId,
                   });
 
                   streamState.endEmitted = true;
@@ -1346,7 +1338,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 if (value.item.status === 'completed') {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: value.item.call_id,
+                    toolCallId: ongoingToolCalls[value.output_index]!.toolCallId,
                     toolName: toolNameMapping.toCustomToolName('apply_patch'),
                     input: JSON.stringify({
                       callId: value.item.call_id,
@@ -1360,7 +1352,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   });
                 }
 
-                applyPatchStreams[value.item.id] = undefined;
+                ongoingToolCalls[value.output_index] = undefined;
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -1457,12 +1449,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               isResponseApplyPatchCallOperationDiffDeltaChunk(value)
             ) {
               const diffChunk = value;
-              const streamState = applyPatchStreams[diffChunk.item_id];
+              const streamState =
+                ongoingToolCalls[diffChunk.output_index]?.applyPatch;
 
               if (streamState != null) {
                 controller.enqueue({
                   type: 'tool-input-delta',
-                  id: streamState.callId,
+                  id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
                   delta: diffChunk.delta,
                 });
 
@@ -1470,13 +1463,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               }
             } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
               const diffChunk = value;
-              const streamState = applyPatchStreams[diffChunk.item_id];
+              const streamState =
+                ongoingToolCalls[diffChunk.output_index]?.applyPatch;
 
               if (streamState != null && !streamState.endEmitted) {
                 if (!streamState.hasDiff && diffChunk.diff != null) {
                   controller.enqueue({
                     type: 'tool-input-delta',
-                    id: streamState.callId,
+                    id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
                     delta: diffChunk.diff,
                   });
 
@@ -1486,14 +1480,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 if (streamState.suffixDelta != null) {
                   controller.enqueue({
                     type: 'tool-input-delta',
-                    id: streamState.callId,
+                    id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
                     delta: streamState.suffixDelta,
                   });
                 }
 
                 controller.enqueue({
                   type: 'tool-input-end',
-                  id: streamState.callId,
+                  id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
                 });
 
                 streamState.endEmitted = true;
