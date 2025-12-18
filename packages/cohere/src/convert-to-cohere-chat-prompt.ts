@@ -119,7 +119,7 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV3Prompt): {
             .map(toolResult => {
               const output = toolResult.output;
 
-              let contentValue = '';
+              let contentValue: string;
               switch (output.type) {
                 case 'text':
                 case 'error-text':

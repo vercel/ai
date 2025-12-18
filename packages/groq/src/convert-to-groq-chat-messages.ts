@@ -112,7 +112,7 @@ export function convertToGroqChatMessages(
 
           const output = toolResponse.output;
 
-          let contentValue = '';
+          let contentValue: string;
           switch (output.type) {
             case 'text':
             case 'error-text':

@@ -128,7 +128,7 @@ export function convertToMistralChatMessages(
 
           const output = toolResponse.output;
 
-          let contentValue = '';
+          let contentValue: string;
           switch (output.type) {
             case 'text':
             case 'error-text':
