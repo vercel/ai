@@ -33,8 +33,8 @@ export function splitDataUrl(dataUrl: string): {
 
     const mediaType = header.split(';')[0].split(':')[1];
 
-    // Ensure we got a valid media type
-    if (!mediaType) {
+    // Ensure we got a valid media type and base64 content
+    if (!mediaType || !base64Content) {
       return undefinedResult;
     }
 
