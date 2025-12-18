@@ -4,6 +4,7 @@ import {
   ToolApprovalResponse,
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -92,7 +93,10 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
 
     const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
     if (toolCall == null) {
-      continue;
+      throw new ToolCallNotFoundForApprovalError({
+        toolCallId: approvalRequest.toolCallId,
+        approvalId: approvalRequest.approvalId,
+      });
     }
 
     const approval: CollectedToolApprovals<TOOLS> = {
