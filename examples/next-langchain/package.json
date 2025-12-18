@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "3.0.0-beta.162",
-    "@ai-sdk/langchain": "2.0.0-beta.159",
+    "@ai-sdk/langchain": "2.0.0-beta.160",
     "@langchain/openai": "^1.2.0",
     "@langchain/core": "^1.1.5",
     "@langchain/langgraph": "^1.0.5",
