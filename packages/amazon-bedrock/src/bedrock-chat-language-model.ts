@@ -562,8 +562,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 isJsonResponseFromTool,
               );
               stopSequence =
-                value.messageStop.additionalModelResponseFields?.stop_sequence ??
-                null;
+                value.messageStop.additionalModelResponseFields
+                  ?.stop_sequence ?? null;
             }
 
             if (value.metadata) {
@@ -883,9 +883,8 @@ const BedrockResponseSchema = z.object({
     }),
   }),
   stopReason: BedrockStopReasonSchema,
-  additionalModelResponseFields: BedrockAdditionalModelResponseFieldsSchema
-    .passthrough()
-    .nullish(),
+  additionalModelResponseFields:
+    BedrockAdditionalModelResponseFieldsSchema.passthrough().nullish(),
   trace: z.unknown().nullish(),
   usage: z.object({
     inputTokens: z.number(),
@@ -939,9 +938,8 @@ const BedrockStreamSchema = z.object({
   internalServerException: z.record(z.string(), z.unknown()).nullish(),
   messageStop: z
     .object({
-      additionalModelResponseFields: BedrockAdditionalModelResponseFieldsSchema
-        .passthrough()
-        .nullish(),
+      additionalModelResponseFields:
+        BedrockAdditionalModelResponseFieldsSchema.passthrough().nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
