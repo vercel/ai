@@ -19,7 +19,12 @@ export function splitDataUrl(dataUrl: string): {
   }
 
   try {
-    const [header, base64Content] = dataUrl.split(',');
+    const commaIndex = dataUrl.indexOf(',');
+    if (commaIndex === -1) {
+      return undefinedResult;
+    }
+    const header = dataUrl.substring(0, commaIndex);
+    const base64Content = dataUrl.substring(commaIndex + 1);
 
     // Validate header format
     if (!header.includes(';base64')) {
