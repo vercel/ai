@@ -338,15 +338,25 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
     z.object({
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
+      /** @deprecated use prompt.images instead */
       inputImage: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage2: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage3: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage4: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage5: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage6: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage7: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage8: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage9: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage10: z.string().optional(),
       steps: z.number().int().positive().optional(),
       guidance: z.number().min(0).optional(),
