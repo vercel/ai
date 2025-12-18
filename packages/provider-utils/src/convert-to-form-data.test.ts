@@ -80,6 +80,23 @@ describe('convertToFormData()', () => {
       expect(images[1]).toBeInstanceOf(Blob);
     });
 
+    it('should add multi-element arrays without [] suffix when useArrayBrackets is false', () => {
+      const blob1 = new Blob(['test1'], { type: 'image/png' });
+      const blob2 = new Blob(['test2'], { type: 'image/jpeg' });
+      const formData = convertToFormData(
+        {
+          image: [blob1, blob2],
+        },
+        { useArrayBrackets: false },
+      );
+
+      expect(formData.has('image[]')).toBe(false);
+      const images = formData.getAll('image');
+      expect(images).toHaveLength(2);
+      expect(images[0]).toBeInstanceOf(Blob);
+      expect(images[1]).toBeInstanceOf(Blob);
+    });
+
     it('should handle empty arrays by not adding any values', () => {
       const formData = convertToFormData({
         model: 'test',

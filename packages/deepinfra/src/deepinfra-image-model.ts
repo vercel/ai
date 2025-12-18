@@ -62,15 +62,18 @@ export class DeepInfraImageModel implements ImageModelV3 {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
         headers: combineHeaders(this.config.headers(), headers),
-        formData: convertToFormData<DeepInfraFormDataInput>({
-          model: this.modelId,
-          prompt,
-          image: await Promise.all(files.map(file => fileToBlob(file))),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
-          n,
-          size,
-          ...(providerOptions.deepinfra ?? {}),
-        }),
+        formData: convertToFormData<DeepInfraFormDataInput>(
+          {
+            model: this.modelId,
+            prompt,
+            image: await Promise.all(files.map(file => fileToBlob(file))),
+            mask: mask != null ? await fileToBlob(mask) : undefined,
+            n,
+            size,
+            ...(providerOptions.deepinfra ?? {}),
+          },
+          { useArrayBrackets: false },
+        ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: deepInfraEditErrorSchema,
           errorToMessage: error => error.error?.message ?? 'Unknown error',
