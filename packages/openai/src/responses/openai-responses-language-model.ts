@@ -22,7 +22,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { applyPatchInputSchema, ApplyPatchOperation } from '../tool/apply-patch';
+import {
+  applyPatchInputSchema,
+  ApplyPatchOperation,
+} from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -1106,8 +1109,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: callId,
-                    delta: ongoingToolCalls[value.output_index]!.applyPatch!
-                      .prefixDelta,
+                    delta:
+                      ongoingToolCalls[value.output_index]!.applyPatch!
+                        .prefixDelta,
                   });
                 }
               } else if (value.item.type === 'shell_call') {
@@ -1343,7 +1347,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 if (value.item.status === 'completed') {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: ongoingToolCalls[value.output_index]!.toolCallId,
+                    toolCallId:
+                      ongoingToolCalls[value.output_index]!.toolCallId,
                     toolName: toolNameMapping.toCustomToolName('apply_patch'),
                     input: JSON.stringify({
                       callId: value.item.call_id,
@@ -1450,9 +1455,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   delta: value.delta,
                 });
               }
-            } else if (
-              isResponseApplyPatchCallOperationDiffDeltaChunk(value)
-            ) {
+            } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
               const diffChunk = value;
               const streamState =
                 ongoingToolCalls[diffChunk.output_index]?.applyPatch;

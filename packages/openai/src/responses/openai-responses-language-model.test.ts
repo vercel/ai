@@ -5346,23 +5346,23 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
 
-    it('should stream apply_patch delete_file calls', async () => {
-      prepareChunksFixtureResponse('openai-apply-patch-tool-delete.1');
+      it('should stream apply_patch delete_file calls', async () => {
+        prepareChunksFixtureResponse('openai-apply-patch-tool-delete.1');
 
-      const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.apply_patch',
-            name: 'apply_patch',
-            args: {},
-          },
-        ],
+        const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.apply_patch',
+              name: 'apply_patch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
-
-      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
-    });
     });
   });
 
