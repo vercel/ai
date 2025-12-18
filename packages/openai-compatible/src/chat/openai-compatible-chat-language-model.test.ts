@@ -65,6 +65,7 @@ describe('doGenerate', () => {
     reasoning = '',
     tool_calls,
     function_call,
+    images,
     usage = {
       prompt_tokens: 4,
       total_tokens: 34,
@@ -91,6 +92,12 @@ describe('doGenerate', () => {
       name: string;
       arguments: string;
     };
+    images?: Array<{
+      type: 'image_url';
+      image_url: {
+        url: string;
+      };
+    }>;
     usage?: {
       prompt_tokens?: number;
       total_tokens?: number;
@@ -128,6 +135,7 @@ describe('doGenerate', () => {
               reasoning,
               tool_calls,
               function_call,
+              images,
             },
             finish_reason,
           },
@@ -243,6 +251,137 @@ describe('doGenerate', () => {
         {
           "text": "This is from reasoning_content",
           "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
+  it('should extract images with data URL and parse mediaType', async () => {
+    prepareJsonResponse({
+      content: 'Here is an image',
+      images: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'data:image/png;base64,iVBORw0KGgo=',
+          },
+        },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Here is an image",
+          "type": "text",
+        },
+        {
+          "data": "iVBORw0KGgo=",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
+  it('should extract images with jpeg mediaType from data URL', async () => {
+    prepareJsonResponse({
+      content: '',
+      images: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+          },
+        },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "/9j/4AAQSkZJRg==",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
+  it('should handle multiple images in response', async () => {
+    prepareJsonResponse({
+      content: 'Multiple images',
+      images: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'data:image/png;base64,firstImage==',
+          },
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'data:image/webp;base64,secondImage==',
+          },
+        },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Multiple images",
+          "type": "text",
+        },
+        {
+          "data": "firstImage==",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "data": "secondImage==",
+          "mediaType": "image/webp",
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
+  it('should fallback to image/png and original URL when data URL parsing fails', async () => {
+    prepareJsonResponse({
+      content: '',
+      images: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'https://example.com/image.png',
+          },
+        },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "https://example.com/image.png",
+          "mediaType": "image/png",
+          "type": "file",
         },
       ]
     `);
@@ -1461,6 +1600,156 @@ describe('doStream', () => {
         {
           "id": "txt-0",
           "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream images with data URL and parse mediaType', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here is an image"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"images":[{"type":"image_url","image_url":{"url":"data:image/png;base64,iVBORw0KGgo="}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is an image",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "data": "iVBORw0KGgo=",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 18,
+              "total": 18,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 439,
+              "total": 439,
+            },
+            "raw": {
+              "completion_tokens": 439,
+              "prompt_tokens": 18,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream multiple images with different mediaTypes', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"images":[{"type":"image_url","image_url":{"url":"data:image/png;base64,firstImage=="}},{"type":"image_url","image_url":{"url":"data:image/jpeg;base64,secondImage=="}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "data": "firstImage==",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "data": "secondImage==",
+          "mediaType": "image/jpeg",
+          "type": "file",
         },
         {
           "finishReason": "stop",
