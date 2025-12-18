@@ -834,9 +834,11 @@ const BedrockStopReasonSchema = z.union([
   z.string(),
 ]);
 
-const BedrockAdditionalModelResponseFieldsSchema = z.object({
-  stop_sequence: z.string().optional(),
-});
+const BedrockAdditionalModelResponseFieldsSchema = z
+  .object({
+    stop_sequence: z.string().optional(),
+  })
+  .catchall(z.unknown());
 
 const BedrockToolUseSchema = z.object({
   toolUseId: z.string(),
@@ -884,7 +886,7 @@ const BedrockResponseSchema = z.object({
   }),
   stopReason: BedrockStopReasonSchema,
   additionalModelResponseFields:
-    BedrockAdditionalModelResponseFieldsSchema.passthrough().nullish(),
+    BedrockAdditionalModelResponseFieldsSchema.nullish(),
   trace: z.unknown().nullish(),
   usage: z.object({
     inputTokens: z.number(),
@@ -939,7 +941,7 @@ const BedrockStreamSchema = z.object({
   messageStop: z
     .object({
       additionalModelResponseFields:
-        BedrockAdditionalModelResponseFieldsSchema.passthrough().nullish(),
+        BedrockAdditionalModelResponseFieldsSchema.nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
