@@ -575,11 +575,28 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
+                // Extract caller info from provider options for programmatic tool calling
+                const callerOptions = part.providerOptions?.anthropic as
+                  | { caller?: { type: string; toolId?: string } }
+                  | undefined;
+                const caller = callerOptions?.caller
+                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                    callerOptions.caller.toolId
+                    ? {
+                        type: 'code_execution_20250825' as const,
+                        tool_id: callerOptions.caller.toolId,
+                      }
+                    : callerOptions.caller.type === 'direct'
+                      ? { type: 'direct' as const }
+                      : undefined
+                  : undefined;
+
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.input,
+                  ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
                 break;
