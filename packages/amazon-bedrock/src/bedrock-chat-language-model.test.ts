@@ -1048,11 +1048,6 @@ describe('doStream', () => {
         [
           {
             "finishReason": "stop",
-            "providerMetadata": {
-              "bedrock": {
-                "stopSequence": "STOP",
-              },
-            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1748,6 +1743,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -1830,6 +1826,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -1913,6 +1910,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2012,6 +2010,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2127,6 +2126,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2269,6 +2269,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2725,7 +2726,7 @@ describe('doGenerate', () => {
     expect(result.providerMetadata).toMatchInlineSnapshot(`
       {
         "bedrock": {
-          "stopSequence": "STOP",
+          "stopSequence": null,
         },
       }
     `);
@@ -3209,6 +3210,7 @@ describe('doGenerate', () => {
     expect(response.providerMetadata).toMatchInlineSnapshot(`
       {
         "bedrock": {
+          "stopSequence": null,
           "usage": {
             "cacheWriteInputTokens": 3,
           },
