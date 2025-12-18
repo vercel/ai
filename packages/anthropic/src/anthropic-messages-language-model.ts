@@ -1095,6 +1095,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               return; // ignored
             }
 
+            case 'vertex_event': {
+              return; // ignored - Vertex AI proxy usage event
+            }
+
             case 'content_block_start': {
               const part = value.content_block;
               const contentBlockType = part.type;

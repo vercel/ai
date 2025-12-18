@@ -1051,6 +1051,20 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('ping'),
       }),
+      // Vertex AI proxies inject vertex_event SSE events with usage info - ignore them
+      z.object({
+        type: z.literal('vertex_event'),
+        usage: z
+          .looseObject({
+            input_tokens: z.number().optional(),
+            output_tokens: z.number().optional(),
+            cache_creation_input_tokens: z.number().nullish(),
+            cache_read_input_tokens: z.number().nullish(),
+            web_search_requests: z.unknown().nullish(),
+            cache_creation: z.unknown().nullish(),
+          })
+          .optional(),
+      }),
     ]),
   ),
 );
