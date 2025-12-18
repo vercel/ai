@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useMemo } from 'react';
 import { ChatContainer } from '../../components/chat-container';
+import { type CustomDataMessage } from '../types';
 
 export default function LangGraphChat() {
   const transport = useMemo(
@@ -11,7 +12,7 @@ export default function LangGraphChat() {
     [],
   );
 
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<CustomDataMessage>({
     transport,
   });
 

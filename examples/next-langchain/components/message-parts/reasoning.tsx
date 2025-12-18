@@ -3,7 +3,7 @@
 import { Brain, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-interface ReasoningBlockProps {
+interface ReasoningProps {
   text: string;
   state: 'streaming' | 'done';
 }
@@ -11,11 +11,11 @@ interface ReasoningBlockProps {
 /**
  * Collapsible component for reasoning content
  */
-export function ReasoningBlock({ text, state }: ReasoningBlockProps) {
+export function Reasoning({ text, state }: ReasoningProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="mb-3 border border-gray-500/30 rounded-lg bg-gray-500/5 overflow-hidden">
+    <div className="border border-gray-500/30 rounded-lg bg-gray-500/5 overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-3 py-2 flex items-center gap-2 text-sm text-gray-400 hover:bg-gray-500/10 transition-colors"

@@ -731,7 +731,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 2.0.0-beta.159
+        specifier: 2.0.0-beta.160
         version: link:../../packages/langchain
       '@ai-sdk/react':
         specifier: 3.0.0-beta.162
