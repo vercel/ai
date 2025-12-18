@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- 90ede04: feat(mcp): make MCPClient stable
+
 ## 1.0.0-beta.39
 
 ### Patch Changes

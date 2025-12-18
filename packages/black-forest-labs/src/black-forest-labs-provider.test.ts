@@ -57,6 +57,8 @@ describe('BlackForestLabs provider', () => {
 
     await model.doGenerate({
       prompt: 'A serene mountain landscape at sunset',
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -106,6 +108,8 @@ describe('BlackForestLabs provider', () => {
     await expect(
       model.doGenerate({
         prompt: 'Timeout test',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
