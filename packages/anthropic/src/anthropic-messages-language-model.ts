@@ -722,7 +722,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else {
-            // Extract caller info for type-safe access
             const caller = part.caller;
             const callerInfo = caller
               ? {
@@ -736,7 +735,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
-              // Programmatic tool calling: include caller info if present
               ...(callerInfo && {
                 providerMetadata: {
                   anthropic: {
@@ -1061,7 +1059,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
-          // Programmatic tool calling: caller info for tool_use triggered by code execution
           caller?: {
             type: 'code_execution_20250825' | 'direct';
             toolId?: string;
@@ -1207,7 +1204,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       toolName: part.name,
                       input: initialInput,
                       firstDelta: initialInput.length === 0,
-                      // Programmatic tool calling: store caller info if present
                       ...(callerInfo && { caller: callerInfo }),
                     };
 
@@ -1530,7 +1526,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         input:
                           contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
-                        // Programmatic tool calling: include caller info if present
                         ...(contentBlock.caller && {
                           providerMetadata: {
                             anthropic: {

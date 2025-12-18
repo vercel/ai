@@ -90,7 +90,6 @@ export async function prepareTools({
           betas.add('structured-outputs-2025-11-13');
         }
 
-        // Programmatic tool calling requires the advanced-tool-use beta
         if (tool.inputExamples != null || allowedCallers != null) {
           betas.add('advanced-tool-use-2025-11-20');
         }

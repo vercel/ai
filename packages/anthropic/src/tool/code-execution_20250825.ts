@@ -70,8 +70,6 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
 export const codeExecution_20250825InputSchema = lazySchema(() =>
   zodSchema(
     z.union([
-      // Programmatic tool calling format: code_execution sends {code: "..."} when
-      // used with allowedCallers to trigger client-executed tools
       z.object({
         code: z.string(),
       }),

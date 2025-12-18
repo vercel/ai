@@ -6174,8 +6174,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should use non-empty input from content_block_start for deferred tool calls', async () => {
-        // In programmatic tool calling, deferred tool calls may have complete input
-        // in content_block_start with no deltas following
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'stream-chunks',
           chunks: [
@@ -6221,8 +6219,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should NOT prepend empty {} input when deltas follow content_block_start', async () => {
-        // This tests the fix for the bug where empty {} in content_block_start
-        // was being prepended to the actual input from deltas
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'stream-chunks',
           chunks: [
@@ -6259,7 +6255,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         );
 
         expect(toolCall).toBeDefined();
-        // The input should be ONLY the streamed content, NOT "{}{"city": "London"}"
         expect(toolCall?.input).toBe('{"city": "London"}');
       });
     });
