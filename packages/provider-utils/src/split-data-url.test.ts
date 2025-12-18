@@ -69,7 +69,7 @@ describe('splitDataUrl()', () => {
   it('should return undefined values for invalid data URL without comma', () => {
     const result = splitDataUrl('data:image/png;base64');
     expect(result).toEqual({
-      mediaType: 'image/png',
+      mediaType: undefined,
       base64Content: undefined,
     });
   });
