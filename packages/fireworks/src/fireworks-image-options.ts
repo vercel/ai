@@ -2,6 +2,8 @@
 export type FireworksImageModelId =
   | 'accounts/fireworks/models/flux-1-dev-fp8'
   | 'accounts/fireworks/models/flux-1-schnell-fp8'
+  | 'accounts/fireworks/models/flux-kontext-pro'
+  | 'accounts/fireworks/models/flux-kontext-max'
   | 'accounts/fireworks/models/playground-v2-5-1024px-aesthetic'
   | 'accounts/fireworks/models/japanese-stable-diffusion-xl'
   | 'accounts/fireworks/models/playground-v2-1024px-aesthetic'
