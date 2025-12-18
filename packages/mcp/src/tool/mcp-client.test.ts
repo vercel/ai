@@ -190,7 +190,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompts = await client.listPrompts();
+    const prompts = await client.experimental_listPrompts();
 
     expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
 
@@ -217,7 +217,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompt = await client.getPrompt({
+    const prompt = await client.experimental_getPrompt({
       name: 'code_review',
       arguments: { code: 'print(42)' },
     });
@@ -253,8 +253,8 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
-    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
+    await expect(client.experimental_listPrompts()).rejects.toThrow(MCPClientError);
+    await expect(client.experimental_getPrompt({ name: 'code_review' })).rejects.toThrow(
       MCPClientError,
     );
   });
