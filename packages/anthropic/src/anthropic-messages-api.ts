@@ -219,6 +219,7 @@ export interface AnthropicCodeExecutionToolResultContent {
         stdout: string;
         stderr: string;
         return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
       }
     | {
         type: 'code_execution_tool_result_error';
@@ -642,6 +643,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
@@ -909,6 +919,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),

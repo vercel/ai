@@ -711,6 +711,7 @@ export async function convertToAnthropicMessagesPrompt({
                         stdout: codeExecutionOutput.stdout,
                         stderr: codeExecutionOutput.stderr,
                         return_code: codeExecutionOutput.return_code,
+                        content: codeExecutionOutput.content ?? [],
                       },
                       cache_control: cacheControl,
                     });
@@ -721,24 +722,40 @@ export async function convertToAnthropicMessagesPrompt({
                       schema: codeExecution_20250825OutputSchema,
                     });
 
-                    anthropicContent.push(
+                    if (codeExecutionOutput.type === 'code_execution_result') {
+                      // Programmatic tool calling result - same format as 20250522
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: codeExecutionOutput.type,
+                          stdout: codeExecutionOutput.stdout,
+                          stderr: codeExecutionOutput.stderr,
+                          return_code: codeExecutionOutput.return_code,
+                          content: codeExecutionOutput.content ?? [],
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else if (
                       codeExecutionOutput.type ===
                         'bash_code_execution_result' ||
-                        codeExecutionOutput.type ===
-                          'bash_code_execution_tool_result_error'
-                        ? {
-                            type: 'bash_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          }
-                        : {
-                            type: 'text_editor_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          },
-                    );
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_tool_result_error'
+                    ) {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'text_editor_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    }
                   }
                   break;
                 }

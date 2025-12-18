@@ -9,6 +9,21 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
+        type: z.literal('code_execution_result'),
+        stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+      z.object({
         type: z.literal('bash_code_execution_result'),
         content: z.array(
           z.object({
@@ -149,6 +164,33 @@ const factory = createProviderToolFactoryWithOutputSchema<
        */
       new_str: string;
     },
+  | {
+      /**
+       * Programmatic tool calling result: returned when code_execution runs code
+       * that calls client-executed tools via allowedCallers.
+       */
+      type: 'code_execution_result';
+
+      /**
+       * Output from successful execution
+       */
+      stdout: string;
+
+      /**
+       * Error messages if execution fails
+       */
+      stderr: string;
+
+      /**
+       * 0 for success, non-zero for failure
+       */
+      return_code: number;
+
+      /**
+       * Output file Id list
+       */
+      content: Array<{ type: 'code_execution_output'; file_id: string }>;
+    }
   | {
       type: 'bash_code_execution_result';
 

@@ -37,6 +37,30 @@ export default function AnthropicCodeExecutionView({
 
           <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
             <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+              {invocation.output.type === 'code_execution_result' && (
+                <>
+                  <span className="font-semibold">Stdout:</span>
+                  <br />
+                  {invocation.output.stdout}
+                  <br />
+                  {invocation.output.stderr && (
+                    <>
+                      <span className="font-semibold">Stderr:</span>
+                      <br />
+                      {invocation.output.stderr}
+                      <br />
+                    </>
+                  )}
+                  {invocation.output.return_code != null && (
+                    <>
+                      <span className="font-semibold">Return Code:</span>
+                      <br />
+                      {invocation.output.return_code}
+                      <br />
+                    </>
+                  )}
+                </>
+              )}
               {invocation.output.type === 'bash_code_execution_result' && (
                 <>
                   <span className="font-semibold">Stdout:</span>

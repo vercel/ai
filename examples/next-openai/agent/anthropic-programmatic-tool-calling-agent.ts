@@ -23,6 +23,27 @@ export const anthropicProgrammaticToolCallingAgent = new ToolLoopAgent({
       } satisfies AnthropicProviderOptions as any,
     },
   }),
+
+  // Pass container ID between steps within the same stream
+  prepareStep: ({ steps }) => {
+    const lastStep = steps.at(-1);
+    const containerId = (
+      lastStep?.providerMetadata?.anthropic as { container?: { id?: string } }
+    )?.container?.id;
+
+    if (containerId) {
+      return {
+        providerOptions: {
+          anthropic: {
+            container: {
+              id: containerId,
+            },
+          } satisfies AnthropicProviderOptions as any,
+        },
+      };
+    }
+    return undefined;
+  },
 });
 
 export type AnthropicProgrammaticToolCallingMessage = InferAgentUIMessage<

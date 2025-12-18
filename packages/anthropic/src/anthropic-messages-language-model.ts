@@ -911,6 +911,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 stdout: part.content.stdout,
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
+                content: part.content.content ?? [],
               },
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {
@@ -1384,6 +1385,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         stdout: part.content.stdout,
                         stderr: part.content.stderr,
                         return_code: part.content.return_code,
+                        content: part.content.content ?? [],
                       },
                     });
                   } else if (
