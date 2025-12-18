@@ -95,7 +95,7 @@ describe('splitDataUrl()', () => {
     const result = splitDataUrl('data:image/png;base64,abc,def');
     expect(result).toEqual({
       mediaType: 'image/png',
-      base64Content: 'abc',
+      base64Content: 'abc,def',
     });
   });
 
