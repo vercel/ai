@@ -1,4 +1,8 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  ImageModelV3File,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -99,6 +103,7 @@ export class OpenAIImageModel implements ImageModelV3 {
                 : downloadBlob(file.url),
             ),
           ),
+          mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
           ...(providerOptions.openai ?? {}),
@@ -282,3 +287,20 @@ type OpenAIImageEditInput = {
    */
   user?: string;
 };
+
+async function fileToBlob(
+  file: ImageModelV3File | undefined,
+): Promise<Blob | undefined> {
+  if (!file) return undefined;
+
+  if (file.type === 'url') {
+    return downloadBlob(file.url);
+  }
+
+  const data =
+    file.data instanceof Uint8Array
+      ? file.data
+      : convertBase64ToUint8Array(file.data);
+
+  return new Blob([data as BlobPart], { type: file.mediaType });
+}
