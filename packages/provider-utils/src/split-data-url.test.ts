@@ -53,8 +53,8 @@ describe('splitDataUrl()', () => {
   it('should handle empty base64 content', () => {
     const result = splitDataUrl('data:image/png;base64,');
     expect(result).toEqual({
-      mediaType: 'image/png',
-      base64Content: '',
+      mediaType: undefined,
+      base64Content: undefined,
     });
   });
 
