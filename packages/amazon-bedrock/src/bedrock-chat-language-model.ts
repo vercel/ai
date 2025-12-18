@@ -431,7 +431,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     // provider metadata:
     const providerMetadata =
-      response.trace || response.usage || isJsonResponseFromTool
+      response.trace || response.usage || isJsonResponseFromTool || response.stopSequence
         ? {
             bedrock: {
               ...(response.trace && typeof response.trace === 'object'
@@ -443,6 +443,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 },
               }),
               ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
+              stopSequence: response.stopSequence ?? null,
             },
           }
         : undefined;
@@ -491,6 +492,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     let usage: BedrockUsage | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
+    let stopSequence: string | null = null;
 
     const contentBlocks: Record<
       number,
@@ -556,6 +558,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 value.messageStop.stopReason as BedrockStopReason,
                 isJsonResponseFromTool,
               );
+              stopSequence = value.messageStop.stopSequence ?? null;
             }
 
             if (value.metadata) {
@@ -779,17 +782,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
           },
           flush(controller) {
-            // Update provider metadata with isJsonResponseFromTool if needed
-            if (isJsonResponseFromTool) {
+            // Update provider metadata with isJsonResponseFromTool and stopSequence if needed
+            if (isJsonResponseFromTool || stopSequence != null) {
               if (providerMetadata) {
                 providerMetadata.bedrock = {
                   ...providerMetadata.bedrock,
-                  isJsonResponseFromTool: true,
+                  ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
+                  stopSequence,
                 };
               } else {
                 providerMetadata = {
                   bedrock: {
-                    isJsonResponseFromTool: true,
+                    ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
+                    stopSequence,
                   },
                 };
               }
@@ -865,6 +870,7 @@ const BedrockResponseSchema = z.object({
     }),
   }),
   stopReason: BedrockStopReasonSchema,
+  stopSequence: z.string().nullish(),
   trace: z.unknown().nullish(),
   usage: z.object({
     inputTokens: z.number(),
@@ -922,6 +928,7 @@ const BedrockStreamSchema = z.object({
         .record(z.string(), z.unknown())
         .nullish(),
       stopReason: BedrockStopReasonSchema,
+      stopSequence: z.string().nullish(),
     })
     .nullish(),
   metadata: z
