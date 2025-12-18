@@ -8,7 +8,7 @@ import {
   APICallError,
   embed,
   embedMany,
-  experimental_generateImage as generateImage,
+  generateImage,
   generateObject,
   generateText,
   stepCountIs,

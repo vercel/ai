@@ -11,7 +11,7 @@ The AI SDK provides the [`generateImage`](/docs/reference/ai-sdk-core/generate-i
 function to generate images based on a given prompt using an image model.
 
 ```tsx
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
@@ -39,7 +39,7 @@ The size is specified as a string in the format `{width}x{height}`.
 Models only support a few sizes, and the supported sizes are different for each model and provider.
 
 ```tsx highlight={"7"}
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
@@ -55,7 +55,7 @@ The aspect ratio is specified as a string in the format `{width}:{height}`.
 Models only support a few aspect ratios, and the supported aspect ratios are different for each model and provider.
 
 ```tsx highlight={"7"}
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { vertex } from '@ai-sdk/google-vertex';
 
 const { image } = await generateImage({
@@ -70,7 +70,7 @@ const { image } = await generateImage({
 `generateImage` also supports generating multiple images at once:
 
 ```tsx highlight={"7"}
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { images } = await generateImage({
@@ -104,7 +104,7 @@ You can provide a seed to the `generateImage` function to control the output of 
 If supported by the model, the same seed will always produce the same image.
 
 ```tsx highlight={"7"}
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
@@ -122,7 +122,7 @@ using the `providerOptions` parameter. The options for the provider
 (`openai` in the example below) become request body properties.
 
 ```tsx highlight={"9"}
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
@@ -143,7 +143,7 @@ that you can use to abort the image generation process or set a timeout.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
@@ -159,7 +159,7 @@ that you can use to add custom headers to the image generation request.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: openai.image('dall-e-3'),
