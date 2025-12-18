@@ -243,12 +243,13 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
-      name: 'listPrompts',
+      name: 'experimental_listPrompts',
       type: `async (options?: {
         params?: PaginatedRequest['params'];
         options?: RequestOptions;
       }) => Promise<ListPromptsResult>`,
-      description: 'Lists available prompts from the MCP server.',
+      description:
+        'Lists available prompts from the MCP server. This method is experimental and may change in the future.',
       properties: [
         {
           type: 'options',
@@ -271,13 +272,14 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
-      name: 'getPrompt',
+      name: 'experimental_getPrompt',
       type: `async (args: {
         name: string;
         arguments?: Record<string, unknown>;
         options?: RequestOptions;
       }) => Promise<GetPromptResult>`,
-      description: 'Retrieves a prompt by name, optionally passing arguments.',
+      description:
+        'Retrieves a prompt by name, optionally passing arguments. This method is experimental and may change in the future.',
       properties: [
         {
           type: 'args',
