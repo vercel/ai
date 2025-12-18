@@ -274,6 +274,36 @@ const { images } = await generateImage({
   URL-based images and convert them to the appropriate format.
 </Note>
 
+## Reasoning Content
+
+Some OpenAI-compatible providers support reasoning/thinking modes that allow models to express their internal reasoning process during multi-turn conversations and tool calls.
+The OpenAI Compatible provider supports sending reasoning content through the `sendReasoning` option:
+
+```ts highlight="8"
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  sendReasoning: true, // Enable reasoning content in requests
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Solve this math problem: 2 + 2',
+});
+```
+
+When `sendReasoning` is enabled, the provider will include reasoning content in the `reasoning_content` field of assistant messages sent to the model. This allows models that support reasoning to show their thought process.
+
+<Note>
+  This feature defaults to `false` and should only be enabled when using a
+  provider that explicitly supports reasoning content. Enabling it with
+  providers that don't support reasoning may cause API errors.
+</Note>
+
 ## Provider-specific options
 
 The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
