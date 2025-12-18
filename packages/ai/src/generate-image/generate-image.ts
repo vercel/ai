@@ -324,12 +324,13 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
     };
   }
 
+  const uint8Data = convertDataContentToUint8Array(dataContent);
   return {
     type: 'file',
-    data: convertDataContentToUint8Array(dataContent),
+    data: uint8Data,
     mediaType:
       detectMediaType({
-        data: convertDataContentToUint8Array(dataContent),
+        data: uint8Data,
         signatures: imageMediaTypeSignatures,
       }) || 'image/png',
   };
