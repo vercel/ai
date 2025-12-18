@@ -10,6 +10,7 @@ import {
   ToolApprovalCard,
   getPendingApprovals,
 } from '../../components/tool-approval-card';
+import { type CustomDataMessage } from '../types';
 
 /**
  * Generate a unique thread ID for HITL persistence
@@ -31,7 +32,7 @@ export default function HITLPage() {
   );
 
   const { messages, status, error, sendMessage, addToolApprovalResponse } =
-    useChat({
+    useChat<CustomDataMessage>({
       transport,
       /**
        * Automatically send a new request when tool approval responses are added.

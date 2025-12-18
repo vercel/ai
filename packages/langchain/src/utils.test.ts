@@ -734,7 +734,7 @@ describe('processLangGraphEvent', () => {
     emittedToolCallsByKey: new Map<string, string>(),
   });
 
-  it('should handle custom events', () => {
+  it('should handle custom events without type field (fallback to data-custom)', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -742,7 +742,97 @@ describe('processLangGraphEvent', () => {
     processLangGraphEvent(['custom', { data: 'value' }], state, controller);
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with type field (data-{type})', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', { type: 'progress', value: 50, message: 'Processing...' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 50, message: 'Processing...' },
+      },
+    ]);
+  });
+
+  it('should handle custom events with id field (persistent, not transient)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'custom',
+        { type: 'progress', id: 'progress-1', value: 50, message: 'Half done' },
+      ],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: 'progress-1',
+        transient: false, // Has id, so NOT transient
+        data: {
+          type: 'progress',
+          id: 'progress-1',
+          value: 50,
+          message: 'Half done',
+        },
+      },
+    ]);
+  });
+
+  it('should handle custom events with different type names', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // Test status event
+    processLangGraphEvent(
+      ['custom', { type: 'status', step: 'fetching', complete: false }],
+      state,
+      controller,
+    );
+
+    // Test analytics event
+    processLangGraphEvent(
+      ['custom', { type: 'analytics', event: 'tool_called', tool: 'weather' }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-status',
+        id: undefined,
+        transient: true,
+        data: { type: 'status', step: 'fetching', complete: false },
+      },
+      {
+        type: 'data-analytics',
+        id: undefined,
+        transient: true,
+        data: { type: 'analytics', event: 'tool_called', tool: 'weather' },
+      },
     ]);
   });
 
@@ -758,7 +848,71 @@ describe('processLangGraphEvent', () => {
     );
 
     expect(chunks).toEqual([
-      { type: 'data-custom', transient: true, data: { data: 'value' } },
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: { data: 'value' },
+      },
+    ]);
+  });
+
+  it('should handle three-element arrays with namespace and type field', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['namespace', 'custom', { type: 'progress', value: 75 }],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-progress',
+        id: undefined,
+        transient: true,
+        data: { type: 'progress', value: 75 },
+      },
+    ]);
+  });
+
+  it('should handle custom events with string data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(['custom', 'simple string data'], state, controller);
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: 'simple string data',
+      },
+    ]);
+  });
+
+  it('should handle custom events with array data (fallback to data-custom)', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      ['custom', [1, 2, 3, { type: 'ignored' }]],
+      state,
+      controller,
+    );
+
+    expect(chunks).toEqual([
+      {
+        type: 'data-custom',
+        id: undefined,
+        transient: true,
+        data: [1, 2, 3, { type: 'ignored' }],
+      },
     ]);
   });
 
@@ -875,6 +1029,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1025,6 +1186,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesData], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for non-streamed tool calls
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-1',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-1',
@@ -1305,6 +1473,13 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
+    // Should emit tool-input-start before tool-input-available for HITL tools
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-hitl-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
       toolCallId: 'call-hitl-1',
@@ -1367,6 +1542,21 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
+    // Check both tool starts
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-email-1',
+      toolName: 'send_email',
+      dynamic: true,
+    });
+
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-delete-1',
+      toolName: 'delete_file',
+      dynamic: true,
+    });
+
     // Check both tool inputs
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1427,7 +1617,19 @@ describe('processLangGraphEvent', () => {
       controller,
     );
 
-    // Should have generated a fallback ID
+    // Should have generated a fallback ID and emit tool-input-start first
+    const toolStartChunk = chunks.find(
+      (
+        c,
+      ): c is {
+        type: 'tool-input-start';
+        toolCallId: string;
+        toolName: string;
+      } => (c as { type: string }).type === 'tool-input-start',
+    );
+    expect(toolStartChunk).toBeDefined();
+    expect(toolStartChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+
     const toolInputChunk = chunks.find(
       (
         c,
@@ -1440,6 +1642,7 @@ describe('processLangGraphEvent', () => {
     );
     expect(toolInputChunk).toBeDefined();
     expect(toolInputChunk?.toolCallId).toMatch(/^hitl-send_email-/);
+    expect(toolInputChunk?.toolCallId).toBe(toolStartChunk?.toolCallId);
 
     const approvalChunk = chunks.find(
       (
@@ -1487,6 +1690,14 @@ describe('processLangGraphEvent', () => {
     };
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
+
+    // Should emit tool-input-start before tool-input-available
+    expect(chunks).toContainEqual({
+      type: 'tool-input-start',
+      toolCallId: expect.stringMatching(/^hitl-send_email-/),
+      toolName: 'send_email',
+      dynamic: true,
+    });
 
     expect(chunks).toContainEqual({
       type: 'tool-input-available',
@@ -1546,10 +1757,12 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['values', valuesWithInterrupt], state, controller);
 
-    // Should NOT emit another tool-input-available (already emitted)
+    // Should NOT emit tool-input-start or tool-input-available (already emitted)
     expect(
       chunks.filter(
-        c => (c as { type: string }).type === 'tool-input-available',
+        c =>
+          (c as { type: string }).type === 'tool-input-start' ||
+          (c as { type: string }).type === 'tool-input-available',
       ),
     ).toHaveLength(0);
 

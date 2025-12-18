@@ -3,13 +3,14 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { ChatContainer } from '../../components/chat-container';
+import { type CustomDataMessage } from '../types';
 
 const transport = new DefaultChatTransport({
   api: '/api/createAgent',
 });
 
 export default function AgentPage() {
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error } = useChat<CustomDataMessage>({
     transport,
   });
 

@@ -1,11 +1,18 @@
 'use client';
 
-import { UIMessage } from 'ai';
-import { GeneratedImage } from './generated-image';
-import { ReasoningBlock } from './reasoning-block';
+import {
+  isDataUIPart,
+  isTextUIPart,
+  isReasoningUIPart,
+  isFileUIPart,
+  isToolUIPart,
+} from 'ai';
+import { Reasoning, Text, File, ToolInvocation } from './message-parts';
+import { DataProgress, DataStatus, DataFileStatus } from './data-parts';
+import { type CustomDataMessage } from '../app/types';
 
 interface ChatMessageProps {
-  message: UIMessage;
+  message: CustomDataMessage;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -29,7 +36,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         className={`flex-1 max-w-[85%] ${isUser ? 'flex flex-col items-end' : ''}`}
       >
         <div
-          className={`px-4 py-3 rounded-2xl ${
+          className={`px-4 py-3 rounded-2xl flex flex-col gap-3 ${
             isUser
               ? 'bg-[var(--accent)] text-white rounded-tr-md'
               : 'bg-[var(--background-tertiary)] border border-[var(--border)] rounded-tl-md'
@@ -37,83 +44,82 @@ export function ChatMessage({ message }: ChatMessageProps) {
         >
           {message.parts.map((part, i) => {
             // Handle reasoning parts (extended thinking)
-            if (part.type === 'reasoning') {
-              const reasoningPart = part as {
-                type: 'reasoning';
-                text: string;
-                state?: 'streaming' | 'done';
-              };
+            if (isReasoningUIPart(part)) {
               return (
-                <ReasoningBlock
+                <Reasoning
                   key={i}
-                  text={reasoningPart.text}
-                  state={reasoningPart.state || 'done'}
+                  text={part.text}
+                  state={part.state || 'done'}
                 />
               );
             }
-            if (part.type === 'text') {
+
+            // Handle text parts
+            if (isTextUIPart(part)) {
+              return <Text key={i} text={part.text} />;
+            }
+
+            // Handle file parts (including generated images)
+            if (isFileUIPart(part)) {
+              return <File key={i} url={part.url} mediaType={part.mediaType} />;
+            }
+
+            // Handle tool parts
+            if (isToolUIPart(part)) {
+              const toolName =
+                'toolName' in part
+                  ? part.toolName
+                  : part.type.replace('tool-', '');
+              const input = 'input' in part ? part.input : undefined;
+              const output = 'output' in part ? part.output : undefined;
+
               return (
-                <div key={i} className="whitespace-pre-wrap leading-relaxed">
-                  {part.text}
-                </div>
+                <ToolInvocation
+                  key={i}
+                  toolName={toolName}
+                  input={input}
+                  output={output}
+                />
               );
             }
-            // Handle file parts (including generated images)
-            if (part.type === 'file') {
-              const filePart = part as {
-                type: 'file';
-                url: string;
-                mediaType: string;
-              };
-              // Check if it's an image
-              if (filePart.mediaType?.startsWith('image/')) {
-                const format = filePart.mediaType.split('/')[1] || 'png';
+            // Handle custom data parts (data-progress, data-status, data-file-status, etc.)
+            if (isDataUIPart(part)) {
+              if (part.type === 'data-progress') {
                 return (
-                  <div key={i}>
-                    <GeneratedImage base64={filePart.url} format={format} />
-                  </div>
+                  <DataProgress
+                    key={i}
+                    step={part.data.step}
+                    message={part.data.message}
+                    progress={part.data.progress}
+                    currentStep={part.data.currentStep}
+                    totalSteps={part.data.totalSteps}
+                  />
                 );
               }
+
+              if (part.type === 'data-status') {
+                return (
+                  <DataStatus
+                    key={i}
+                    status={part.data.status}
+                    message={part.data.message}
+                  />
+                );
+              }
+
+              if (part.type === 'data-file-status') {
+                return (
+                  <DataFileStatus
+                    key={i}
+                    filename={part.data.filename}
+                    operation={part.data.operation}
+                    status={part.data.status}
+                    size={part.data.size}
+                  />
+                );
+              }
+
               return null;
-            }
-            if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
-              // Display tool calls (static: `tool-${name}`, dynamic: `dynamic-tool`)
-              return (
-                <div
-                  key={i}
-                  className="mt-2 p-3 bg-[var(--background-secondary)] rounded-lg border border-[var(--border)] text-sm"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-5 h-5 rounded bg-[var(--accent-light)] flex items-center justify-center">
-                      🔧
-                    </span>
-                    <span className="font-medium text-[var(--foreground)]">
-                      {'toolName' in part
-                        ? String(part.toolName)
-                        : part.type.replace('tool-', '')}
-                    </span>
-                  </div>
-                  {'input' in part && (
-                    <div className="text-[var(--foreground-muted)] font-mono text-xs mb-1">
-                      <span className="text-[var(--foreground-secondary)]">
-                        Input:{' '}
-                      </span>
-                      {JSON.stringify(part.input)}
-                    </div>
-                  )}
-                  {'output' in part && part.output !== undefined && (
-                    <div className="text-[var(--success)] font-mono text-xs break-all">
-                      <span className="text-[var(--foreground-secondary)]">
-                        Result:{' '}
-                      </span>
-                      {typeof part.output === 'string' &&
-                      part.output.length > 200
-                        ? `${part.output.slice(0, 200)}...`
-                        : JSON.stringify(part.output)}
-                    </div>
-                  )}
-                </div>
-              );
             }
             return null;
           })}

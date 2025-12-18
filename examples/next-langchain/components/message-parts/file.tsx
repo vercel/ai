@@ -4,6 +4,33 @@
 import { useState } from 'react';
 import { Download, ImageIcon, ZoomIn, X } from 'lucide-react';
 
+interface FileProps {
+  url: string;
+  mediaType: string;
+}
+
+/**
+ * Renders a file message part (images, documents, etc.)
+ */
+export function File({ url, mediaType }: FileProps) {
+  /**
+   * Handle image files
+   */
+  if (mediaType?.startsWith('image/')) {
+    const format = mediaType.split('/')[1] || 'png';
+    return (
+      <div>
+        <GeneratedImage base64={url} format={format} />
+      </div>
+    );
+  }
+
+  /**
+   * Handle other file types (placeholder for future extensions)
+   */
+  return null;
+}
+
 /**
  * Ensure base64 string has proper data URI prefix
  */
@@ -49,9 +76,14 @@ export function GeneratedImage({
   format?: string;
 }) {
   const [showModal, setShowModal] = useState(false);
-  // If it's already a data URL, use it directly; otherwise convert
+  /**
+   * If it's already a data URL, use it directly; otherwise convert
+   */
   const src = base64.startsWith('data:') ? base64 : toDataUri(base64, format);
 
+  /**
+   * Handle download of the generated image
+   */
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = src;
@@ -63,7 +95,7 @@ export function GeneratedImage({
 
   return (
     <>
-      <div className="mt-3 group relative">
+      <div className="group relative">
         <div className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--background-secondary)] w-fit">
           <img
             src={src}
