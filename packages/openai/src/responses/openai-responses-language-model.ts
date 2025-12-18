@@ -1813,21 +1813,13 @@ function isResponseCodeInterpreterCallCodeDoneChunk(
 function isResponseApplyPatchCallOperationDiffDeltaChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesApplyPatchOperationDiffDeltaChunk {
-  return (
-    chunk.type === 'response.apply_patch_call_operation_diff.delta' &&
-    'item_id' in chunk &&
-    'delta' in chunk
-  );
+  return chunk.type === 'response.apply_patch_call_operation_diff.delta';
 }
 
 function isResponseApplyPatchCallOperationDiffDoneChunk(
   chunk: OpenAIResponsesChunk,
 ): chunk is OpenAIResponsesApplyPatchOperationDiffDoneChunk {
-  return (
-    chunk.type === 'response.apply_patch_call_operation_diff.done' &&
-    'item_id' in chunk &&
-    'diff' in chunk
-  );
+  return chunk.type === 'response.apply_patch_call_operation_diff.done';
 }
 
 function isResponseOutputItemAddedChunk(
