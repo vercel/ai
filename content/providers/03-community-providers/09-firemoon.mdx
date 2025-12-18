@@ -43,8 +43,8 @@ const firemoon = createFiremoon({
   apiKey: process.env.FIREMOON_API_KEY,
 });
 ```
-You can obtain your Firemoon API key from the [Firemoon Dashboard](https://firemoon.studio/keys).
 
+You can obtain your Firemoon API key from the [Firemoon Dashboard](https://firemoon.studio/keys).
 
 ## Image Generation
 
@@ -69,7 +69,6 @@ console.log(result.images[0]);
 - `nano-banana-pro/edit` - High quality image editing by Gemini 3 Pro
 
 You can browse all available models on the [Firemoon Studio Models](https://firemoon.studio/models) page.
-
 
 ### Parameters
 
@@ -123,7 +122,6 @@ const result = await generateImage({
 });
 ```
 
-
 #### Fine-tuned Models
 
 You can use a fine-tuned model by passing the model id to the `image()` method:
@@ -132,12 +130,12 @@ You can use a fine-tuned model by passing the model id to the `image()` method:
 const result = await generateImage({
   model: firemoon.image('firemoon-studio/memphis-style'),
   prompt: 'a man smiling at the camera',
-  size: "landscape_16_9",
+  size: 'landscape_16_9',
   providerOptions: {
     firemoon: {
       lora_scale: 0.6,
       num_images: 1,
-      image_size: "landscape_4_3",
+      image_size: 'landscape_4_3',
       output_format: 'jpeg',
       guidance_scale: 3.5,
       num_inference_steps: 28,
@@ -191,7 +189,6 @@ try {
   }
 }
 ```
-
 
 ## Additional resources
 
