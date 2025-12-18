@@ -123,7 +123,7 @@ The id for versioned models is the Replicate model id followed by a colon and th
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { writeFile } from 'node:fs/promises';
 
 const { image } = await generateImage({
@@ -141,7 +141,7 @@ console.log('Image saved as image.webp');
 
 ```ts highlight="9-11"
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: replicate.image('recraft-ai/recraft-v3'),
@@ -159,7 +159,7 @@ const { image } = await generateImage({
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: replicate.image(
@@ -168,5 +168,73 @@ const { image } = await generateImage({
   prompt: 'The Loch Ness Monster getting a manicure',
 });
 ```
+
+### Image Editing
+
+Replicate supports image editing through various models. Pass input images via `prompt.images` to transform or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: replicate.image('black-forest-labs/flux-kontext-dev'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+  providerOptions: {
+    replicate: {
+      guidance_scale: 7.5,
+      num_inference_steps: 30,
+    },
+  },
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. For FLUX Fill models, white areas in the mask indicate where the image should be edited:
+
+```ts
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // White = inpaint, black = keep
+
+const { images } = await generateImage({
+  model: replicate.image('black-forest-labs/flux-fill-pro'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+  providerOptions: {
+    replicate: {
+      guidance_scale: 7.5,
+      num_inference_steps: 30,
+    },
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. Different Replicate models have different parameter
+  names and capabilities — check the model's documentation on
+  [Replicate](https://replicate.com/explore) for details.
+</Note>
+
+### Provider Options
+
+Common provider options for image generation:
+
+- **guidance_scale** _number_ - Guidance scale for classifier-free guidance. Higher values make the output more closely match the prompt.
+- **num_inference_steps** _number_ - Number of denoising steps. More steps = higher quality but slower.
+- **negative_prompt** _string_ - Negative prompt to guide what to avoid in the generation.
+- **output_format** _'png' | 'jpg' | 'webp'_ - Output image format.
+- **output_quality** _number (1-100)_ - Output image quality. Only applies to jpg and webp.
+- **strength** _number (0-1)_ - Strength of the transformation for img2img. Lower values keep more of the original image.
 
 For more details, see the [Replicate models page](https://replicate.com/explore).
