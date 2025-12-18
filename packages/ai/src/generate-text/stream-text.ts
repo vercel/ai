@@ -1238,7 +1238,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // Merge provider options: step-specific options override base options
           const stepProviderOptions = prepareStepResult?.providerOptions
-            ? { ...providerOptions, ...prepareStepResult.providerOptions }
+            ? Object.entries(prepareStepResult.providerOptions).reduce(
+                (merged, [provider, options]) => ({
+                  ...merged,
+                  [provider]: {
+                    ...(providerOptions?.[provider] ?? {}),
+                    ...options,
+                  },
+                }),
+                { ...providerOptions },
+              )
             : providerOptions;
 
           const {

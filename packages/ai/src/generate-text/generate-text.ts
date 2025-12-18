@@ -509,7 +509,16 @@ A function that attempts to repair a tool call that failed to parse.
               fn: async span => {
                 // Merge provider options: step-specific options override base options
                 const stepProviderOptions = prepareStepResult?.providerOptions
-                  ? { ...providerOptions, ...prepareStepResult.providerOptions }
+                  ? Object.entries(prepareStepResult.providerOptions).reduce(
+                      (merged, [provider, options]) => ({
+                        ...merged,
+                        [provider]: {
+                          ...(providerOptions?.[provider] ?? {}),
+                          ...options,
+                        },
+                      }),
+                      { ...providerOptions },
+                    )
                   : providerOptions;
 
                 const result = await stepModel.doGenerate({
