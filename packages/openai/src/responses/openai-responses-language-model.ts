@@ -1071,7 +1071,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     endEmitted: false,
                     prefixDelta: `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}"${operation.type === 'delete_file' ? '' : ',"diff":"'}`,
                     suffixDelta:
-                      operation.type === 'delete_file' ? '}}' : '"}}',
+                      operation.type === 'delete_file' ? null : '"}}',
                   },
                 };
 
@@ -1081,33 +1081,34 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: toolNameMapping.toCustomToolName('apply_patch'),
                 });
 
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: callId,
-                  delta: ongoingToolCalls[value.output_index]!.applyPatch!
-                    .prefixDelta,
-                });
-
                 if (operation.type === 'delete_file') {
-                  const suffixDelta =
-                    ongoingToolCalls[value.output_index]!.applyPatch!
-                      .suffixDelta;
+                  const inputString = JSON.stringify({
+                    callId,
+                    operation,
+                  } satisfies InferSchema<typeof applyPatchInputSchema>);
 
-                  if (suffixDelta != null) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: callId,
-                      delta: suffixDelta,
-                    });
-                  }
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: callId,
+                    delta: inputString,
+                  });
 
                   controller.enqueue({
                     type: 'tool-input-end',
                     id: callId,
                   });
 
-                  ongoingToolCalls[value.output_index]!.applyPatch!.endEmitted =
-                    true;
+                  ongoingToolCalls[value.output_index]!.applyPatch = {
+                    ...ongoingToolCalls[value.output_index]!.applyPatch!,
+                    endEmitted: true,
+                  };
+                } else {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: callId,
+                    delta: ongoingToolCalls[value.output_index]!.applyPatch!
+                      .prefixDelta,
+                  });
                 }
               } else if (value.item.type === 'shell_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1305,7 +1306,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 const streamState =
                   ongoingToolCalls[value.output_index]?.applyPatch;
 
-                if (streamState != null && !streamState.endEmitted) {
+                if (
+                  streamState != null &&
+                  !streamState.endEmitted &&
+                  streamState.operation.type !== 'delete_file'
+                ) {
                   if (
                     !streamState.hasDiff &&
                     'diff' in value.item.operation &&
