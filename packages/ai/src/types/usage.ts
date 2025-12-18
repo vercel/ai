@@ -91,25 +91,29 @@ The number of tokens used in the embedding.
 export function asLanguageModelUsage(
   usage: LanguageModelV3Usage,
 ): LanguageModelUsage {
+  if (usage == null) {
+    return createNullLanguageModelUsage();
+  }
+
   return {
-    inputTokens: usage.inputTokens.total,
+    inputTokens: usage.inputTokens?.total,
     inputTokenDetails: {
-      noCacheTokens: usage.inputTokens.noCache,
-      cacheReadTokens: usage.inputTokens.cacheRead,
-      cacheWriteTokens: usage.inputTokens.cacheWrite,
+      noCacheTokens: usage.inputTokens?.noCache,
+      cacheReadTokens: usage.inputTokens?.cacheRead,
+      cacheWriteTokens: usage.inputTokens?.cacheWrite,
     },
-    outputTokens: usage.outputTokens.total,
+    outputTokens: usage.outputTokens?.total,
     outputTokenDetails: {
-      textTokens: usage.outputTokens.text,
-      reasoningTokens: usage.outputTokens.reasoning,
+      textTokens: usage.outputTokens?.text,
+      reasoningTokens: usage.outputTokens?.reasoning,
     },
     totalTokens: addTokenCounts(
-      usage.inputTokens.total,
-      usage.outputTokens.total,
+      usage.inputTokens?.total,
+      usage.outputTokens?.total,
     ),
     raw: usage.raw,
-    reasoningTokens: usage.outputTokens.reasoning,
-    cachedInputTokens: usage.inputTokens.cacheRead,
+    reasoningTokens: usage.outputTokens?.reasoning,
+    cachedInputTokens: usage.inputTokens?.cacheRead,
   };
 }
 
