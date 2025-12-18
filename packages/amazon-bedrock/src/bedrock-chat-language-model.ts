@@ -314,6 +314,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         messages,
         additionalModelRequestFields:
           bedrockOptions.additionalModelRequestFields,
+        additionalModelResponseFieldPaths: ['/stop_sequence'],
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
