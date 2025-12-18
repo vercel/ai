@@ -77,7 +77,6 @@ export class OpenAIImageModel implements ImageModelV3 {
     if (files != null) {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.config.url({
-          // TODO: Consider adding support ofr /images/variations API. It's DALL·E 2 only, though. The response is different as well, it would be quite some work.
           path: '/images/edits',
           modelId: this.modelId,
         }),
