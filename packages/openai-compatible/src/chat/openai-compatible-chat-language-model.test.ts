@@ -933,6 +933,181 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('sendReasoning', () => {
+    it('should include reasoning_content in request when sendReasoning is true', async () => {
+      prepareJsonResponse({ content: 'Final response' });
+
+      const promptWithReasoning: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'What is 2+2?' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Let me think about this problem step by step.',
+            },
+            { type: 'text', text: 'The answer is 4.' },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'What about 3+3?' }] },
+      ];
+
+      await provider('grok-beta').doGenerate({
+        prompt: promptWithReasoning,
+        providerOptions: {
+          'test-provider': {
+            sendReasoning: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages).toHaveLength(3);
+      expect(requestBody.messages[1]).toStrictEqual({
+        role: 'assistant',
+        content: 'The answer is 4.',
+        reasoning_content: 'Let me think about this problem step by step.',
+      });
+    });
+
+    it('should omit reasoning_content when sendReasoning is false', async () => {
+      prepareJsonResponse({ content: 'Final response' });
+
+      const promptWithReasoning: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'What is 2+2?' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Let me think about this problem step by step.',
+            },
+            { type: 'text', text: 'The answer is 4.' },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'What about 3+3?' }] },
+      ];
+
+      await provider('grok-beta').doGenerate({
+        prompt: promptWithReasoning,
+        providerOptions: {
+          'test-provider': {
+            sendReasoning: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages).toHaveLength(3);
+      expect(requestBody.messages[1]).toStrictEqual({
+        role: 'assistant',
+        content: 'The answer is 4.',
+      });
+      expect(requestBody.messages[1].reasoning_content).toBeUndefined();
+    });
+
+    it('should omit reasoning_content when sendReasoning is not specified (default)', async () => {
+      prepareJsonResponse({ content: 'Final response' });
+
+      const promptWithReasoning: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'What is 2+2?' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Let me think about this problem step by step.',
+            },
+            { type: 'text', text: 'The answer is 4.' },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'What about 3+3?' }] },
+      ];
+
+      await provider('grok-beta').doGenerate({
+        prompt: promptWithReasoning,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages).toHaveLength(3);
+      expect(requestBody.messages[1]).toStrictEqual({
+        role: 'assistant',
+        content: 'The answer is 4.',
+      });
+      expect(requestBody.messages[1].reasoning_content).toBeUndefined();
+    });
+
+    it('should include reasoning_content with tool calls when sendReasoning is true', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"test"}',
+            },
+          },
+        ],
+      });
+
+      const promptWithReasoningAndTools: LanguageModelV3Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'Use the tool' }] },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'I should use the test-tool here.' },
+            { type: 'text', text: 'Let me call the tool.' },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: { value: 'test' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              output: { type: 'json', value: { result: 'success' } },
+            },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'What happened?' }] },
+      ];
+
+      await provider('grok-beta').doGenerate({
+        prompt: promptWithReasoningAndTools,
+        providerOptions: {
+          'test-provider': {
+            sendReasoning: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.messages[1]).toMatchObject({
+        role: 'assistant',
+        content: 'Let me call the tool.',
+        reasoning_content: 'I should use the test-tool here.',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              arguments: '{"value":"test"}',
+            },
+          },
+        ],
+      });
+    });
+  });
+
   it('should send request body', async () => {
     prepareJsonResponse({ content: '' });
 
