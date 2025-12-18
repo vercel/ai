@@ -1,5 +1,76 @@
 # @ai-sdk/langchain
 
+## 2.0.0-beta.160
+
+### Minor Changes
+
+- aca5527: feat(langchain): add typed custom data events and fix tool lifecycle
+
+## 2.0.0-beta.159
+
+### Minor Changes
+
+- 1744294: feat(langchain): update LangChain/LangGraph integration
+
+### Patch Changes
+
+- Updated dependencies [3071620]
+  - ai@6.0.0-beta.159
+
+## 2.0.0-beta.158
+
+### Patch Changes
+
+- ai@6.0.0-beta.158
+
+## 2.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - ai@6.0.0-beta.157
+
+## 2.0.0-beta.156
+
+### Patch Changes
+
+- Updated dependencies [2406576]
+  - ai@6.0.0-beta.156
+
+## 2.0.0-beta.155
+
+### Patch Changes
+
+- ai@6.0.0-beta.155
+
+## 2.0.0-beta.154
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - ai@6.0.0-beta.154
+
+## 2.0.0-beta.153
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - ai@6.0.0-beta.153
+
+## 2.0.0-beta.152
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - ai@6.0.0-beta.152
+
+## 2.0.0-beta.151
+
+### Patch Changes
+
+- Updated dependencies [dcdac8c]
+  - ai@6.0.0-beta.151
+
 ## 2.0.0-beta.150
 
 ### Patch Changes

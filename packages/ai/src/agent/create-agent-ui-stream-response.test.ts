@@ -74,7 +74,7 @@ describe('createAgentUIStreamResponse', () => {
               value: z.string(),
             }),
             // important: tool has toModelOutput that needs to be called
-            toModelOutput: output => ({
+            toModelOutput: ({ output }) => ({
               type: 'content',
               value: [{ type: 'text', text: output.value }],
             }),
@@ -84,7 +84,7 @@ describe('createAgentUIStreamResponse', () => {
 
       response = await createAgentUIStreamResponse({
         agent,
-        messages: [
+        uiMessages: [
           {
             role: 'user',
             id: 'msg-1',
