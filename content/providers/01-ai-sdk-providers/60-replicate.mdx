@@ -123,7 +123,7 @@ The id for versioned models is the Replicate model id followed by a colon and th
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { writeFile } from 'node:fs/promises';
 
 const { image } = await generateImage({
@@ -141,7 +141,7 @@ console.log('Image saved as image.webp');
 
 ```ts highlight="9-11"
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: replicate.image('recraft-ai/recraft-v3'),
@@ -159,7 +159,7 @@ const { image } = await generateImage({
 
 ```ts
 import { replicate } from '@ai-sdk/replicate';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: replicate.image(

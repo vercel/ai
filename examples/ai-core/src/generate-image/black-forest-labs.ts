@@ -2,7 +2,7 @@ import {
   BlackForestLabsImageProviderOptions,
   blackForestLabs,
 } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 import 'dotenv/config';

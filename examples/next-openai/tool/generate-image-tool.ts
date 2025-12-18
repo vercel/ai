@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import {
   UIToolInvocation,
   tool,
-  experimental_generateImage as generateImage,
+  generateImage,
 } from 'ai';
 import { z } from 'zod';
 

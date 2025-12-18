@@ -1044,7 +1044,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: google.image('imagen-4.0-generate-001'),
@@ -1058,7 +1058,7 @@ Further configuration can be done using Google provider options. You can validat
 ```ts
 import { google } from '@ai-sdk/google';
 import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: google.image('imagen-4.0-generate-001'),

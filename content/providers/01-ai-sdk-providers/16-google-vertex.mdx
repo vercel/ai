@@ -725,7 +725,7 @@ using the `.image()` factory method. For more on image generation with the AI SD
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -739,7 +739,7 @@ Further configuration can be done using Google Vertex provider options. You can 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -779,7 +779,7 @@ Additional information about the images can be retrieved using Google Vertex met
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -810,7 +810,7 @@ import {
   vertex,
   GoogleVertexImageProviderOptions,
 } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const image = fs.readFileSync('./input-image.png');
@@ -845,7 +845,7 @@ import {
   vertex,
   GoogleVertexImageProviderOptions,
 } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const image = fs.readFileSync('./input-image.png');

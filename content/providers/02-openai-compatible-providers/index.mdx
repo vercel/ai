@@ -197,7 +197,7 @@ const model = provider.imageModel('model-id');
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const provider = createOpenAICompatible({
   name: 'provider-name',
@@ -220,7 +220,7 @@ The OpenAI Compatible provider supports image editing through the `/images/edits
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const provider = createOpenAICompatible({
@@ -246,7 +246,7 @@ Edit specific parts of an image using a mask:
 
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const provider = createOpenAICompatible({

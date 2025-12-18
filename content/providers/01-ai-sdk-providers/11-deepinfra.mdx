@@ -129,7 +129,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: deepinfra.image('stabilityai/sd3.5'),
@@ -151,7 +151,7 @@ You can pass model-specific parameters using the `providerOptions.deepinfra` fie
 
 ```ts
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: deepinfra.image('stabilityai/sd3.5'),

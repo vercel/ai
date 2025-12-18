@@ -141,7 +141,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-dev'),
@@ -153,7 +153,7 @@ You can pass optional provider-specific request parameters using the `providerOp
 
 ```ts
 import { togetherai } from '@ai-sdk/togetherai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: togetherai.image('black-forest-labs/FLUX.1-dev'),

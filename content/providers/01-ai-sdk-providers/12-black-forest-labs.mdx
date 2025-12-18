@@ -81,7 +81,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 ```ts
 import { writeFileSync } from 'node:fs';
 import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
   model: blackForestLabs.image('flux-pro-1.1'),
@@ -119,7 +119,7 @@ import {
   blackForestLabs,
   BlackForestLabsImageProviderOptions,
 } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: blackForestLabs.image('flux-kontext-pro'),
@@ -144,7 +144,7 @@ Combine multiple reference images for complex transformations. Black Forest Labs
 
 ```ts
 import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: blackForestLabs.image('flux-kontext-pro'),

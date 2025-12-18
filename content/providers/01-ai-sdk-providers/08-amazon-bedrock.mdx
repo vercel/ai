@@ -845,11 +845,11 @@ Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.htm
 const model = bedrock.image('amazon.nova-canvas-v1:0');
 ```
 
-You can then generate images with the `experimental_generateImage` function:
+You can then generate images with the `generateImage` function:
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
@@ -863,7 +863,7 @@ You can also pass the `providerOptions` object to the `generateImage` function t
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: bedrock.image('amazon.nova-canvas-v1:0'),
