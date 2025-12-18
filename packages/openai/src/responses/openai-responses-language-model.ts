@@ -903,8 +903,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             operation: ApplyPatchOperation;
             hasDiff: boolean;
             endEmitted: boolean;
-            prefixDelta: string;
-            suffixDelta: string | null;
           };
         }
       | undefined
@@ -1071,11 +1069,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: callId,
                   applyPatch: {
                     operation,
+                    // delete_file don't have diff
                     hasDiff: operation.type === 'delete_file',
-                    endEmitted: false,
-                    prefixDelta: `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}"${operation.type === 'delete_file' ? '' : ',"diff":"'}`,
-                    suffixDelta:
-                      operation.type === 'delete_file' ? null : '"}}',
+                    endEmitted: operation.type === 'delete_file',
                   },
                 };
 
@@ -1101,18 +1097,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'tool-input-end',
                     id: callId,
                   });
-
-                  ongoingToolCalls[value.output_index]!.applyPatch = {
-                    ...ongoingToolCalls[value.output_index]!.applyPatch!,
-                    endEmitted: true,
-                  };
                 } else {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: callId,
-                    delta:
-                      ongoingToolCalls[value.output_index]!.applyPatch!
-                        .prefixDelta,
+                    delta: escapeJSONDelta(
+                      `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}","diff":"`,
+                    ),
                   });
                 }
               } else if (value.item.type === 'shell_call') {
@@ -1308,48 +1299,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                 });
               } else if (value.item.type === 'apply_patch_call') {
-                const streamState =
-                  ongoingToolCalls[value.output_index]?.applyPatch;
-
+                const toolCall = ongoingToolCalls[value.output_index];
                 if (
-                  streamState != null &&
-                  !streamState.endEmitted &&
-                  streamState.operation.type !== 'delete_file'
+                  toolCall?.applyPatch &&
+                  !toolCall.applyPatch.endEmitted &&
+                  value.item.operation.type !== 'delete_file'
                 ) {
-                  if (
-                    !streamState.hasDiff &&
-                    'diff' in value.item.operation &&
-                    typeof value.item.operation.diff === 'string'
-                  ) {
+                  if (!toolCall.applyPatch.hasDiff) {
                     controller.enqueue({
                       type: 'tool-input-delta',
-                      id: ongoingToolCalls[value.output_index]!.toolCallId,
-                      delta: escapeApplyPatchDelta(value.item.operation.diff),
+                      id: toolCall.toolCallId,
+                      delta: escapeJSONDelta(value.item.operation.diff),
                     });
                   }
 
-                  if (streamState.suffixDelta != null) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: ongoingToolCalls[value.output_index]!.toolCallId,
-                      delta: streamState.suffixDelta,
-                    });
-                  }
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: escapeJSONDelta('"}}'),
+                  });
 
                   controller.enqueue({
                     type: 'tool-input-end',
-                    id: ongoingToolCalls[value.output_index]!.toolCallId,
+                    id: toolCall.toolCallId,
                   });
 
-                  streamState.endEmitted = true;
+                  toolCall.applyPatch.endEmitted = true;
                 }
 
                 // Emit the final tool-call with complete diff when status is 'completed'
-                if (value.item.status === 'completed') {
+                if (toolCall && value.item.status === 'completed') {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId:
-                      ongoingToolCalls[value.output_index]!.toolCallId,
+                    toolCallId: toolCall.toolCallId,
                     toolName: toolNameMapping.toCustomToolName('apply_patch'),
                     input: JSON.stringify({
                       callId: value.item.call_id,
@@ -1457,49 +1439,43 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               }
             } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
-              const diffChunk = value;
-              const streamState =
-                ongoingToolCalls[diffChunk.output_index]?.applyPatch;
+              const toolCall = ongoingToolCalls[value.output_index];
 
-              if (streamState != null) {
+              if (toolCall?.applyPatch) {
                 controller.enqueue({
                   type: 'tool-input-delta',
-                  id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
-                  delta: escapeApplyPatchDelta(diffChunk.delta),
+                  id: toolCall.toolCallId,
+                  delta: escapeJSONDelta(value.delta),
                 });
 
-                streamState.hasDiff = true;
+                toolCall.applyPatch.hasDiff = true;
               }
             } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
-              const diffChunk = value;
-              const streamState =
-                ongoingToolCalls[diffChunk.output_index]?.applyPatch;
+              const toolCall = ongoingToolCalls[value.output_index];
 
-              if (streamState != null && !streamState.endEmitted) {
-                if (!streamState.hasDiff && diffChunk.diff != null) {
+              if (toolCall?.applyPatch && !toolCall.applyPatch.endEmitted) {
+                if (!toolCall.applyPatch.hasDiff) {
                   controller.enqueue({
                     type: 'tool-input-delta',
-                    id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
-                    delta: escapeApplyPatchDelta(diffChunk.diff),
+                    id: toolCall.toolCallId,
+                    delta: escapeJSONDelta(value.diff),
                   });
 
-                  streamState.hasDiff = true;
+                  toolCall.applyPatch.hasDiff = true;
                 }
 
-                if (streamState.suffixDelta != null) {
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
-                    delta: streamState.suffixDelta,
-                  });
-                }
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: escapeJSONDelta('"}}'),
+                });
 
                 controller.enqueue({
                   type: 'tool-input-end',
-                  id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
+                  id: toolCall.toolCallId,
                 });
 
-                streamState.endEmitted = true;
+                toolCall.applyPatch.endEmitted = true;
               }
             } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
               controller.enqueue({
@@ -1518,9 +1494,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  // The delta is code, which is embedding in a JSON string.
-                  // To escape it, we use JSON.stringify and slice to remove the outer quotes.
-                  delta: JSON.stringify(value.delta).slice(1, -1),
+                  delta: escapeJSONDelta(value.delta),
                 });
               }
             } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
@@ -1874,6 +1848,8 @@ function mapWebSearchOutput(
   }
 }
 
-function escapeApplyPatchDelta(delta: string) {
+// The delta is embedded in a JSON string.
+// To escape it, we use JSON.stringify and slice to remove the outer quotes.
+function escapeJSONDelta(delta: string) {
   return JSON.stringify(delta).slice(1, -1);
 }
