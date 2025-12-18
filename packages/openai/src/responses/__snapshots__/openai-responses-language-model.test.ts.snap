@@ -1004,14 +1004,12 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
   {
-    "delta": "+
-",
+    "delta": "+\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
@@ -1036,8 +1034,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
@@ -1062,8 +1059,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
@@ -1088,8 +1084,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
@@ -1119,8 +1114,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },
@@ -1145,8 +1139,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
+    "delta": "\\n",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },

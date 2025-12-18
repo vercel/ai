@@ -890,6 +890,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     let usage: OpenAIResponsesUsage | undefined = undefined;
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
+
     const ongoingToolCalls: Record<
       number,
       | {
@@ -1323,7 +1324,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-input-delta',
                       id: ongoingToolCalls[value.output_index]!.toolCallId,
-                      delta: value.item.operation.diff,
+                      delta: escapeApplyPatchDelta(value.item.operation.diff),
                     });
                   }
 
@@ -1464,7 +1465,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
-                  delta: diffChunk.delta,
+                  delta: escapeApplyPatchDelta(diffChunk.delta),
                 });
 
                 streamState.hasDiff = true;
@@ -1479,7 +1480,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: ongoingToolCalls[diffChunk.output_index]!.toolCallId,
-                    delta: diffChunk.diff,
+                    delta: escapeApplyPatchDelta(diffChunk.diff),
                   });
 
                   streamState.hasDiff = true;
@@ -1871,4 +1872,8 @@ function mapWebSearchOutput(
         },
       };
   }
+}
+
+function escapeApplyPatchDelta(delta: string) {
+  return JSON.stringify(delta).slice(1, -1);
 }
