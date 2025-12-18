@@ -16,6 +16,7 @@ npm install @ai-sdk/langchain @langchain/core
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream`
 - `ChatTransport` implementation for LangSmith deployments
 - Full support for text, tool calls, and tool results
+- Custom data streaming with typed events (`data-{type}`)
 
 ## Usage
 
@@ -54,6 +55,59 @@ return createUIMessageStreamResponse({
   stream: toUIMessageStream(langchainStream),
 });
 ```
+
+### Custom Data Streaming
+
+LangChain tools can emit custom data events using `config.writer()`. The adapter converts these to typed `data-{type}` parts:
+
+```ts
+import { tool, type ToolRuntime } from 'langchain';
+
+const analyzeDataTool = tool(
+  async ({ query }, config: ToolRuntime) => {
+    // Emit progress updates - becomes 'data-progress' in the UI
+    config.writer?.({
+      type: 'progress',
+      id: 'analysis-1', // Include 'id' to persist in message.parts
+      step: 'fetching',
+      message: 'Fetching data...',
+      progress: 50,
+    });
+
+    // ... perform analysis ...
+
+    // Emit status update - becomes 'data-status' in the UI
+    config.writer?.({
+      type: 'status',
+      id: 'analysis-1-status',
+      status: 'complete',
+      message: 'Analysis finished',
+    });
+
+    return 'Analysis complete';
+  },
+  {
+    name: 'analyze_data',
+    description: 'Analyze data with progress updates',
+    schema: z.object({ query: z.string() }),
+  },
+);
+```
+
+Enable the `custom` stream mode to receive these events:
+
+```ts
+const stream = await graph.stream(
+  { messages: langchainMessages },
+  { streamMode: ['values', 'messages', 'custom'] },
+);
+```
+
+**Custom data behavior:**
+
+- Data with an `id` field is **persistent** (added to `message.parts` for rendering)
+- Data without an `id` is **transient** (only delivered via the `onData` callback)
+- The `type` field determines the event name: `{ type: 'progress' }` → `data-progress`
 
 ### LangSmith Deployment Transport
 
@@ -128,7 +182,7 @@ Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`.
 
 - `messages` - Streaming message chunks (text, tool calls)
 - `values` - State updates that finalize pending message chunks
-- `custom` - Custom data events
+- `custom` - Custom data events (emitted as `data-{type}` chunks)
 
 ### `LangSmithDeploymentTransport`
 
