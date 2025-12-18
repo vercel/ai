@@ -969,22 +969,10 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": {
-                "cacheRead": 0,
-                "cacheWrite": 0,
-                "noCache": 4,
-                "total": 4,
-              },
-              "outputTokens": {
-                "reasoning": undefined,
-                "text": 34,
-                "total": 34,
-              },
-              "raw": {
-                "inputTokens": 4,
-                "outputTokens": 34,
-                "totalTokens": 38,
-              },
+              "cachedInputTokens": undefined,
+              "inputTokens": 4,
+              "outputTokens": 34,
+              "totalTokens": 38,
             },
           },
         ]
