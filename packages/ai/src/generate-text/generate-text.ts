@@ -23,7 +23,7 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { ToolCallNotFoundError } from '../error/tool-call-not-found-error';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -1039,7 +1039,7 @@ function asContent<TOOLS extends ToolSet>({
           );
 
           if (toolCall == null) {
-            throw new ToolCallNotFoundError({
+            throw new ToolCallNotFoundForApprovalError({
               toolCallId: part.toolCallId,
               approvalId: part.approvalId,
             });

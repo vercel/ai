@@ -1,10 +1,10 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const name = 'AI_ToolCallNotFoundError';
+const name = 'AI_ToolCallNotFoundForApprovalError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export class ToolCallNotFoundError extends AISDKError {
+export class ToolCallNotFoundForApprovalError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly toolCallId: string;
@@ -26,7 +26,7 @@ export class ToolCallNotFoundError extends AISDKError {
     this.approvalId = approvalId;
   }
 
-  static isInstance(error: unknown): error is ToolCallNotFoundError {
+  static isInstance(error: unknown): error is ToolCallNotFoundForApprovalError {
     return AISDKError.hasMarker(error, marker);
   }
 }
