@@ -2135,6 +2135,76 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract thoughtSignature from empty text parts (Gemini 3 Flash case)', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'Reasoning content',
+                  thought: true,
+                  thoughtSignature: 'reasoning_sig',
+                },
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                  thoughtSignature: 'tool_sig',
+                },
+                {
+                  text: '',
+                  thoughtSignature: 'final_sig',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig",
+            },
+          },
+          "text": "Reasoning content",
+          "type": "reasoning",
+        },
+        {
+          "input": "{"value":"test"}",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "tool_sig",
+            },
+          },
+          "toolCallId": "test-id",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
+  });
+
   it('should support includeThoughts with google generative ai provider', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -3754,6 +3824,170 @@ describe('doStream', () => {
             },
             "raw": undefined,
           },
+        },
+      ]
+    `);
+  });
+
+  it('should extract thoughtSignature from empty text parts in streaming (Gemini 3 Flash case)', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Reasoning...',
+                    thought: true,
+                    thoughtSignature: 'reasoning_sig',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'test' },
+                    },
+                    thoughtSignature: 'tool_sig',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: '',
+                    thoughtSignature: 'final_sig',
+                  },
+                ],
+                role: 'model',
+              },
+              index: 0,
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    // Filter to content events (excluding stream-start and finish)
+    const contentEvents = chunks.filter(
+      event =>
+        event.type === 'reasoning-start' ||
+        event.type === 'reasoning-delta' ||
+        event.type === 'reasoning-end' ||
+        event.type === 'text-start' ||
+        event.type === 'text-delta' ||
+        event.type === 'text-end' ||
+        event.type === 'tool-input-start' ||
+        event.type === 'tool-input-delta' ||
+        event.type === 'tool-input-end' ||
+        event.type === 'tool-call',
+    );
+
+    expect(contentEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig",
+            },
+          },
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Reasoning...",
+          "id": "0",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig",
+            },
+          },
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "tool_sig",
+            },
+          },
+          "toolName": "test-tool",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"value":"test"}",
+          "id": "test-id",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "tool_sig",
+            },
+          },
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "tool_sig",
+            },
+          },
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"value":"test"}",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "tool_sig",
+            },
+          },
+          "toolCallId": "test-id",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "id": "0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "1",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "final_sig",
+            },
+          },
+          "type": "text-start",
+        },
+        {
+          "id": "1",
+          "type": "text-end",
         },
       ]
     `);

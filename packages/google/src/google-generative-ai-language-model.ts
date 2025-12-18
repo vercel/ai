@@ -472,12 +472,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
                   }
-                } else if (
-                  'text' in part &&
-                  part.text != null &&
-                  part.text.length > 0
-                ) {
-                  if (part.thought === true) {
+                } else if ('text' in part) {
+                  const hasText = part.text != null && part.text.length > 0;
+                  if (part.thought === true && hasText) {
                     // End any active text block before starting reasoning
                     if (currentTextBlockId !== null) {
                       controller.enqueue({
@@ -506,7 +503,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'reasoning-delta',
                       id: currentReasoningBlockId,
-                      delta: part.text,
+                      delta: part.text!,
                       providerMetadata: part.thoughtSignature
                         ? {
                             [providerOptionsName]: {
@@ -515,7 +512,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                           }
                         : undefined,
                     });
-                  } else {
+                  } else if (hasText || part.thoughtSignature != null) {
                     // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
@@ -541,18 +538,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       });
                     }
 
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: currentTextBlockId,
-                      delta: part.text,
-                      providerMetadata: part.thoughtSignature
-                        ? {
-                            [providerOptionsName]: {
-                              thoughtSignature: part.thoughtSignature,
-                            },
-                          }
-                        : undefined,
-                    });
+                    if (hasText && part.text) {
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: currentTextBlockId,
+                        delta: part.text,
+                        providerMetadata: part.thoughtSignature
+                          ? {
+                              [providerOptionsName]: {
+                                thoughtSignature: part.thoughtSignature,
+                              },
+                            }
+                          : undefined,
+                      });
+                    }
                   }
                 } else if ('inlineData' in part) {
                   // Process file parts inline to preserve order with text
