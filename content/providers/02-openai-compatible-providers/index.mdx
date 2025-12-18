@@ -287,7 +287,11 @@ const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
-  sendReasoning: true, // Enable reasoning content in requests
+  providerOptions: {
+    'provider-name': {
+      sendReasoning: true
+    },
+  },
 });
 
 const { text } = await generateText({
