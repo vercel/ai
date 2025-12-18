@@ -900,7 +900,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             containerId: string;
           };
           applyPatch?: {
-            operation: ApplyPatchOperation;
             hasDiff: boolean;
             endEmitted: boolean;
           };
@@ -1068,7 +1067,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: toolNameMapping.toCustomToolName('apply_patch'),
                   toolCallId: callId,
                   applyPatch: {
-                    operation,
                     // delete_file don't have diff
                     hasDiff: operation.type === 'delete_file',
                     endEmitted: operation.type === 'delete_file',
