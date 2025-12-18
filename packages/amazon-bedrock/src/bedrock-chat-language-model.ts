@@ -314,6 +314,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         messages,
         additionalModelRequestFields:
           bedrockOptions.additionalModelRequestFields,
+        additionalModelResponseFieldPaths: ['/stop_sequence'],
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
@@ -430,8 +431,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     }
 
     // provider metadata:
+    const stopSequence =
+      response.additionalModelResponseFields?.stop_sequence ?? null;
+
     const providerMetadata =
-      response.trace || response.usage || isJsonResponseFromTool
+      response.trace || response.usage || isJsonResponseFromTool || stopSequence
         ? {
             bedrock: {
               ...(response.trace && typeof response.trace === 'object'
@@ -443,6 +447,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 },
               }),
               ...(isJsonResponseFromTool && { isJsonResponseFromTool: true }),
+              stopSequence,
             },
           }
         : undefined;
@@ -500,6 +505,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
+    let stopSequence: string | null = null;
 
     const contentBlocks: Record<
       number,
@@ -565,6 +571,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 value.messageStop.stopReason as BedrockStopReason,
                 isJsonResponseFromTool,
               );
+              stopSequence =
+                value.messageStop.additionalModelResponseFields
+                  ?.stop_sequence ?? null;
             }
 
             if (value.metadata) {
@@ -794,17 +803,23 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
           },
           flush(controller) {
-            // Update provider metadata with isJsonResponseFromTool if needed
-            if (isJsonResponseFromTool) {
+            // Update provider metadata with isJsonResponseFromTool and stopSequence if needed
+            if (isJsonResponseFromTool || stopSequence != null) {
               if (providerMetadata) {
                 providerMetadata.bedrock = {
                   ...providerMetadata.bedrock,
-                  isJsonResponseFromTool: true,
+                  ...(isJsonResponseFromTool && {
+                    isJsonResponseFromTool: true,
+                  }),
+                  stopSequence,
                 };
               } else {
                 providerMetadata = {
                   bedrock: {
-                    isJsonResponseFromTool: true,
+                    ...(isJsonResponseFromTool && {
+                      isJsonResponseFromTool: true,
+                    }),
+                    stopSequence,
                   },
                 };
               }
@@ -834,6 +849,12 @@ const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
   z.string(),
 ]);
+
+const BedrockAdditionalModelResponseFieldsSchema = z
+  .object({
+    stop_sequence: z.string().optional(),
+  })
+  .catchall(z.unknown());
 
 const BedrockToolUseSchema = z.object({
   toolUseId: z.string(),
@@ -880,6 +901,8 @@ const BedrockResponseSchema = z.object({
     }),
   }),
   stopReason: BedrockStopReasonSchema,
+  additionalModelResponseFields:
+    BedrockAdditionalModelResponseFieldsSchema.nullish(),
   trace: z.unknown().nullish(),
   usage: z.object({
     inputTokens: z.number(),
@@ -933,9 +956,8 @@ const BedrockStreamSchema = z.object({
   internalServerException: z.record(z.string(), z.unknown()).nullish(),
   messageStop: z
     .object({
-      additionalModelResponseFields: z
-        .record(z.string(), z.unknown())
-        .nullish(),
+      additionalModelResponseFields:
+        BedrockAdditionalModelResponseFieldsSchema.nullish(),
       stopReason: BedrockStopReasonSchema,
     })
     .nullish(),
