@@ -30,4 +30,7 @@ export type ReplicateImageModelId =
   // Inpainting and image editing models
   | 'black-forest-labs/flux-fill-pro'
   | 'black-forest-labs/flux-fill-dev'
+  // Flux-2 models (support up to 8 reference images)
+  | 'black-forest-labs/flux-2-pro'
+  | 'black-forest-labs/flux-2-dev'
   | (string & {});

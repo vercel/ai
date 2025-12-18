@@ -9,6 +9,9 @@ import { run } from '../lib/run';
 import 'dotenv/config';
 
 run(async () => {
+  // Inpainting example using flux-fill-pro model
+  // Note: Flux-2 models (flux-2-pro, flux-2-dev) do not support masks.
+  // Use flux-fill-pro or flux-fill-dev for inpainting with masks.
   const image = readFileSync('data/sunlit_lounge.png');
   const mask = readFileSync('data/sunlit_lounge_mask_black_white.png');
 

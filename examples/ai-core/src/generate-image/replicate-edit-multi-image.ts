@@ -6,27 +6,25 @@ import { run } from '../lib/run';
 import 'dotenv/config';
 
 run(async () => {
-  // Flux-2 models support up to 8 reference images for style transfer,
-  // character consistency, and composition guidance
-  const referenceImage = readFileSync('data/comic-cat.png');
+  // Flux-2 models support up to 8 reference images for:
+  // - Style transfer
+  // - Character consistency
+  // - Composition guidance
+  const cat = readFileSync('data/comic-cat.png');
+  const dog = readFileSync('data/comic-dog.png');
 
-  console.log('REFERENCE IMAGE:');
-  await presentImages([
-    {
-      uint8Array: new Uint8Array(referenceImage),
-      base64: '',
-      mediaType: 'image/png',
-    },
-  ]);
+  console.log('REFERENCE IMAGES: cat and dog');
 
-  const prompt = 'Picture of a dog in the same style as the reference image';
+  const prompt =
+    'Create a scene with both animals together, a cat and a dog playing as friends, in the same comic style as the reference images';
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
+    // Flux-2-pro supports multiple input images via input_image, input_image_2, etc.
     model: replicate.image('black-forest-labs/flux-2-pro'),
     prompt: {
       text: prompt,
-      images: [referenceImage],
+      images: [cat, dog],
     },
     providerOptions: {
       replicate: {

@@ -467,7 +467,7 @@ describe('doGenerate', () => {
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
-            "message": "Replicate only supports a single input image. Additional images are ignored.",
+            "message": "This Replicate model only supports a single input image. Additional images are ignored.",
             "type": "other",
           },
         ]
@@ -520,6 +520,188 @@ describe('doGenerate', () => {
           },
         }
       `);
+    });
+  });
+
+  describe('Flux-2 Models', () => {
+    const flux2Model = provider.image('black-forest-labs/flux-2-pro');
+
+    it('should report maxImagesPerCall as 8 for Flux-2 models', () => {
+      expect(flux2Model.maxImagesPerCall).toBe(8);
+    });
+
+    it('should report maxImagesPerCall as 1 for non-Flux-2 models', () => {
+      expect(model.maxImagesPerCall).toBe(1);
+    });
+
+    it('should send single image as input_image for Flux-2 models', async () => {
+      prepareResponse();
+
+      await flux2Model.doGenerate({
+        prompt: 'Generate image in similar style',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/reference.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "input_image": "https://example.com/reference.jpg",
+            "num_outputs": 1,
+            "prompt": "Generate image in similar style",
+          },
+        }
+      `);
+    });
+
+    it('should send multiple images as input_image, input_image_2, etc. for Flux-2 models', async () => {
+      prepareResponse();
+
+      await flux2Model.doGenerate({
+        prompt: 'Combine styles from reference images',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/reference1.jpg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/reference2.jpg',
+          },
+          {
+            type: 'url',
+            url: 'https://example.com/reference3.jpg',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "input_image": "https://example.com/reference1.jpg",
+            "input_image_2": "https://example.com/reference2.jpg",
+            "input_image_3": "https://example.com/reference3.jpg",
+            "num_outputs": 1,
+            "prompt": "Combine styles from reference images",
+          },
+        }
+      `);
+    });
+
+    it('should warn when more than 8 images are provided for Flux-2 models', async () => {
+      prepareResponse();
+
+      const result = await flux2Model.doGenerate({
+        prompt: 'Too many images',
+        files: [
+          { type: 'url', url: 'https://example.com/img1.jpg' },
+          { type: 'url', url: 'https://example.com/img2.jpg' },
+          { type: 'url', url: 'https://example.com/img3.jpg' },
+          { type: 'url', url: 'https://example.com/img4.jpg' },
+          { type: 'url', url: 'https://example.com/img5.jpg' },
+          { type: 'url', url: 'https://example.com/img6.jpg' },
+          { type: 'url', url: 'https://example.com/img7.jpg' },
+          { type: 'url', url: 'https://example.com/img8.jpg' },
+          { type: 'url', url: 'https://example.com/img9.jpg' },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Flux-2 models support up to 8 input images. Additional images are ignored.",
+            "type": "other",
+          },
+        ]
+      `);
+
+      // Should only include 8 images
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input.input_image).toBe(
+        'https://example.com/img1.jpg',
+      );
+      expect(requestBody.input.input_image_8).toBe(
+        'https://example.com/img8.jpg',
+      );
+      expect(requestBody.input.input_image_9).toBeUndefined();
+    });
+
+    it('should warn and ignore mask for Flux-2 models', async () => {
+      prepareResponse();
+
+      const result = await flux2Model.doGenerate({
+        prompt: 'Edit with mask',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: {
+          type: 'url',
+          url: 'https://example.com/mask.png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Flux-2 models do not support mask input. The mask will be ignored.",
+            "type": "other",
+          },
+        ]
+      `);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.input.mask).toBeUndefined();
+    });
+
+    it('should call correct URL for Flux-2 models', async () => {
+      prepareResponse();
+
+      await flux2Model.doGenerate({
+        prompt: 'Generate something',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://api.replicate.com/v1/models/black-forest-labs/flux-2-pro/predictions',
+      );
     });
   });
 });
