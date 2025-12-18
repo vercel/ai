@@ -1190,6 +1190,194 @@ describe('generateImage', () => {
   });
 });
 
+describe('data URL handling', () => {
+  it('should handle data URL with media type in prompt images', async () => {
+    const dataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+    ]);
+  });
+
+  it('should handle data URL with jpeg media type', async () => {
+    const dataUrl = `data:image/jpeg;base64,${jpegBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+
+  it('should handle data URL as mask', async () => {
+    const dataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngBase64],
+        mask: dataUrl,
+      },
+    });
+
+    expect(capturedArgs.mask).toStrictEqual({
+      type: 'file',
+      data: convertBase64ToUint8Array(pngBase64),
+      mediaType: 'image/png',
+    });
+  });
+
+  it('should detect media type from data when data URL has no media type', async () => {
+    // Data URL with minimal header (no explicit media type before semicolon)
+    const dataUrl = `data:;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [dataUrl],
+      },
+    });
+
+    // Should detect PNG from the actual image data
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+    ]);
+  });
+
+  it('should handle multiple data URLs in prompt images', async () => {
+    const pngDataUrl = `data:image/png;base64,${pngBase64}`;
+    const jpegDataUrl = `data:image/jpeg;base64,${jpegBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngDataUrl, jpegDataUrl],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+
+  it('should handle mix of data URLs and base64 strings', async () => {
+    const pngDataUrl = `data:image/png;base64,${pngBase64}`;
+
+    let capturedArgs!: Parameters<ImageModelV3['doGenerate']>[0];
+
+    await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            images: [pngBase64],
+          });
+        },
+      }),
+      prompt: {
+        text: prompt,
+        images: [pngDataUrl, jpegBase64],
+      },
+    });
+
+    expect(capturedArgs.files).toStrictEqual([
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      },
+      {
+        type: 'file',
+        data: convertBase64ToUint8Array(jpegBase64),
+        mediaType: 'image/jpeg',
+      },
+    ]);
+  });
+});
+
 describe('deprecated APIs', () => {
   it('experimental_generateImage should still work', async () => {
     // Import the deprecated export

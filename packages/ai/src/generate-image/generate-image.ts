@@ -5,6 +5,7 @@ import {
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
+  convertBase64ToUint8Array,
   DataContent,
   ProviderOptions,
   withUserAgentSuffix,
@@ -28,6 +29,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { splitDataUrl } from '../prompt/split-data-url';
 
 export type GenerateImagePrompt =
   | string
@@ -322,6 +324,27 @@ function toImageModelV3File(dataContent: DataContent): ImageModelV3File {
       type: 'url',
       url: dataContent,
     };
+  }
+
+  // Handle data URLs
+  if (typeof dataContent === 'string' && dataContent.startsWith('data:')) {
+    const { mediaType: dataUrlMediaType, base64Content } =
+      splitDataUrl(dataContent);
+
+    if (base64Content != null) {
+      const uint8Data = convertBase64ToUint8Array(base64Content);
+      return {
+        type: 'file',
+        data: uint8Data,
+        mediaType:
+          dataUrlMediaType ||
+          detectMediaType({
+            data: uint8Data,
+            signatures: imageMediaTypeSignatures,
+          }) ||
+          'image/png',
+      };
+    }
   }
 
   const uint8Data = convertDataContentToUint8Array(dataContent);
