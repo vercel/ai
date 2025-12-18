@@ -7,7 +7,7 @@ import {
   createUIMessageStreamResponse,
 } from 'ai';
 import {
-  experimental_createMCPClient as createMCPClient,
+  createMCPClient,
   auth,
   type OAuthClientInformation,
   type OAuthClientMetadata,

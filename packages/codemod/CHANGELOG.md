@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- b586bf4: chore(codemod): add codemod for making convertToModelMessages async
+
 ## 3.0.0-beta.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.85
+
+### Patch Changes
+
+- 870297d: feat(google): gemini-3-flash
+
 ## 2.0.0-beta.84
 
 ### Patch Changes
