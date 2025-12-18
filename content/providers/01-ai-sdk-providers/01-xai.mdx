@@ -130,6 +130,10 @@ The following optional provider options are available for xAI chat models:
 
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
+- **name** _string_
+
+  A per-message unique identifier representing your end-user, which can help xAI to monitor and detect abuse. Corresponds to `messages` `name` in https://docs.x.ai/docs/api-reference#chat-completions
+
 ## Responses API (Agentic Tools)
 
 You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.

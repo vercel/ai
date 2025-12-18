@@ -2,8 +2,18 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3Prompt,
   SharedV3Warning,
+  SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+
+function getDeepSeekMessageName(
+  providerOptions?: SharedV3ProviderOptions,
+): string | undefined {
+  const name = providerOptions?.deepseek?.name;
+  return typeof name === 'string' && name.trim().length > 0
+    ? name
+    : undefined;
+}
 
 export function convertToDeepSeekChatMessages({
   prompt,
@@ -50,9 +60,10 @@ export function convertToDeepSeekChatMessages({
   }
 
   let index = -1;
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     index++;
 
+    const name = getDeepSeekMessageName(providerOptions);
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content });
@@ -75,6 +86,7 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'user',
           content: userContent,
+          ...(name ? { name: name } : {}),
         });
 
         break;
@@ -126,6 +138,7 @@ export function convertToDeepSeekChatMessages({
           content: text,
           reasoning_content: reasoning,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          ...(name ? { name: name } : {}),
         });
 
         break;

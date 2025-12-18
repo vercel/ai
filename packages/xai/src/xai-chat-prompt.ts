@@ -14,6 +14,7 @@ export interface XaiSystemMessage {
 export interface XaiUserMessage {
   role: 'user';
   content: string | Array<XaiUserMessageContent>;
+  name?: string;
 }
 
 export type XaiUserMessageContent =
@@ -28,6 +29,7 @@ export interface XaiAssistantMessage {
     type: 'function';
     function: { name: string; arguments: string };
   }>;
+  name?: string;
 }
 
 export interface XaiToolMessage {

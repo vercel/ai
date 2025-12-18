@@ -240,4 +240,39 @@ describe('convertToXaiChatMessages', () => {
       },
     ]);
   });
+
+  it('passes through xai name on user messages', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+        providerOptions: { xai: { name: 'alice' } },
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      { role: 'user', content: 'Hello', name: 'alice' },
+    ]);
+  });
+
+  it('passes through xai name on assistant messages', () => {
+    const { messages, warnings } = convertToXaiChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi' }],
+        providerOptions: { xai: { name: 'grok-bot' } },
+      },
+    ]);
+
+    expect(warnings).toEqual([]);
+    expect(messages).toEqual([
+      {
+        role: 'assistant',
+        content: 'Hi',
+        tool_calls: undefined,
+        name: 'grok-bot',
+      },
+    ]);
+  });
 });
