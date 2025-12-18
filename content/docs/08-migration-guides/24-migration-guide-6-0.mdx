@@ -61,6 +61,8 @@ every file.
 | `rename-core-message-to-model-message`                   | Renames the `CoreMessage` type to `ModelMessage`                                                   |
 | `rename-converttocoremessages-to-converttomodelmessages` | Renames `convertToCoreMessages` function to `convertToModelMessages`                               |
 | `rename-vertex-provider-metadata-key`                    | Renames `google` to `vertex` in `providerMetadata` and `providerOptions` for Google Vertex files   |
+| `wrap-tomodeloutput-parameter`                           | Wraps `toModelOutput` parameter in object destructuring (`output` → `{ output }`)                  |
+| `add-await-converttomodelmessages`                       | Adds `await` to `convertToModelMessages` calls (now async in AI SDK 6)                             |
 
 ## AI SDK Core
 
@@ -200,6 +202,11 @@ import { convertToModelMessages } from 'ai';
 const modelMessages = await convertToModelMessages(uiMessages);
 ```
 
+<Note>
+  Use the `add-await-converttomodelmessages` codemod to automatically update
+  your codebase.
+</Note>
+
 ### `Tool.toModelOutput` changes
 
 `toModelOutput()` receives a parameter object with an `output` property in AI SDK 6.
@@ -227,6 +234,11 @@ const someTool = tool({
   },
 });
 ```
+
+<Note>
+  Use the `wrap-tomodeloutput-parameter` codemod to automatically update your
+  codebase.
+</Note>
 
 ### `cachedInputTokens` and `reasoningTokens` in `LanguageModelUsage` Deprecation
 

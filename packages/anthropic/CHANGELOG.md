@@ -1,5 +1,33 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- d129d89: chore(anthropic): remove unnecessary doc
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+
 ## 3.0.0-beta.87
 
 ### Patch Changes

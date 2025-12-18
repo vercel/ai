@@ -1,5 +1,56 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.125
+
+### Patch Changes
+
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+- Updated dependencies [0ad470b]
+  - @ai-sdk/google@3.0.0-beta.81
+
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [d129d89]
+  - @ai-sdk/anthropic@3.0.0-beta.91
+
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- 870297d: feat(google): gemini-3-flash
+- Updated dependencies [870297d]
+  - @ai-sdk/google@3.0.0-beta.80
+
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/google@3.0.0-beta.79
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/anthropic@3.0.0-beta.89
+  - @ai-sdk/google@3.0.0-beta.78
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- Updated dependencies [87db851]
+  - @ai-sdk/anthropic@3.0.0-beta.88
+
 ## 4.0.0-beta.119
 
 ### Patch Changes

@@ -37,6 +37,11 @@ export interface OpenAICompatibleProvider<
 
   embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
 
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
+
   imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
 
@@ -164,6 +169,7 @@ export function createOpenAICompatible<
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
 
   return provider as OpenAICompatibleProvider<

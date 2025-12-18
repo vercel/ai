@@ -353,7 +353,7 @@ export async function convertToOpenAIResponsesInput({
               call_id: part.toolCallId,
               output: parsedOutput.output,
             });
-            break;
+            continue;
           }
 
           if (
@@ -381,7 +381,7 @@ export async function convertToOpenAIResponsesInput({
                       },
               })),
             });
-            break;
+            continue;
           }
 
           if (
@@ -400,7 +400,7 @@ export async function convertToOpenAIResponsesInput({
               status: parsedOutput.status,
               output: parsedOutput.output,
             });
-            break;
+            continue;
           }
 
           let contentValue: OpenAIResponsesFunctionCallOutput['output'];
