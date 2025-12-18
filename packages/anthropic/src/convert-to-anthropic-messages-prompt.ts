@@ -614,6 +614,47 @@ export async function convertToAnthropicMessagesPrompt({
                 } else if (providerToolName === 'code_execution') {
                   const output = part.output;
 
+                  // Handle error types for code_execution tools (e.g., from programmatic tool calling)
+                  if (
+                    output.type === 'error-text' ||
+                    output.type === 'error-json'
+                  ) {
+                    let errorInfo: { type?: string; errorCode?: string } = {};
+                    try {
+                      if (typeof output.value === 'string') {
+                        errorInfo = JSON.parse(output.value);
+                      } else if (
+                        typeof output.value === 'object' &&
+                        output.value !== null
+                      ) {
+                        errorInfo = output.value as typeof errorInfo;
+                      }
+                    } catch {}
+
+                    if (errorInfo.type === 'code_execution_tool_result_error') {
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: 'code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: {
+                          type: 'bash_code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                      });
+                    }
+                    break;
+                  }
+
                   if (output.type !== 'json') {
                     warnings.push({
                       type: 'other',

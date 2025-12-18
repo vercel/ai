@@ -16,6 +16,20 @@ export default function AnthropicCodeExecutionView({
     case 'input-available': {
       return <InputView input={invocation.input} />;
     }
+    case 'output-error': {
+      return (
+        <>
+          <InputView input={invocation.input} />
+          <div className="mb-2 bg-red-900 rounded-xl border border-red-700 shadow-lg">
+            <pre className="overflow-x-auto p-4 text-sm text-red-100 whitespace-pre-wrap">
+              <span className="font-semibold">Code Execution Error</span>
+              <br />
+              {invocation.errorText}
+            </pre>
+          </div>
+        </>
+      );
+    }
     case 'output-available':
       return (
         <>

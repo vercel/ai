@@ -213,12 +213,17 @@ export interface AnthropicToolSearchToolResultContent {
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'code_execution_result';
-    stdout: string;
-    stderr: string;
-    return_code: number;
-  };
+  content:
+    | {
+        type: 'code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+      }
+    | {
+        type: 'code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
