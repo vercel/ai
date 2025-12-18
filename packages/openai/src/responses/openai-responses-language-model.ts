@@ -22,7 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { applyPatchInputSchema } from '../tool/apply-patch';
+import { applyPatchInputSchema, ApplyPatchOperation } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -47,6 +47,8 @@ import {
   OpenAIResponsesLogprobs,
   openaiResponsesResponseSchema,
   OpenAIResponsesWebSearchAction,
+  OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  OpenAIResponsesApplyPatchOperationDiffDoneChunk,
 } from './openai-responses-api';
 import {
   OpenAIResponsesModelId,
@@ -897,6 +899,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       | undefined
     > = {};
 
+    const applyPatchStreams: Record<
+      string,
+      | {
+          callId: string;
+          outputIndex: number;
+          operation: ApplyPatchOperation;
+          hasDiff: boolean;
+          endEmitted: boolean;
+          prefixDelta: string;
+          suffixDelta: string | null;
+        }
+      | undefined
+    > = {};
+
     // set annotations in 'text-end' part providerMetadata.
     const ongoingAnnotations: Array<
       Extract<
@@ -1051,28 +1067,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'apply_patch_call') {
+                const { call_id: callId, operation } = value.item;
+
                 ongoingToolCalls[value.output_index] = {
                   toolName: toolNameMapping.toCustomToolName('apply_patch'),
-                  toolCallId: value.item.call_id,
+                  toolCallId: callId,
                 };
 
-                // TODO: look into partial diff streaming from the model
-                // Only emit tool-call when status is 'completed' to ensure we have the complete diff
-                if (value.item.status === 'completed') {
+                const prefixDelta = `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}"${operation.type === 'delete_file' ? '' : ',"diff":"'}`;
+                const suffixDelta =
+                  operation.type === 'delete_file' ? '}}' : '"}}';
+
+                applyPatchStreams[value.item.id] = {
+                  callId,
+                  outputIndex: value.output_index,
+                  operation,
+                  hasDiff: operation.type === 'delete_file' ? true : false,
+                  endEmitted: false,
+                  prefixDelta,
+                  suffixDelta,
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: callId,
+                  toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: callId,
+                  delta: prefixDelta,
+                });
+
+                if (operation.type === 'delete_file') {
+                  if (suffixDelta != null) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: callId,
+                      delta: suffixDelta,
+                    });
+                  }
+
                   controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: value.item.call_id,
-                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
-                    input: JSON.stringify({
-                      callId: value.item.call_id,
-                      operation: value.item.operation,
-                    } satisfies InferSchema<typeof applyPatchInputSchema>),
-                    providerMetadata: {
-                      [providerKey]: {
-                        itemId: value.item.id,
-                      },
-                    },
+                    type: 'tool-input-end',
+                    id: callId,
                   });
+
+                  applyPatchStreams[value.item.id]!.endEmitted = true;
                 }
               } else if (value.item.type === 'shell_call') {
                 ongoingToolCalls[value.output_index] = {
@@ -1269,6 +1311,37 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
+                const streamState = applyPatchStreams[value.item.id];
+
+                if (streamState != null && !streamState.endEmitted) {
+                  if (
+                    !streamState.hasDiff &&
+                    'diff' in value.item.operation &&
+                    typeof value.item.operation.diff === 'string'
+                  ) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: streamState.callId,
+                      delta: value.item.operation.diff,
+                    });
+                  }
+
+                  if (streamState.suffixDelta != null) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: streamState.callId,
+                      delta: streamState.suffixDelta,
+                    });
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: streamState.callId,
+                  });
+
+                  streamState.endEmitted = true;
+                }
+
                 // Emit the final tool-call with complete diff when status is 'completed'
                 if (value.item.status === 'completed') {
                   controller.enqueue({
@@ -1286,6 +1359,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   });
                 }
+
+                applyPatchStreams[value.item.id] = undefined;
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -1377,6 +1452,51 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   id: toolCall.toolCallId,
                   delta: value.delta,
                 });
+              }
+            } else if (
+              isResponseApplyPatchCallOperationDiffDeltaChunk(value)
+            ) {
+              const diffChunk = value;
+              const streamState = applyPatchStreams[diffChunk.item_id];
+
+              if (streamState != null) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: streamState.callId,
+                  delta: diffChunk.delta,
+                });
+
+                streamState.hasDiff = true;
+              }
+            } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
+              const diffChunk = value;
+              const streamState = applyPatchStreams[diffChunk.item_id];
+
+              if (streamState != null && !streamState.endEmitted) {
+                if (!streamState.hasDiff && diffChunk.diff != null) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: streamState.callId,
+                    delta: diffChunk.diff,
+                  });
+
+                  streamState.hasDiff = true;
+                }
+
+                if (streamState.suffixDelta != null) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: streamState.callId,
+                    delta: streamState.suffixDelta,
+                  });
+                }
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: streamState.callId,
+                });
+
+                streamState.endEmitted = true;
               }
             } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
               controller.enqueue({
@@ -1694,6 +1814,26 @@ function isResponseCodeInterpreterCallCodeDoneChunk(
   type: 'response.code_interpreter_call_code.done';
 } {
   return chunk.type === 'response.code_interpreter_call_code.done';
+}
+
+function isResponseApplyPatchCallOperationDiffDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesApplyPatchOperationDiffDeltaChunk {
+  return (
+    chunk.type === 'response.apply_patch_call_operation_diff.delta' &&
+    'item_id' in chunk &&
+    'delta' in chunk
+  );
+}
+
+function isResponseApplyPatchCallOperationDiffDoneChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesApplyPatchOperationDiffDoneChunk {
+  return (
+    chunk.type === 'response.apply_patch_call_operation_diff.done' &&
+    'item_id' in chunk &&
+    'diff' in chunk
+  );
 }
 
 function isResponseOutputItemAddedChunk(
