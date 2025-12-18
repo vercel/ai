@@ -693,7 +693,7 @@ You can use Azure OpenAI image models to generate images with the `generateImage
 
 ```ts
 import { azure } from '@ai-sdk/azure';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: azure.image('your-dalle-deployment-name'),

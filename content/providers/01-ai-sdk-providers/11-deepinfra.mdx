@@ -129,7 +129,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: deepinfra.image('stabilityai/sd3.5'),
@@ -151,7 +151,7 @@ You can pass model-specific parameters using the `providerOptions.deepinfra` fie
 
 ```ts
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: deepinfra.image('stabilityai/sd3.5'),
@@ -164,6 +164,68 @@ const { image } = await generateImage({
   },
 });
 ```
+
+### Image Editing
+
+DeepInfra supports image editing through models like `Qwen/Qwen-Image-Edit`. Pass input images via `prompt.images` to transform or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
+  size: '1024x1024',
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
+
+```ts
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+});
+```
+
+#### Multi-Image Combining
+
+Combine multiple reference images into a single output:
+
+```ts
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+
+const { images } = await generateImage({
+  model: deepinfra.image('Qwen/Qwen-Image-Edit'),
+  prompt: {
+    text: 'Create a scene with both animals together, playing as friends',
+    images: [cat, dog],
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. DeepInfra uses an OpenAI-compatible image editing API
+  at `https://api.deepinfra.com/v1/openai/images/edits`.
+</Note>
 
 ### Model Capabilities
 

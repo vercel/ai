@@ -1,13 +1,18 @@
 import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   getFromApi,
+  InferSchema,
+  lazySchema,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
@@ -23,12 +28,24 @@ interface ReplicateImageModelConfig {
   };
 }
 
+// Flux-2 models support up to 8 input images with input_image, input_image_2, etc.
+const FLUX_2_MODEL_PATTERN = /^black-forest-labs\/flux-2-/;
+const MAX_FLUX_2_INPUT_IMAGES = 8;
+
 export class ReplicateImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v3';
-  readonly maxImagesPerCall = 1;
+
+  get maxImagesPerCall(): number {
+    // Flux-2 models support up to 8 input images
+    return this.isFlux2Model ? MAX_FLUX_2_INPUT_IMAGES : 1;
+  }
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  private get isFlux2Model(): boolean {
+    return FLUX_2_MODEL_PATTERN.test(this.modelId);
   }
 
   constructor(
@@ -45,6 +62,8 @@ export class ReplicateImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
@@ -53,6 +72,59 @@ export class ReplicateImageModel implements ImageModelV3 {
     const [modelId, version] = this.modelId.split(':');
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    // Parse provider options
+    const replicateOptions = await parseProviderOptions({
+      provider: 'replicate',
+      providerOptions,
+      schema: replicateImageProviderOptionsSchema,
+    });
+
+    // Handle image input from files
+    let imageInputs: Record<string, string> = {};
+    if (files != null && files.length > 0) {
+      if (this.isFlux2Model) {
+        // Flux-2 models use input_image, input_image_2, input_image_3, etc.
+        for (
+          let i = 0;
+          i < Math.min(files.length, MAX_FLUX_2_INPUT_IMAGES);
+          i++
+        ) {
+          const key = i === 0 ? 'input_image' : `input_image_${i + 1}`;
+          imageInputs[key] = convertImageModelFileToDataUri(files[i]);
+        }
+        if (files.length > MAX_FLUX_2_INPUT_IMAGES) {
+          warnings.push({
+            type: 'other',
+            message: `Flux-2 models support up to ${MAX_FLUX_2_INPUT_IMAGES} input images. Additional images are ignored.`,
+          });
+        }
+      } else {
+        // Other models use single 'image' parameter
+        imageInputs = { image: convertImageModelFileToDataUri(files[0]) };
+        if (files.length > 1) {
+          warnings.push({
+            type: 'other',
+            message:
+              'This Replicate model only supports a single input image. Additional images are ignored.',
+          });
+        }
+      }
+    }
+
+    // Handle mask input (not supported by Flux-2 models)
+    let maskInput: string | undefined;
+    if (mask != null) {
+      if (this.isFlux2Model) {
+        warnings.push({
+          type: 'other',
+          message:
+            'Flux-2 models do not support mask input. The mask will be ignored.',
+        });
+      } else {
+        maskInput = convertImageModelFileToDataUri(mask);
+      }
+    }
 
     const {
       value: { output },
@@ -75,7 +147,9 @@ export class ReplicateImageModel implements ImageModelV3 {
           size,
           seed,
           num_outputs: n,
-          ...(providerOptions.replicate ?? {}),
+          ...imageInputs,
+          ...(maskInput != null ? { mask: maskInput } : {}),
+          ...(replicateOptions ?? {}),
         },
         // for versioned models, include the version in the body:
         ...(version != null ? { version } : {}),
@@ -119,3 +193,54 @@ export class ReplicateImageModel implements ImageModelV3 {
 const replicateImageResponseSchema = z.object({
   output: z.union([z.array(z.string()), z.string()]),
 });
+
+/**
+ * Provider options schema for Replicate image generation.
+ *
+ * Note: Different Replicate models support different parameters.
+ * This schema includes common parameters, but you can pass any
+ * model-specific parameters through the passthrough.
+ */
+export const replicateImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        /**
+         * Guidance scale for classifier-free guidance.
+         * Higher values make the output more closely match the prompt.
+         */
+        guidance_scale: z.number().nullish(),
+
+        /**
+         * Number of denoising steps. More steps = higher quality but slower.
+         */
+        num_inference_steps: z.number().nullish(),
+
+        /**
+         * Negative prompt to guide what to avoid in the generation.
+         */
+        negative_prompt: z.string().nullish(),
+
+        /**
+         * Output image format.
+         */
+        output_format: z.enum(['png', 'jpg', 'webp']).nullish(),
+
+        /**
+         * Output image quality (1-100). Only applies to jpg and webp.
+         */
+        output_quality: z.number().min(1).max(100).nullish(),
+
+        /**
+         * Strength of the transformation for img2img (0-1).
+         * Lower values keep more of the original image.
+         */
+        strength: z.number().min(0).max(1).nullish(),
+      })
+      .passthrough(),
+  ),
+);
+
+export type ReplicateImageProviderOptions = InferSchema<
+  typeof replicateImageProviderOptionsSchema
+>;
