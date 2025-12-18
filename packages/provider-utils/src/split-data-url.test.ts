@@ -59,9 +59,7 @@ describe('splitDataUrl()', () => {
   });
 
   it('should handle data URL with charset parameter', () => {
-    const result = splitDataUrl(
-      'data:text/html;charset=utf-8;base64,PGh0bWw+',
-    );
+    const result = splitDataUrl('data:text/html;charset=utf-8;base64,PGh0bWw+');
     expect(result).toEqual({
       mediaType: 'text/html',
       base64Content: 'PGh0bWw+',
