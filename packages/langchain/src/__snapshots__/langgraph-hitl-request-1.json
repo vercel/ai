@@ -480,6 +480,12 @@
     "id": "run-019b259a-5def-7000-8000-0a449f226de9"
   },
   {
+    "type": "tool-input-start",
+    "toolCallId": "hitl-delete_file-1234567890",
+    "toolName": "delete_file",
+    "dynamic": true
+  },
+  {
     "type": "tool-input-available",
     "toolCallId": "hitl-delete_file-1234567890",
     "toolName": "delete_file",

@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 2.0.0-beta.160
+
+### Minor Changes
+
+- aca5527: feat(langchain): add typed custom data events and fix tool lifecycle
+
 ## 2.0.0-beta.159
 
 ### Minor Changes

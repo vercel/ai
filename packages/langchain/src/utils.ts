@@ -675,9 +675,34 @@ export function processLangGraphEvent(
 
   switch (type) {
     case 'custom': {
+      /**
+       * Extract custom event type from the data's 'type' field if present.
+       * This allows users to emit custom events like:
+       *   writer({ type: 'progress', value: 50 })  -> { type: 'data-progress', data: {...} }
+       *   writer({ type: 'status', message: '...' }) -> { type: 'data-status', data: {...} }
+       *   writer({ key: 'value' })                  -> { type: 'data-custom', data: {...} } (fallback)
+       *
+       * The 'id' field can be used to make parts persistent and updateable.
+       * Parts with an 'id' are NOT transient (added to message.parts).
+       * Parts without an 'id' are transient (only passed to onData callback).
+       */
+      let customTypeName = 'custom';
+      let partId: string | undefined;
+
+      if (data != null && typeof data === 'object' && !Array.isArray(data)) {
+        const dataObj = data as Record<string, unknown>;
+        if (typeof dataObj.type === 'string' && dataObj.type) {
+          customTypeName = dataObj.type;
+        }
+        if (typeof dataObj.id === 'string' && dataObj.id) {
+          partId = dataObj.id;
+        }
+      }
+
       controller.enqueue({
-        type: `data-${type}` as 'data-custom',
-        transient: true,
+        type: `data-${customTypeName}` as `data-${string}`,
+        id: partId,
+        transient: partId == null,
         data,
       });
       break;
@@ -1081,6 +1106,17 @@ export function processLangGraphEvent(
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
+                  /**
+                   * Emit tool-input-start first to ensure proper lifecycle.
+                   * Tool calls that weren't streamed (no tool_call_chunks) need
+                   * the start event before tool-input-available.
+                   */
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    dynamic: true,
+                  });
                   controller.enqueue({
                     type: 'tool-input-available',
                     toolCallId: toolCall.id,
@@ -1187,11 +1223,18 @@ export function processLangGraphEvent(
                 `hitl-${toolName}-${Date.now()}`;
 
               /**
-               * First emit tool-input-available so the UI knows what tool is being called
+               * First emit tool-input-start then tool-input-available
+               * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
                 emittedToolCalls.add(toolCallId);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  toolCallId,
+                  toolName,
+                  dynamic: true,
+                });
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId,

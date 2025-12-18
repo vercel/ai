@@ -38,6 +38,7 @@ enabling you to use LangChain models and LangGraph agents with AI SDK UI compone
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream` using `toUIMessageStream`
 - `LangSmithDeploymentTransport` for connecting directly to a deployed LangGraph graph
 - Full support for text, tool calls, tool results, and multimodal content
+- Custom data streaming with typed events (`data-{type}`)
 
 ## Example: Basic Chat
 
@@ -204,6 +205,131 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+## Example: Custom Data Streaming
+
+LangChain tools can emit custom data events using `config.writer()`. The adapter converts these to typed `data-{type}` parts that can be rendered in the UI or handled via the `onData` callback:
+
+```tsx filename="app/api/custom-data/route.ts"
+import { createUIMessageStreamResponse, UIMessage } from 'ai';
+import { createAgent, tool, type ToolRuntime } from 'langchain';
+import { ChatOpenAI } from '@langchain/openai';
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { z } from 'zod';
+
+export const maxDuration = 60;
+
+const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
+
+// Tool that emits progress updates during execution
+const analyzeDataTool = tool(
+  async ({ dataSource, analysisType }, config: ToolRuntime) => {
+    const steps = ['connecting', 'fetching', 'processing', 'generating'];
+
+    for (let i = 0; i < steps.length; i++) {
+      // Emit progress event - becomes 'data-progress' in the UI
+      // Include 'id' to persist in message.parts for rendering
+      config.writer?.({
+        type: 'progress',
+        id: `analysis-${Date.now()}`,
+        step: steps[i],
+        message: `${steps[i]}...`,
+        progress: Math.round(((i + 1) / steps.length) * 100),
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // Emit completion status
+    config.writer?.({
+      type: 'status',
+      id: `status-${Date.now()}`,
+      status: 'complete',
+      message: 'Analysis finished',
+    });
+
+    return JSON.stringify({ result: 'Analysis complete', confidence: 0.94 });
+  },
+  {
+    name: 'analyze_data',
+    description: 'Analyze data with progress updates',
+    schema: z.object({
+      dataSource: z.enum(['sales', 'inventory', 'customers']),
+      analysisType: z.enum(['trends', 'anomalies', 'summary']),
+    }),
+  },
+);
+
+const agent = createAgent({
+  model,
+  tools: [analyzeDataTool],
+});
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+  const langchainMessages = await toBaseMessages(messages);
+
+  // Enable 'custom' stream mode to receive custom data events
+  const stream = await agent.stream(
+    { messages: langchainMessages },
+    { streamMode: ['values', 'messages', 'custom'] },
+  );
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(stream),
+  });
+}
+```
+
+Handle custom data on the client with the `onData` callback or render persistent data parts:
+
+```tsx filename="app/page.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+
+export default function Chat() {
+  const { messages, sendMessage } = useChat({
+    onData: dataPart => {
+      // Handle transient data events (without 'id')
+      console.log('Received:', dataPart.type, dataPart.data);
+    },
+  });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.parts.map((part, i) => {
+            if (part.type === 'text') {
+              return <span key={i}>{part.text}</span>;
+            }
+            // Render persistent custom data parts (with 'id')
+            if (part.type === 'data-progress') {
+              return (
+                <div key={i}>
+                  Progress: {part.data.progress}% - {part.data.message}
+                </div>
+              );
+            }
+            if (part.type === 'data-status') {
+              return <div key={i}>Status: {part.data.message}</div>;
+            }
+            return null;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+<Note>
+**Custom data behavior:**
+- Data with an `id` field is **persistent** (added to `message.parts` for rendering)
+- Data without an `id` is **transient** (only delivered via the `onData` callback)
+- The `type` field determines the event name: `{ type: 'progress' }` → `data-progress`
+</Note>
 
 ## Example: LangSmith Deployment Transport
 
