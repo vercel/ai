@@ -144,6 +144,51 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should set custom wait time in prefer header when maxWaitTimeInSeconds is specified', async () => {
+    prepareResponse();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        replicate: {
+          maxWaitTimeInSeconds: 120,
+        },
+      },
+    });
+
+    expect(server.calls[0].requestHeaders.prefer).toBe('wait=120');
+  });
+
+  it('should not include maxWaitTimeInSeconds in request body', async () => {
+    prepareResponse();
+
+    await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        replicate: {
+          maxWaitTimeInSeconds: 120,
+          guidance_scale: 7.5,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.input.maxWaitTimeInSeconds).toBeUndefined();
+    expect(requestBody.input.guidance_scale).toBe(7.5);
+  });
+
   it('should extract the generated image from array response', async () => {
     prepareResponse({
       output: ['https://replicate.delivery/xezq/abc/out-0.webp'],
