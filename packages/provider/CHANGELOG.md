@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+
 ## 3.0.0-beta.27
 
 ### Patch Changes
