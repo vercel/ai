@@ -86,7 +86,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
-          providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
         break;
@@ -104,7 +103,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output,
-          providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
         break;

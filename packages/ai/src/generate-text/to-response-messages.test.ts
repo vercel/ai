@@ -749,7 +749,6 @@ describe('toResponseMessages', () => {
                     },
                   ],
                 },
-                "providerExecuted": true,
                 "providerOptions": undefined,
                 "toolCallId": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                 "toolName": "web_search",

@@ -270,12 +270,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     });
                   }
 
-                  // For provider-executed tools in approval-responded state,
-                  // only the approval response is needed, not a tool result
-                  if (
-                    toolPart.providerExecuted === true &&
-                    toolPart.state === 'approval-responded'
-                  ) {
+                  // For provider-executed tools, the tool result is already in the
+                  // assistant content. Skip adding to tool message to avoid duplicates
+                  // (which would create orphaned function_call_output entries).
+                  if (toolPart.providerExecuted === true) {
                     continue;
                   }
 
@@ -291,7 +289,6 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                             toolPart.approval.reason ??
                             'Tool execution denied.',
                         },
-                        providerExecuted: toolPart.providerExecuted,
                         ...(toolPart.callProviderMetadata != null
                           ? { providerOptions: toolPart.callProviderMetadata }
                           : {}),

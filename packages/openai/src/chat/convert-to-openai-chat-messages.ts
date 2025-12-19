@@ -188,12 +188,6 @@ export function convertToOpenAIChatMessages({
             continue;
           }
 
-          // Skip provider-executed tool results - they are not expected in tool messages
-          // for the OpenAI Chat API
-          if (toolResponse.providerExecuted === true) {
-            continue;
-          }
-
           const output = toolResponse.output;
 
           let contentValue: string;

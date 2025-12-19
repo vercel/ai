@@ -380,12 +380,6 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
-          // Skip provider-executed tool results - they are handled via item_reference
-          // in the assistant content for the OpenAI Responses API
-          if (part.providerExecuted === true) {
-            continue;
-          }
-
           const output = part.output;
 
           const resolvedToolName = toolNameMapping.toProviderToolName(
