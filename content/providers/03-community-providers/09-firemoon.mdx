@@ -56,7 +56,7 @@ import { generateImage } from 'ai';
 const result = await generateImage({
   model: firemoon.image('flux/dev'),
   prompt: 'An orangered moon with a dark background',
-  size: '1024x1024',
+  size: 'square_hd',
 });
 
 console.log(result.images[0]);
@@ -84,7 +84,7 @@ You can specify the image size using the `size` parameter:
 const result = await generateImage({
   model: firemoon.image('flux/dev'),
   prompt: 'A beautiful landscape with an orangered moon in the background',
-  size: '1024x1024', // or '512x512', etc.
+  size: 'square_hd', // or 'landscape_16_9', etc.
 });
 ```
 
