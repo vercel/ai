@@ -527,13 +527,36 @@ it('should preserve nested empty object schemas to avoid breaking required array
     type: 'object',
     properties: {
       url: { type: 'string', description: 'URL to navigate to' },
-      launchOptions: { type: 'object' },
+      launchOptions: {
+        type: 'object',
+        description: 'PuppeteerJS LaunchOptions',
+      },
       allowDangerous: {
         type: 'boolean',
         description: 'Allow dangerous options',
       },
     },
     required: ['url', 'launchOptions'],
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+it('should preserve nested empty object schemas without descriptions', () => {
+  const input: JSONSchema7 = {
+    type: 'object',
+    properties: {
+      options: { type: 'object' },
+    },
+    required: ['options'],
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      options: { type: 'object' },
+    },
+    required: ['options'],
   };
 
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
