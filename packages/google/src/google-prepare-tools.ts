@@ -104,6 +104,17 @@ export function prepareTools({
             googleTools.push({ googleSearchRetrieval: {} });
           }
           break;
+        case 'google.enterprise_web_search':
+          if (isGemini2orNewer) {
+            googleTools.push({ enterpriseWebSearch: {} });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details: 'Enterprise Web Search requires Gemini 2.0 or newer.',
+            });
+          }
+          break;
         case 'google.url_context':
           if (isGemini2orNewer) {
             googleTools.push({ urlContext: {} });

@@ -25,6 +25,7 @@ export type GoogleVertexModelId =
   | 'gemini-2.5-flash-preview-09-2025'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
+  | 'gemini-3-flash-preview'
   // Experimental models
   | 'gemini-2.0-pro-exp-02-05'
   | 'gemini-2.0-flash-exp'

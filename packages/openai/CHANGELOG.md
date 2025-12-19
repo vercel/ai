@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.88
+
+### Patch Changes
+
+- 2352cdf: feat (provider/openai): add gpt-image-1.5 model support
+
 ## 2.0.87
 
 ### Patch Changes

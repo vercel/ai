@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.115",
+  "version": "2.0.117",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
