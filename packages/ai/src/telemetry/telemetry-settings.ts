@@ -41,14 +41,4 @@ export type TelemetrySettings = {
    * A custom tracer to use for the telemetry data.
    */
   tracer?: Tracer;
-
-  /**
-   * Maximum length of attribute values. Values that exceed this length will
-   * be truncated. By default, values are not truncated.
-   *
-   * This can be useful when the OpenTelemetry exporter or backend has
-   * attribute value length limits and you want to ensure values are not
-   * silently truncated.
-   */
-  maxAttributeValueLength?: number;
 };
