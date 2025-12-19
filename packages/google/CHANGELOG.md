@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.51
+
+### Patch Changes
+
+- cbc2dba: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+
 ## 2.0.50
 
 ### Patch Changes
