@@ -214,4 +214,28 @@ describe('maxAttributeValueLength', () => {
     });
     expect(result).toEqual({ exact: 'hello' });
   });
+
+  it('should truncate strings in arrays with null/undefined at the start', async () => {
+    const result = await selectTelemetryAttributes({
+      telemetry: { isEnabled: true, maxAttributeValueLength: 5 },
+      attributes: {
+        strings: [null, undefined, 'hello world', 'short'],
+      },
+    });
+    expect(result).toEqual({
+      strings: [null, undefined, 'hello', 'short'],
+    });
+  });
+
+  it('should handle empty arrays', async () => {
+    const result = await selectTelemetryAttributes({
+      telemetry: { isEnabled: true, maxAttributeValueLength: 5 },
+      attributes: {
+        empty: [],
+      },
+    });
+    expect(result).toEqual({
+      empty: [],
+    });
+  });
 });

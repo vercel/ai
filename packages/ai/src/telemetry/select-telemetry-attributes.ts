@@ -30,8 +30,11 @@ function applyAttributeValueLimit(
   }
 
   if (Array.isArray(value)) {
-    // Check if this is a string array (only truncate string arrays)
-    if (value.length > 0 && typeof value[0] === 'string') {
+    // Find the first non-null element to determine the array type
+    const firstNonNull = value.find(item => item != null);
+
+    // Only truncate if the array contains strings
+    if (typeof firstNonNull === 'string') {
       return (value as Array<null | undefined | string>).map(item =>
         typeof item === 'string' ? truncateString(item, maxLength) : item,
       );
