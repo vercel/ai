@@ -61,29 +61,14 @@ const mcpInputSchema = lazySchema(() => zodSchema(z.object({})));
 
 export const mcpOutputSchema = lazySchema(() =>
   zodSchema(
-    z.discriminatedUnion('type', [
-      z.object({
-        type: z.literal('call'),
-        serverLabel: z.string(),
-        name: z.string(),
-        arguments: z.string(),
-        output: z.string().nullable().optional(),
-        error: z.union([z.string(), jsonValueSchema]).optional(),
-      }),
-      z.object({
-        type: z.literal('listTools'),
-        serverLabel: z.string(),
-        tools: z.array(
-          z.object({
-            name: z.string(),
-            description: z.string().optional(),
-            inputSchema: jsonValueSchema,
-            annotations: z.record(z.string(), jsonValueSchema).optional(),
-          }),
-        ),
-        error: z.union([z.string(), jsonValueSchema]).optional(),
-      }),
-    ]),
+    z.object({
+      type: z.literal('call'),
+      serverLabel: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      output: z.string().nullable().optional(),
+      error: z.union([z.string(), jsonValueSchema]).optional(),
+    }),
   ),
 );
 
@@ -122,25 +107,14 @@ type McpArgs = {
 
 export const mcpToolFactory = createProviderToolFactoryWithOutputSchema<
   {},
-  | {
-      type: 'call';
-      serverLabel: string;
-      name: string;
-      arguments: string;
-      output?: string | null;
-      error?: JSONValue;
-    }
-  | {
-      type: 'listTools';
-      serverLabel: string;
-      tools: Array<{
-        name: string;
-        description?: string;
-        inputSchema: unknown;
-        annotations?: unknown;
-      }>;
-      error?: JSONValue;
-    },
+  {
+    type: 'call';
+    serverLabel: string;
+    name: string;
+    arguments: string;
+    output?: string | null;
+    error?: JSONValue;
+  },
   McpArgs
 >({
   id: 'openai.mcp',

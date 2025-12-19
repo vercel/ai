@@ -712,36 +712,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_list_tools': {
-          const toolName = `mcp.listTools`;
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName,
-            input: JSON.stringify({}),
-            providerExecuted: true,
-            dynamic: true,
-          });
-
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName,
-            result: {
-              type: 'listTools',
-              serverLabel: part.server_label,
-              tools: part.tools.map(t => ({
-                name: t.name,
-                description: t.description ?? undefined,
-                inputSchema: t.input_schema,
-                annotations:
-                  (t.annotations as Record<string, JSONValue> | undefined) ??
-                  undefined,
-              })),
-              ...(part.error != null
-                ? { error: part.error as unknown as JSONValue }
-                : {}),
-            } satisfies InferSchema<typeof mcpOutputSchema>,
-          });
+          // Skip listTools - we don't expose this to the UI or send it back
           break;
         }
 
@@ -1324,39 +1295,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               } else if (value.item.type === 'mcp_list_tools') {
+                // Skip listTools - we don't expose this to the UI or send it back
                 ongoingToolCalls[value.output_index] = undefined;
-
-                const toolName = `mcp.listTools`;
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName,
-                  input: JSON.stringify({}),
-                  providerExecuted: true,
-                  dynamic: true,
-                });
-
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName,
-                  result: {
-                    type: 'listTools',
-                    serverLabel: value.item.server_label,
-                    tools: value.item.tools.map(t => ({
-                      name: t.name,
-                      description: t.description ?? undefined,
-                      inputSchema: t.input_schema,
-                      annotations:
-                        (t.annotations as
-                          | Record<string, JSONValue>
-                          | undefined) ?? undefined,
-                    })),
-                    ...(value.item.error != null
-                      ? { error: value.item.error as unknown as JSONValue }
-                      : {}),
-                  } satisfies InferSchema<typeof mcpOutputSchema>,
-                });
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
