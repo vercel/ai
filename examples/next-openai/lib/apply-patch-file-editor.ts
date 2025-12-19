@@ -105,11 +105,17 @@ export class WorkspaceEditor {
     return await fs.readFile(targetPath, 'utf8');
   }
 
-  private async resolve(relativePath: string): Promise<string> {
-    const resolved = path.resolve(this.root, relativePath);
-    if (!resolved.startsWith(this.root)) {
-      throw new Error(`Operation outside workspace: ${relativePath}`);
-    }
-    return resolved;
+private async resolve(relativePath: string): Promise<string> {
+  const rootPath = path.resolve(this.root);
+  const targetPath = path.resolve(rootPath, relativePath);
+
+  const relative = path.relative(rootPath, targetPath);
+
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`Operation outside workspace: ${relativePath}`);
   }
+
+  return targetPath;
+}
+
 }
