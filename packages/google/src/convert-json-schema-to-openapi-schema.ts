@@ -7,7 +7,7 @@ export function convertJSONSchemaToOpenAPISchema(
   jsonSchema: JSONSchema7Definition | undefined,
   isRoot = true,
 ): unknown {
-  // parameters need to be undefined if they are empty objects:
+  // Handle empty object schemas: undefined at root, preserved when nested
   if (jsonSchema == null) {
     return undefined;
   }
