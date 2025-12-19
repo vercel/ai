@@ -46,6 +46,56 @@ const webSearch_20250305InputSchema = lazySchema(() =>
   ),
 );
 
+/**
+ * Options for configuring the web search tool.
+ */
+export interface WebSearch20250305Options {
+  /**
+   * Maximum number of web searches Claude can perform during the conversation.
+   */
+  maxUses?: number;
+
+  /**
+   * Optional list of domains that Claude is allowed to search.
+   */
+  allowedDomains?: string[];
+
+  /**
+   * Optional list of domains that Claude should avoid when searching.
+   */
+  blockedDomains?: string[];
+
+  /**
+   * Optional user location information to provide geographically relevant search results.
+   */
+  userLocation?: {
+    /**
+     * The type of location (must be approximate)
+     */
+    type: 'approximate';
+
+    /**
+     * The city name
+     */
+    city?: string;
+
+    /**
+     * The region or state
+     */
+    region?: string;
+
+    /**
+     * The country
+     */
+    country?: string;
+
+    /**
+     * The IANA timezone ID.
+     */
+    timezone?: string;
+  };
+}
+
 const factory = createProviderToolFactoryWithOutputSchema<
   {
     /**
@@ -76,52 +126,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
      */
     encryptedContent: string;
   }>,
-  {
-    /**
-     * Maximum number of web searches Claude can perform during the conversation.
-     */
-    maxUses?: number;
-
-    /**
-     * Optional list of domains that Claude is allowed to search.
-     */
-    allowedDomains?: string[];
-
-    /**
-     * Optional list of domains that Claude should avoid when searching.
-     */
-    blockedDomains?: string[];
-
-    /**
-     * Optional user location information to provide geographically relevant search results.
-     */
-    userLocation?: {
-      /**
-       * The type of location (must be approximate)
-       */
-      type: 'approximate';
-
-      /**
-       * The city name
-       */
-      city?: string;
-
-      /**
-       * The region or state
-       */
-      region?: string;
-
-      /**
-       * The country
-       */
-      country?: string;
-
-      /**
-       * The IANA timezone ID.
-       */
-      timezone?: string;
-    };
-  }
+  WebSearch20250305Options
 >({
   id: 'anthropic.web_search_20250305',
   inputSchema: webSearch_20250305InputSchema,
@@ -129,7 +134,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
 });
 
 export const webSearch_20250305 = (
-  args: Parameters<typeof factory>[0] = {}, // default
+  args: WebSearch20250305Options = {},
 ) => {
   return factory(args);
 };
