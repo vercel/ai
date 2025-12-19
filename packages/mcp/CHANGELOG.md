@@ -1,5 +1,54 @@
 # @ai-sdk/mcp
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- 90ede04: feat(mcp): make MCPClient stable
+
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 1.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 1.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 1.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
 ## 1.0.0-beta.33
 
 ### Patch Changes

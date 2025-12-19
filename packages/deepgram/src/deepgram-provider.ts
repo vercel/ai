@@ -32,6 +32,11 @@ Creates a model for transcription.
 Creates a model for speech generation.
    */
   speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface DeepgramProviderSettings {
@@ -115,6 +120,7 @@ export function createDeepgram(
       message: 'Deepgram does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({

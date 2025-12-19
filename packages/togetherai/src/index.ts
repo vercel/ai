@@ -5,4 +5,5 @@ export type {
   TogetherAIProvider,
   TogetherAIProviderSettings,
 } from './togetherai-provider';
+export type { TogetherAIImageProviderOptions } from './togetherai-image-model';
 export { VERSION } from './version';

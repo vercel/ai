@@ -80,7 +80,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 ```ts
 import { fal } from '@ai-sdk/fal';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image, providerMetadata } = await generateImage({
@@ -146,15 +146,27 @@ Key features of Fal models include:
 Transform existing images using text prompts.
 
 ```ts
-// Example: Modify existing image
 await generateImage({
-  model: fal.image('fal-ai/flux-pro/kontext'),
-  prompt: 'Put a donut next to the flour.',
-  providerOptions: {
-    fal: {
-      imageUrl:
-        'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
-    },
+  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  prompt: {
+    text: 'Put a donut next to the flour.',
+    images: [
+      'https://v3.fal.media/files/rabbit/rmgBxhwGYb2d3pl3x9sKf_output.png',
+    ],
+  },
+});
+```
+
+Images can also be passed as base64-encoded string, a `Uint8Array`, an `ArrayBuffer`, or a `Buffer`.
+A mask can be passed as well
+
+```ts
+await generateImage({
+  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  prompt: {
+    text: 'Put a donut next to the flour.',
+    images: [imageBuffer],
+    mask: maskBuffer,
   },
 });
 ```

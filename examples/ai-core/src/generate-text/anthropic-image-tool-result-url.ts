@@ -19,17 +19,17 @@ run(async () => {
         throw new Error(`Failed to analyze image: ${error}`);
       }
     },
-    toModelOutput(result) {
+    toModelOutput({ output }) {
       return {
         type: 'content',
         value: [
           {
             type: 'text',
-            text: result.description,
+            text: output.description,
           },
           {
             type: 'image-url',
-            url: result.imageUrl,
+            url: output.imageUrl,
           },
         ],
       };
@@ -46,5 +46,5 @@ run(async () => {
     stopWhen: stepCountIs(4),
   });
 
-  console.log(`Assisstant response : ${JSON.stringify(result.text, null, 2)}`);
+  console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);
 });

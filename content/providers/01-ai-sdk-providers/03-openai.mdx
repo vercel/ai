@@ -694,7 +694,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -741,7 +741,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -1100,7 +1100,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -1138,7 +1138,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -1384,7 +1384,7 @@ const result = await generateText({
         {
           type: 'file',
           mediaType: 'audio/mpeg',
-          data: fs.readFileSync('./data/galileo.mp3'),
+          data: readFileSync('./data/galileo.mp3'),
         },
       ],
     },
@@ -1557,10 +1557,96 @@ const model = openai.image('dall-e-3');
   parameter instead.
 </Note>
 
+### Image Editing
+
+OpenAI's `gpt-image-1` model supports powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Turn the cat into a dog but retain the style of the original image',
+    images: [imageBuffer],
+  },
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
+
+```ts
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+});
+```
+
+#### Background Removal
+
+Remove the background from an image by setting `background` to `transparent`:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'do not change anything',
+    images: [imageBuffer],
+  },
+  providerOptions: {
+    openai: {
+      background: 'transparent',
+      output_format: 'png',
+    },
+  },
+});
+```
+
+#### Multi-Image Combining
+
+Combine multiple reference images into a single output. `gpt-image-1` supports up to 16 input images:
+
+```ts
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+const owl = readFileSync('./owl.png');
+const bear = readFileSync('./bear.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Combine these animals into a group photo, retaining the original style',
+    images: [cat, dog, owl, bear],
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. For `gpt-image-1`, each image should be a `png`,
+  `webp`, or `jpg` file less than 50MB.
+</Note>
+
 ### Model Capabilities
 
 | Model              | Sizes                           |
 | ------------------ | ------------------------------- |
+| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
 | `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
@@ -1570,7 +1656,7 @@ You can pass optional `providerOptions` to the image model. These are prone to c
 
 ```ts
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-1'),
+  model: openai.image('gpt-image-1.5'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },

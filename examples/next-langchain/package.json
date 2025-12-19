@@ -3,21 +3,27 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "run-p dev:next dev:langgraph",
+    "dev:next": "next dev",
+    "dev:langgraph": "cd langgraph-server && npx @langchain/langgraph-cli dev --no-browser",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.0-beta.153",
-    "@ai-sdk/langchain": "2.0.0-beta.150",
-    "@langchain/openai": "0.0.28",
-    "@langchain/core": "0.1.63",
-    "ai": "6.0.0-beta.150",
-    "langchain": "0.1.36",
-    "next": "^15.5.7",
+    "@ai-sdk/react": "3.0.0-beta.162",
+    "@ai-sdk/langchain": "2.0.0-beta.160",
+    "@langchain/openai": "^1.2.0",
+    "@langchain/core": "^1.1.5",
+    "@langchain/langgraph": "^1.0.5",
+    "@langchain/langgraph-cli": "^1.1.2",
+    "ai": "6.0.0-beta.159",
+    "langchain": "^1.2.0",
+    "next": "^15.5.9",
+    "lucide-react": "^0.561.0",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
@@ -26,6 +32,7 @@
     "autoprefixer": "^10.4.14",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.3",
+    "npm-run-all2": "^8.0.4",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "5.8.3"

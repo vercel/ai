@@ -1,4 +1,4 @@
-import { DownloadError } from './download-error';
+import { DownloadError } from '@ai-sdk/provider-utils';
 import {
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,

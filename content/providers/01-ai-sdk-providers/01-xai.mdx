@@ -640,7 +640,7 @@ You can create xAI image models using the `.image()` factory method. For more on
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: xai.image('grok-2-image'),
@@ -659,7 +659,7 @@ You can customize the image generation behavior with model-specific settings:
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: xai.image('grok-2-image'),
