@@ -527,7 +527,10 @@ it('should preserve nested empty object schemas to avoid breaking required array
     type: 'object',
     properties: {
       url: { type: 'string', description: 'URL to navigate to' },
-      launchOptions: { type: 'object', description: 'PuppeteerJS LaunchOptions' },
+      launchOptions: {
+        type: 'object',
+        description: 'PuppeteerJS LaunchOptions',
+      },
       allowDangerous: {
         type: 'boolean',
         description: 'Allow dangerous options',
