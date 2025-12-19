@@ -17,6 +17,9 @@ export function convertJSONSchemaToOpenAPISchema(
       return undefined;
     }
 
+    if (typeof jsonSchema === 'object' && jsonSchema.description) {
+      return { type: 'object', description: jsonSchema.description };
+    }
     return { type: 'object' };
   }
 
