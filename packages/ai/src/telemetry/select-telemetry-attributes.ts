@@ -6,6 +6,43 @@ type ResolvableAttributeValue = () =>
   | PromiseLike<AttributeValue>
   | undefined;
 
+/**
+ * Truncates a string to the specified maximum length.
+ */
+function truncateString(value: string, maxLength: number): string {
+  return value.length > maxLength ? value.slice(0, maxLength) : value;
+}
+
+/**
+ * Applies maxAttributeValueLength to an attribute value.
+ * Only string values are truncated; other types are returned as-is.
+ */
+function applyAttributeValueLimit(
+  value: AttributeValue,
+  maxLength: number | undefined,
+): AttributeValue {
+  if (maxLength == null) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    return truncateString(value, maxLength);
+  }
+
+  if (Array.isArray(value)) {
+    // Check if this is a string array (only truncate string arrays)
+    if (value.length > 0 && typeof value[0] === 'string') {
+      return (value as Array<null | undefined | string>).map(item =>
+        typeof item === 'string' ? truncateString(item, maxLength) : item,
+      );
+    }
+    // Return non-string arrays as-is
+    return value;
+  }
+
+  return value;
+}
+
 export async function selectTelemetryAttributes({
   telemetry,
   attributes,
@@ -25,6 +62,7 @@ export async function selectTelemetryAttributes({
   }
 
   const resultAttributes: Attributes = {};
+  const maxLength = telemetry?.maxAttributeValueLength;
 
   for (const [key, value] of Object.entries(attributes)) {
     if (value == null) {
@@ -45,7 +83,7 @@ export async function selectTelemetryAttributes({
       const result = await value.input();
 
       if (result != null) {
-        resultAttributes[key] = result;
+        resultAttributes[key] = applyAttributeValueLimit(result, maxLength);
       }
 
       continue;
@@ -65,13 +103,16 @@ export async function selectTelemetryAttributes({
       const result = await value.output();
 
       if (result != null) {
-        resultAttributes[key] = result;
+        resultAttributes[key] = applyAttributeValueLimit(result, maxLength);
       }
       continue;
     }
 
     // value is an attribute value already:
-    resultAttributes[key] = value as AttributeValue;
+    resultAttributes[key] = applyAttributeValueLimit(
+      value as AttributeValue,
+      maxLength,
+    );
   }
 
   return resultAttributes;
