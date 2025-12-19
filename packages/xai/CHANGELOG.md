@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.42
+
+### Patch Changes
+
+- 3c6f4e1: fix(provider/xai): correct sources format in searchParameters
+
 ## 2.0.41
 
 ### Patch Changes
