@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.50
+
+### Patch Changes
+
+- 7c30c1d: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+
 ## 2.0.49
 
 ### Patch Changes
