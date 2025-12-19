@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider@3.0.0-beta.28
+
 ## 4.0.0-beta.53
 
 ### Patch Changes

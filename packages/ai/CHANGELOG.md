@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.160
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.86
+
 ## 6.0.0-beta.159
 
 ### Patch Changes
