@@ -1,4 +1,7 @@
-import { anthropic, AnthropicMessageMetadata } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  forwardAnthropicContainerIdFromLastStep,
+} from '@ai-sdk/anthropic';
 import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -46,30 +49,7 @@ run(async () => {
     },
 
     // Propagate container ID between steps for code execution continuity
-    prepareStep: ({ steps }) => {
-      if (steps.length === 0) {
-        return undefined;
-      }
-
-      const lastStep = steps[steps.length - 1];
-      const containerId = (
-        lastStep.providerMetadata?.anthropic as
-          | AnthropicMessageMetadata
-          | undefined
-      )?.container?.id;
-
-      if (!containerId) {
-        return undefined;
-      }
-
-      return {
-        providerOptions: {
-          anthropic: {
-            container: { id: containerId },
-          },
-        },
-      };
-    },
+    prepareStep: forwardAnthropicContainerIdFromLastStep,
 
     // Log request and response at each step
     onStepFinish: async ({ request, response }) => {
