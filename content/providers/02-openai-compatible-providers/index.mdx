@@ -344,7 +344,7 @@ import { generateText } from 'ai';
 const provider = createOpenAICompatible({
   name: 'provider-name',
   apiKey: process.env.PROVIDER_API_KEY,
-  baseURL: 'https://api.provider.com/v1'
+  baseURL: 'https://api.provider.com/v1',
 });
 
 const { text } = await generateText({
