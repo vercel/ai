@@ -979,7 +979,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-input-start",
   },
   {
-    "delta": "{\\"callId\\":\\"call_kA46f91ZwocQyMCKyyZqRyC5\\",\\"operation\\":{\\"type\\":\\"create_file\\",\\"path\\":\\"shopping-checklist.md\\",\\"diff\\":\\"",
+    "delta": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"",
     "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
     "type": "tool-input-delta",
   },

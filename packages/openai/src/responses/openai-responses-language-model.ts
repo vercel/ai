@@ -22,10 +22,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
-  applyPatchInputSchema,
-  ApplyPatchOperation,
-} from '../tool/apply-patch';
+import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -1099,9 +1096,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: callId,
-                    delta: escapeJSONDelta(
-                      `{"callId":"${callId}","operation":{"type":"${operation.type}","path":"${operation.path}","diff":"`,
-                    ),
+                    delta: `{"callId":"${escapeJSONDelta(callId)}","operation":{"type":"${escapeJSONDelta(operation.type)}","path":"${escapeJSONDelta(operation.path)}","diff":"`,
                   });
                 }
               } else if (value.item.type === 'shell_call') {
