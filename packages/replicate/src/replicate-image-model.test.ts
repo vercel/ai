@@ -165,27 +165,6 @@ describe('doGenerate', () => {
     expect(server.calls[0].requestHeaders.prefer).toBe('wait=120');
   });
 
-  it('should not include prefer header when maxWaitTimeInSeconds is 0', async () => {
-    prepareResponse();
-
-    await model.doGenerate({
-      prompt,
-      files: undefined,
-      mask: undefined,
-      n: 1,
-      size: undefined,
-      aspectRatio: undefined,
-      seed: undefined,
-      providerOptions: {
-        replicate: {
-          maxWaitTimeInSeconds: 0,
-        },
-      },
-    });
-
-    expect(server.calls[0].requestHeaders.prefer).toBeUndefined();
-  });
-
   it('should not include maxWaitTimeInSeconds in request body', async () => {
     prepareResponse();
 

@@ -131,14 +131,11 @@ export class ReplicateImageModel implements ImageModelV3 {
 
     // Build the prefer header based on maxWaitTimeInSeconds:
     // - undefined/null: use default sync wait (prefer: wait)
-    // - 0: disable sync mode (no prefer header)
     // - positive number: use custom wait duration (prefer: wait=N)
     const preferHeader: Record<string, string> =
-      maxWaitTimeInSeconds === 0
-        ? {}
-        : maxWaitTimeInSeconds != null
-          ? { prefer: `wait=${maxWaitTimeInSeconds}` }
-          : { prefer: 'wait' };
+      maxWaitTimeInSeconds != null
+        ? { prefer: `wait=${maxWaitTimeInSeconds}` }
+        : { prefer: 'wait' };
 
     const {
       value: { output },
@@ -227,10 +224,8 @@ export const replicateImageProviderOptionsSchema = lazySchema(() =>
          *
          * - When not specified: Uses default 60-second sync wait (`prefer: wait`)
          * - When set to a positive number: Uses that duration (`prefer: wait=N`)
-         * - When set to 0: Disables sync mode (no `prefer` header), returning immediately
-         *   with a prediction in "starting" or "processing" state
          */
-        maxWaitTimeInSeconds: z.number().min(0).nullish(),
+        maxWaitTimeInSeconds: z.number().positive().nullish(),
 
         /**
          * Guidance scale for classifier-free guidance.
