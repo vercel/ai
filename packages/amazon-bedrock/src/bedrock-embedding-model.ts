@@ -96,10 +96,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     const args = isNovaEmbeddingModel(this.modelId)
       ? { messages: [{ role: 'user', content: [{ text: values[0] }] }] }
       : {
-        inputText: values[0],
-        dimensions: bedrockOptions.dimensions,
-        normalize: bedrockOptions.normalize,
-      };
+          inputText: values[0],
+          dimensions: bedrockOptions.dimensions,
+          normalize: bedrockOptions.normalize,
+        };
 
     const url = this.getUrl(this.modelId);
     const { value: response } = await postJsonToApi({
