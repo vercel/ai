@@ -247,6 +247,12 @@ The following provider options are available:
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
 
+- **systemMessageMode** _'system' | 'developer' | 'remove'_
+  Controls the role of the system message when making requests. By default (when omitted), for models that support reasoning the `system` message is automatically converted to a `developer` message. Setting `systemMessageMode` to `system` passes the system message as a system-level instruction; `developer` passes it as a developer message; `remove` omits the system message from the request.
+
+- **forceReasoning** _boolean_
+  Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 ```ts
@@ -968,6 +974,30 @@ console.log('Usage:', {
   System messages are automatically converted to OpenAI developer messages for
   reasoning models when supported.
 </Note>
+
+- You can control how system messages are handled by providerOptions `systemMessageMode`:
+
+  - `developer`: treat the prompt as a developer message (default for reasoning models).
+  - `system`: keep the system message as a system-level instruction.
+  - `remove`: remove the system message from the messages.
+
+```ts highlight="12"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.chat('gpt-5'),
+  messages: [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Tell me a joke.' },
+  ],
+  providerOptions: {
+    openai: {
+      systemMessageMode: 'system',
+    },
+  },
+});
+```
 
 <Note>
   Reasoning models require additional runtime inference to complete their
