@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- 9cded0d: fix(provider/xai): correct sources format in searchParameters
+
 ## 3.0.0-beta.63
 
 ### Patch Changes
