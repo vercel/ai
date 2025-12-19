@@ -9,7 +9,7 @@ description: Firemoon provider for the AI SDK.
 
 The Firemoon provider for the AI SDK enables you to use these models with a simple, consistent API:
 
-- **Image and video generation**: Generate images today, with early video model support.
+- **Image generation**: Generate images today, with early video model support.
 - **Model variety**: Access multiple model families through a single provider.
 - **Provider options**: Pass model-specific parameters when you need more control.
 
@@ -64,9 +64,13 @@ console.log(result.images[0]);
 
 ### Available Models
 
-- `flux-2-dev/edit` - Fast, high-quality image editing
+- `flux/dev` - Fast, high-quality image generation
+- `flux-2-dev/edit` - Fast, high-quality image editing with Flux 2
+- `nano-banana` - Fast, high-quality image generation
 - `nano-banana/edit` - High quality image editing by Gemini, also known as Gemini 2.5 Flash Image
 - `nano-banana-pro/edit` - High quality image editing by Gemini 3 Pro
+- `firemoon-studio/memphis-style` - Memphis style image generation
+
 
 You can browse all available models on the [Firemoon Studio Models](https://firemoon.studio/models) page.
 
@@ -177,6 +181,8 @@ console.log(result.images[0]);
 The Firemoon provider throws `APICallError` for API-related errors:
 
 ```ts
+import { APICallError } from 'ai';
+
 try {
   const result = await generateImage({
     model: firemoon.image('flux/dev'),
