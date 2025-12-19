@@ -1,5 +1,22 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.108
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/openai@3.0.0-beta.106
+
+## 3.0.0-beta.107
+
+### Patch Changes
+
+- Updated dependencies [88574c1]
+  - @ai-sdk/openai@3.0.0-beta.105
+
 ## 3.0.0-beta.106
 
 ### Patch Changes

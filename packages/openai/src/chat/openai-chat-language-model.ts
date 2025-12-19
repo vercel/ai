@@ -92,6 +92,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       })) ?? {};
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const isReasoningModel =
+      openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -100,7 +102,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: modelCapabilities.systemMessageMode,
+        systemMessageMode:
+          openaiOptions.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
       },
     );
 
@@ -172,7 +178,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
-    if (modelCapabilities.isReasoningModel) {
+    if (isReasoningModel) {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
