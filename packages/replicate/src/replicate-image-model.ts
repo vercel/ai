@@ -126,6 +126,20 @@ export class ReplicateImageModel implements ImageModelV3 {
       }
     }
 
+    // Extract maxWaitTimeInSeconds from provider options and prepare the rest for the request body
+    const { maxWaitTimeInSeconds, ...inputOptions } = replicateOptions ?? {};
+
+    // Build the prefer header based on maxWaitTimeInSeconds:
+    // - undefined/null: use default sync wait (prefer: wait)
+    // - 0: disable sync mode (no prefer header)
+    // - positive number: use custom wait duration (prefer: wait=N)
+    const preferHeader: Record<string, string> =
+      maxWaitTimeInSeconds === 0
+        ? {}
+        : maxWaitTimeInSeconds != null
+          ? { prefer: `wait=${maxWaitTimeInSeconds}` }
+          : { prefer: 'wait' };
+
     const {
       value: { output },
       responseHeaders,
@@ -136,9 +150,11 @@ export class ReplicateImageModel implements ImageModelV3 {
           ? `${this.config.baseURL}/predictions`
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
-      headers: combineHeaders(await resolve(this.config.headers), headers, {
-        prefer: 'wait',
-      }),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        headers,
+        preferHeader,
+      ),
 
       body: {
         input: {
@@ -149,7 +165,7 @@ export class ReplicateImageModel implements ImageModelV3 {
           num_outputs: n,
           ...imageInputs,
           ...(maskInput != null ? { mask: maskInput } : {}),
-          ...(replicateOptions ?? {}),
+          ...inputOptions,
         },
         // for versioned models, include the version in the body:
         ...(version != null ? { version } : {}),
@@ -205,6 +221,17 @@ export const replicateImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
+        /**
+         * Maximum time in seconds to wait for the prediction to complete in sync mode.
+         * By default, Replicate uses sync mode with a 60-second timeout.
+         *
+         * - When not specified: Uses default 60-second sync wait (`prefer: wait`)
+         * - When set to a positive number: Uses that duration (`prefer: wait=N`)
+         * - When set to 0: Disables sync mode (no `prefer` header), returning immediately
+         *   with a prediction in "starting" or "processing" state
+         */
+        maxWaitTimeInSeconds: z.number().min(0).nullish(),
+
         /**
          * Guidance scale for classifier-free guidance.
          * Higher values make the output more closely match the prompt.
