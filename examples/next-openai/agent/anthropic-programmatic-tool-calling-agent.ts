@@ -1,5 +1,9 @@
 import { weatherToolWithProgrammaticCalling } from '@/tool/weather-tool-with-programmatic-calling';
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  AnthropicProviderOptions,
+  forwardAnthropicContainerIdFromLastStep,
+} from '@ai-sdk/anthropic';
 import { InferAgentUIMessage, ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
@@ -25,25 +29,7 @@ export const anthropicProgrammaticToolCallingAgent = new ToolLoopAgent({
   }),
 
   // Pass container ID between steps within the same stream
-  prepareStep: ({ steps }) => {
-    const lastStep = steps.at(-1);
-    const containerId = (
-      lastStep?.providerMetadata?.anthropic as { container?: { id?: string } }
-    )?.container?.id;
-
-    if (containerId) {
-      return {
-        providerOptions: {
-          anthropic: {
-            container: {
-              id: containerId,
-            },
-          } satisfies AnthropicProviderOptions as any,
-        },
-      };
-    }
-    return undefined;
-  },
+  prepareStep: forwardAnthropicContainerIdFromLastStep,
 });
 
 export type AnthropicProgrammaticToolCallingMessage = InferAgentUIMessage<

@@ -65,6 +65,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -1236,20 +1237,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           experimental_context =
             prepareStepResult?.experimental_context ?? experimental_context;
 
-          // Merge provider options: step-specific options override base options
-          const stepProviderOptions = prepareStepResult?.providerOptions
-            ? Object.entries(prepareStepResult.providerOptions).reduce(
-                (merged, [provider, options]) => ({
-                  ...merged,
-                  [provider]: {
-                    ...(providerOptions?.[provider] ?? {}),
-                    ...options,
-                  },
-                }),
-                { ...providerOptions },
-              )
-            : providerOptions;
-
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
           const {
             result: { stream, response, request },
             doStreamSpan,

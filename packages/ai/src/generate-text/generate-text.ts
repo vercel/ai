@@ -11,6 +11,7 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -37,6 +38,7 @@ import {
 } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -65,7 +67,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { NoOutputGeneratedError } from '../error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -507,19 +508,10 @@ A function that attempts to repair a tool call that failed to parse.
               }),
               tracer,
               fn: async span => {
-                // Merge provider options: step-specific options override base options
-                const stepProviderOptions = prepareStepResult?.providerOptions
-                  ? Object.entries(prepareStepResult.providerOptions).reduce(
-                      (merged, [provider, options]) => ({
-                        ...merged,
-                        [provider]: {
-                          ...(providerOptions?.[provider] ?? {}),
-                          ...options,
-                        },
-                      }),
-                      { ...providerOptions },
-                    )
-                  : providerOptions;
+                const stepProviderOptions = mergeObjects(
+                  providerOptions,
+                  prepareStepResult?.providerOptions,
+                );
 
                 const result = await stepModel.doGenerate({
                   ...callSettings,

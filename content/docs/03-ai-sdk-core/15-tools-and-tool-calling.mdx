@@ -374,21 +374,10 @@ prepareStep: async ({ stepNumber, steps, messages }) => {
 You can use `providerOptions` in `prepareStep` to pass provider-specific configuration for each step. This is useful for features like Anthropic's code execution container persistence:
 
 ```tsx
-prepareStep: async ({ steps }) => {
-  if (steps.length === 0) return undefined;
+import { forwardAnthropicContainerIdFromLastStep } from '@ai-sdk/anthropic';
 
-  // Propagate container ID from previous step (e.g., for Anthropic code execution)
-  const lastStep = steps[steps.length - 1];
-  const containerId = lastStep.providerMetadata?.anthropic?.container?.id;
-
-  if (!containerId) return undefined;
-
-  return {
-    providerOptions: {
-      anthropic: { container: { id: containerId } },
-    },
-  };
-},
+// Propagate container ID from previous step for code execution continuity
+prepareStep: forwardAnthropicContainerIdFromLastStep,
 ```
 
 ## Response Messages
