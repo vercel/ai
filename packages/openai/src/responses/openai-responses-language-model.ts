@@ -121,6 +121,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    const isReasoningModel =
+      openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
         type: 'unsupported',
@@ -148,7 +151,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       await convertToOpenAIResponsesInput({
         prompt,
         toolNameMapping,
-        systemMessageMode: modelCapabilities.systemMessageMode,
+        systemMessageMode:
+          openaiOptions?.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -210,7 +217,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const store = openaiOptions?.store;
 
     // store defaults to true in the OpenAI responses API, so check for false exactly:
-    if (store === false && modelCapabilities.isReasoningModel) {
+    if (store === false && isReasoningModel) {
       addInclude('reasoning.encrypted_content');
     }
 
@@ -259,7 +266,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       truncation: openaiOptions?.truncation,
 
       // model-specific settings:
-      ...(modelCapabilities.isReasoningModel &&
+      ...(isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
@@ -275,7 +282,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
-    if (modelCapabilities.isReasoningModel) {
+    if (isReasoningModel) {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
