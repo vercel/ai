@@ -9,6 +9,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  Tool,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -691,6 +692,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       }
     > = {};
 
+    // Track tools injected via prepareStep (persist across steps)
+    // Declared here so eventProcessor can access for toResponseMessages
+    let accumulatedDynamicTools: Record<string, Tool> = {};
+
+    // Helper to compute merged tools (original + injected)
+    const getAllAvailableTools = () =>
+      Object.keys(accumulatedDynamicTools).length > 0
+        ? ({ ...tools, ...accumulatedDynamicTools } as TOOLS | undefined)
+        : tools;
+
     const eventProcessor = new TransformStream<
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
       EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -852,7 +863,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         if (part.type === 'finish-step') {
           const stepMessages = await toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: getAllAvailableTools(),
           });
 
           // Add step information (after response messages are updated):
@@ -1208,6 +1219,67 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             experimental_context,
           });
 
+          // Collect warnings for tool collisions
+          const prepareStepWarnings: SharedV3Warning[] = [];
+
+          // APPEND new tools (never removes existing)
+          if (prepareStepResult?.tools != null) {
+            const newTools = prepareStepResult.tools;
+
+            // Warn about tool name collisions (existing tools being overridden)
+            for (const toolName of Object.keys(newTools)) {
+              if (tools?.[toolName] != null) {
+                prepareStepWarnings.push({
+                  type: 'other',
+                  message: `prepareStep: Tool "${toolName}" already exists and will be overridden`,
+                });
+              } else if (accumulatedDynamicTools[toolName] != null) {
+                prepareStepWarnings.push({
+                  type: 'other',
+                  message: `prepareStep: Previously injected tool "${toolName}" will be overridden`,
+                });
+              }
+            }
+
+            accumulatedDynamicTools = {
+              ...accumulatedDynamicTools,
+              ...newTools,
+            };
+          }
+
+          // All available tools = original + all injected
+          const allAvailableTools =
+            Object.keys(accumulatedDynamicTools).length > 0
+              ? { ...tools, ...accumulatedDynamicTools }
+              : tools;
+
+          // activeTools filtering:
+          // - If prepareStep returns activeTools: use it (temporary filter for this step)
+          // - If original activeTools was set: expand it to include injected tool names
+          // - Otherwise: all tools are active
+          let stepActiveTools: Array<string> | undefined;
+
+          if (prepareStepResult?.activeTools != null) {
+            // User explicitly wants to filter this step
+            stepActiveTools = prepareStepResult.activeTools as Array<string>;
+          } else if (activeTools != null) {
+            // Original activeTools was set - auto-expand with injected tools
+            // PREVENT DUPLICATES: Only add tools not already in activeTools
+            const originalActiveTools = activeTools as Array<string>;
+            const newToolNames = Object.keys(accumulatedDynamicTools).filter(
+              name => !originalActiveTools.includes(name),
+            );
+
+            if (newToolNames.length > 0) {
+              stepActiveTools = [...originalActiveTools, ...newToolNames];
+            } else {
+              stepActiveTools = originalActiveTools;
+            }
+          } else {
+            // No filtering - all tools available
+            stepActiveTools = undefined;
+          }
+
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
@@ -1223,9 +1295,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({
-              tools,
+              tools: allAvailableTools as TOOLS | undefined,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools as Array<keyof TOOLS> | undefined,
             });
 
           experimental_context =
@@ -1299,7 +1371,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           );
 
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: allAvailableTools as TOOLS | undefined,
             generatorStream: stream,
             tracer,
             telemetry,
@@ -1314,7 +1386,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const stepRequest = request ?? {};
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
-          let warnings: SharedV3Warning[] | undefined;
+          // Initialize with prepareStep warnings, model warnings will be merged
+          let warnings: SharedV3Warning[] | undefined =
+            prepareStepWarnings.length > 0 ? prepareStepWarnings : undefined;
 
           const activeToolCallToolNames: Record<string, string> = {};
 
@@ -1339,7 +1413,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               >({
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
-                    warnings = chunk.warnings;
+                    // Merge model warnings with prepareStep warnings
+                    warnings =
+                      chunk.warnings != null
+                        ? [...(warnings ?? []), ...chunk.warnings]
+                        : warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
 
@@ -1620,7 +1698,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
-                        tools,
+                        tools: getAllAvailableTools(),
                       })),
                     );
 

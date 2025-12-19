@@ -69,6 +69,32 @@ export type PrepareStepResult<
       activeTools?: Array<keyof NoInfer<TOOLS>>;
 
       /**
+       * Additional tools to inject for this step and all subsequent steps.
+       * Injected tools are merged with the original tools (append-only).
+       * New tools with the same name will override existing tools.
+       * Injected tools persist across steps until the request completes.
+       *
+       * @example
+       * ```typescript
+       * prepareStep: async ({ steps }) => {
+       *   // Inject a tool discovered in a previous step
+       *   if (steps.some(s => s.toolResults?.some(r => r.toolName === 'toolSearch'))) {
+       *     return {
+       *       tools: {
+       *         googleSearch: dynamicTool({
+       *           description: 'Search Google',
+       *           inputSchema: z.object({ query: z.string() }),
+       *           execute: async ({ query }) => googleApi.search(query)
+       *         })
+       *       }
+       *     };
+       *   }
+       * }
+       * ```
+       */
+      tools?: Record<string, Tool>;
+
+      /**
        * Optionally override the system message(s) sent to the model for this step.
        */
       system?: string | SystemModelMessage | Array<SystemModelMessage>;

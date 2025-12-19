@@ -5087,4 +5087,520 @@ describe('generateText', () => {
       expect(result.text).toBe('response from without-image-url-support');
     });
   });
+
+  describe('prepareStep with dynamic tool injection', () => {
+    it('should enable tool discovery → same-turn execution flow', async () => {
+      // This test demonstrates the primary use case:
+      // 1. Model calls toolSearch to discover available tools
+      // 2. prepareStep injects the discovered tool
+      // 3. Model calls the discovered tool in the next step
+      // 4. The discovered tool executes successfully
+
+      const executionLog: string[] = [];
+      let callCount = 0;
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            callCount++;
+            const toolNames = options.tools?.map(t => t.name) ?? [];
+
+            // Step 1: Model calls toolSearch
+            if (callCount === 1) {
+              return {
+                ...dummyResponseValues,
+                finishReason: 'tool-calls' as const,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'toolSearch',
+                    input: JSON.stringify({ category: 'web' }),
+                  },
+                ],
+              };
+            }
+
+            // Step 2: Model calls the discovered webSearch tool
+            if (callCount === 2 && toolNames.includes('webSearch')) {
+              return {
+                ...dummyResponseValues,
+                finishReason: 'tool-calls' as const,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-2',
+                    toolName: 'webSearch',
+                    input: JSON.stringify({ query: 'AI SDK documentation' }),
+                  },
+                ],
+              };
+            }
+
+            throw new Error(
+              `Unexpected call: ${callCount}, tools: ${toolNames}`,
+            );
+          },
+        }),
+        tools: {
+          // Bootstrap tool that "discovers" other tools
+          toolSearch: tool({
+            inputSchema: z.object({ category: z.string() }),
+            execute: async ({ category }) => {
+              executionLog.push(`toolSearch executed: ${category}`);
+              // Return discovered tools metadata
+              return {
+                discoveredTools: [
+                  { name: 'webSearch', description: 'Search the web' },
+                ],
+              };
+            },
+          }),
+        },
+        prompt: 'Find web tools and search for AI SDK docs',
+        stopWhen: stepCountIs(2),
+        prepareStep: async ({ steps }) => {
+          // Check if toolSearch was called in the previous step
+          const lastStep = steps[steps.length - 1];
+          const toolSearchResult = lastStep?.toolResults?.find(
+            r => r.toolName === 'toolSearch',
+          );
+
+          if (toolSearchResult) {
+            const discovered = (toolSearchResult.output as any)
+              ?.discoveredTools;
+            if (discovered?.some((t: any) => t.name === 'webSearch')) {
+              // Inject the discovered tool
+              return {
+                tools: {
+                  webSearch: dynamicTool({
+                    description: 'Search the web',
+                    inputSchema: z.object({ query: z.string() }),
+                    execute: async input => {
+                      const { query } = input as { query: string };
+                      executionLog.push(`webSearch executed: ${query}`);
+                      return { results: [`Found docs for: ${query}`] };
+                    },
+                  }),
+                },
+              };
+            }
+          }
+        },
+      });
+
+      // Verify the execution flow
+      expect(executionLog).toEqual([
+        'toolSearch executed: web',
+        'webSearch executed: AI SDK documentation',
+      ]);
+
+      // Step 1: toolSearch was called
+      expect(result.steps[0].toolCalls[0].toolName).toBe('toolSearch');
+      expect(result.steps[0].toolResults[0].output).toEqual({
+        discoveredTools: [{ name: 'webSearch', description: 'Search the web' }],
+      });
+
+      // Step 2: webSearch (discovered tool) was called and executed
+      expect(result.steps[1].toolCalls[0].toolName).toBe('webSearch');
+      expect(result.steps[1].toolResults[0].output).toEqual({
+        results: ['Found docs for: AI SDK documentation'],
+      });
+    });
+
+    it('should inject tools via prepareStep and make them available in subsequent steps', async () => {
+      const doGenerateCalls: Array<LanguageModelV3CallOptions> = [];
+      let injectedToolExecuted = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            doGenerateCalls.push(options);
+            switch (doGenerateCalls.length) {
+              case 1:
+                // Step 0: Model calls toolSearch
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls' as const,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'toolSearch',
+                      input: `{ "category": "web" }`,
+                    },
+                  ],
+                };
+              case 2:
+                // Step 1: Model calls injected googleSearch
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls' as const,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-2',
+                      toolName: 'googleSearch',
+                      input: `{ "query": "AI SDK" }`,
+                    },
+                  ],
+                };
+              case 3:
+                // Step 2: Final response
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Found results!' }],
+                };
+              default:
+                throw new Error(
+                  `Unexpected call count: ${doGenerateCalls.length}`,
+                );
+            }
+          },
+        }),
+        tools: {
+          toolSearch: tool({
+            inputSchema: z.object({ category: z.string() }),
+            execute: async () => 'found: googleSearch',
+          }),
+        },
+        prompt: 'Find and use a search tool',
+        stopWhen: stepCountIs(4),
+        prepareStep: async ({ stepNumber }) => {
+          // After step 0, inject googleSearch tool
+          if (stepNumber === 1) {
+            return {
+              tools: {
+                googleSearch: dynamicTool({
+                  description: 'Search Google',
+                  inputSchema: z.object({ query: z.string() }),
+                  execute: async input => {
+                    injectedToolExecuted = true;
+                    const { query } = input as { query: string };
+                    return `Google results for: ${query}`;
+                  },
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // Verify tool was injected
+      expect(doGenerateCalls[0].tools?.map(t => t.name)).toEqual([
+        'toolSearch',
+      ]);
+      expect(doGenerateCalls[1].tools?.map(t => t.name).sort()).toEqual([
+        'googleSearch',
+        'toolSearch',
+      ]);
+      expect(doGenerateCalls[2].tools?.map(t => t.name).sort()).toEqual([
+        'googleSearch',
+        'toolSearch',
+      ]);
+
+      // Verify injected tool was executed
+      expect(injectedToolExecuted).toBe(true);
+
+      // Verify steps
+      expect(result.steps).toHaveLength(3);
+      expect(result.steps[0].toolCalls?.[0]?.toolName).toBe('toolSearch');
+      expect(result.steps[1].toolCalls?.[0]?.toolName).toBe('googleSearch');
+      expect(result.text).toBe('Found results!');
+    });
+
+    it('should persist injected tools across steps without re-injection', async () => {
+      const doGenerateCalls: Array<LanguageModelV3CallOptions> = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            doGenerateCalls.push(options);
+            switch (doGenerateCalls.length) {
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls' as const,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{}`,
+                    },
+                  ],
+                };
+              case 2:
+              case 3:
+                return {
+                  ...dummyResponseValues,
+                  finishReason: 'tool-calls' as const,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: `call-${doGenerateCalls.length}`,
+                      toolName: 'injectedTool',
+                      input: `{}`,
+                    },
+                  ],
+                };
+              case 4:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'done' }],
+                };
+              default:
+                throw new Error(
+                  `Unexpected call count: ${doGenerateCalls.length}`,
+                );
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test',
+        stopWhen: stepCountIs(5),
+        prepareStep: async ({ stepNumber }) => {
+          // Only inject on step 1, but it should persist to steps 2 and 3
+          if (stepNumber === 1) {
+            return {
+              tools: {
+                injectedTool: dynamicTool({
+                  description: 'Injected tool',
+                  inputSchema: z.object({}),
+                  execute: async () => 'injected result',
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // Step 0: only tool1
+      expect(doGenerateCalls[0].tools?.map(t => t.name)).toEqual(['tool1']);
+
+      // Steps 1, 2, 3: tool1 + injectedTool (persisted)
+      expect(doGenerateCalls[1].tools?.map(t => t.name).sort()).toEqual([
+        'injectedTool',
+        'tool1',
+      ]);
+      expect(doGenerateCalls[2].tools?.map(t => t.name).sort()).toEqual([
+        'injectedTool',
+        'tool1',
+      ]);
+      expect(doGenerateCalls[3].tools?.map(t => t.name).sort()).toEqual([
+        'injectedTool',
+        'tool1',
+      ]);
+    });
+
+    it('should auto-expand activeTools to include injected tools', async () => {
+      const doGenerateCalls: Array<LanguageModelV3CallOptions> = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async options => {
+            doGenerateCalls.push(options);
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'done' }],
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'r1',
+          }),
+          tool2: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'r2',
+          }),
+        },
+        activeTools: ['tool1'], // Only tool1 is active initially
+        prompt: 'test',
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              tools: {
+                injectedTool: dynamicTool({
+                  description: 'Injected',
+                  inputSchema: z.object({}),
+                  execute: async () => 'injected',
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // Should have tool1 (from activeTools) + injectedTool (auto-added)
+      // But NOT tool2 (filtered out by activeTools)
+      expect(doGenerateCalls[0].tools?.map(t => t.name).sort()).toEqual([
+        'injectedTool',
+        'tool1',
+      ]);
+    });
+
+    it('should allow tool override with same name', async () => {
+      let executedByOriginal = false;
+      let executedByInjected = false;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => {
+            return {
+              ...dummyResponseValues,
+              finishReason: 'tool-calls' as const,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'myTool',
+                  input: `{}`,
+                },
+              ],
+            };
+          },
+        }),
+        tools: {
+          myTool: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              executedByOriginal = true;
+              return 'original';
+            },
+          }),
+        },
+        prompt: 'test',
+        stopWhen: stepCountIs(1),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              tools: {
+                myTool: dynamicTool({
+                  description: 'Overridden',
+                  inputSchema: z.object({}),
+                  execute: async () => {
+                    executedByInjected = true;
+                    return 'injected';
+                  },
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // Original should not be executed, injected should be
+      expect(executedByOriginal).toBe(false);
+      expect(executedByInjected).toBe(true);
+    });
+
+    it('should use toModelOutput from injected tool in response messages', async () => {
+      let toModelOutputCalled = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: 'tool-calls' as const,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'injectedTool',
+                input: `{ "query": "test" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {},
+        prompt: 'test',
+        stopWhen: stepCountIs(1),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              tools: {
+                injectedTool: dynamicTool({
+                  description: 'Tool with custom toModelOutput',
+                  inputSchema: z.object({ query: z.string() }),
+                  execute: async () => 'result',
+                  toModelOutput: async () => {
+                    toModelOutputCalled = true;
+                    return { type: 'text', value: 'custom output' };
+                  },
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // toModelOutput should be called when building response messages
+      expect(toModelOutputCalled).toBe(true);
+
+      // Verify the custom output is in the response messages
+      const toolMessage = result.steps[0].response.messages.find(
+        m => m.role === 'tool',
+      );
+      expect(toolMessage).toBeDefined();
+      expect((toolMessage as any).content[0].output).toEqual({
+        type: 'text',
+        value: 'custom output',
+      });
+    });
+
+    it('should include tool collision warnings in step warnings', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: 'stop' as const,
+            content: [{ type: 'text', text: 'done' }],
+          }),
+        }),
+        tools: {
+          existingTool: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'original',
+          }),
+        },
+        prompt: 'test',
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 0) {
+            return {
+              tools: {
+                existingTool: dynamicTool({
+                  description: 'Override',
+                  inputSchema: z.object({}),
+                  execute: async () => 'injected',
+                }),
+              },
+            };
+          }
+        },
+      });
+
+      // Should have a warning about the tool collision
+      expect(result.steps[0].warnings).toBeDefined();
+      expect(result.steps[0].warnings?.length).toBeGreaterThan(0);
+      expect(result.steps[0].warnings?.[0]).toMatchObject({
+        type: 'other',
+        message: expect.stringContaining('existingTool'),
+      });
+    });
+  });
 });
