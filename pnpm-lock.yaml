@@ -804,7 +804,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.0-beta.101
+        specifier: 4.0.0-beta.102
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 3.0.0-beta.91
@@ -831,7 +831,7 @@ importers:
         specifier: 3.0.0-beta.56
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.0-beta.39
+        specifier: 1.0.0-beta.40
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.0-beta.55

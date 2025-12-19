@@ -23,7 +23,7 @@ import { blackForestLabs } from '@ai-sdk/black-forest-labs';
 ```ts
 import fs from 'node:fs';
 import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: blackForestLabs.image('flux-pro-1.1'),
@@ -44,7 +44,7 @@ import {
   blackForestLabs,
   type BlackForestLabsImageProviderOptions,
 } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: blackForestLabs.image('flux-pro-1.1'),
@@ -90,7 +90,7 @@ You can also override these polling settings per request via `providerOptions.bl
 
 ```ts
 import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: blackForestLabs.image('flux-pro-1.1'),
