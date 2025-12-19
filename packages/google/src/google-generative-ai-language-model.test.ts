@@ -2242,6 +2242,52 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass thinkingLevel "minimal" in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'minimal',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'minimal',
+        },
+      },
+    });
+  });
+
+  it('should pass thinkingLevel "medium" in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'medium',
+        },
+      },
+    });
+  });
+
   describe('providerMetadata key based on provider string', () => {
     it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
