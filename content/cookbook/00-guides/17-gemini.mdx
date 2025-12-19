@@ -43,7 +43,7 @@ console.log(text);
 
 ### Enhanced Reasoning with Thinking Mode
 
-Gemini 3 Pro can use enhanced reasoning through thinking mode, which improves its ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
+Gemini 3 models can use enhanced reasoning through thinking mode, which improves their ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
 
 ```ts
 import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
@@ -65,7 +65,10 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-The `thinkingLevel` parameter accepts values like `'low'` or `'high'` to control the depth of reasoning applied to your prompt.
+The `thinkingLevel` parameter accepts different values to control the depth of reasoning applied to your prompt:
+
+- Gemini 3 Pro supports: `'low'` and `'high'`
+- Gemini 3 Flash supports: `'minimal'`, `'low'`, `'medium'`, and `'high'`
 
 ### Using Tools with the AI SDK
 
