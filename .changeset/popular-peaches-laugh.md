@@ -1,0 +1,22 @@
+---
+'@ai-sdk/black-forest-labs': patch
+'@ai-sdk/openai-compatible': patch
+'@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/provider-utils': patch
+'@ai-sdk/google-vertex': patch
+'@ai-sdk/togetherai': patch
+'@ai-sdk/deepinfra': patch
+'@ai-sdk/fireworks': patch
+'@ai-sdk/replicate': patch
+'@ai-sdk/provider': patch
+'@ai-sdk/codemod': patch
+'@ai-sdk/gateway': patch
+'@ai-sdk/google': patch
+'@ai-sdk/openai': patch
+'@ai-sdk/azure': patch
+'@ai-sdk/luma': patch
+'@ai-sdk/fal': patch
+'ai': patch
+---
+
+feat: image editing

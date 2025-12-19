@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/elevenlabs",
-  "version": "2.0.0-beta.53",
+  "version": "2.0.0-beta.54",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
