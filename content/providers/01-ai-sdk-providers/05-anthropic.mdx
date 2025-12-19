@@ -886,7 +886,10 @@ for await (const part of result.textStream) {
 To enable programmatic tool calling, use the `allowedCallers` provider option on tools that you want to be callable from within code execution:
 
 ```ts highlight="13-17"
-import { anthropic, AnthropicMessageMetadata } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  forwardAnthropicContainerIdFromLastStep,
+} from '@ai-sdk/anthropic';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 
@@ -917,24 +920,7 @@ const result = await generateText({
   },
 
   // Propagate container ID between steps for code execution continuity
-  prepareStep: ({ steps }) => {
-    if (steps.length === 0) return undefined;
-
-    const lastStep = steps[steps.length - 1];
-    const containerId = (
-      lastStep.providerMetadata?.anthropic as
-        | AnthropicMessageMetadata
-        | undefined
-    )?.container?.id;
-
-    if (!containerId) return undefined;
-
-    return {
-      providerOptions: {
-        anthropic: { container: { id: containerId } },
-      },
-    };
-  },
+  prepareStep: forwardAnthropicContainerIdFromLastStep,
 });
 ```
 
@@ -951,7 +937,7 @@ In this flow:
 
 #### Container Persistence
 
-When using programmatic tool calling across multiple steps, you need to preserve the container ID between steps using `prepareStep`. The container ID is available in `providerMetadata.anthropic.container.id` after each step completes.
+When using programmatic tool calling across multiple steps, you need to preserve the container ID between steps using `prepareStep`. You can use the `forwardAnthropicContainerIdFromLastStep` helper function to do this automatically. The container ID is available in `providerMetadata.anthropic.container.id` after each step completes.
 
 ## Agent Skills
 
