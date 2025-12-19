@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
 ## 4.0.0-beta.102
 
 ### Patch Changes

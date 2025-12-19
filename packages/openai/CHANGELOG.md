@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.106
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- 88574c1: Change `isReasoningModel` detection from blocklist to allowlist and add override option
+
 ## 3.0.0-beta.104
 
 ### Patch Changes
