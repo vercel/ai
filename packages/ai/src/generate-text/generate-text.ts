@@ -704,7 +704,7 @@ A function that attempts to repair a tool call that failed to parse.
                 type: 'execution-denied',
                 reason: deniedApproval.approvalResponse.reason,
               },
-              providerExecuted: true,
+              providerExecuted: deniedApproval.toolCall.providerExecuted,
               dynamic: true,
             });
           }

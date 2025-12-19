@@ -1,6 +1,7 @@
 import {
   APICallError,
   LanguageModelV3,
+  LanguageModelV3Prompt,
   SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
@@ -56,6 +57,31 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+
+/**
+ * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
+ * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
+ * the pending approval in our system. When the user responds to the approval (and we
+ * continue the conversation), we need to map the approval request ID back to our tool call ID
+ * so that tool results reference the correct tool call.
+ */
+function extractApprovalRequestIdToToolCallIdMapping(
+  prompt: LanguageModelV3Prompt,
+): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const message of prompt) {
+    if (message.role !== 'assistant') continue;
+    for (const part of message.content) {
+      if (part.type !== 'tool-call') continue;
+      const approvalRequestId = part.providerOptions?.openai
+        ?.approvalRequestId as string | undefined;
+      if (approvalRequestId != null) {
+        mapping[approvalRequestId] = part.toolCallId;
+      }
+    }
+  }
+  return mapping;
+}
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -389,20 +415,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
-    const approvalRequestIdToDummyToolCallIdFromPrompt: Record<string, string> =
-      {};
-    for (const message of options.prompt) {
-      if (message.role !== 'assistant') continue;
-      for (const part of message.content) {
-        if (part.type !== 'tool-call') continue;
-        const approvalRequestId = part.providerOptions?.openai
-          ?.approvalRequestId as string | undefined;
-        if (approvalRequestId != null) {
-          approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId] =
-            part.toolCallId;
-        }
-      }
-    }
+    const approvalRequestIdToDummyToolCallIdFromPrompt =
+      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
     const {
       responseHeaders,
@@ -912,20 +926,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const self = this;
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
-    const approvalRequestIdToDummyToolCallIdFromPrompt: Record<string, string> =
-      {};
-    for (const message of options.prompt) {
-      if (message.role !== 'assistant') continue;
-      for (const part of message.content) {
-        if (part.type !== 'tool-call') continue;
-        const approvalRequestId = part.providerOptions?.openai
-          ?.approvalRequestId as string | undefined;
-        if (approvalRequestId != null) {
-          approvalRequestIdToDummyToolCallIdFromPrompt[approvalRequestId] =
-            part.toolCallId;
-        }
-      }
-    }
+    const approvalRequestIdToDummyToolCallIdFromPrompt =
+      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
     const approvalRequestIdToDummyToolCallIdFromStream = new Map<
       string,
@@ -1274,6 +1276,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
                 const approvalRequestId =
                   value.item.approval_request_id ?? undefined;
+
+                // when MCP tools require approval, we track them with our own
+                // tool call IDs and then map OpenAI's approval_request_id back to our ID so results match.
                 const aliasedToolCallId =
                   approvalRequestId != null
                     ? (approvalRequestIdToDummyToolCallIdFromStream.get(
