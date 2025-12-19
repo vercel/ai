@@ -1,18 +1,25 @@
 /**
  * Type tests for McpToolSet compatibility with ToolSet from 'ai' package.
- * 
+ *
  * This file verifies that:
  * 1. McpToolSet<'automatic'> is assignable to ToolSet
  * 2. The tools returned from mcpClient.tools() can be passed to streamText/generateText
- * 
- * See: https://github.com/vercel/ai/issues/XXXX
+ *
+ * Related: https://github.com/vercel/ai/issues/6739
  */
 import { describe, expectTypeOf, it } from 'vitest';
 import { Tool } from '@ai-sdk/provider-utils';
 import { McpToolSet, CallToolResult } from './types';
 
-// Simulate the ToolSet type from 'ai' package to avoid circular dependency
-// This matches the definition in packages/ai/src/generate-text/tool-set.ts
+/**
+ * This type definition mirrors the ToolSet type from 'ai' package.
+ * We duplicate it here because:
+ * 1. @ai-sdk/mcp cannot have 'ai' as a dependency (would create circular dependency)
+ * 2. We need to test type compatibility between McpToolSet and ToolSet
+ *
+ * IMPORTANT: If ToolSet in packages/ai/src/generate-text/tool-set.ts changes,
+ * this definition must be updated to match.
+ */
 type ToolSet = Record<
   string,
   (Tool<never, never> | Tool<any, any> | Tool<any, never> | Tool<never, any>) &
