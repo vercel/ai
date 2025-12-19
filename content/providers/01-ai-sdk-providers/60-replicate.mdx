@@ -230,6 +230,7 @@ const { images } = await generateImage({
 
 Common provider options for image generation:
 
+- **maxWaitTimeInSeconds** _number_ - Maximum time in seconds to wait for the prediction to complete in sync mode. By default, Replicate uses [sync mode](https://replicate.com/docs/topics/predictions/create-a-prediction#timeout-duration) with a 60-second timeout. Set to a positive number to use a custom duration (e.g., `120` for 2 minutes). When not specified, uses the default 60-second wait.
 - **guidance_scale** _number_ - Guidance scale for classifier-free guidance. Higher values make the output more closely match the prompt.
 - **num_inference_steps** _number_ - Number of denoising steps. More steps = higher quality but slower.
 - **negative_prompt** _string_ - Negative prompt to guide what to avoid in the generation.
