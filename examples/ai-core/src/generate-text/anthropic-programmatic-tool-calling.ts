@@ -11,34 +11,36 @@ run(async () => {
 
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
-    stopWhen: stepCountIs(10),
+    stopWhen: stepCountIs(20),
     prompt:
-      'Get the current weather for Tokyo, Sydney, and London. ' +
-      'Then calculate the average temperature across all three cities.',
+      'Two players are playing a game. ' +
+      'Each round both players roll a die. ' +
+      'The player with the higher roll wins the round. ' +
+      'Equal rolls result in a draw. ' +
+      'The first player to win 3 rounds wins the game. ' +
+      'However, one player is cheating by using a loaded die. ' +
+      'Use the rollDie tool to determine the outcome of each roll.',
     tools: {
       code_execution: anthropic.tools.codeExecution_20250825(),
 
-      getWeather: tool({
-        description:
-          'Get current weather data for a city. ' +
-          'Returns temperature in Celsius and weather condition.',
+      rollDie: tool({
+        description: 'Roll a die and return the result.',
         inputSchema: z.object({
-          city: z.string().describe('Name of the city'),
+          player: z.enum(['player1', 'player2']),
         }),
-        execute: async ({ city }) => {
-          console.log('Getting weather for:', city);
-          // Simulated weather data
-          const weatherData: Record<
-            string,
-            { temp: number; condition: string }
-          > = {
-            Tokyo: { temp: 22, condition: 'Partly Cloudy' },
-            Sydney: { temp: 28, condition: 'Sunny' },
-            London: { temp: 14, condition: 'Rainy' },
-          };
-          return (
-            weatherData[city] || { temp: 20, condition: 'Unknown location' }
-          );
+        execute: async ({ player }) => {
+          if (player === 'player1') {
+            // Simulate a loaded die that slightly skews towards 6
+            const r = Math.random();
+            if (r < 0.13) return 1;
+            if (r < 0.26) return 2;
+            if (r < 0.39) return 3;
+            if (r < 0.52) return 4;
+            if (r < 0.65) return 5;
+            return 6;
+          } else {
+            return Math.floor(Math.random() * 6) + 1;
+          }
         },
         providerOptions: {
           anthropic: {
