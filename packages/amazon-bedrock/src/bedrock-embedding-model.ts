@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV3,
   TooManyEmbeddingValuesForCallError,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,6 +27,12 @@ type BedrockEmbeddingConfig = {
 };
 
 type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>;
+
+function isNovaEmbeddingModel(modelId: string): boolean {
+  // Nova embedding models (e.g. amazon.nova-2-multimodal-embeddings-v1:0)
+  // use a chat-like "messages" input schema rather than "inputText".
+  return modelId.startsWith('amazon.nova-') && modelId.includes('embeddings');
+}
 
 export class BedrockEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
@@ -66,12 +73,34 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
         schema: bedrockEmbeddingProviderOptions,
       })) ?? {};
 
+    const warnings: SharedV3Warning[] = [];
+
+    if (isNovaEmbeddingModel(this.modelId)) {
+      if (bedrockOptions.dimensions != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'dimensions',
+        });
+      }
+
+      if (bedrockOptions.normalize != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'normalize',
+        });
+      }
+    }
+
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
-    const args = {
-      inputText: values[0],
-      dimensions: bedrockOptions.dimensions,
-      normalize: bedrockOptions.normalize,
-    };
+    // Note: Different embedding model families expect different request/response
+    const args = isNovaEmbeddingModel(this.modelId)
+      ? { messages: [{ role: 'user', content: [{ text: values[0] }] }] }
+      : {
+        inputText: values[0],
+        dimensions: bedrockOptions.dimensions,
+        normalize: bedrockOptions.normalize,
+      };
+
     const url = this.getUrl(this.modelId);
     const { value: response } = await postJsonToApi({
       url,
@@ -91,7 +120,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
-      warnings: [],
+      warnings,
       embeddings: [response.embedding],
       usage: { tokens: response.inputTextTokenCount },
     };
