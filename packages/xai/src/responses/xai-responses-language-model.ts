@@ -273,7 +273,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapXaiResponsesFinishReason(response.status),
+      finishReason: {
+        unified: mapXaiResponsesFinishReason(response.status),
+        raw: response.status ?? undefined,
+      },
       usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
@@ -312,7 +315,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -453,7 +459,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
 
               if (response.status) {
-                finishReason = mapXaiResponsesFinishReason(response.status);
+                finishReason = {
+                  unified: mapXaiResponsesFinishReason(response.status),
+                  raw: response.status,
+                };
               }
 
               return;

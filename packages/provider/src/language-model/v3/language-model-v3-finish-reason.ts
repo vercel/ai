@@ -15,7 +15,7 @@ export type LanguageModelV3FinishReason = {
    * - `content-filter`: content filter violation stopped the model
    * - `tool-calls`: model triggered tool calls
    * - `error`: model stopped because of an error
-   * - `unknown`: model stopped with an unknown reason
+   * - `other`: model stopped for other reasons
    */
   unified:
     | 'stop'
@@ -23,7 +23,7 @@ export type LanguageModelV3FinishReason = {
     | 'content-filter'
     | 'tool-calls'
     | 'error'
-    | 'unknown';
+    | 'other';
 
   /**
    * Raw finish reason from the provider.

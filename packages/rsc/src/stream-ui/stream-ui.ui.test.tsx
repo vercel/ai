@@ -262,7 +262,10 @@ describe('options.headers', () => {
               { type: 'text-end', id: '0' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: {
+                  unified: 'stop',
+                  raw: 'stop',
+                },
                 usage: testUsage,
               },
             ]),
@@ -297,8 +300,11 @@ describe('options.providerMetadata', () => {
               { type: 'text-end', id: '0' },
               {
                 type: 'finish',
-                finishReason: 'stop',
                 usage: testUsage,
+                finishReason: {
+                  unified: 'stop',
+                  raw: 'stop',
+                },
               },
             ]),
           };
