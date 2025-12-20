@@ -1053,7 +1053,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     const usage: AnthropicMessagesUsage = {
       input_tokens: 0,
       output_tokens: 0,

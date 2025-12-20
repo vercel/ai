@@ -367,7 +367,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 

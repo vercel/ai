@@ -15,6 +15,6 @@ export function mapHuggingFaceResponsesFinishReason(
     case 'error':
       return 'error';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

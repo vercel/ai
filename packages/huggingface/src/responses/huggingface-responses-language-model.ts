@@ -306,9 +306,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapHuggingFaceResponsesFinishReason(
-        response.incomplete_details?.reason ?? 'stop',
-      ),
+      finishReason: {
+        unified: mapHuggingFaceResponsesFinishReason(
+          response.incomplete_details?.reason ?? 'stop',
+        ),
+        raw: response.incomplete_details?.reason ?? undefined,
+      },
       usage: convertHuggingFaceResponsesUsage(response.usage),
       request: { body },
       response: {
@@ -352,7 +355,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let responseId: string | null = null;
     let usage: HuggingFaceResponsesUsage | undefined = undefined;
 
@@ -368,7 +374,10 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
           transform(chunk, controller) {
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -456,9 +465,12 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
 
             if (isResponseCompletedChunk(value)) {
               responseId = value.response.id;
-              finishReason = mapHuggingFaceResponsesFinishReason(
-                value.response.incomplete_details?.reason ?? 'stop',
-              );
+              finishReason = {
+                unified: mapHuggingFaceResponsesFinishReason(
+                  value.response.incomplete_details?.reason ?? 'stop',
+                ),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
               if (value.response.usage) {
                 usage = value.response.usage;
               }

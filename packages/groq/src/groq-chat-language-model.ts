@@ -218,7 +218,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapGroqFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapGroqFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertGroqUsage(response.usage),
       response: {
         ...getResponseMetadata(response),
@@ -264,7 +267,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage:
       | {
           prompt_tokens?: number | null | undefined;
@@ -300,7 +306,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -309,7 +318,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = {
+                unified: 'error',
+                raw: undefined,
+              };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -330,7 +342,10 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapGroqFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapGroqFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.delta == null) {

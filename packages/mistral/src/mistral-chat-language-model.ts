@@ -239,7 +239,10 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapMistralFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapMistralFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertMistralUsage(response.usage),
       request: { body },
       response: {
@@ -269,7 +272,10 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: MistralUsage | undefined = undefined;
 
     let isFirstChunk = true;
@@ -401,7 +407,10 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
             }
 
             if (choice.finish_reason != null) {
-              finishReason = mapMistralFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapMistralFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
           },
 

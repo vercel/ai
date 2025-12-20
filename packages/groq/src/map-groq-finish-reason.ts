@@ -14,6 +14,6 @@ export function mapGroqFinishReason(
     case 'tool_calls':
       return 'tool-calls';
     default:
-      return 'unknown';
+      return 'other';
   }
 }
