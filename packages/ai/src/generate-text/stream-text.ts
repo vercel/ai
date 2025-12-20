@@ -573,6 +573,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   private readonly _finishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
+  private readonly _rawFinishReason = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['rawFinishReason']>
+  >();
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
@@ -898,6 +901,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         if (part.type === 'finish') {
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
+          recordedRawFinishReason = part.rawFinishReason;
         }
       },
 
@@ -909,6 +913,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             });
 
             self._finishReason.reject(error);
+            self._rawFinishReason.reject(error);
             self._totalUsage.reject(error);
             self._steps.reject(error);
 
@@ -922,6 +927,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // from finish:
           self._finishReason.resolve(finishReason);
+          self._rawFinishReason.resolve(recordedRawFinishReason);
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
@@ -1695,6 +1701,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,
+                      rawFinishReason: stepRawFinishReason,
                       totalUsage: combinedUsage,
                     });
 
@@ -1821,6 +1828,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.consumeStream();
 
     return this._finishReason.promise;
+  }
+
+  get rawFinishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
+    return this._rawFinishReason.promise;
   }
 
   /**

@@ -123,6 +123,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -243,6 +244,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -409,6 +411,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -557,6 +560,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -708,6 +712,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "tool-calls",
+            "rawFinishReason": undefined,
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -811,6 +816,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
