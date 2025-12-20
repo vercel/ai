@@ -16,23 +16,26 @@ npm install @ai-sdk/vectorstores @vectorstores/core
 ## Usage
 
 ```typescript
-import { openai } from "@ai-sdk/openai";
-import { Document, VectorStoreIndex } from "@vectorstores/core";
-import { streamText } from "ai";
-import { vectorstores, vercelEmbedding } from "@ai-sdk/vectorstores";
+import { openai } from '@ai-sdk/openai';
+import { Document, VectorStoreIndex } from '@vectorstores/core';
+import { streamText } from 'ai';
+import { vectorstores, vercelEmbedding } from '@ai-sdk/vectorstores';
 
 // Create a document
-const document = new Document({ text: "Your document content...", id_: "doc1" });
+const document = new Document({
+  text: 'Your document content...',
+  id_: 'doc1',
+});
 
 // Create an index using AI SDK embeddings
 const index = await VectorStoreIndex.fromDocuments([document], {
-  embedFunc: vercelEmbedding(openai.embedding("text-embedding-3-small")),
+  embedFunc: vercelEmbedding(openai.embedding('text-embedding-3-small')),
 });
 
 // Use the vectorstores tool with streamText
 const result = streamText({
-  model: openai("gpt-4o"),
-  prompt: "What is the main topic of the document?",
+  model: openai('gpt-4o'),
+  prompt: 'What is the main topic of the document?',
   tools: {
     queryKnowledge: vectorstores({ index }),
   },
@@ -50,6 +53,7 @@ for await (const textPart of result.textStream) {
 Creates a tool for querying a VectorStoreIndex.
 
 **Parameters:**
+
 - `index` - The VectorStoreIndex to query
 - `description` - Optional custom description for the tool
 - `similarityTopK` - Number of top results to retrieve (default: 10)
@@ -59,6 +63,7 @@ Creates a tool for querying a VectorStoreIndex.
 Creates an embedding function compatible with VectorStores from an AI SDK embedding model.
 
 **Parameters:**
+
 - `model` - The AI SDK embedding model
 - `options.maxRetries` - Maximum number of retries (default: 2)
 - `options.headers` - Additional headers for the request
@@ -66,4 +71,3 @@ Creates an embedding function compatible with VectorStores from an AI SDK embedd
 ## Documentation
 
 For more information, see the [AI SDK documentation](https://ai-sdk.dev/docs).
-
