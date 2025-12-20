@@ -1,5 +1,41 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- fd788ce: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- 166b6d7: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+
 ## 3.0.0-beta.82
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.30
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+
+## 3.0.0-beta.29
+
+### Patch Changes
+
+- 9549c9e: chore(specification): extract types
+
 ## 3.0.0-beta.28
 
 ### Patch Changes
