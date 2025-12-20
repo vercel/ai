@@ -14,6 +14,7 @@ export * from './language-model-v3-source';
 export * from './language-model-v3-stream-part';
 export * from './language-model-v3-stream-result';
 export * from './language-model-v3-text';
+export * from './language-model-v3-tool-approval-request';
 export * from './language-model-v3-tool-call';
 export * from './language-model-v3-tool-choice';
 export * from './language-model-v3-tool-result';
