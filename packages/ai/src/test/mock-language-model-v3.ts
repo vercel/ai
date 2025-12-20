@@ -1,4 +1,8 @@
-import { LanguageModelV3 } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamResult,
+} from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockLanguageModelV3 implements LanguageModelV3 {
@@ -29,12 +33,12 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
       | (() => LanguageModelV3['supportedUrls']);
     doGenerate?:
       | LanguageModelV3['doGenerate']
-      | Awaited<ReturnType<LanguageModelV3['doGenerate']>>
-      | Awaited<ReturnType<LanguageModelV3['doGenerate']>>[];
+      | LanguageModelV3GenerateResult
+      | LanguageModelV3GenerateResult[];
     doStream?:
       | LanguageModelV3['doStream']
-      | Awaited<ReturnType<LanguageModelV3['doStream']>>
-      | Awaited<ReturnType<LanguageModelV3['doStream']>>[];
+      | LanguageModelV3StreamResult
+      | LanguageModelV3StreamResult[];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
