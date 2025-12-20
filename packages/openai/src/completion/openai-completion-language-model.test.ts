@@ -432,7 +432,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "logprobs": {
@@ -534,7 +537,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -583,7 +589,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "openai": {},
             },

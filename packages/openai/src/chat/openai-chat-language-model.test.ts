@@ -1978,7 +1978,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "logprobs": [
@@ -2268,7 +2271,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2419,7 +2425,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2574,7 +2583,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2669,7 +2681,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2728,7 +2743,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2777,7 +2795,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -2949,7 +2970,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -3008,7 +3032,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "acceptedPredictionTokens": 123,
@@ -3211,7 +3238,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -3291,7 +3321,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },

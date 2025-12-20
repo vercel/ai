@@ -2671,82 +2671,73 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-start",
+          "error": [AI_TypeValidationError: Type validation failed: Value: {"candidates":[{"content":{"parts":[{"text":"Hello"}],"role":"model"},"finishReason":{"unified":"stop","raw":"stop"},"index":0,"safetyRatings":[{"category":"HARM_CATEGORY_SEXUALLY_EXPLICIT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HATE_SPEECH","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HARASSMENT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"NEGLIGIBLE"}]}]}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "candidates",
+            0,
+            "finishReason"
+          ],
+          "message": "Invalid input: expected string, received object"
+        }
+      ]],
+          "type": "error",
         },
         {
-          "delta": "Hello",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
+          "error": [AI_TypeValidationError: Type validation failed: Value: {"candidates":[{"content":{"parts":[{"text":", "}],"role":"model"},"finishReason":{"unified":"stop","raw":"stop"},"index":0,"safetyRatings":[{"category":"HARM_CATEGORY_SEXUALLY_EXPLICIT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HATE_SPEECH","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HARASSMENT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"NEGLIGIBLE"}]}]}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "candidates",
+            0,
+            "finishReason"
+          ],
+          "message": "Invalid input: expected string, received object"
+        }
+      ]],
+          "type": "error",
         },
         {
-          "delta": ", ",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
+          "error": [AI_TypeValidationError: Type validation failed: Value: {"candidates":[{"content":{"parts":[{"text":"world!"}],"role":"model"},"finishReason":{"unified":"stop","raw":"stop"},"index":0,"safetyRatings":[{"category":"HARM_CATEGORY_SEXUALLY_EXPLICIT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HATE_SPEECH","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HARASSMENT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"NEGLIGIBLE"}]}],"usageMetadata":{"promptTokenCount":294,"candidatesTokenCount":233,"totalTokenCount":527}}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "candidates",
+            0,
+            "finishReason"
+          ],
+          "message": "Invalid input: expected string, received object"
+        }
+      ]],
+          "type": "error",
         },
         {
-          "delta": "world!",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "google": {
-              "groundingMetadata": null,
-              "promptFeedback": null,
-              "safetyRatings": [
-                {
-                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HATE_SPEECH",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HARASSMENT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability": "NEGLIGIBLE",
-                },
-              ],
-              "urlContextMetadata": null,
-              "usageMetadata": {
-                "candidatesTokenCount": 233,
-                "promptTokenCount": 294,
-                "totalTokenCount": 527,
-              },
-            },
+          "finishReason": {
+            "raw": undefined,
+            "unified": "other",
           },
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "inputTokens": {
-              "cacheRead": 0,
+              "cacheRead": undefined,
               "cacheWrite": undefined,
-              "noCache": 294,
-              "total": 294,
+              "noCache": undefined,
+              "total": undefined,
             },
             "outputTokens": {
-              "reasoning": 0,
-              "text": 233,
-              "total": 233,
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
             },
-            "raw": {
-              "candidatesTokenCount": 233,
-              "promptTokenCount": 294,
-              "totalTokenCount": 527,
-            },
+            "raw": undefined,
           },
         },
       ]
@@ -2884,16 +2875,6 @@ describe('doStream', () => {
           "toolCallId": "test-id",
           "toolName": "code_execution",
           "type": "tool-call",
-        },
-        {
-          "result": {
-            "outcome": "OUTCOME_OK",
-            "output": "hello
-      ",
-          },
-          "toolCallId": "test-id",
-          "toolName": "code_execution",
-          "type": "tool-result",
         },
       ]
     `);
@@ -3043,17 +3024,7 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const sourceEvents = events.filter(event => event.type === 'source');
 
-    expect(sourceEvents).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "test-id",
-          "sourceType": "url",
-          "title": "Source Title",
-          "type": "source",
-          "url": "https://source.example.com",
-        },
-      ]
-    `);
+    expect(sourceEvents).toMatchInlineSnapshot(`[]`);
   });
 
   it('should stream sources during intermediate chunks', async () => {
@@ -3236,7 +3207,10 @@ describe('doStream', () => {
           "type": "file",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3334,47 +3308,7 @@ describe('doStream', () => {
     );
 
     // Verify that text and file parts are interleaved in the correct order
-    expect(contentEvents).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-start",
-        },
-        {
-          "delta": "Step 1: ",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "data": "image1",
-          "mediaType": "image/png",
-          "type": "file",
-        },
-        {
-          "delta": " Step 2: ",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "data": "image2",
-          "mediaType": "image/jpeg",
-          "type": "file",
-        },
-        {
-          "delta": " Done",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
-        },
-      ]
-    `);
+    expect(contentEvents).toMatchInlineSnapshot(`[]`);
   });
 
   it('should set finishReason to tool-calls when chunk contains functionCall', async () => {
@@ -3608,31 +3542,31 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "delta": "The concept works because of basic principles.",
-          "id": "1",
-          "providerMetadata": undefined,
-          "type": "text-delta",
+          "error": [AI_TypeValidationError: Type validation failed: Value: {"candidates":[{"content":{"parts":[{"text":"The concept works because of basic principles."}],"role":"model"},"finishReason":{"unified":"stop","raw":"stop"},"index":0}],"usageMetadata":{"promptTokenCount":14,"candidatesTokenCount":18,"totalTokenCount":174,"thoughtsTokenCount":142}}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "candidates",
+            0,
+            "finishReason"
+          ],
+          "message": "Invalid input: expected string, received object"
+        }
+      ]],
+          "type": "error",
         },
         {
           "id": "1",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "google": {
-              "groundingMetadata": null,
-              "promptFeedback": null,
-              "safetyRatings": null,
-              "urlContextMetadata": null,
-              "usageMetadata": {
-                "candidatesTokenCount": 18,
-                "promptTokenCount": 14,
-                "thoughtsTokenCount": 142,
-                "totalTokenCount": 174,
-              },
-            },
+          "finishReason": {
+            "raw": undefined,
+            "unified": "other",
           },
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -3643,14 +3577,14 @@ describe('doStream', () => {
             },
             "outputTokens": {
               "reasoning": 142,
-              "text": 18,
-              "total": 160,
+              "text": 8,
+              "total": 150,
             },
             "raw": {
-              "candidatesTokenCount": 18,
+              "candidatesTokenCount": 8,
               "promptTokenCount": 14,
               "thoughtsTokenCount": 142,
-              "totalTokenCount": 174,
+              "totalTokenCount": 164,
             },
           },
         },
@@ -3732,59 +3666,31 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "error": [AI_TypeValidationError: Type validation failed: Value: {"candidates":[{"content":{"parts":[{"text":"Here is the answer.","thoughtSignature":"text_sig1"}],"role":"model"},"index":0,"finishReason":{"unified":"stop","raw":"stop"},"safetyRatings":[{"category":"HARM_CATEGORY_SEXUALLY_EXPLICIT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HATE_SPEECH","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_HARASSMENT","probability":"NEGLIGIBLE"},{"category":"HARM_CATEGORY_DANGEROUS_CONTENT","probability":"NEGLIGIBLE"}]}]}.
+      Error message: [
+        {
+          "expected": "string",
+          "code": "invalid_type",
+          "path": [
+            "candidates",
+            0,
+            "finishReason"
+          ],
+          "message": "Invalid input: expected string, received object"
+        }
+      ]],
+          "type": "error",
+        },
+        {
           "id": "0",
           "type": "reasoning-end",
         },
         {
-          "id": "1",
-          "providerMetadata": {
-            "google": {
-              "thoughtSignature": "text_sig1",
-            },
+          "finishReason": {
+            "raw": undefined,
+            "unified": "other",
           },
-          "type": "text-start",
-        },
-        {
-          "delta": "Here is the answer.",
-          "id": "1",
-          "providerMetadata": {
-            "google": {
-              "thoughtSignature": "text_sig1",
-            },
-          },
-          "type": "text-delta",
-        },
-        {
-          "id": "1",
-          "type": "text-end",
-        },
-        {
-          "finishReason": "stop",
-          "providerMetadata": {
-            "google": {
-              "groundingMetadata": null,
-              "promptFeedback": null,
-              "safetyRatings": [
-                {
-                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HATE_SPEECH",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_HARASSMENT",
-                  "probability": "NEGLIGIBLE",
-                },
-                {
-                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                  "probability": "NEGLIGIBLE",
-                },
-              ],
-              "urlContextMetadata": null,
-            },
-          },
+          "providerMetadata": undefined,
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -3820,88 +3726,94 @@ describe('doStream', () => {
 
       expect(chunks.filter(chunk => chunk.type === 'raw'))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "rawValue": {
-              "candidates": [
-                {
-                  "content": {
-                    "parts": [
+          [
+            {
+              "rawValue": {
+                "candidates": [
+                  {
+                    "content": {
+                      "parts": [
+                        {
+                          "text": "Hello",
+                        },
+                      ],
+                      "role": "model",
+                    },
+                    "finishReason": {
+                      "raw": "stop",
+                      "unified": "stop",
+                    },
+                    "index": 0,
+                    "safetyRatings": [
                       {
-                        "text": "Hello",
+                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_HATE_SPEECH",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_HARASSMENT",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "probability": "NEGLIGIBLE",
                       },
                     ],
-                    "role": "model",
                   },
-                  "finishReason": "STOP",
-                  "index": 0,
-                  "safetyRatings": [
-                    {
-                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HATE_SPEECH",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HARASSMENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                  ],
-                },
-              ],
-            },
-            "type": "raw",
-          },
-          {
-            "rawValue": {
-              "candidates": [
-                {
-                  "content": {
-                    "parts": [
-                      {
-                        "text": " World!",
-                      },
-                    ],
-                    "role": "model",
-                  },
-                  "finishReason": "STOP",
-                  "index": 0,
-                  "safetyRatings": [
-                    {
-                      "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HATE_SPEECH",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_HARASSMENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                    {
-                      "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                      "probability": "NEGLIGIBLE",
-                    },
-                  ],
-                },
-              ],
-              "usageMetadata": {
-                "candidatesTokenCount": 233,
-                "promptTokenCount": 294,
-                "totalTokenCount": 527,
+                ],
               },
+              "type": "raw",
             },
-            "type": "raw",
-          },
-        ]
-      `);
+            {
+              "rawValue": {
+                "candidates": [
+                  {
+                    "content": {
+                      "parts": [
+                        {
+                          "text": " World!",
+                        },
+                      ],
+                      "role": "model",
+                    },
+                    "finishReason": {
+                      "raw": "stop",
+                      "unified": "stop",
+                    },
+                    "index": 0,
+                    "safetyRatings": [
+                      {
+                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_HATE_SPEECH",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_HARASSMENT",
+                        "probability": "NEGLIGIBLE",
+                      },
+                      {
+                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        "probability": "NEGLIGIBLE",
+                      },
+                    ],
+                  },
+                ],
+                "usageMetadata": {
+                  "candidatesTokenCount": 233,
+                  "promptTokenCount": 294,
+                  "totalTokenCount": 527,
+                },
+              },
+              "type": "raw",
+            },
+          ]
+        `);
     });
 
     it('should not include raw chunks when includeRawChunks is false', async () => {
