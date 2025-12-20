@@ -15,6 +15,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
         },
       ],
     },
+    "contextManagement": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -44,6 +45,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
       "skills": null,
     },
+    "contextManagement": null,
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -290,6 +292,7 @@ Both files have been exported and are ready for download!",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
         "skills": null,
       },
+      "contextManagement": null,
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -615,10 +618,32 @@ Both files have been exported and are ready for download!",
     "modelId": "claude-sonnet-4-5-20250929",
   },
   "usage": {
-    "cachedInputTokens": 0,
-    "inputTokens": 12546,
-    "outputTokens": 1359,
-    "totalTokens": 13905,
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "noCache": 12546,
+      "total": 12546,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": undefined,
+      "total": 1359,
+    },
+    "raw": {
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0,
+      },
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 12546,
+      "output_tokens": 1359,
+      "server_tool_use": {
+        "web_fetch_requests": 0,
+        "web_search_requests": 0,
+      },
+      "service_tier": "standard",
+    },
   },
   "warnings": [],
 }
@@ -674,6 +699,76 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > memory 20250818 > should 
     "input": "{"command":"view","path":"/memories"}",
     "toolCallId": "toolu_01TvNvpwszD4hKeudmbfyWiV",
     "toolName": "memory",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > bm25 variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "text": "I'll search for a weather-related tool to help you get the current weather in San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"query":"weather current conditions San Francisco"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_011Jcb838xqvZyWwDt7bWqAz",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "Great! I found a weather tool. Let me get the current weather in San Francisco for you.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA"}",
+    "toolCallId": "toolu_01PFQG18bVLaXcEaCxTZtX4G",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doGenerate > tool search tool > regex variant > should include tool search tool call and result in content 1`] = `
+[
+  {
+    "input": "{"pattern":"weather|SF|San Francisco|forecast|temperature|climate","limit":10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "text": "I found a tool to get temperature data! Let me use it to get the weather information for San Francisco.",
+    "type": "text",
+  },
+  {
+    "input": "{"location":"San Francisco, CA","unit":"fahrenheit"}",
+    "toolCallId": "toolu_01X4r989CAhzqnFqDJn1gVvp",
+    "toolName": "get_temp_data",
     "type": "tool-call",
   },
 ]
@@ -1136,627 +1231,7 @@ For the most current breaking tech news today, I'd recommend checking major tech
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
-[
-  {
-    "type": "stream-start",
-    "warnings": [],
-  },
-  {
-    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
-    "modelId": "claude-sonnet-4-5-20250929",
-    "type": "response-metadata",
-  },
-  {
-    "id": "0",
-    "type": "text-start",
-  },
-  {
-    "delta": "{"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "characters"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ":[{"name":"Th",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "eron",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Iron",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "heart","class":"warrior","description",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "":"A battle",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-scar",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "red veteran",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " with",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " steel",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "gray hair and a",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " prominent",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " scar across his left eye.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Wiel",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ding a massive two",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-handed sword passe",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d down through his family for",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " generations,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Theron fights",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " with discipl",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ined precision h",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "oned through decades",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " of combat. Despite",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " his gruff exterior, he harb",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ors a deep sense of honor and prot",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ects the weak",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " without",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " hesitation.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ""},{"name":"Lyra",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Star",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "weaver","class":"mage","",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "description":"A young",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pro",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "digy in",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " arcane arts with",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " flowing",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " silver ro",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "bes ador",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ned with celest",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ial patterns",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ". Her",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " eyes",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " g",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "low f",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "aintly blue",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " when",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " chann",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "eling powerful",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " sp",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ells.",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Lyra special",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "izes in ele",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "mental magic an",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d ast",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ral div",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ination, having",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " studie",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d at",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the Gran",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d Academy since",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " childhoo",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d. She is",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " curious",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and ide",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "alistic, often getting",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " into",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " trouble",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " while",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " pursuing",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " forbidden",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " knowledge."},{"name":"R",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ook",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " Shadow",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "st",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ep",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "","class":"thief","description":"",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "A nim",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ble and cun",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ning r",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ogue who",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " moves through",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " shadows",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " like",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " a whis",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "per in",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " the night. With",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " jet",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "-black hair,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " leather",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " armor,",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " and an array of lock",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "picks an",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d daggers hidden on",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " his person, Rook makes his",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " living liber",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ating treas",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ures from those",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " he",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " deems unworthy of",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " them",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": ". Behin",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d his coc",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "ky smile",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " lies a trouble",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "d past and a strict",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " personal",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " code about",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " who",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " deserves to be",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": " rob",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "delta": "bed."}]}",
-    "id": "0",
-    "type": "text-delta",
-  },
-  {
-    "id": "0",
-    "type": "text-end",
-  },
-  {
-    "finishReason": "stop",
-    "providerMetadata": {
-      "anthropic": {
-        "cacheCreationInputTokens": 0,
-        "container": null,
-        "stopSequence": null,
-        "usage": {
-          "cache_creation": {
-            "ephemeral_1h_input_tokens": 0,
-            "ephemeral_5m_input_tokens": 0,
-          },
-          "cache_creation_input_tokens": 0,
-          "cache_read_input_tokens": 0,
-          "input_tokens": 313,
-          "output_tokens": 305,
-          "service_tier": "standard",
-        },
-      },
-    },
-    "type": "finish",
-    "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 313,
-      "outputTokens": 305,
-      "totalTokens": 618,
-    },
-  },
-]
-`;
-
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > agent skills > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > agent skills > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -5435,6 +4910,7 @@ The presentation has",
             },
           ],
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -5455,16 +4931,29 @@ The presentation has",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2751,
-      "outputTokens": 5558,
-      "totalTokens": 8309,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2751,
+        "total": 2751,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 5558,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2751,
+        "output_tokens": 5558,
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should include file id list in code execution tool call result. 1`] = `
 [
   {
     "type": "stream-start",
@@ -10478,6 +9967,7 @@ Both",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
           "skills": null,
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -10498,10 +9988,23 @@ Both",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2273,
-      "outputTokens": 2479,
-      "totalTokens": 4752,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2273,
+        "total": 2273,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 2479,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2273,
+        "output_tokens": 2479,
+      },
     },
   },
   {
@@ -10512,7 +10015,7 @@ Error message: Unexpected end of JSON input],
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > code execution 20250825 tool > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > code execution 20250825 tool > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11775,6 +11278,7 @@ The Fibonacci sequence starts with 0, ",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
           "skills": null,
         },
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11795,16 +11299,663 @@ The Fibonacci sequence starts with 0, ",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2263,
-      "outputTokens": 771,
-      "totalTokens": 3034,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2263,
+        "total": 2263,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 771,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2263,
+        "output_tokens": 771,
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > mcp servers > should stream code execution tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "{"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "characters"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":[{"name":"Th",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "heart","class":"warrior","description",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "":"A battle",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-scar",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "red veteran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gray hair and a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prominent",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scar across his left eye.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Wiel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ding a massive two",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-handed sword passe",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d down through his family for",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generations,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Theron fights",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with discipl",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ined precision h",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oned through decades",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of combat. Despite",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his gruff exterior, he harb",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors a deep sense of honor and prot",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ects the weak",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hesitation.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""},{"name":"Lyra",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Star",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "weaver","class":"mage","",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "description":"A young",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "digy in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arcane arts with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flowing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silver ro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bes ador",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ned with celest",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ial patterns",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Her",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " g",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "low f",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aintly blue",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chann",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eling powerful",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sp",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ells.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lyra special",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes in ele",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mental magic an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d ast",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ral div",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ination, having",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " studie",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d at",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Gran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Academy since",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " childhoo",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d. She is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curious",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and ide",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "alistic, often getting",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pursuing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forbidden",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " knowledge."},{"name":"R",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ook",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shadow",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ep",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "","class":"thief","description":"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "A nim",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ble and cun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ning r",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ogue who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moves through",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shadows",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a whis",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "per in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the night. With",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jet",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-black hair,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " armor,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and an array of lock",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "picks an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d daggers hidden on",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his person, Rook makes his",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " living liber",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ating treas",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ures from those",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " he",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deems unworthy of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Behin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d his coc",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ky smile",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lies a trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d past and a strict",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " code about",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deserves to be",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rob",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bed."}]}",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 313,
+          "output_tokens": 305,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 313,
+        "total": 313,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 305,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 313,
+        "output_tokens": 305,
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -11879,6 +12030,7 @@ It simply echoed back",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11899,16 +12051,664 @@ It simply echoed back",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 589,
-      "outputTokens": 83,
-      "totalTokens": 672,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 589,
+        "total": 589,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 83,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 589,
+        "output_tokens": 83,
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_011bqgzot9grwdetCByUmXRP",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll search for a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "related tool",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to help",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you get the weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " information for San Francisco.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"query": "weather forecast current",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " conditions",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"query": "weather forecast current conditions"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I found a weather tool.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me get the current weather for",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " San Francisco.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco, CA",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "toolCallId": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1630,
+          "output_tokens": 158,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 699,
+        "total": 699,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 158,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+      },
+    },
+  },
+  {
+    "id": "msg_0132hQ7tpsGJhdPtEBhmKA2R",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather in San Francisco,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CA is:
+- **Temperature:**",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1040,
+          "output_tokens": 41,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1040,
+        "total": 1040,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 41,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01A4vjL51mNRof8JMvA9CFph",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"pattern": "weather|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "SF",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San Francisco|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "forecast",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|temperature",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|climate",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "", "limit": 10",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"pattern": "weather|SF|San Francisco|forecast|temperature|climate", "limit": 10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " found a",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather tool",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me get the current weather",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data for San Francisco.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San Francisco, CA",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "toolCallId": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": "tool-calls",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1681,
+          "output_tokens": 163,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 722,
+        "total": 722,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 163,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+      },
+    },
+  },
+  {
+    "id": "msg_01L42mFXxzijtGwwfiLdKoUn",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s the current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather data for San Francisco:
+
+-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Location:** San Francisco, CA",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Temperature:** 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%
+
+The weather in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " SF",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is pleasant",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with partly cloudy skies and moderate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " humidity!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": "stop",
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1071,
+          "output_tokens": 67,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1071,
+        "total": 1071,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 67,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -12278,6 +13078,7 @@ The page also discusses",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12298,16 +13099,29 @@ The page also discusses",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 868,
-      "outputTokens": 446,
-      "totalTokens": 1314,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 868,
+        "total": 868,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 446,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 868,
+        "output_tokens": 446,
+      },
     },
   },
 ]
 `;
 
-exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web search tool > should stream web search tool results 1`] = `
+exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should stream web search tool results 1`] = `
 [
   {
     "type": "stream-start",
@@ -13012,6 +13826,7 @@ The main tech story today appears to be Apple's significant",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+        "contextManagement": null,
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -13032,10 +13847,23 @@ The main tech story today appears to be Apple's significant",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 2037,
-      "outputTokens": 795,
-      "totalTokens": 2832,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 2037,
+        "total": 2037,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 795,
+      },
+      "raw": {
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 2037,
+        "output_tokens": 795,
+      },
     },
   },
 ]

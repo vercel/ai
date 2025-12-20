@@ -11,7 +11,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedModel } = req.body;
   const result = streamText({
     model: openai(selectedModel),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   result.pipeUIMessageStreamToResponse(res);

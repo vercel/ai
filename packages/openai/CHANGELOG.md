@@ -1,5 +1,223 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.106
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- 88574c1: Change `isReasoningModel` detection from blocklist to allowlist and add override option
+
+## 3.0.0-beta.104
+
+### Patch Changes
+
+- 61c52dc: feat (provider/openai): add gpt-image-1.5 model support
+
+## 3.0.0-beta.103
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.101
+
+### Patch Changes
+
+- 3220329: fix openai responses input: process all provider tool outputs (shell/apply_patch) so parallel tool results aren’t dropped and apply_patch outputs are forwarded.
+- 5648ec0: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+
+## 3.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- 817e601: fix(openai); fix url_citation schema in chat api
+- 59561f8: fix(openai); fix url_citation schema in chat api
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- d2039d7: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 92c6241: feat(openai): additional settings for file search tool
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- 0153bfa: fix(openai): fix parameter exclusion logic
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- 78f813e: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- ef739fa: fix(openai): refactor apply-patch tool
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- cad6445: feat(openai); adding OpenAI's new shell tool
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 2c0a758: chore(openai): add JSDoc to responses options
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- 88edc28: feat (provider/openai): include more image generation response metadata
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 73d9883: chore(openai): enable strict json by default
+
 ## 3.0.0-beta.74
 
 ### Patch Changes

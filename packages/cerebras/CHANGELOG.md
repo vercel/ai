@@ -1,5 +1,124 @@
 # @ai-sdk/cerebras
 
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/openai-compatible@2.0.0-beta.55
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/openai-compatible@2.0.0-beta.53
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/openai-compatible@2.0.0-beta.52
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/openai-compatible@2.0.0-beta.51
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/openai-compatible@2.0.0-beta.50
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/openai-compatible@2.0.0-beta.49
+
+## 2.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/openai-compatible@2.0.0-beta.48
+
+## 2.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/openai-compatible@2.0.0-beta.47
+
+## 2.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/openai-compatible@2.0.0-beta.46
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 2.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/openai-compatible@2.0.0-beta.45
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 2.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+  - @ai-sdk/openai-compatible@2.0.0-beta.44
+
+## 2.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@2.0.0-beta.43
+
+## 2.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/openai-compatible@2.0.0-beta.42
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 2.0.0-beta.45
 
 ### Patch Changes

@@ -52,6 +52,11 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.bfl.ai/v1';
@@ -83,6 +88,13 @@ export function createBlackForestLabs(
       pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3',
     imageModel: createImageModel,
@@ -93,12 +105,8 @@ export function createBlackForestLabs(
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

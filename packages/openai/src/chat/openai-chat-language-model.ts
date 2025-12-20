@@ -2,12 +2,11 @@ import {
   InvalidResponseDataError,
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  SharedV3Warning,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -21,7 +20,11 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import { isReasoningModel } from '../openai-is-reasoning-model';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import {
+  convertOpenAIChatUsage,
+  OpenAIChatUsage,
+} from './convert-openai-chat-usage';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -88,35 +91,28 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         schema: openaiChatLanguageModelOptions,
       })) ?? {};
 
-    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+    const isReasoningModel =
+      openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    if (
-      responseFormat?.type === 'json' &&
-      responseFormat.schema != null &&
-      !structuredOutputs
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'responseFormat',
-        details:
-          'JSON response format schema is only supported with structuredOutputs',
-      });
-    }
-
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        systemMessageMode: getSystemMessageMode(this.modelId),
+        systemMessageMode:
+          openaiOptions.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
       },
     );
 
     warnings.push(...messageWarnings);
 
-    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
 
     const baseArgs = {
       // model id:
@@ -148,7 +144,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? structuredOutputs && responseFormat.schema != null
+          ? responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -180,25 +176,40 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       messages,
     };
 
-    if (isReasoningModel(this.modelId)) {
-      // remove unsupported settings for reasoning models
-      // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported',
-          feature: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
+    // remove unsupported settings for reasoning models
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
+    if (isReasoningModel) {
+      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        openaiOptions.reasoningEffort !== 'none' ||
+        !modelCapabilities.supportsNonReasoningParameters
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
+        if (baseArgs.logprobs != null) {
+          baseArgs.logprobs = undefined;
+          warnings.push({
+            type: 'other',
+            message: 'logprobs is not supported for reasoning models',
+          });
+        }
       }
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported',
-          feature: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.frequency_penalty != null) {
         baseArgs.frequency_penalty = undefined;
         warnings.push({
@@ -222,13 +233,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
+
       if (baseArgs.top_logprobs != null) {
         baseArgs.top_logprobs = undefined;
         warnings.push({
@@ -262,7 +267,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // Validate flex processing support
     if (
       openaiOptions.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported',
@@ -276,7 +281,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // Validate priority processing support
     if (
       openaiOptions.serviceTier === 'priority' &&
-      !supportsPriorityProcessing(this.modelId)
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported',
@@ -294,8 +299,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     } = prepareChatTools({
       tools,
       toolChoice,
-      structuredOutputs,
-      strictJsonSchema,
     });
 
     return {
@@ -357,8 +360,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: annotation.url,
-        title: annotation.title,
+        url: annotation.url_citation.url,
+        title: annotation.url_citation.title,
       });
     }
 
@@ -381,13 +384,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: completionTokenDetails?.reasoning_tokens ?? undefined,
-        cachedInputTokens: promptTokenDetails?.cached_tokens ?? undefined,
-      },
+      usage: convertOpenAIChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -438,11 +435,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     }> = [];
 
     let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-    };
+    let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
 
@@ -494,14 +487,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              usage = value.usage;
 
               if (
                 value.usage.completion_tokens_details
@@ -675,8 +661,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
                   type: 'source',
                   sourceType: 'url',
                   id: generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
+                  url: annotation.url_citation.url,
+                  title: annotation.url_citation.title,
                 });
               }
             }
@@ -690,7 +676,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAIChatUsage(usage),
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
@@ -700,28 +686,4 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       response: { headers: responseHeaders },
     };
   }
-}
-
-function supportsFlexProcessing(modelId: string) {
-  return (
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'))
-  );
-}
-
-function supportsPriorityProcessing(modelId: string) {
-  return (
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini')
-  );
-}
-
-function getSystemMessageMode(modelId: string) {
-  return isReasoningModel(modelId) ? 'developer' : 'system';
 }

@@ -1,5 +1,41 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.28
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+
+## 3.0.0-beta.27
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+
+## 3.0.0-beta.26
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+
+## 3.0.0-beta.25
+
+### Patch Changes
+
+- 53f3368: feat(provider): support embedding model call warnings in specification
+
+## 3.0.0-beta.24
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+
 ## 3.0.0-beta.22
 
 ### Patch Changes

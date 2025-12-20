@@ -90,6 +90,38 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose _meta field from MCP tool definition', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'tool-with-meta',
+              description: 'A tool with metadata',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  input: { type: 'string' },
+                },
+              },
+              _meta: {
+                'openai/outputTemplate': '{{result}}',
+              },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['tool-with-meta'];
+
+    expect(tool._meta?.['openai/outputTemplate']).toBe('{{result}}');
+  });
+
   it('should list resources from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -158,7 +190,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompts = await client.listPrompts();
+    const prompts = await client.experimental_listPrompts();
 
     expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
 
@@ -185,7 +217,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompt = await client.getPrompt({
+    const prompt = await client.experimental_getPrompt({
       name: 'code_review',
       arguments: { code: 'print(42)' },
     });
@@ -221,10 +253,12 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
-    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
+    await expect(client.experimental_listPrompts()).rejects.toThrow(
       MCPClientError,
     );
+    await expect(
+      client.experimental_getPrompt({ name: 'code_review' }),
+    ).rejects.toThrow(MCPClientError);
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {

@@ -189,7 +189,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('o1'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

@@ -1,10 +1,15 @@
 import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   FetchFunction,
+  InferSchema,
+  lazySchema,
+  parseProviderOptions,
   postJsonToApi,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
@@ -40,10 +45,20 @@ export class TogetherAIImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV3['doGenerate']>>
   > {
     const warnings: Array<SharedV3Warning> = [];
+
+    if (mask != null) {
+      throw new Error(
+        'Together AI does not support mask-based image editing. ' +
+          'Use FLUX Kontext models (e.g., black-forest-labs/FLUX.1-kontext-pro) ' +
+          'with a reference image and descriptive prompt instead.',
+      );
+    }
 
     if (size != null) {
       warnings.push({
@@ -55,6 +70,27 @@ export class TogetherAIImageModel implements ImageModelV3 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const togetheraiOptions = await parseProviderOptions({
+      provider: 'togetherai',
+      providerOptions,
+      schema: togetheraiImageProviderOptionsSchema,
+    });
+
+    // Handle image input from files
+    let imageUrl: string | undefined;
+    if (files != null && files.length > 0) {
+      imageUrl = convertImageModelFileToDataUri(files[0]);
+
+      if (files.length > 1) {
+        warnings.push({
+          type: 'other',
+          message:
+            'Together AI only supports a single input image. Additional images are ignored.',
+        });
+      }
+    }
+
     const splitSize = size?.split('x');
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -69,8 +105,9 @@ export class TogetherAIImageModel implements ImageModelV3 {
           width: parseInt(splitSize[0]),
           height: parseInt(splitSize[1]),
         }),
+        ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(providerOptions.togetherai ?? {}),
+        ...(togetheraiOptions ?? {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,
@@ -112,3 +149,40 @@ const togetheraiErrorSchema = z.object({
     message: z.string(),
   }),
 });
+
+/**
+ * Provider options schema for Together AI image generation.
+ */
+export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        /**
+         * Number of generation steps. Higher values can improve quality.
+         */
+        steps: z.number().nullish(),
+
+        /**
+         * Guidance scale for image generation.
+         */
+        guidance: z.number().nullish(),
+
+        /**
+         * Negative prompt to guide what to avoid.
+         */
+        negative_prompt: z.string().nullish(),
+
+        /**
+         * Disable the safety checker for image generation.
+         * When true, the API will not reject images flagged as potentially NSFW.
+         * Not available for Flux Schnell Free and Flux Pro models.
+         */
+        disable_safety_checker: z.boolean().nullish(),
+      })
+      .passthrough(),
+  ),
+);
+
+export type TogetherAIImageProviderOptions = InferSchema<
+  typeof togetheraiImageProviderOptionsSchema
+>;

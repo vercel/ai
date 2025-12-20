@@ -1,5 +1,185 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- d129d89: chore(anthropic): remove unnecessary doc
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 3.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 3.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 3.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 3.0.0-beta.83
+
+### Patch Changes
+
+- 6c38080: fix(anthropic): support pdf responses in web_fetch_tool_result schema validation
+
+## 3.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+
+## 3.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+
+## 3.0.0-beta.80
+
+### Patch Changes
+
+- 05d5b9a: fix(anthropic): make title field nullable in web_fetch and web_search tool output schemas
+
+## 3.0.0-beta.79
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- 9e1e758: fix(anthropic): use default thinking budget when unspecified
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- b2dbfbf: add context_management for anthropic
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- 0ae783e: feat(anthropic): add the new tool search tools
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 3.0.0-beta.70
+
+### Patch Changes
+
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+
+## 3.0.0-beta.69
+
+### Patch Changes
+
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.0-beta.67
+
+### Patch Changes
+
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+
 ## 3.0.0-beta.66
 
 ### Patch Changes

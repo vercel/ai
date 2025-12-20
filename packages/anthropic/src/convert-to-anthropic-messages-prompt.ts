@@ -11,6 +11,7 @@ import {
   parseProviderOptions,
   validateTypes,
   isNonNullable,
+  ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -24,6 +25,7 @@ import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
@@ -52,11 +54,13 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
   cacheControlValidator,
+  toolNameMapping,
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
   warnings: SharedV3Warning[];
   cacheControlValidator?: CacheControlValidator;
+  toolNameMapping: ToolNameMapping;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -490,6 +494,9 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
+                  const providerToolName = toolNameMapping.toProviderToolName(
+                    part.toolName,
+                  );
                   const isMcpToolUse =
                     part.providerOptions?.anthropic?.type === 'mcp-tool-use';
 
@@ -518,7 +525,7 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                   } else if (
                     // code execution 20250825:
-                    part.toolName === 'code_execution' &&
+                    providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
                     'type' in part.input &&
@@ -533,23 +540,36 @@ export async function convertToAnthropicMessagesPrompt({
                       input: part.input,
                       cache_control: cacheControl,
                     });
-                  } else if (
-                    part.toolName === 'code_execution' || // code execution 20250522
-                    part.toolName === 'web_fetch' ||
-                    part.toolName === 'web_search'
-                  ) {
-                    anthropicContent.push({
-                      type: 'server_tool_use',
-                      id: part.toolCallId,
-                      name: part.toolName,
-                      input: part.input,
-                      cache_control: cacheControl,
-                    });
                   } else {
-                    warnings.push({
-                      type: 'other',
-                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                    });
+                    if (
+                      providerToolName === 'code_execution' || // code execution 20250522
+                      providerToolName === 'web_fetch' ||
+                      providerToolName === 'web_search'
+                    ) {
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: providerToolName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
+                    } else if (
+                      providerToolName === 'tool_search_tool_regex' ||
+                      providerToolName === 'tool_search_tool_bm25'
+                    ) {
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: providerToolName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      warnings.push({
+                        type: 'other',
+                        message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                      });
+                    }
                   }
 
                   break;
@@ -566,6 +586,10 @@ export async function convertToAnthropicMessagesPrompt({
               }
 
               case 'tool-result': {
+                const providerToolName = toolNameMapping.toProviderToolName(
+                  part.toolName,
+                );
+
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
 
@@ -587,7 +611,7 @@ export async function convertToAnthropicMessagesPrompt({
                       | Array<{ type: 'text'; text: string }>,
                     cache_control: cacheControl,
                   });
-                } else if (part.toolName === 'code_execution') {
+                } else if (providerToolName === 'code_execution') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -661,7 +685,7 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (part.toolName === 'web_fetch') {
+                if (providerToolName === 'web_fetch') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -702,7 +726,7 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (part.toolName === 'web_search') {
+                if (providerToolName === 'web_search') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -729,6 +753,45 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (
+                  providerToolName === 'tool_search_tool_regex' ||
+                  providerToolName === 'tool_search_tool_bm25'
+                ) {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const toolSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+
+                  // Convert tool references back to API format
+                  const toolReferences = toolSearchOutput.map(ref => ({
+                    type: 'tool_reference' as const,
+                    tool_name: ref.toolName,
+                  }));
+
+                  anthropicContent.push({
+                    type: 'tool_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: 'tool_search_tool_search_result',
+                      tool_references: toolReferences,
+                    },
                     cache_control: cacheControl,
                   });
 

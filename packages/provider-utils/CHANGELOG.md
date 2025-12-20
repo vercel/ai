@@ -1,5 +1,98 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- c1efac4: feat: add input arg to toModelOutput
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- e9e157f: fix: generate zod4 json schema from input schema
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 81e29ab: chore: update docs
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- dce03c4: feat: tool input examples
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider@3.0.0-beta.23
+
 ## 4.0.0-beta.40
 
 ### Patch Changes
