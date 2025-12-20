@@ -1,24 +1,27 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  InferSchema,
-  ParseResult,
-  Resolvable,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   generateId,
+  InferSchema,
   lazySchema,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
+  Resolvable,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -31,11 +34,11 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
 } from './google-generative-ai-options';
+import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -91,7 +94,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
@@ -203,8 +206,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -343,8 +346,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(

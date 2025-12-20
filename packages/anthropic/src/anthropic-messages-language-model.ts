@@ -2,12 +2,15 @@ import {
   APICallError,
   JSONObject,
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   LanguageModelV3ToolCall,
   SharedV3ProviderMetadata,
   SharedV3Warning,
@@ -29,11 +32,6 @@ import {
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
-  AnthropicMessagesUsage,
-  convertAnthropicMessagesUsage,
-} from './convert-anthropic-messages-usage';
-import {
-  AnthropicContextManagementConfig,
   AnthropicContainer,
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
@@ -46,6 +44,10 @@ import {
   anthropicProviderOptions,
 } from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
+import {
+  AnthropicMessagesUsage,
+  convertAnthropicMessagesUsage,
+} from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
@@ -154,7 +156,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     toolChoice,
     providerOptions,
     stream,
-  }: Parameters<LanguageModelV3['doGenerate']>[0] & {
+  }: LanguageModelV3CallOptions & {
     stream: boolean;
     userSuppliedBetas: Set<string>;
   }) {
@@ -629,8 +631,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings, betas, usesJsonResponseTool, toolNameMapping } =
       await this.getArgs({
         ...options,
@@ -1021,8 +1023,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       args: body,
       warnings,

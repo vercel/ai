@@ -1,10 +1,13 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,12 +20,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
+import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
 import { XaiChatModelId, xaiProviderOptions } from './xai-chat-options';
 import { xaiFailedResponseHandler } from './xai-error';
 import { prepareTools } from './xai-prepare-tools';
-import { convertXaiChatUsage } from './convert-xai-chat-usage';
 
 type XaiChatConfig = {
   provider: string;
@@ -66,7 +69,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     // parse xai-specific provider options
@@ -188,8 +191,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -276,8 +279,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {
       ...args,

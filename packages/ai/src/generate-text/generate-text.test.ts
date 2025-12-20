@@ -6143,9 +6143,7 @@ describe('generateText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<
-        Parameters<LanguageModelV3['doGenerate']>[0]
-      > = [];
+      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
 
       const modelWithImageUrlSupport = new MockLanguageModelV3({
         provider: 'with-image-url-support',

@@ -1,13 +1,16 @@
 import {
   APICallError,
+  JSONValue,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
-  JSONValue,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -22,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
@@ -30,9 +34,9 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { mcpOutputSchema } from '../tool/mcp';
 import { shellInputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
-import { mcpOutputSchema } from '../tool/mcp';
 import {
   convertOpenAIResponsesUsage,
   OpenAIResponsesUsage,
@@ -54,7 +58,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -91,7 +94,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
@@ -380,8 +383,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const {
       args: body,
       warnings,
@@ -857,8 +860,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       args: body,
       warnings,

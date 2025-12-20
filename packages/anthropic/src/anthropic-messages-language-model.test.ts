@@ -2,8 +2,10 @@ import {
   APICallError,
   JSONObject,
   LanguageModelV3,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -2017,7 +2019,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('with fixture (multi-turn dice game)', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-programmatic-tool-calling.1');
@@ -2100,7 +2102,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web search tool', () => {
       describe('with fixture', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-search-tool.1');
@@ -2587,7 +2589,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('text response', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -2638,7 +2640,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('text response without title', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
@@ -2662,7 +2664,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('unavailable error', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -2688,7 +2690,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-regex.1');
@@ -2791,7 +2793,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-bm25.1');
@@ -6493,7 +6495,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('txt response', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
@@ -6520,7 +6522,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+      let result: LanguageModelV3StreamResult;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-web-search-tool.1');
@@ -6553,7 +6555,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-regex.1');
@@ -6601,7 +6603,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-bm25.1');
