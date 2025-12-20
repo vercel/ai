@@ -688,7 +688,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.126
+        specifier: 4.0.0-beta.128
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.0-beta.160
@@ -822,10 +822,10 @@ importers:
         specifier: 2.0.0-beta.55
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 3.0.0-beta.82
+        specifier: 3.0.0-beta.84
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.0-beta.126
+        specifier: 4.0.0-beta.128
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.0-beta.57
@@ -855,7 +855,7 @@ importers:
         specifier: 2.0.0-beta.54
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.0-beta.63
+        specifier: 3.0.0-beta.64
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
