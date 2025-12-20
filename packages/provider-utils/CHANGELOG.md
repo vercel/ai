@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+
 ## 4.0.0-beta.56
 
 ### Patch Changes

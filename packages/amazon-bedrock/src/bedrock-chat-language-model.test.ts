@@ -281,7 +281,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -393,7 +396,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -560,7 +566,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -618,7 +627,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -676,7 +688,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -734,7 +749,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -792,7 +810,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -837,7 +858,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -958,7 +982,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "trace": {
@@ -1049,7 +1076,10 @@ describe('doStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop_sequence",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "bedrock": {
                 "stopSequence": "STOP",
@@ -1283,7 +1313,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "usage": {
@@ -1442,7 +1475,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1521,7 +1557,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1601,7 +1640,10 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1905,7 +1947,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -1988,7 +2033,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2072,7 +2120,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2172,7 +2223,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2288,7 +2342,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2431,7 +2488,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2581,7 +2641,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -2783,7 +2846,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop_sequence",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -2793,7 +2861,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('unknown');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should pass the model and the messages', async () => {
@@ -3844,7 +3917,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.toolConfig.tools).toHaveLength(1);
@@ -3913,7 +3991,12 @@ describe('doGenerate', () => {
     });
 
     it('should send stop finish reason when json tool is used', async () => {
-      expect(result.finishReason).toBe('stop');
+      expect(result.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "tool_use",
+          "unified": "stop",
+        }
+      `);
     });
 
     it('should set isJsonResponseFromTool in provider metadata', async () => {
@@ -3987,7 +4070,12 @@ describe('doGenerate', () => {
     });
 
     it('should send tool-calls finish reason', async () => {
-      expect(result.finishReason).toBe('tool-calls');
+      expect(result.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "tool_use",
+          "unified": "tool-calls",
+        }
+      `);
     });
   });
 
@@ -4804,7 +4892,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should preserve text response before JSON output (answering question then returning structured data)', async () => {
@@ -4851,7 +4944,12 @@ describe('doGenerate', () => {
       ]
     `);
 
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
@@ -4948,7 +5046,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should handle multiple regular tool calls before JSON tool call in doGenerate', async () => {
@@ -5015,7 +5118,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support tool calls with empty input (no arguments)', async () => {

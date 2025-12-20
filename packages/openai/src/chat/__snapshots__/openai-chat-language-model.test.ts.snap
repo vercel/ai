@@ -46,7 +46,10 @@ exports[`doStream > should set .modelId for model-router request 1`] = `
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "acceptedPredictionTokens": 0,

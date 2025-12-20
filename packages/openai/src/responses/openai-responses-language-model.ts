@@ -841,10 +841,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAIResponseFinishReason({
-        finishReason: response.incomplete_details?.reason,
-        hasFunctionCall,
-      }),
+      finishReason: {
+        unified: mapOpenAIResponseFinishReason({
+          finishReason: response.incomplete_details?.reason,
+          hasFunctionCall,
+        }),
+        raw: response.incomplete_details?.reason ?? undefined,
+      },
       usage: convertOpenAIResponsesUsage(usage),
       request: { body },
       response: {
@@ -891,7 +894,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const self = this;
     const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: OpenAIResponsesUsage | undefined = undefined;
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
@@ -946,7 +952,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -1532,10 +1538,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = mapOpenAIResponseFinishReason({
-                finishReason: value.response.incomplete_details?.reason,
-                hasFunctionCall,
-              });
+              finishReason = {
+                unified: mapOpenAIResponseFinishReason({
+                  finishReason: value.response.incomplete_details?.reason,
+                  hasFunctionCall,
+                }),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
               usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;

@@ -202,7 +202,10 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapCohereFinishReason(response.finish_reason),
+      finishReason: {
+        unified: mapCohereFinishReason(response.finish_reason),
+        raw: response.finish_reason ?? undefined,
+      },
       usage: convertCohereUsage(response.usage.tokens),
       request: { body: args },
       response: {
@@ -232,7 +235,10 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: CohereUsageTokens | undefined = undefined;
 
     let pendingToolCall: {
@@ -261,7 +267,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -398,7 +404,10 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
               }
 
               case 'message-end': {
-                finishReason = mapCohereFinishReason(value.delta.finish_reason);
+                finishReason = {
+                  unified: mapCohereFinishReason(value.delta.finish_reason),
+                  raw: value.delta.finish_reason,
+                };
                 usage = value.delta.usage.tokens;
                 return;
               }

@@ -1,5 +1,14 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 2.0.0-beta.59
 
 ### Patch Changes

@@ -569,10 +569,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapBedrockFinishReason(
-        response.stopReason as BedrockStopReason,
-        isJsonResponseFromTool,
-      ),
+      finishReason: {
+        unified: mapBedrockFinishReason(
+          response.stopReason as BedrockStopReason,
+          isJsonResponseFromTool,
+        ),
+        raw: response.stopReason ?? undefined,
+      },
       usage: convertBedrockUsage(response.usage),
       response: {
         // TODO add id, timestamp, etc
@@ -609,7 +612,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: BedrockUsage | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
@@ -641,7 +647,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
           transform(chunk, controller) {
             function enqueueError(bedrockError: Record<string, any>) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: bedrockError });
             }
 
@@ -677,10 +683,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.messageStop) {
-              finishReason = mapBedrockFinishReason(
-                value.messageStop.stopReason as BedrockStopReason,
-                isJsonResponseFromTool,
-              );
+              finishReason = {
+                unified: mapBedrockFinishReason(
+                  value.messageStop.stopReason as BedrockStopReason,
+                  isJsonResponseFromTool,
+                ),
+                raw: value.messageStop.stopReason ?? undefined,
+              };
               stopSequence =
                 value.messageStop.additionalModelResponseFields
                   ?.stop_sequence ?? null;
