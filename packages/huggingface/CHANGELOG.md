@@ -1,5 +1,15 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.54
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/openai-compatible@2.0.0-beta.58
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 1.0.0-beta.53
 
 ### Patch Changes
