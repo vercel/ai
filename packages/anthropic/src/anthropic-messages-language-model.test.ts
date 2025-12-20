@@ -284,7 +284,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send stop finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "tool_use",
+            "unified": "stop",
+          }
+        `);
       });
     });
 
@@ -371,7 +376,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send stop finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "tool_use",
+            "unified": "stop",
+          }
+        `);
       });
     });
 
@@ -493,7 +503,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send tool-calls finish reason', async () => {
-        expect(result.finishReason).toBe('tool-calls');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          }
+        `);
       });
     });
 
@@ -568,7 +583,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send stop finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "end_turn",
+            "unified": "stop",
+          }
+        `);
       });
     });
 
@@ -648,7 +668,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       it('should send stop finish reason', async () => {
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "end_turn",
+            "unified": "stop",
+          }
+        `);
       });
     });
 
@@ -1320,7 +1345,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text",
             },
           ],
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
@@ -1470,7 +1498,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text",
             },
           ],
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "anthropic": {
               "cacheCreationInputTokens": 10,
@@ -1810,7 +1841,12 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
-        expect(finishReason).toStrictEqual('tool-calls');
+        expect(finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          }
+        `);
       });
 
       it('should support tools with empty parameters', async () => {
@@ -4062,7 +4098,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-end",
             },
             {
-              "finishReason": "stop",
+              "finishReason": {
+                "raw": "tool_use",
+                "unified": "stop",
+              },
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
@@ -4208,7 +4247,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "text-end",
             },
             {
-              "finishReason": "stop",
+              "finishReason": {
+                "raw": "tool_use",
+                "unified": "stop",
+              },
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
@@ -4399,7 +4441,10 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "tool-call",
               },
               {
-                "finishReason": "tool-calls",
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
                 "providerMetadata": {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,
@@ -4598,7 +4643,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
@@ -4711,7 +4759,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
@@ -4806,7 +4857,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
@@ -4887,7 +4941,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
@@ -5036,7 +5093,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": "tool_use",
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": null,
@@ -5290,7 +5350,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
@@ -5378,7 +5441,10 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
@@ -5496,7 +5562,10 @@ describe('AnthropicMessagesLanguageModel', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "finishReason": "stop",
+              "finishReason": {
+                "raw": "pause_turn",
+                "unified": "stop",
+              },
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
@@ -5558,7 +5627,10 @@ describe('AnthropicMessagesLanguageModel', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "finishReason": "stop",
+              "finishReason": {
+                "raw": "stop_sequence",
+                "unified": "stop",
+              },
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
@@ -5807,7 +5879,10 @@ describe('AnthropicMessagesLanguageModel', () => {
               "type": "source",
             },
             {
-              "finishReason": "stop",
+              "finishReason": {
+                "raw": "end_turn",
+                "unified": "stop",
+              },
               "providerMetadata": {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
@@ -6013,7 +6088,10 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "tool-call",
               },
               {
-                "finishReason": "tool-calls",
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
                 "providerMetadata": {
                   "anthropic": {
                     "cacheCreationInputTokens": null,
@@ -6118,7 +6196,10 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "type": "tool-call",
               },
               {
-                "finishReason": "tool-calls",
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
                 "providerMetadata": {
                   "anthropic": {
                     "cacheCreationInputTokens": 0,

@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.164
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.90
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 6.0.0-beta.163
 
 ### Patch Changes

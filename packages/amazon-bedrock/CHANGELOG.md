@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/anthropic@3.0.0-beta.95
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 4.0.0-beta.105
 
 ### Patch Changes

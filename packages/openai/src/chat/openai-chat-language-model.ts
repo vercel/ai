@@ -385,7 +385,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertOpenAIChatUsage(response.usage),
       request: { body },
       response: {
@@ -436,7 +439,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
@@ -460,7 +466,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -469,7 +475,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -510,7 +516,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapOpenAIFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.logprobs?.content != null) {

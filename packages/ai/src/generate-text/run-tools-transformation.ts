@@ -97,6 +97,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'finish';
       finishReason: FinishReason;
+      rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
@@ -210,7 +211,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'finish': {
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason,
+            finishReason: chunk.finishReason.unified,
+            rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };

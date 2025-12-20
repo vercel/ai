@@ -1093,9 +1093,15 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
-                'The reason the model finished generating the text for the step.',
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1350,8 +1356,15 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
-              description: 'The reason the model finished generating the text.',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              description:
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1723,9 +1736,15 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "Promise<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'>",
+      type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'>",
       description:
         'The reason why the generation finished. Automatically consumes the stream.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'PromiseLike<string | undefined>',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -2156,8 +2175,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -2738,8 +2763,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'providerMetadata',
@@ -2770,15 +2801,21 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'totalUsage',
               type: 'LanguageModelUsage',
               description: 'The total token usage of the generated text.',
               properties: [
-          {
+                {
                   type: 'LanguageModelUsage',
                   parameters: [
                     {

@@ -1371,7 +1371,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -1519,7 +1522,10 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -1631,7 +1637,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": null,
