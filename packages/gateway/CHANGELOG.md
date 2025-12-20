@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.23
+
+### Patch Changes
+
+- e3de981: feat (provider/gateway): add zero data retention provider option
+
 ## 2.0.22
 
 ### Patch Changes
