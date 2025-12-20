@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 3.0.0-beta.94
 
 ### Patch Changes

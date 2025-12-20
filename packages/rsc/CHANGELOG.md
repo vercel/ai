@@ -1,5 +1,15 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.166
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - ai@6.0.0-beta.164
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
 ## 2.0.0-beta.165
 
 ### Patch Changes
