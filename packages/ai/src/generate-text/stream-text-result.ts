@@ -191,7 +191,7 @@ Automatically consumes the stream.
   readonly toolResults: PromiseLike<TypedToolResult<TOOLS>[]>;
 
   /**
-   * The unified   reason why the generation finished. Taken from the last step.
+   * The unified finish reason why the generation finished. Taken from the last step.
    *
    * Automatically consumes the stream.
    */
