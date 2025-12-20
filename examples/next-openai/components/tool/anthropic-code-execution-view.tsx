@@ -201,27 +201,22 @@ function InputView({
     return null;
   }
 
-  // Handle programmatic tool calling format: { code: string }
-  if ('code' in input && !('type' in input)) {
-    return (
-      <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
-        <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
-          <span className="font-semibold">Code Execution</span>
-          <br />
-          <span className="font-semibold">Code:</span>
-          <br />
-          {input.code}
-        </pre>
-      </div>
-    );
-  }
-
-  // Handle regular code execution formats with 'type' discriminator
-  if (!('type' in input)) {
-    return null;
-  }
-
   switch (input.type) {
+    // Handle programmatic tool calling format
+    case 'programmatic-tool-call': {
+      return (
+        <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+          <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+            <span className="font-semibold">Code Execution</span>
+            <br />
+            <span className="font-semibold">Code:</span>
+            <br />
+            {input.code}
+          </pre>
+        </div>
+      );
+    }
+
     case 'text_editor_code_execution': {
       switch (input.command) {
         case 'view': {

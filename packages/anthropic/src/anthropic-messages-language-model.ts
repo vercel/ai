@@ -765,11 +765,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             part.name === 'code_execution' ||
             part.name === 'web_fetch'
           ) {
+            // For code_execution, inject 'programmatic-tool-call' type when input has { code } format
+            const inputToSerialize =
+              part.name === 'code_execution' &&
+              part.input != null &&
+              typeof part.input === 'object' &&
+              'code' in part.input &&
+              !('type' in part.input)
+                ? { type: 'programmatic-tool-call', ...part.input }
+                : part.input;
+
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: toolNameMapping.toCustomToolName(part.name),
-              input: JSON.stringify(part.input),
+              input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
             });
           } else if (
@@ -1519,12 +1529,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         id: contentBlock.toolCallId,
                       });
 
+                      // For code_execution, inject 'programmatic-tool-call' type
+                      // when input has { code } format (programmatic tool calling)
+                      let finalInput =
+                        contentBlock.input === '' ? '{}' : contentBlock.input;
+                      if (contentBlock.providerToolName === 'code_execution') {
+                        try {
+                          const parsed = JSON.parse(finalInput);
+                          if (
+                            parsed != null &&
+                            typeof parsed === 'object' &&
+                            'code' in parsed &&
+                            !('type' in parsed)
+                          ) {
+                            finalInput = JSON.stringify({
+                              type: 'programmatic-tool-call',
+                              ...parsed,
+                            });
+                          }
+                        } catch {
+                          // ignore parse errors, use original input
+                        }
+                      }
+
                       controller.enqueue({
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
                         toolName: contentBlock.toolName,
-                        input:
-                          contentBlock.input === '' ? '{}' : contentBlock.input,
+                        input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
                         ...(contentBlock.caller && {
                           providerMetadata: {

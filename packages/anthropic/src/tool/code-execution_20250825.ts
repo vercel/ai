@@ -69,36 +69,35 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
 
 export const codeExecution_20250825InputSchema = lazySchema(() =>
   zodSchema(
-    z.union([
+    z.discriminatedUnion('type', [
+      // Programmatic tool calling format (mapped from { code } by AI SDK)
       z.object({
+        type: z.literal('programmatic-tool-call'),
         code: z.string(),
       }),
-      // Regular code execution formats
-      z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('bash_code_execution'),
+        command: z.string(),
+      }),
+      z.discriminatedUnion('command', [
         z.object({
-          type: z.literal('bash_code_execution'),
-          command: z.string(),
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('view'),
+          path: z.string(),
         }),
-        z.discriminatedUnion('command', [
-          z.object({
-            type: z.literal('text_editor_code_execution'),
-            command: z.literal('view'),
-            path: z.string(),
-          }),
-          z.object({
-            type: z.literal('text_editor_code_execution'),
-            command: z.literal('create'),
-            path: z.string(),
-            file_text: z.string().nullish(),
-          }),
-          z.object({
-            type: z.literal('text_editor_code_execution'),
-            command: z.literal('str_replace'),
-            path: z.string(),
-            old_str: z.string(),
-            new_str: z.string(),
-          }),
-        ]),
+        z.object({
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('create'),
+          path: z.string(),
+          file_text: z.string().nullish(),
+        }),
+        z.object({
+          type: z.literal('text_editor_code_execution'),
+          command: z.literal('str_replace'),
+          path: z.string(),
+          old_str: z.string(),
+          new_str: z.string(),
+        }),
       ]),
     ]),
   ),
@@ -106,6 +105,7 @@ export const codeExecution_20250825InputSchema = lazySchema(() =>
 
 const factory = createProviderToolFactoryWithOutputSchema<
   | {
+      type: 'programmatic-tool-call';
       /**
        * Programmatic tool calling: Python code to execute when code_execution
        * is used with allowedCallers to trigger client-executed tools.

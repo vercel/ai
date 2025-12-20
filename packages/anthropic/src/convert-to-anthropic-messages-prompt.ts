@@ -540,6 +540,26 @@ export async function convertToAnthropicMessagesPrompt({
                       input: part.input,
                       cache_control: cacheControl,
                     });
+                  } else if (
+                    // code execution 20250825 programmatic tool calling:
+                    // Strip the fake 'programmatic-tool-call' type before sending to Anthropic
+                    providerToolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    part.input.type === 'programmatic-tool-call'
+                  ) {
+                    const { type: _, ...inputWithoutType } = part.input as {
+                      type: string;
+                      code: string;
+                    };
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: 'code_execution',
+                      input: inputWithoutType,
+                      cache_control: cacheControl,
+                    });
                   } else {
                     if (
                       providerToolName === 'code_execution' || // code execution 20250522
