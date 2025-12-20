@@ -45,10 +45,29 @@ Codemods are transformations that run on your codebase automatically. They
 allow you to easily apply many changes without having to manually go through
 every file.
 
-To run codemods, use the following command:
+You can run all codemods provided as part of the 6.0 upgrade process by running
+the following command from the root of your project:
 
-```bash
-npx @ai-sdk/codemod upgrade v6
+```sh
+npx @ai-sdk/codemod upgrade
+```
+
+To run only the v6 codemods (v5 → v6 migration):
+
+```sh
+npx @ai-sdk/codemod v6
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+For example, to run a specific v6 codemod:
+
+```sh
+npx @ai-sdk/codemod v6/rename-text-embedding-to-embedding src/
 ```
 
 <Note>
