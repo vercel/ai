@@ -1798,7 +1798,10 @@ describe('doStream', () => {
           "type": "source",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "end_turn",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
