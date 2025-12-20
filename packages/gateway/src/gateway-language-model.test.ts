@@ -603,7 +603,7 @@ describe('GatewayLanguageModel', () => {
         { type: 'text-delta', textDelta: 'World!' },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: {
             prompt_tokens: 10,
             completion_tokens: 20,
@@ -1307,7 +1307,7 @@ describe('GatewayLanguageModel', () => {
       const finishChunk = chunks[2] as any;
       expect(finishChunk).toEqual({
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: { prompt_tokens: 10, completion_tokens: 5 },
         timestamp: timestampString, // Should remain a string
       });

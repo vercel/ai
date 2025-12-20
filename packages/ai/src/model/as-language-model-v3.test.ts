@@ -149,7 +149,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Hello' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
           warnings: [],
         }),
@@ -180,7 +180,7 @@ describe('asLanguageModelV3', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: {
                     inputTokens: 3,
                     outputTokens: 10,
@@ -260,7 +260,7 @@ describe('asLanguageModelV3', () => {
         async doGenerate() {
           return {
             content: [],
-            finishReason: 'stop' as const,
+            finishReason: { unified: 'stop', raw: 'stop' } as const,
             usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
             warnings: [],
           };
@@ -284,7 +284,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
           warnings: [],
           request: { body: { prompt: 'test' } },
@@ -313,7 +313,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
           warnings: [],
           providerMetadata: {
@@ -339,7 +339,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
           warnings: [
             {
@@ -367,7 +367,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: {
             inputTokens: 10,
             outputTokens: 5,
@@ -393,7 +393,7 @@ describe('asLanguageModelV3', () => {
         modelId: 'test-model-id',
         doGenerate: async () => ({
           content: [{ type: 'text', text: 'Response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: {
             inputTokens: 10,
             outputTokens: 5,

@@ -81,7 +81,7 @@ const mockTextModel = new MockLanguageModelV3({
         { type: 'text-end', id: '0' },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]),
@@ -102,7 +102,7 @@ const mockToolModel = new MockLanguageModelV3({
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]),

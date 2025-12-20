@@ -29,7 +29,7 @@ vi.mock('../version', () => {
 });
 
 const dummyResponseValues = {
-  finishReason: 'stop' as const,
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
   usage: {
     inputTokens: {
       total: 10,
@@ -729,7 +729,7 @@ describe('generateObject', () => {
             reasoningTokens: undefined,
             cachedInputTokens: undefined,
           },
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
         });
       }
 

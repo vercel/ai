@@ -39,7 +39,7 @@ describe('resolveLanguageModel', () => {
         async doGenerate() {
           return {
             content: [],
-            finishReason: 'stop' as const,
+            finishReason: { unified: 'stop', raw: 'stop' } as const,
             usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
             warnings: [],
           };

@@ -37,7 +37,7 @@ describe('runToolsTransformation', () => {
         { type: 'text-end', id: '1' },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -109,7 +109,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -194,7 +194,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -279,7 +279,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -368,7 +368,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -472,7 +472,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -516,7 +516,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);
@@ -606,7 +606,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);

@@ -342,7 +342,7 @@ describe('doGenerate', () => {
               parts: [{ text: content }],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
             ...(groundingMetadata && { groundingMetadata }),
@@ -455,7 +455,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -1180,7 +1180,7 @@ describe('doGenerate', () => {
                 parts: [{ text: '' }],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -1233,7 +1233,7 @@ describe('doGenerate', () => {
                 parts: [{ text: '' }],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -1298,7 +1298,7 @@ describe('doGenerate', () => {
               parts: [{ text: 'test response' }],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: [
               {
@@ -1451,7 +1451,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
           },
         ],
       },
@@ -1692,7 +1692,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -1761,7 +1761,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -1922,7 +1922,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -1972,7 +1972,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -2033,7 +2033,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -2101,7 +2101,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
             safetyRatings: SAFETY_RATINGS,
           },
@@ -2152,7 +2152,7 @@ describe('doGenerate', () => {
               ],
               role: 'model',
             },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             safetyRatings: SAFETY_RATINGS,
           },
         ],
@@ -2296,7 +2296,7 @@ describe('doGenerate', () => {
           candidates: [
             {
               content: { parts: [{ text: 'Hello!' }], role: 'model' },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               safetyRatings: SAFETY_RATINGS,
               groundingMetadata: {
                 webSearchQueries: ['test query'],
@@ -2339,7 +2339,7 @@ describe('doGenerate', () => {
           candidates: [
             {
               content: { parts: [{ text: 'Hello!' }], role: 'model' },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               safetyRatings: SAFETY_RATINGS,
               groundingMetadata: {
                 webSearchQueries: ['test query'],
@@ -2393,7 +2393,7 @@ describe('doGenerate', () => {
                 ],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               safetyRatings: SAFETY_RATINGS,
             },
           ],
@@ -2443,7 +2443,7 @@ describe('doGenerate', () => {
                 ],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               safetyRatings: SAFETY_RATINGS,
             },
           ],
@@ -2528,7 +2528,7 @@ describe('doStream', () => {
             candidates: [
               {
                 content: { parts: [{ text }], role: 'model' },
-                finishReason: 'STOP',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 index: 0,
                 safetyRatings: SAFETY_RATINGS,
                 ...(groundingMetadata && { groundingMetadata }),
@@ -2850,7 +2850,7 @@ describe('doStream', () => {
                   },
                 ],
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
             },
           ],
         })}\n\n`,
@@ -3079,7 +3079,7 @@ describe('doStream', () => {
           candidates: [
             {
               content: { parts: [{ text: 'more' }], role: 'model' },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -3159,7 +3159,7 @@ describe('doStream', () => {
           candidates: [
             {
               content: { parts: [{ text: 'final chunk' }], role: 'model' },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -3303,7 +3303,7 @@ describe('doStream', () => {
                 ],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -3407,7 +3407,7 @@ describe('doStream', () => {
                 ],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
               safetyRatings: SAFETY_RATINGS,
             },
@@ -3548,7 +3548,7 @@ describe('doStream', () => {
                 ],
                 role: 'model',
               },
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               index: 0,
             },
           ],
@@ -3692,7 +3692,7 @@ describe('doStream', () => {
                 role: 'model',
               },
               index: 0,
-              finishReason: 'STOP',
+              finishReason: { unified: 'stop', raw: 'stop' },
               safetyRatings: SAFETY_RATINGS,
             },
           ],
@@ -3936,7 +3936,7 @@ describe('doStream', () => {
             candidates: [
               {
                 content: { parts: [{ text: ' World!' }], role: 'model' },
-                finishReason: 'STOP',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 safetyRatings: SAFETY_RATINGS,
                 groundingMetadata: {
                   webSearchQueries: ['test query'],
@@ -3992,7 +3992,7 @@ describe('doStream', () => {
             candidates: [
               {
                 content: { parts: [{ text: ' World!' }], role: 'model' },
-                finishReason: 'STOP',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 safetyRatings: SAFETY_RATINGS,
                 groundingMetadata: {
                   webSearchQueries: ['test query'],
@@ -4058,7 +4058,7 @@ describe('doStream', () => {
             candidates: [
               {
                 content: { parts: [{ text: 'Final answer' }], role: 'model' },
-                finishReason: 'STOP',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 safetyRatings: SAFETY_RATINGS,
               },
             ],
@@ -4140,7 +4140,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],
@@ -4172,7 +4172,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],
@@ -4203,7 +4203,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],
@@ -4237,7 +4237,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],
@@ -4269,7 +4269,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],
@@ -4297,7 +4297,7 @@ describe('GEMMA Model System Instruction Fix', () => {
         candidates: [
           {
             content: { parts: [{ text: 'Hello!' }], role: 'model' },
-            finishReason: 'STOP',
+            finishReason: { unified: 'stop', raw: 'stop' },
             index: 0,
           },
         ],

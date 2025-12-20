@@ -2144,7 +2144,7 @@ describe('doStream', () => {
         { type: 'text-end', id: '0' },
         expect.objectContaining({
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
         }),
       ]),
     );
