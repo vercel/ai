@@ -3,7 +3,7 @@ name: Triage
 on:
   issues:
     types: [opened, reopened]
-  pull_request_target: 
+  pull_request_target:
     types: [opened]
     branches:
       - main
@@ -47,8 +47,9 @@ jobs:
       - name: Get changed file paths
         id: get-changed-files
         run: |
-          changed_files=$(git diff --name-only ${{ github.event.pull_request.base.ref }})
-          echo $changed_files
+          git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+          changed_files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          echo "changed_files=$changed_files"
           echo "changed_files=$changed_files" >> $GITHUB_OUTPUT
 
       - name: Determine appropriate labels
