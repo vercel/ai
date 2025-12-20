@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.87
+
+### Patch Changes
+
+- ee71658: feat (provider/gateway): add zero data retention provider option
+
 ## 2.0.0-beta.86
 
 ### Patch Changes
