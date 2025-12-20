@@ -11,6 +11,7 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -37,6 +38,7 @@ import {
 } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -65,7 +67,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { NoOutputGeneratedError } from '../error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -372,34 +373,43 @@ A function that attempts to repair a tool call that failed to parse.
             experimental_context,
           });
 
+          const toolContent: Array<any> = [];
+
+          // add regular tool results for approved tool calls:
+          for (const output of toolOutputs) {
+            const modelOutput = await createToolModelOutput({
+              toolCallId: output.toolCallId,
+              input: output.input,
+              tool: tools?.[output.toolName],
+              output:
+                output.type === 'tool-result' ? output.output : output.error,
+              errorMode: output.type === 'tool-error' ? 'json' : 'none',
+            });
+
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: output.toolCallId,
+              toolName: output.toolName,
+              output: modelOutput,
+            });
+          }
+
+          // add execution denied tool results for denied tool approvals:
+          for (const toolApproval of deniedToolApprovals) {
+            toolContent.push({
+              type: 'tool-result' as const,
+              toolCallId: toolApproval.toolCall.toolCallId,
+              toolName: toolApproval.toolCall.toolName,
+              output: {
+                type: 'execution-denied' as const,
+                reason: toolApproval.approvalResponse.reason,
+              },
+            });
+          }
+
           responseMessages.push({
             role: 'tool',
-            content: [
-              // add regular tool results for approved tool calls:
-              ...toolOutputs.map(output => ({
-                type: 'tool-result' as const,
-                toolCallId: output.toolCallId,
-                toolName: output.toolName,
-                output: createToolModelOutput({
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                }),
-              })),
-              // add execution denied tool results for denied tool approvals:
-              ...deniedToolApprovals.map(toolApproval => ({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: {
-                  type: 'execution-denied' as const,
-                  reason: toolApproval.approvalResponse.reason,
-                },
-              })),
-            ],
+            content: toolContent,
           });
         }
 
@@ -411,6 +421,14 @@ A function that attempts to repair a tool call that failed to parse.
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
+
+        // Track provider-executed tool calls that support deferred results
+        // (e.g., code_execution in programmatic tool calling scenarios).
+        // These tools may not return their results in the same turn as their call.
+        const pendingDeferredToolCalls = new Map<
+          string,
+          { toolName: string }
+        >();
 
         do {
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -490,13 +508,18 @@ A function that attempts to repair a tool call that failed to parse.
               }),
               tracer,
               fn: async span => {
+                const stepProviderOptions = mergeObjects(
+                  providerOptions,
+                  prepareStepResult?.providerOptions,
+                );
+
                 const result = await stepModel.doGenerate({
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers: headersWithUserAgent,
                 });
@@ -661,20 +684,50 @@ A function that attempts to repair a tool call that failed to parse.
             );
           }
 
+          // Track provider-executed tool calls that support deferred results.
+          // In programmatic tool calling, a server tool (e.g., code_execution) may
+          // trigger a client tool, and the server tool's result is deferred until
+          // the client tool's result is sent back.
+          for (const toolCall of stepToolCalls) {
+            if (!toolCall.providerExecuted) continue;
+            const tool = tools?.[toolCall.toolName];
+            if (tool?.type === 'provider' && tool.supportsDeferredResults) {
+              // Check if this tool call already has a result in the current response
+              const hasResultInResponse = currentModelResponse.content.some(
+                part =>
+                  part.type === 'tool-result' &&
+                  part.toolCallId === toolCall.toolCallId,
+              );
+              if (!hasResultInResponse) {
+                pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                  toolName: toolCall.toolName,
+                });
+              }
+            }
+          }
+
+          // Mark deferred tool calls as resolved when we receive their results
+          for (const part of currentModelResponse.content) {
+            if (part.type === 'tool-result') {
+              pendingDeferredToolCalls.delete(part.toolCallId);
+            }
+          }
+
           // content:
           const stepContent = asContent({
             content: currentModelResponse.content,
             toolCalls: stepToolCalls,
             toolOutputs: clientToolOutputs,
             toolApprovalRequests: Object.values(toolApprovalRequests),
+            tools,
           });
 
           // append to messages for potential next step:
           responseMessages.push(
-            ...toResponseMessages({
+            ...(await toResponseMessages({
               content: stepContent,
               tools,
-            }),
+            })),
           );
 
           // Add step information (after response messages are updated):
@@ -701,10 +754,12 @@ A function that attempts to repair a tool call that failed to parse.
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
         } while (
-          // there are tool calls:
-          clientToolCalls.length > 0 &&
-          // all current tool calls have outputs (incl. execution errors):
-          clientToolOutputs.length === clientToolCalls.length &&
+          // Continue if:
+          // 1. There are client tool calls that have all been executed, OR
+          // 2. There are pending deferred results from provider-executed tools
+          ((clientToolCalls.length > 0 &&
+            clientToolOutputs.length === clientToolCalls.length) ||
+            pendingDeferredToolCalls.size > 0) &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
@@ -967,11 +1022,13 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
   toolApprovalRequests,
+  tools,
 }: {
   content: Array<LanguageModelV3Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
+  tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
   return [
     ...content.map(part => {
@@ -1000,10 +1057,43 @@ function asContent<TOOLS extends ToolSet>({
         case 'tool-result': {
           const toolCall = toolCalls.find(
             toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
+          );
 
+          // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
+          // When a server tool (like code_execution) triggers a client tool, the server tool's
+          // result may be deferred to a later turn. In this case, there's no matching tool-call
+          // in the current response.
           if (toolCall == null) {
-            throw new Error(`Tool call ${part.toolCallId} not found.`);
+            const tool = tools?.[part.toolName];
+            const supportsDeferredResults =
+              tool?.type === 'provider' && tool.supportsDeferredResults;
+
+            if (!supportsDeferredResults) {
+              throw new Error(`Tool call ${part.toolCallId} not found.`);
+            }
+
+            // Create tool result without tool call input (deferred result)
+            if (part.isError) {
+              return {
+                type: 'tool-error' as const,
+                toolCallId: part.toolCallId,
+                toolName: part.toolName as keyof TOOLS & string,
+                input: undefined,
+                error: part.result,
+                providerExecuted: true,
+                dynamic: part.dynamic,
+              } as TypedToolError<TOOLS>;
+            }
+
+            return {
+              type: 'tool-result' as const,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName as keyof TOOLS & string,
+              input: undefined,
+              output: part.result,
+              providerExecuted: true,
+              dynamic: part.dynamic,
+            } as TypedToolResult<TOOLS>;
           }
 
           if (part.isError) {

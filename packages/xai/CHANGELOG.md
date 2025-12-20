@@ -1,5 +1,85 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/openai-compatible@2.0.0-beta.57
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/openai-compatible@2.0.0-beta.56
+
+## 3.0.0-beta.64
+
+### Patch Changes
+
+- 9cded0d: fix(provider/xai): correct sources format in searchParameters
+
+## 3.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/openai-compatible@2.0.0-beta.55
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.62
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/openai-compatible@2.0.0-beta.53
+
+## 3.0.0-beta.60
+
+### Patch Changes
+
+- 47c0ac0: fix(xai): use correct parameter names for maxOutputTokens
+
+## 3.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/openai-compatible@2.0.0-beta.52
+
+## 3.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/openai-compatible@2.0.0-beta.51
+
+## 3.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/openai-compatible@2.0.0-beta.50
+
 ## 3.0.0-beta.56
 
 ### Patch Changes

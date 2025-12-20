@@ -100,12 +100,12 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
-  listPrompts(options?: {
+  experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
-  getPrompt(args: {
+  experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
@@ -575,7 +575,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  listPrompts({
+  experimental_listPrompts({
     params,
     options,
   }: {
@@ -585,7 +585,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listPromptsInternal({ params, options });
   }
 
-  getPrompt({
+  experimental_getPrompt({
     name,
     arguments: args,
     options,

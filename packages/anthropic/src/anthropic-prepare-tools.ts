@@ -12,6 +12,7 @@ import { validateTypes } from '@ai-sdk/provider-utils';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
+  allowedCallers?: Array<'code_execution_20250825'>;
 }
 
 export async function prepareTools({
@@ -57,11 +58,12 @@ export async function prepareTools({
           canCache: true,
         });
 
-        // Read deferLoading from Anthropic-specific provider options
+        // Read Anthropic-specific provider options
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
         const deferLoading = anthropicOptions?.deferLoading;
+        const allowedCallers = anthropicOptions?.allowedCallers;
 
         anthropicTools.push({
           name: tool.name,
@@ -72,6 +74,9 @@ export async function prepareTools({
             ? { strict: tool.strict }
             : {}),
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+          ...(allowedCallers != null
+            ? { allowed_callers: allowedCallers }
+            : {}),
           ...(tool.inputExamples != null
             ? {
                 input_examples: tool.inputExamples.map(
@@ -81,7 +86,11 @@ export async function prepareTools({
             : {}),
         });
 
-        if (tool.inputExamples != null) {
+        if (supportsStructuredOutput === true) {
+          betas.add('structured-outputs-2025-11-13');
+        }
+
+        if (tool.inputExamples != null || allowedCallers != null) {
           betas.add('advanced-tool-use-2025-11-20');
         }
 

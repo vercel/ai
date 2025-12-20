@@ -84,7 +84,7 @@ export async function processToolCalls<
         const toolInstance = executeFunctions[toolName] as Tool['execute'];
         if (toolInstance) {
           result = await toolInstance(part.input, {
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
           });
         } else {

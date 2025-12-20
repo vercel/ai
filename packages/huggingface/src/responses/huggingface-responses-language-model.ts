@@ -1,10 +1,13 @@
 import {
   APICallError,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,13 +22,13 @@ import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
-  HuggingFaceResponsesUsage,
   convertHuggingFaceResponsesUsage,
+  HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
-import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
+import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -61,7 +64,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
@@ -147,8 +150,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -325,8 +328,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {

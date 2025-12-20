@@ -36,7 +36,7 @@ app.post('/', async (req: Request, res: Response) => {
 app.post('/chat', async (request: Request, response: Response) => {
   pipeAgentUIStreamToResponse({
     agent: openaiWebSearchAgent,
-    messages: request.body.messages,
+    uiMessages: request.body.messages,
     response,
   });
 });

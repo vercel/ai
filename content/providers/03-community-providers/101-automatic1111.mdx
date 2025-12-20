@@ -70,7 +70,7 @@ const sdxlModel = automatic1111.image('sd_xl_base_1.0');
 
 ```typescript
 import { automatic1111 } from 'automatic1111-provider';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: automatic1111.image('v1-5-pruned-emaonly'),

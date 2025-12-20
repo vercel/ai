@@ -1,5 +1,98 @@
 # ai
 
+## 6.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/gateway@2.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 6.0.0-beta.162
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/gateway@2.0.0-beta.88
+
+## 6.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [ee71658]
+  - @ai-sdk/gateway@2.0.0-beta.87
+
+## 6.0.0-beta.160
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.86
+
+## 6.0.0-beta.159
+
+### Patch Changes
+
+- 3071620: fix header loss when statusText is undefined in writeHead
+- Updated dependencies [870297d]
+  - @ai-sdk/gateway@2.0.0-beta.85
+
+## 6.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/gateway@2.0.0-beta.84
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 6.0.0-beta.157
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/gateway@2.0.0-beta.83
+
+## 6.0.0-beta.156
+
+### Patch Changes
+
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+
+## 6.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/gateway@2.0.0-beta.82
+
+## 6.0.0-beta.154
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/gateway@2.0.0-beta.81
+
+## 6.0.0-beta.153
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/gateway@2.0.0-beta.80
+
 ## 6.0.0-beta.152
 
 ### Patch Changes

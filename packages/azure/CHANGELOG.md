@@ -1,5 +1,96 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/openai@3.0.0-beta.108
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/openai@3.0.0-beta.107
+
+## 3.0.0-beta.108
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/openai@3.0.0-beta.106
+
+## 3.0.0-beta.107
+
+### Patch Changes
+
+- Updated dependencies [88574c1]
+  - @ai-sdk/openai@3.0.0-beta.105
+
+## 3.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [61c52dc]
+  - @ai-sdk/openai@3.0.0-beta.104
+
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/openai@3.0.0-beta.103
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/openai@3.0.0-beta.102
+
+## 3.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [3220329]
+- Updated dependencies [5648ec0]
+  - @ai-sdk/openai@3.0.0-beta.101
+
+## 3.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/openai@3.0.0-beta.100
+
+## 3.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/openai@3.0.0-beta.99
+
+## 3.0.0-beta.100
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/openai@3.0.0-beta.98
+
 ## 3.0.0-beta.99
 
 ### Patch Changes

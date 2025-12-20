@@ -6,10 +6,7 @@ import {
   convertToModelMessages,
   stepCountIs,
 } from 'ai';
-import {
-  experimental_createMCPClient as createMCPClient,
-  ElicitationRequestSchema,
-} from '@ai-sdk/mcp';
+import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { MCPElicitationUIMessage } from './types';
 import { createPendingElicitation } from './elicitation-store';
 
@@ -94,7 +91,7 @@ async function processMessages(
       },
       system:
         'You are a helpful assistant. When asked to register a user, use the register_user tool.',
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       onFinish: async () => {
         await mcpClient.close();
       },

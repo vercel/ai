@@ -25,7 +25,7 @@ export interface StreamCallbacks {
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
  *
  * @param {StreamCallbacks} [callbacks] - An object containing the callback functions.
- * @return {TransformStream<string, Uint8Array>} A transform stream that encodes input messages as Uint8Array and allows the execution of custom logic through callbacks.
+ * @return {TransformStream<string, string>} A transform stream that allows the execution of custom logic through callbacks.
  *
  * @example
  * const callbacks = {

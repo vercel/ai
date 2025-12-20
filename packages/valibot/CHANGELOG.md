@@ -1,5 +1,60 @@
 # @ai-sdk/valibot
 
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.52
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 2.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 2.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 2.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
 ## 2.0.0-beta.48
 
 ### Patch Changes

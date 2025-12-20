@@ -873,6 +873,7 @@ describe('doStream', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
+      additionalModelResponseFieldPaths: ['/stop_sequence'],
     });
   });
 
@@ -1010,6 +1011,72 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should include stop_sequence in provider metadata', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Hello' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+            additionalModelResponseFields: { stop_sequence: 'STOP' },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      stopSequences: ['STOP'],
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'finish'))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "bedrock": {
+                "stopSequence": "STOP",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "noCache": 4,
+                "total": 4,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": 34,
+                "total": 34,
+              },
+              "raw": {
+                "inputTokens": 4,
+                "outputTokens": 34,
+                "totalTokens": 38,
+              },
+            },
+          },
+        ]
+      `);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -1842,6 +1909,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -1924,6 +1992,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2007,6 +2076,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2106,6 +2176,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2221,6 +2292,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2363,6 +2435,7 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
+              "stopSequence": null,
             },
           },
           "type": "finish",
@@ -2733,6 +2806,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
+      additionalModelResponseFieldPaths: ['/stop_sequence'],
     });
   });
 
@@ -2790,6 +2864,40 @@ describe('doGenerate', () => {
     });
 
     expect(result.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+  });
+
+  it('should include stop_sequence in provider metadata', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Hello, World!' }],
+          },
+        },
+        stopReason: 'stop_sequence',
+        additionalModelResponseFields: { stop_sequence: 'STOP' },
+        usage: {
+          inputTokens: 4,
+          outputTokens: 30,
+          totalTokens: 34,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['STOP'],
+    });
+
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": "STOP",
+        },
+      }
+    `);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -3270,6 +3378,7 @@ describe('doGenerate', () => {
     expect(response.providerMetadata).toMatchInlineSnapshot(`
       {
         "bedrock": {
+          "stopSequence": null,
           "usage": {
             "cacheWriteInputTokens": 3,
           },

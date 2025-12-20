@@ -1,5 +1,6 @@
 import { UIToolInvocation, tool } from 'ai';
 import * as v from 'valibot';
+import { valibotSchema } from '@ai-sdk/valibot';
 
 function randomWeather() {
   const weatherOptions = ['sunny', 'cloudy', 'rainy', 'windy'];
@@ -8,7 +9,7 @@ function randomWeather() {
 
 export const weatherToolValibot = tool({
   description: 'Get the weather in a location',
-  inputSchema: v.object({ city: v.string() }),
+  inputSchema: valibotSchema(v.object({ city: v.string() })),
   async *execute() {
     yield { state: 'loading' as const };
 
