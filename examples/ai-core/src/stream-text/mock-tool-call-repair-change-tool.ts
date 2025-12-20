@@ -17,7 +17,7 @@ async function main() {
           },
           {
             type: 'finish',
-            finishReason: 'tool-calls',
+            finishReason: { raw: undefined, unified: 'tool-calls' },
             logprobs: undefined,
             usage: {
               inputTokens: {
