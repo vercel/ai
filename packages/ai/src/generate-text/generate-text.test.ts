@@ -739,6 +739,7 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -844,6 +845,7 @@ describe('generateText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "body": undefined,
@@ -1354,6 +1356,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1421,6 +1424,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1561,6 +1565,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1628,6 +1633,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -2003,6 +2009,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -2092,6 +2099,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -5117,6 +5125,7 @@ describe('generateText', () => {
               ],
               "finishReason": "tool-calls",
               "providerMetadata": undefined,
+              "rawFinishReason": undefined,
               "request": {},
               "response": {
                 "body": undefined,

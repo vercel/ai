@@ -668,6 +668,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
+    let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
@@ -866,6 +867,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
             finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
             usage: part.usage,
             warnings: recordedWarnings,
             request: recordedRequest,
@@ -928,7 +930,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
-            finishReason,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
             totalUsage,
             usage: finalStep.usage,
             content: finalStep.content,
@@ -1330,6 +1333,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'other';
+          let stepRawFinishReason: string | undefined = undefined;
 
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
@@ -1452,6 +1456,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
+                      stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
 
                       // Telemetry for finish event timing
@@ -1595,6 +1600,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   controller.enqueue({
                     type: 'finish-step',
                     finishReason: stepFinishReason,
+                    rawFinishReason: stepRawFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
                     response: {

@@ -514,6 +514,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "response-id",
@@ -742,6 +743,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -849,6 +851,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -950,6 +953,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -1074,6 +1078,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-2000",
@@ -1343,6 +1348,7 @@ describe('streamText', () => {
             {
               "finishReason": "tool-calls",
               "providerMetadata": undefined,
+              "rawFinishReason": undefined,
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -1546,6 +1552,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -3935,6 +3942,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -4410,6 +4418,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -4543,6 +4552,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -4621,6 +4631,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -5040,6 +5051,7 @@ describe('streamText', () => {
               "testKey": "testValue",
             },
           },
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5149,6 +5161,7 @@ describe('streamText', () => {
                   "testKey": "testValue",
                 },
               },
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": {
@@ -5332,6 +5345,7 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5416,6 +5430,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -5557,6 +5572,7 @@ describe('streamText', () => {
           ],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5622,6 +5638,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -6121,6 +6138,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": {
                     "call": "1",
@@ -6176,6 +6194,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": {
                     "call": "2",
@@ -6248,6 +6267,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
               "request": {},
@@ -6340,6 +6360,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -6414,6 +6435,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -6564,6 +6586,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -6638,6 +6661,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -6806,6 +6830,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -6880,6 +6905,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -7383,6 +7409,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -7452,6 +7479,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -7591,6 +7619,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -7660,6 +7689,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -7895,6 +7925,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": {
                     "call": "1",
@@ -7950,6 +7981,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": {
                     "call": "2",
@@ -8022,6 +8054,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
               "request": {},
@@ -8114,6 +8147,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -8188,6 +8222,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -8338,6 +8373,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -8412,6 +8448,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -8576,6 +8613,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -8650,6 +8688,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -9113,6 +9152,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -9213,6 +9253,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -9525,6 +9566,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -9771,6 +9813,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -10597,6 +10640,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -10675,6 +10719,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -11166,6 +11211,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -11392,6 +11438,7 @@ describe('streamText', () => {
                 "testKey": "TEST VALUE",
               },
             },
+            "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
             "request": {},
@@ -11501,6 +11548,7 @@ describe('streamText', () => {
                     "testKey": "TEST VALUE",
                   },
                 },
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -11717,6 +11765,7 @@ describe('streamText', () => {
                 "testKey": "TEST VALUE",
               },
             },
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": {
@@ -12035,6 +12084,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish-step',
                   finishReason: 'stop',
+                  rawFinishReason: undefined,
                   providerMetadata: undefined,
                   usage: createNullLanguageModelUsage(),
                   response: {
@@ -12113,6 +12163,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "id": "response-id",
                   "modelId": "mock-model-id",
@@ -12198,6 +12249,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "request": {},
             "response": {
               "id": "response-id",
@@ -12632,6 +12684,7 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
             "request": {},
@@ -12667,6 +12720,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": undefined,
@@ -13616,6 +13670,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -13720,6 +13775,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -14035,6 +14091,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": undefined,
@@ -14134,6 +14191,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14661,6 +14719,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14898,6 +14957,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -15069,6 +15129,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -15275,6 +15336,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -16579,6 +16641,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "1",
@@ -16641,6 +16704,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "2",
@@ -16703,6 +16767,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "3",
@@ -16765,6 +16830,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "4",
@@ -16889,6 +16955,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "response": {
                     "headers": {
                       "call": "5",
@@ -17174,6 +17241,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17430,6 +17498,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17857,6 +17926,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -18173,6 +18243,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -18475,6 +18546,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",

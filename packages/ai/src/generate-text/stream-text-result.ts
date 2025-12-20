@@ -420,6 +420,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
+      rawFinishReason: string | undefined;
       providerMetadata: ProviderMetadata | undefined;
     }
   | {

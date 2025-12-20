@@ -736,6 +736,7 @@ A function that attempts to repair a tool call that failed to parse.
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
+            rawFinishReason: currentModelResponse.finishReason.raw,
             usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
@@ -814,6 +815,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         await onFinish?.({
           finishReason: lastStep.finishReason,
+          rawFinishReason: lastStep.rawFinishReason,
           usage: lastStep.usage,
           content: lastStep.content,
           text: lastStep.text,
@@ -969,6 +971,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
   get finishReason() {
     return this.finalStep.finishReason;
+  }
+
+  get rawFinishReason() {
+    return this.finalStep.rawFinishReason;
   }
 
   get warnings() {

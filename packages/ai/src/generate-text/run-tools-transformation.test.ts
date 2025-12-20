@@ -75,6 +75,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -160,6 +161,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -245,6 +247,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -334,6 +337,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -428,6 +432,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -571,6 +576,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -677,6 +683,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
