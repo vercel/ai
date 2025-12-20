@@ -15,17 +15,15 @@ export type LanguageModelV3FinishReason = {
    * - `content-filter`: content filter violation stopped the model
    * - `tool-calls`: model triggered tool calls
    * - `error`: model stopped because of an error
-   * - `other`: model stopped for other reasons
-   * - `unknown`: the model has not transmitted a finish reason
+   * - `unknown`: model stopped with an unknown reason
    */
   unified:
-    | 'stop' // model generated stop sequence
-    | 'length' // model generated maximum number of tokens
-    | 'content-filter' // content filter violation stopped the model
-    | 'tool-calls' // model triggered tool calls
-    | 'error' // model stopped because of an error
-    | 'other' // model stopped for other reasons
-    | 'unknown'; // the model has not transmitted a finish reason
+    | 'stop'
+    | 'length'
+    | 'content-filter'
+    | 'tool-calls'
+    | 'error'
+    | 'unknown';
 
   /**
    * Raw finish reason from the provider.
