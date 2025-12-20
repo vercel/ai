@@ -1,8 +1,11 @@
 import {
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   LanguageModelV3Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';

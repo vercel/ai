@@ -1,5 +1,7 @@
 import { LanguageModelV3 } from '../../language-model/v3/language-model-v3';
 import { LanguageModelV3CallOptions } from '../../language-model/v3/language-model-v3-call-options';
+import { LanguageModelV3GenerateResult } from '../../language-model/v3/language-model-v3-generate-result';
+import { LanguageModelV3StreamResult } from '../../language-model/v3/language-model-v3-stream-result';
 
 /**
  * Experimental middleware for LanguageModelV3.
@@ -56,11 +58,11 @@ export type LanguageModelV3Middleware = {
    * @returns A promise that resolves to the result of the generate operation.
    */
   wrapGenerate?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV3['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV3['doStream']>;
+    doGenerate: () => PromiseLike<LanguageModelV3GenerateResult>;
+    doStream: () => PromiseLike<LanguageModelV3StreamResult>;
     params: LanguageModelV3CallOptions;
     model: LanguageModelV3;
-  }) => Promise<LanguageModelV3GenerateResult>;
+  }) => PromiseLike<LanguageModelV3GenerateResult>;
 
   /**
    * Wraps the stream operation of the language model.
@@ -74,8 +76,8 @@ export type LanguageModelV3Middleware = {
    * @returns A promise that resolves to the result of the stream operation.
    */
   wrapStream?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV3['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV3['doStream']>;
+    doGenerate: () => PromiseLike<LanguageModelV3GenerateResult>;
+    doStream: () => PromiseLike<LanguageModelV3StreamResult>;
     params: LanguageModelV3CallOptions;
     model: LanguageModelV3;
   }) => PromiseLike<LanguageModelV3StreamResult>;

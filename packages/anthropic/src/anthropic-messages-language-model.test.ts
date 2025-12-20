@@ -2,8 +2,10 @@ import {
   APICallError,
   JSONObject,
   LanguageModelV3,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
