@@ -45,6 +45,31 @@ Codemods are transformations that run on your codebase automatically. They
 allow you to easily apply many changes without having to manually go through
 every file.
 
+You can run all codemods provided as part of the 6.0 upgrade process by running
+the following command from the root of your project:
+
+```sh
+npx @ai-sdk/codemod upgrade
+```
+
+To run only the v6 codemods (v5 → v6 migration):
+
+```sh
+npx @ai-sdk/codemod v6
+```
+
+Individual codemods can be run by specifying the name of the codemod:
+
+```sh
+npx @ai-sdk/codemod <codemod-name> <path>
+```
+
+For example, to run a specific v6 codemod:
+
+```sh
+npx @ai-sdk/codemod v6/rename-text-embedding-to-embedding src/
+```
+
 <Note>
   Codemods are intended as a tool to help you with the upgrade process. They may
   not cover all of the changes you need to make. You may need to make additional
@@ -65,6 +90,51 @@ every file.
 | `add-await-converttomodelmessages`                       | Adds `await` to `convertToModelMessages` calls (now async in AI SDK 6)                             |
 
 ## AI SDK Core
+
+### `Experimental_Agent` to `ToolLoopAgent` Class
+
+The `Experimental_Agent` class has been replaced with the `ToolLoopAgent` class. Two key changes:
+
+1. The `system` parameter has been renamed to `instructions`
+2. The default `stopWhen` has changed from `stepCountIs(1)` to `stepCountIs(20)`
+
+```tsx filename="AI SDK 5"
+import { Experimental_Agent as Agent, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new Agent({
+  model: __MODEL__,
+  system: 'You are a helpful assistant.',
+  tools: {
+    // your tools here
+  },
+  stopWhen: stepCountIs(20), // Required for multi-step agent loops
+});
+
+const result = await agent.generate({
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+```tsx filename="AI SDK 6"
+import { ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions: 'You are a helpful assistant.',
+  tools: {
+    // your tools here
+  },
+  // stopWhen defaults to stepCountIs(20)
+});
+
+const result = await agent.generate({
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+Learn more about [building agents](/docs/agents/building-agents).
 
 ### `CoreMessage` Removal
 
