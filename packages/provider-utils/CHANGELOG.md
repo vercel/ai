@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+
 ## 4.0.0-beta.54
 
 ### Patch Changes
