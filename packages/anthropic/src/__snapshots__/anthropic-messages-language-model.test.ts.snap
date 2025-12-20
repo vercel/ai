@@ -283,7 +283,10 @@ Both files have been exported and are ready for download!",
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": "end_turn",
+    "unified": "stop",
+  },
   "providerMetadata": {
     "anthropic": {
       "cacheCreationInputTokens": 0,
@@ -5042,7 +5045,10 @@ The presentation has",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -10105,7 +10111,10 @@ Both",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -11416,7 +11425,10 @@ The Fibonacci sequence starts with 0, ",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -12058,7 +12070,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -12172,7 +12187,10 @@ It simply echoed back",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -13061,7 +13079,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -13143,7 +13164,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13218,7 +13242,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13293,7 +13320,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13368,7 +13398,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13443,7 +13476,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13518,7 +13554,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13593,7 +13632,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13668,7 +13710,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13743,7 +13788,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13818,7 +13866,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13893,7 +13944,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -13968,7 +14022,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -14043,7 +14100,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": null,
@@ -14557,7 +14617,10 @@ The",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -14769,7 +14832,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -14870,7 +14936,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -15081,7 +15150,10 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
     "type": "tool-call",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -15211,7 +15283,10 @@ The weather in",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -15620,7 +15695,10 @@ The page also discusses",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,
@@ -16368,7 +16446,10 @@ The main tech story today appears to be Apple's significant",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "anthropic": {
         "cacheCreationInputTokens": 0,

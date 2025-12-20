@@ -435,7 +435,12 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`[]`);
-    expect(finishReason).toStrictEqual('error');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "MALFORMED_FUNCTION_CALL",
+        "unified": "error",
+      }
+    `);
   });
 
   it('should extract tool calls', async () => {
@@ -492,7 +497,12 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(finishReason).toStrictEqual('tool-calls');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -2698,7 +2708,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3236,7 +3249,10 @@ describe('doStream', () => {
           "type": "file",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3441,9 +3457,12 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const finishEvent = events.find(event => event.type === 'finish');
 
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
-      'tool-calls',
-    );
+    expect(finishEvent?.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should only pass valid provider options', async () => {
@@ -3618,7 +3637,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3759,7 +3781,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,

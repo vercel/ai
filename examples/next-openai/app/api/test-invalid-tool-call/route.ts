@@ -80,7 +80,7 @@ export async function POST(req: Request) {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { raw: undefined, unified: 'stop' },
                   usage: {
                     inputTokens: {
                       total: 10,

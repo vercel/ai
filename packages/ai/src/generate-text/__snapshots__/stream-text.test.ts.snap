@@ -429,6 +429,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -456,6 +457,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -505,6 +507,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -532,6 +535,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -587,6 +591,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -614,6 +619,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1198,6 +1204,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -1225,6 +1232,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {

@@ -429,7 +429,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('stop');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -441,7 +446,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -1978,7 +1988,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "logprobs": [
@@ -2144,7 +2157,7 @@ describe('doStream', () => {
         { type: 'text-end', id: '0' },
         expect.objectContaining({
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
         }),
       ]),
     );
@@ -2268,7 +2281,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2419,7 +2435,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2574,7 +2593,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2669,7 +2691,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2728,7 +2753,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2777,7 +2805,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -2949,7 +2980,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -3008,7 +3042,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "acceptedPredictionTokens": 123,
@@ -3211,7 +3248,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -3291,7 +3331,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },

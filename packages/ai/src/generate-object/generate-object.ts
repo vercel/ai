@@ -367,7 +367,7 @@ via tool or schema description.
                     'No object generated: the model did not return a response.',
                   response: responseData,
                   usage: asLanguageModelUsage(result.usage),
-                  finishReason: result.finishReason,
+                  finishReason: result.finishReason.unified,
                 });
               }
 
@@ -376,7 +376,7 @@ via tool or schema description.
                 await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.response.finishReason': result.finishReason,
+                    'ai.response.finishReason': result.finishReason.unified,
                     'ai.response.object': { output: () => text },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -392,7 +392,9 @@ via tool or schema description.
                       result.usage.outputTokens.total,
 
                     // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [result.finishReason],
+                    'gen_ai.response.finish_reasons': [
+                      result.finishReason.unified,
+                    ],
                     'gen_ai.response.id': responseData.id,
                     'gen_ai.response.model': responseData.modelId,
                     'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
@@ -413,7 +415,7 @@ via tool or schema description.
         );
 
         result = generateResult.objectText;
-        finishReason = generateResult.finishReason;
+        finishReason = generateResult.finishReason.unified;
         usage = asLanguageModelUsage(generateResult.usage);
         warnings = generateResult.warnings;
         resultProviderMetadata = generateResult.providerMetadata;

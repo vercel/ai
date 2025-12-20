@@ -321,10 +321,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
-        hasToolCalls: content.some(part => part.type === 'tool-call'),
-      }),
+      finishReason: {
+        unified: mapGoogleGenerativeAIFinishReason({
+          finishReason: candidate.finishReason,
+          hasToolCalls: content.some(part => part.type === 'tool-call'),
+        }),
+        raw: candidate.finishReason ?? undefined,
+      },
       usage: convertGoogleGenerativeAIUsage(usageMetadata),
       warnings,
       providerMetadata: {
@@ -367,7 +370,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
@@ -609,10 +615,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             }
 
             if (candidate.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason({
-                finishReason: candidate.finishReason,
-                hasToolCalls,
-              });
+              finishReason = {
+                unified: mapGoogleGenerativeAIFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
+              };
 
               providerMetadata = {
                 [providerOptionsName]: {

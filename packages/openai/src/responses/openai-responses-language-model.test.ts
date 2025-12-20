@@ -2255,7 +2255,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.finishReason).toStrictEqual('tool-calls');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "tool-calls",
+          }
+        `);
       });
     });
 
@@ -3571,7 +3576,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3663,7 +3671,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "length",
+            "finishReason": {
+              "raw": "max_output_tokens",
+              "unified": "length",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3809,7 +3820,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -3927,7 +3941,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
@@ -4024,7 +4041,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "logprobs": [
@@ -4371,7 +4391,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "error",
               },
               {
-                "finishReason": "unknown",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "other",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
@@ -4558,7 +4581,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4690,7 +4716,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4893,7 +4922,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5027,7 +5059,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5312,7 +5347,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5600,7 +5638,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5709,7 +5750,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5922,7 +5966,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -6126,7 +6173,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,

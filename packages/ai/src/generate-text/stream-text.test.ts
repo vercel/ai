@@ -111,7 +111,7 @@ function createTestModel({
     { type: 'text-end', id: '1' },
     {
       type: 'finish',
-      finishReason: 'stop',
+      finishReason: { unified: 'stop', raw: 'stop' },
       usage: testUsage,
       providerMetadata: {
         testProvider: { testKey: 'testValue' },
@@ -155,7 +155,7 @@ const modelWithSources = new MockLanguageModelV3({
       },
       {
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: testUsage,
       },
     ]),
@@ -187,7 +187,7 @@ const modelWithDocumentSources = new MockLanguageModelV3({
       },
       {
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: testUsage,
       },
     ]),
@@ -212,7 +212,7 @@ const modelWithFiles = new MockLanguageModelV3({
       },
       {
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: testUsage,
       },
     ]),
@@ -339,7 +339,7 @@ const modelWithReasoning = new MockLanguageModelV3({
       },
       {
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: testUsage,
       },
     ]),
@@ -381,7 +381,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -411,7 +411,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -464,7 +464,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -514,6 +514,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "response-id",
@@ -541,6 +542,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -742,6 +744,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -769,6 +772,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -849,6 +853,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -876,6 +881,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -950,6 +956,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -977,6 +984,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -1020,7 +1028,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -1074,6 +1082,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-2000",
@@ -1101,6 +1110,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -1174,7 +1184,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -1258,7 +1268,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               usage: testUsage2,
             },
           ]),
@@ -1343,6 +1353,7 @@ describe('streamText', () => {
             {
               "finishReason": "tool-calls",
               "providerMetadata": undefined,
+              "rawFinishReason": undefined,
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -1370,6 +1381,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "tool-calls",
+              "rawFinishReason": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -1410,7 +1422,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -1454,7 +1466,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -1498,7 +1510,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -1546,6 +1558,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -1573,6 +1586,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -1676,7 +1690,7 @@ describe('streamText', () => {
             // Note: finish-step and finish are still added after error
             {
               type: 'finish',
-              finishReason: 'error',
+              finishReason: { unified: 'error', raw: undefined },
               usage: testUsage,
             },
           ]),
@@ -1727,7 +1741,7 @@ describe('streamText', () => {
                   },
                   {
                     type: 'finish',
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: testUsage,
                   },
                 ]),
@@ -1965,7 +1979,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -2387,7 +2401,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -2519,7 +2533,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -2696,7 +2710,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -2745,7 +2759,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -3327,7 +3341,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: {
                 inputTokens: {
                   total: 10,
@@ -3423,7 +3437,7 @@ describe('streamText', () => {
                 controller.enqueue({ type: 'text-end', id: '1' });
                 controller.enqueue({
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
                 });
                 controller.close();
@@ -3495,7 +3509,7 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: '!' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -3537,7 +3551,7 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: '!' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -3878,7 +3892,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -3935,6 +3949,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -3962,6 +3977,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -4054,7 +4070,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4094,7 +4110,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4116,7 +4132,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
               providerMetadata: {
                 testProvider: { testKey: 'testValue' },
@@ -4222,7 +4238,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4253,7 +4269,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4410,6 +4426,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -4543,6 +4560,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -4621,6 +4639,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -4689,7 +4708,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4733,7 +4752,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -4819,7 +4838,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '4' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage2,
             },
           ]),
@@ -4977,7 +4996,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
               providerMetadata: {
                 testProvider: { testKey: 'testValue' },
@@ -5040,6 +5059,7 @@ describe('streamText', () => {
               "testKey": "testValue",
             },
           },
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5149,6 +5169,7 @@ describe('streamText', () => {
                   "testKey": "testValue",
                 },
               },
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": {
@@ -5332,6 +5353,7 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5416,6 +5438,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -5557,6 +5580,7 @@ describe('streamText', () => {
           ],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -5622,6 +5646,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -5751,7 +5776,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -5791,7 +5816,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -5891,7 +5916,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -5913,7 +5938,7 @@ describe('streamText', () => {
                       { type: 'text-end', id: '1' },
                       {
                         type: 'finish',
-                        finishReason: 'stop',
+                        finishReason: { unified: 'stop', raw: 'stop' },
                         usage: testUsage2,
                       },
                     ]),
@@ -6121,6 +6146,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": {
                     "call": "1",
@@ -6176,6 +6202,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": {
                     "call": "2",
@@ -6205,6 +6232,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -6248,6 +6276,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
               "request": {},
@@ -6340,6 +6369,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -6414,6 +6444,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -6564,6 +6595,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -6638,6 +6670,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -6806,6 +6839,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -6880,6 +6914,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -7123,7 +7158,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -7144,7 +7179,7 @@ describe('streamText', () => {
                       { type: 'text-end', id: '2' },
                       {
                         type: 'finish',
-                        finishReason: 'stop',
+                        finishReason: { unified: 'stop', raw: 'stop' },
                         usage: testUsage2,
                       },
                     ]),
@@ -7383,6 +7418,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -7452,6 +7488,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -7591,6 +7628,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -7660,6 +7698,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -7785,7 +7824,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -7807,7 +7846,7 @@ describe('streamText', () => {
                       { type: 'text-end', id: '1' },
                       {
                         type: 'finish',
-                        finishReason: 'stop',
+                        finishReason: { unified: 'stop', raw: 'stop' },
                         usage: testUsage2,
                       },
                     ]),
@@ -7895,6 +7934,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": {
                     "call": "1",
@@ -7950,6 +7990,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": {
                     "call": "2",
@@ -7979,6 +8020,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -8022,6 +8064,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "reasoning": [],
               "reasoningText": undefined,
               "request": {},
@@ -8114,6 +8157,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -8188,6 +8232,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "headers": {
@@ -8338,6 +8383,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -8412,6 +8458,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -8576,6 +8623,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "request": {},
                 "response": {
                   "headers": {
@@ -8650,6 +8698,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -9033,7 +9082,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -9113,6 +9162,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -9213,6 +9263,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": {
@@ -9303,7 +9354,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -9375,7 +9426,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -9525,6 +9576,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -9552,6 +9604,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -9668,7 +9721,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),
@@ -9771,6 +9824,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -9798,6 +9852,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "rawFinishReason": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -9891,7 +9946,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -9927,7 +9982,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -10027,7 +10082,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -10066,7 +10121,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -10132,7 +10187,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -10224,7 +10279,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               usage: testUsage,
             },
           ]),
@@ -10445,7 +10500,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -10544,7 +10599,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -10597,6 +10652,7 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -10624,6 +10680,7 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -10675,6 +10732,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": undefined,
@@ -10920,7 +10978,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -10981,7 +11039,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'length',
+                finishReason: { unified: 'length', raw: 'raw-length' },
                 usage: testUsage,
               },
             ]),
@@ -11017,7 +11075,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -11065,7 +11123,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -11118,7 +11176,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -11166,6 +11224,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -11247,7 +11306,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -11277,7 +11336,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: {
@@ -11328,7 +11387,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -11392,6 +11451,7 @@ describe('streamText', () => {
                 "testKey": "TEST VALUE",
               },
             },
+            "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
             "request": {},
@@ -11501,6 +11561,7 @@ describe('streamText', () => {
                     "testKey": "TEST VALUE",
                   },
                 },
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": {
@@ -11657,7 +11718,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -11717,6 +11778,7 @@ describe('streamText', () => {
                 "testKey": "TEST VALUE",
               },
             },
+            "rawFinishReason": "stop",
             "request": {},
             "response": {
               "headers": {
@@ -11809,7 +11871,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -11875,7 +11937,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12035,6 +12097,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish-step',
                   finishReason: 'stop',
+                  rawFinishReason: undefined,
                   providerMetadata: undefined,
                   usage: createNullLanguageModelUsage(),
                   response: {
@@ -12047,6 +12110,7 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
+                  rawFinishReason: undefined,
                   totalUsage: createNullLanguageModelUsage(),
                 });
 
@@ -12068,7 +12132,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: {
                   inputTokens: {
                     total: undefined,
@@ -12113,6 +12177,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "id": "response-id",
                   "modelId": "mock-model-id",
@@ -12137,6 +12202,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": undefined,
                 "totalUsage": {
                   "inputTokenDetails": {
                     "cacheReadTokens": undefined,
@@ -12173,7 +12239,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12198,6 +12264,7 @@ describe('streamText', () => {
             ],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "request": {},
             "response": {
               "id": "response-id",
@@ -12250,7 +12317,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12277,7 +12344,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12300,7 +12367,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12328,7 +12395,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12361,7 +12428,7 @@ describe('streamText', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -12438,7 +12505,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12475,7 +12542,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12508,7 +12575,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12537,7 +12604,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12564,7 +12631,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12595,7 +12662,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -12632,6 +12699,7 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "reasoning": [],
             "reasoningText": undefined,
             "request": {},
@@ -12667,6 +12735,7 @@ describe('streamText', () => {
                 ],
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "request": {},
                 "response": {
                   "headers": undefined,
@@ -12789,7 +12858,7 @@ describe('streamText', () => {
                 // finish
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -12873,7 +12942,7 @@ describe('streamText', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -12931,7 +13000,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: `"` },
             { type: 'text-delta', id: '1', delta: ' }' },
             { type: 'text-end', id: '1' },
-            { type: 'finish', finishReason: 'stop', usage: testUsage },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         });
 
@@ -12962,7 +13035,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: `"` },
             { type: 'text-delta', id: '1', delta: ' }' },
             { type: 'text-end', id: '1' },
-            { type: 'finish', finishReason: 'stop', usage: testUsage },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         });
 
@@ -12988,7 +13065,11 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: `"` },
             { type: 'text-delta', id: '1', delta: ' }' },
             { type: 'text-end', id: '1' },
-            { type: 'finish', finishReason: 'stop', usage: testUsage },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
           ]),
         });
 
@@ -13017,7 +13098,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -13049,7 +13130,7 @@ describe('streamText', () => {
             { type: 'text-delta', id: '1', delta: ' }' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -13084,7 +13165,7 @@ describe('streamText', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -13128,7 +13209,7 @@ describe('streamText', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -13200,7 +13281,7 @@ describe('streamText', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -13250,7 +13331,7 @@ describe('streamText', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -13277,7 +13358,11 @@ describe('streamText', () => {
           return {
             stream: convertArrayToReadableStream([
               { type: 'stream-start', warnings: [] },
-              { type: 'finish', finishReason: 'stop', usage: testUsage },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
           };
         },
@@ -13333,7 +13418,7 @@ describe('streamText', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -13418,7 +13503,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -13480,7 +13565,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -13600,6 +13685,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -13627,6 +13713,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -13704,6 +13791,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -13924,7 +14012,10 @@ describe('streamText', () => {
                       case 2:
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -14016,6 +14107,7 @@ describe('streamText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "headers": undefined,
@@ -14115,6 +14207,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14238,7 +14331,10 @@ describe('streamText', () => {
                       case 2:
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -14272,7 +14368,10 @@ describe('streamText', () => {
                         });
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -14362,7 +14461,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -14400,7 +14499,11 @@ describe('streamText', () => {
               { type: 'text-start', id: '1' },
               { type: 'text-delta', id: '1', delta: 'Hello' },
               { type: 'text-end', id: '1' },
-              { type: 'finish', finishReason: 'stop', usage: testUsage },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
             response: {},
           }),
@@ -14430,7 +14533,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -14486,7 +14589,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -14632,6 +14735,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14659,6 +14763,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14766,7 +14871,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -14869,6 +14974,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -14896,6 +15002,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15040,6 +15147,7 @@ describe('streamText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "headers": undefined,
@@ -15169,7 +15277,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -15246,6 +15354,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -15273,6 +15382,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15455,7 +15565,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 3369,
@@ -15497,7 +15607,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -15539,7 +15649,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -15581,7 +15691,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -15639,7 +15749,7 @@ describe('streamText', () => {
                       { type: 'text-end', id: '2' },
                       {
                         type: 'finish',
-                        finishReason: 'stop',
+                        finishReason: { unified: 'stop', raw: 'stop' },
                         usage: {
                           inputTokens: {
                             total: 4551,
@@ -16550,6 +16660,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "1",
@@ -16612,6 +16723,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "2",
@@ -16674,6 +16786,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "3",
@@ -16736,6 +16849,7 @@ describe('streamText', () => {
                       },
                     },
                   },
+                  "rawFinishReason": undefined,
                   "response": {
                     "headers": {
                       "call": "4",
@@ -16860,6 +16974,7 @@ describe('streamText', () => {
                 {
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "response": {
                     "headers": {
                       "call": "5",
@@ -16889,6 +17004,7 @@ describe('streamText', () => {
                 },
                 {
                   "finishReason": "stop",
+                  "rawFinishReason": "stop",
                   "totalUsage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -16982,7 +17098,7 @@ describe('streamText', () => {
                   },
                   {
                     type: 'finish',
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: testUsage,
                   },
                 ]),
@@ -17006,7 +17122,7 @@ describe('streamText', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -17084,7 +17200,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),
@@ -17145,6 +17261,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17172,6 +17289,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "rawFinishReason": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -17315,7 +17433,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),
@@ -17401,6 +17519,7 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "providerMetadata": undefined,
+                "rawFinishReason": undefined,
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17428,6 +17547,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "tool-calls",
+                "rawFinishReason": undefined,
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -17639,7 +17759,7 @@ describe('streamText', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -17828,6 +17948,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -17855,6 +17976,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -17939,7 +18061,7 @@ describe('streamText', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -18144,6 +18266,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -18171,6 +18294,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -18269,7 +18393,7 @@ describe('streamText', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -18446,6 +18570,7 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "providerMetadata": undefined,
+                "rawFinishReason": "stop",
                 "response": {
                   "headers": undefined,
                   "id": "id-0",
@@ -18473,6 +18598,7 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
+                "rawFinishReason": "stop",
                 "totalUsage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
