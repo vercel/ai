@@ -1682,11 +1682,80 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               cacheCreationInputTokens =
                 value.message.usage.cache_creation_input_tokens ?? null;
 
+              if (value.message.container != null) {
+                container = {
+                  expiresAt: value.message.container.expires_at,
+                  id: value.message.container.id,
+                  skills: null,
+                };
+              }
+
+              if (value.message.stop_reason != null) {
+                finishReason = mapAnthropicStopReason({
+                  finishReason: value.message.stop_reason,
+                  isJsonResponseFromTool,
+                });
+              }
+
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
               });
+
+              // Programmatic tool calling: process pre-populated content blocks
+              // (for deferred tool calls, content may be in message_start)
+              if (value.message.content != null) {
+                for (
+                  let contentIndex = 0;
+                  contentIndex < value.message.content.length;
+                  contentIndex++
+                ) {
+                  const part = value.message.content[contentIndex];
+                  if (part.type === 'tool_use') {
+                    const caller = part.caller;
+                    const callerInfo = caller
+                      ? {
+                          type: caller.type,
+                          toolId:
+                            'tool_id' in caller ? caller.tool_id : undefined,
+                        }
+                      : undefined;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: part.name,
+                    });
+
+                    const inputStr = JSON.stringify(part.input ?? {});
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: part.id,
+                      delta: inputStr,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: part.id,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: part.name,
+                      input: inputStr,
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: {
+                            caller: callerInfo,
+                          },
+                        },
+                      }),
+                    });
+                  }
+                }
+              }
 
               return;
             }

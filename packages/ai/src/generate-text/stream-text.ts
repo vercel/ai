@@ -1627,7 +1627,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     ) {
                       // Check if this tool call already has a result in the current step
                       const hasResultInStep = stepToolOutputs.some(
-                        output => output.toolCallId === toolCall.toolCallId,
+                        output =>
+                          output.type === 'tool-result' &&
+                          output.toolCallId === toolCall.toolCallId,
                       );
                       if (!hasResultInStep) {
                         pendingDeferredToolCalls.set(toolCall.toolCallId, {
@@ -1639,7 +1641,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
                   // Mark deferred tool calls as resolved when we receive their results
                   for (const output of stepToolOutputs) {
-                    pendingDeferredToolCalls.delete(output.toolCallId);
+                    if (output.type === 'tool-result') {
+                      pendingDeferredToolCalls.delete(output.toolCallId);
+                    }
                   }
 
                   if (

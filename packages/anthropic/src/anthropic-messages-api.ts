@@ -792,11 +792,43 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         message: z.object({
           id: z.string().nullish(),
           model: z.string().nullish(),
+          role: z.string().nullish(),
           usage: z.looseObject({
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
           }),
+          // Programmatic tool calling: content may be pre-populated for deferred tool calls
+          content: z
+            .array(
+              z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('tool_use'),
+                  id: z.string(),
+                  name: z.string(),
+                  input: z.unknown(),
+                  caller: z
+                    .union([
+                      z.object({
+                        type: z.literal('code_execution_20250825'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('direct'),
+                      }),
+                    ])
+                    .optional(),
+                }),
+              ]),
+            )
+            .nullish(),
+          stop_reason: z.string().nullish(),
+          container: z
+            .object({
+              expires_at: z.string(),
+              id: z.string(),
+            })
+            .nullish(),
         }),
       }),
       z.object({
