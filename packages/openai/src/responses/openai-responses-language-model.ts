@@ -1319,7 +1319,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   controller.enqueue({
                     type: 'tool-input-delta',
                     id: toolCall.toolCallId,
-                    delta: escapeJSONDelta('"}}'),
+                    delta: '"}}',
                   });
 
                   controller.enqueue({
@@ -1470,7 +1470,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  delta: escapeJSONDelta('"}}'),
+                  delta: '"}}',
                 });
 
                 controller.enqueue({
