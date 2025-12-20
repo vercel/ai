@@ -729,7 +729,7 @@ describe('generateObject', () => {
             reasoningTokens: undefined,
             cachedInputTokens: undefined,
           },
-          finishReason: { unified: 'stop', raw: 'stop' },
+          finishReason: 'stop',
         });
       }
 

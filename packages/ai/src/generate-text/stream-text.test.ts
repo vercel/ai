@@ -1258,7 +1258,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               usage: testUsage2,
             },
           ]),
@@ -1676,7 +1676,7 @@ describe('streamText', () => {
             // Note: finish-step and finish are still added after error
             {
               type: 'finish',
-              finishReason: 'error',
+              finishReason: { unified: 'error', raw: undefined },
               usage: testUsage,
             },
           ]),
@@ -1727,7 +1727,7 @@ describe('streamText', () => {
                   },
                   {
                     type: 'finish',
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: testUsage,
                   },
                 ]),
@@ -5891,7 +5891,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -7123,7 +7123,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -7785,7 +7785,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -9033,7 +9033,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: testUsage,
                       },
                     ]),
@@ -9668,7 +9668,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),
@@ -10224,7 +10224,7 @@ describe('streamText', () => {
             },
             {
               type: 'finish',
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               usage: testUsage,
             },
           ]),
@@ -10981,7 +10981,7 @@ describe('streamText', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'length',
+                finishReason: { unified: 'length', raw: 'raw-length' },
                 usage: testUsage,
               },
             ]),
@@ -12034,7 +12034,7 @@ describe('streamText', () => {
 
                 controller.enqueue({
                   type: 'finish-step',
-                  finishReason: { unified: 'stop', raw: 'stop' },
+                  finishReason: 'stop',
                   providerMetadata: undefined,
                   usage: createNullLanguageModelUsage(),
                   response: {
@@ -12046,7 +12046,7 @@ describe('streamText', () => {
 
                 controller.enqueue({
                   type: 'finish',
-                  finishReason: { unified: 'stop', raw: 'stop' },
+                  finishReason: 'stop',
                   totalUsage: createNullLanguageModelUsage(),
                 });
 
@@ -13940,7 +13940,10 @@ describe('streamText', () => {
                       case 2:
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -14254,7 +14257,10 @@ describe('streamText', () => {
                       case 2:
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -14288,7 +14294,10 @@ describe('streamText', () => {
                         });
                         controller.enqueue({
                           type: 'finish',
-                          finishReason: 'tool-calls',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
                           usage: testUsage,
                         });
                         controller.close();
@@ -15475,7 +15484,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 3369,
@@ -15517,7 +15526,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -15559,7 +15568,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -15601,7 +15610,7 @@ describe('streamText', () => {
                       },
                       {
                         type: 'finish',
-                        finishReason: 'tool-calls',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
                         usage: {
                           inputTokens: {
                             total: 0,
@@ -17002,7 +17011,7 @@ describe('streamText', () => {
                   },
                   {
                     type: 'finish',
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: testUsage,
                   },
                 ]),
@@ -17104,7 +17113,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),
@@ -17335,7 +17344,7 @@ describe('streamText', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
                 usage: testUsage,
               },
             ]),

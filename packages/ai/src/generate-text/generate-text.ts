@@ -538,7 +538,7 @@ A function that attempts to repair a tool call that failed to parse.
                   await selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason.unified,
                       'ai.response.text': {
                         output: () => extractTextContent(result.content),
                       },
@@ -564,7 +564,9 @@ A function that attempts to repair a tool call that failed to parse.
                         result.usage.outputTokens.total,
 
                       // standardized gen-ai llm span attributes:
-                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.finish_reasons': [
+                        result.finishReason.unified,
+                      ],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.input_tokens':
@@ -733,7 +735,7 @@ A function that attempts to repair a tool call that failed to parse.
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
-            finishReason: currentModelResponse.finishReason,
+            finishReason: currentModelResponse.finishReason.unified,
             usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
@@ -769,7 +771,8 @@ A function that attempts to repair a tool call that failed to parse.
           await selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.response.finishReason': currentModelResponse.finishReason,
+              'ai.response.finishReason':
+                currentModelResponse.finishReason.unified,
               'ai.response.text': {
                 output: () => extractTextContent(currentModelResponse.content),
               },

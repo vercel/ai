@@ -914,7 +914,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           }
 
           // derived:
-          const finishReason = recordedFinishReason ?? 'unknown';
+          const finishReason = recordedFinishReason ?? 'other';
           const totalUsage =
             recordedTotalUsage ?? createNullLanguageModelUsage();
 

@@ -599,7 +599,7 @@ describe('simulateStreamingMiddleware', () => {
               toolCallType: 'function',
             },
           ],
-          finishReason: 'tool-calls',
+          finishReason: { unified: 'tool-calls', raw: undefined },
           usage: testUsage,
           warnings: [],
         };

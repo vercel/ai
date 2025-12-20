@@ -210,7 +210,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'finish': {
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason,
+            finishReason: chunk.finishReason.unified,
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };

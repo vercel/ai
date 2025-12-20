@@ -896,7 +896,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: asLanguageModelUsage(testUsage),
-            finishReason: { unified: 'stop', raw: 'stop' },
+            finishReason: 'stop',
           });
         }
       });
@@ -940,7 +940,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: asLanguageModelUsage(testUsage),
-            finishReason: { unified: 'stop', raw: 'stop' },
+            finishReason: 'stop',
           });
         }
       });
@@ -981,7 +981,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: asLanguageModelUsage(testUsage),
-            finishReason: { unified: 'stop', raw: 'stop' },
+            finishReason: 'stop',
           });
         }
       });
@@ -1832,7 +1832,7 @@ describe('streamObject', () => {
             modelId: 'mock-model-id',
           },
           usage: asLanguageModelUsage(testUsage),
-          finishReason: { unified: 'stop', raw: 'stop' },
+          finishReason: 'stop',
         });
       }
     });

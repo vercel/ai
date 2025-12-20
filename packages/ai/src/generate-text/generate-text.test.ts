@@ -1031,7 +1031,7 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 10,
@@ -1205,7 +1205,7 @@ describe('generateText', () => {
                       input: `{ "value": "value" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   usage: {
                     inputTokens: {
                       total: 10,
@@ -1914,7 +1914,7 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 10,
@@ -3287,7 +3287,7 @@ describe('generateText', () => {
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
               {
                 type: 'tool-call',
@@ -3574,7 +3574,7 @@ describe('generateText', () => {
                         input: `{ "player": "player1" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 3369,
@@ -3618,7 +3618,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -3662,7 +3662,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -3706,7 +3706,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -4712,7 +4712,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -4779,7 +4779,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -4872,7 +4872,7 @@ describe('generateText', () => {
                   reasoning: undefined,
                 },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -5015,7 +5015,7 @@ describe('generateText', () => {
                   reasoning: undefined,
                 },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -5246,7 +5246,7 @@ describe('generateText', () => {
                       input: `{ "value": "test" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   warnings: [warning1],
                 };
               case 1:
@@ -5322,7 +5322,7 @@ describe('generateText', () => {
                   input: `{ "value": "value" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -5436,7 +5436,7 @@ describe('generateText', () => {
                   input: `{ "value": "value-no-approval" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -5795,7 +5795,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),
@@ -5954,7 +5954,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),
