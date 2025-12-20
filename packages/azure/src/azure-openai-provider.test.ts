@@ -1016,7 +1016,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1070,7 +1070,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1224,7 +1224,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1248,7 +1248,7 @@ describe('responses', () => {
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
       prepareJsonFixtureResponse('openai-image-generation-tool.1');

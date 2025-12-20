@@ -71,7 +71,7 @@ const doWrap = ({
 
     async doGenerate(
       params: LanguageModelV3CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    ): Promise<LanguageModelV3GenerateResult> {
       const transformedParams = await doTransform({ params, type: 'generate' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);
@@ -87,7 +87,7 @@ const doWrap = ({
 
     async doStream(
       params: LanguageModelV3CallOptions,
-    ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    ): Promise<LanguageModelV3StreamResult> {
       const transformedParams = await doTransform({ params, type: 'stream' });
       const doGenerate = async () => model.doGenerate(transformedParams);
       const doStream = async () => model.doStream(transformedParams);

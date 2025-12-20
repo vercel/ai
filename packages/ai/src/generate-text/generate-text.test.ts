@@ -4413,7 +4413,7 @@ describe('generateText', () => {
                   },
                   {
                     "providerOptions": undefined,
-                    "text": "**Game Over!** 
+                    "text": "**Game Over!**
 
             Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
             - **Round 1**: Both rolled 6 (Draw)
@@ -6143,9 +6143,7 @@ describe('generateText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<
-        Parameters<LanguageModelV3['doGenerate']>[0]
-      > = [];
+      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
 
       const modelWithImageUrlSupport = new MockLanguageModelV3({
         provider: 'with-image-url-support',

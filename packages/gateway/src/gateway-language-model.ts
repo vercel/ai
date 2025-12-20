@@ -39,7 +39,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
-  private async getArgs(options: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  private async getArgs(options: LanguageModelV3CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
@@ -49,8 +49,8 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
@@ -91,8 +91,8 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 

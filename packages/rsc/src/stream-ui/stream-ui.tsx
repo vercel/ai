@@ -84,7 +84,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV3['doStream']>>;
+} & LanguageModelV3StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;

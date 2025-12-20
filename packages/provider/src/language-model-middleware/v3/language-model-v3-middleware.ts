@@ -60,7 +60,7 @@ export type LanguageModelV3Middleware = {
     doStream: () => ReturnType<LanguageModelV3['doStream']>;
     params: LanguageModelV3CallOptions;
     model: LanguageModelV3;
-  }) => Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>>;
+  }) => Promise<LanguageModelV3GenerateResult>;
 
   /**
    * Wraps the stream operation of the language model.
@@ -78,5 +78,5 @@ export type LanguageModelV3Middleware = {
     doStream: () => ReturnType<LanguageModelV3['doStream']>;
     params: LanguageModelV3CallOptions;
     model: LanguageModelV3;
-  }) => PromiseLike<Awaited<ReturnType<LanguageModelV3['doStream']>>>;
+  }) => PromiseLike<LanguageModelV3StreamResult>;
 };

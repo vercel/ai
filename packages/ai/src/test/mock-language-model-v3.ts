@@ -16,8 +16,8 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
   doGenerate: LanguageModelV3['doGenerate'];
   doStream: LanguageModelV3['doStream'];
 
-  doGenerateCalls: Parameters<LanguageModelV3['doGenerate']>[0][] = [];
-  doStreamCalls: Parameters<LanguageModelV3['doStream']>[0][] = [];
+  doGenerateCalls: LanguageModelV3CallOptions[] = [];
+  doStreamCalls: LanguageModelV3CallOptions[] = [];
 
   constructor({
     provider = 'mock-provider',
