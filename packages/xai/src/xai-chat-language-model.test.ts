@@ -866,7 +866,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -941,7 +944,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1031,7 +1037,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": "tool_calls",
+              "unified": "tool-calls",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1229,7 +1238,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1464,7 +1476,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1569,7 +1584,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1727,7 +1745,10 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {

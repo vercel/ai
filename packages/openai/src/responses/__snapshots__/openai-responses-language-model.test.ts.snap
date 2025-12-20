@@ -985,7 +985,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-call",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
@@ -3077,7 +3080,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
@@ -3645,7 +3651,10 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
@@ -4186,7 +4195,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
@@ -4296,7 +4308,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
@@ -4375,7 +4390,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
     "type": "tool-call",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
@@ -6341,7 +6359,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0c72b1033351981300690ccf79c6d88193b7d054f4f83ad50a",
@@ -7252,7 +7273,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0434d6d64b12b08900692f639d784481959af65f985b9c13e2",
@@ -7351,7 +7375,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_test",
@@ -8613,7 +8640,10 @@ Would you like",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",
