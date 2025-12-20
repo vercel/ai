@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.0-beta.163
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [50b70d6]
   - ai@6.0.0-beta.162
 
