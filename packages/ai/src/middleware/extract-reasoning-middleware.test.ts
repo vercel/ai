@@ -366,6 +366,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -516,6 +517,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -643,6 +645,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -787,6 +790,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -882,6 +886,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -991,6 +996,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "providerMetadata": undefined,
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {

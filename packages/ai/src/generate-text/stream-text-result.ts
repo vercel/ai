@@ -429,6 +429,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'finish';
       finishReason: FinishReason;
       totalUsage: LanguageModelUsage;
+      providerMetadata: ProviderMetadata | undefined;
     }
   | {
       type: 'abort';

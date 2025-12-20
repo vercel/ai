@@ -1643,6 +1643,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       type: 'finish',
                       finishReason: stepFinishReason,
                       totalUsage: combinedUsage,
+                      providerMetadata: stepProviderMetadata,
                     });
 
                     self.closeStream(); // close the stitchable stream
