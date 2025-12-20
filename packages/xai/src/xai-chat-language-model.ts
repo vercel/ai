@@ -266,7 +266,10 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapXaiFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapXaiFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertXaiChatUsage(response.usage),
       request: { body },
       response: {
@@ -301,7 +304,10 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
@@ -362,7 +368,10 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
             // update finish reason if present
             if (choice?.finish_reason != null) {
-              finishReason = mapXaiFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapXaiFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             // exit if no delta to process

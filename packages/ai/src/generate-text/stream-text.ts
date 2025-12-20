@@ -1,6 +1,7 @@
 import {
   getErrorMessage,
   LanguageModelV3,
+  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -572,6 +573,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   private readonly _finishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
+  private readonly _rawFinishReason = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['rawFinishReason']>
+  >();
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
@@ -667,6 +671,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
+    let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
@@ -865,6 +870,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
             finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
             usage: part.usage,
             warnings: recordedWarnings,
             request: recordedRequest,
@@ -895,6 +901,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         if (part.type === 'finish') {
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
+          recordedRawFinishReason = part.rawFinishReason;
         }
       },
 
@@ -906,6 +913,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             });
 
             self._finishReason.reject(error);
+            self._rawFinishReason.reject(error);
             self._totalUsage.reject(error);
             self._steps.reject(error);
 
@@ -913,12 +921,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           }
 
           // derived:
-          const finishReason = recordedFinishReason ?? 'unknown';
+          const finishReason = recordedFinishReason ?? 'other';
           const totalUsage =
             recordedTotalUsage ?? createNullLanguageModelUsage();
 
           // from finish:
           self._finishReason.resolve(finishReason);
+          self._rawFinishReason.resolve(recordedRawFinishReason);
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
@@ -927,7 +936,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
-            finishReason,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
             totalUsage,
             usage: finalStep.usage,
             content: finalStep.content,
@@ -1328,7 +1338,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           const activeToolCallToolNames: Record<string, string> = {};
 
-          let stepFinishReason: FinishReason = 'unknown';
+          let stepFinishReason: FinishReason = 'other';
+          let stepRawFinishReason: string | undefined = undefined;
+
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1450,6 +1462,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
+                      stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
 
                       // Telemetry for finish event timing
@@ -1593,6 +1606,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   controller.enqueue({
                     type: 'finish-step',
                     finishReason: stepFinishReason,
+                    rawFinishReason: stepRawFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
                     response: {
@@ -1687,6 +1701,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,
+                      rawFinishReason: stepRawFinishReason,
                       totalUsage: combinedUsage,
                     });
 
@@ -1813,6 +1828,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.consumeStream();
 
     return this._finishReason.promise;
+  }
+
+  get rawFinishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
+    return this._rawFinishReason.promise;
   }
 
   /**

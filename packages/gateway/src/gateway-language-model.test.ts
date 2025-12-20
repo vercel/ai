@@ -597,19 +597,30 @@ describe('GatewayLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toEqual([
-        { type: 'text-delta', textDelta: 'Hello' },
-        { type: 'text-delta', textDelta: ', ' },
-        { type: 'text-delta', textDelta: 'World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: {
-            prompt_tokens: 10,
-            completion_tokens: 20,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
           },
-        },
-      ]);
+          {
+            "textDelta": ", ",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "World!",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 20,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass streaming headers', async () => {
@@ -1290,27 +1301,31 @@ describe('GatewayLanguageModel', () => {
         includeRawChunks: false,
       });
 
-      const chunks = await convertReadableStreamToArray(stream);
-
-      expect(chunks).toHaveLength(3);
-
       // Check that timestamps in non-response-metadata chunks are left as strings
       // Note: These chunks don't typically have timestamp properties in the real types,
       // but this test verifies our conversion logic only affects response-metadata chunks
-      const textDeltaChunk = chunks[1] as any;
-      expect(textDeltaChunk).toEqual({
-        type: 'text-delta',
-        textDelta: 'Hello',
-        timestamp: timestampString, // Should remain a string
-      });
-
-      const finishChunk = chunks[2] as any;
-      expect(finishChunk).toEqual({
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { prompt_tokens: 10, completion_tokens: 5 },
-        timestamp: timestampString, // Should remain a string
-      });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "textDelta": "Hello",
+            "timestamp": "2023-12-07T10:30:00.000Z",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "timestamp": "2023-12-07T10:30:00.000Z",
+            "type": "finish",
+            "usage": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+            },
+          },
+        ]
+      `);
     });
   });
 

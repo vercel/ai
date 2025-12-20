@@ -2072,7 +2072,10 @@ Error message: Unexpected end of JSON input],
     "type": "error",
   },
   {
-    "finishReason": "error",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0ad69c3c5fcb01f60068eba78cacd08193bf9a57724aa55ab8",
@@ -2640,7 +2643,10 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
@@ -3181,7 +3187,10 @@ exports[`responses > file search tool > should stream file search results withou
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
@@ -5083,7 +5092,10 @@ Error message: Unexpected end of JSON input],
     "type": "error",
   },
   {
-    "finishReason": "error",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",

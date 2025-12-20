@@ -84,9 +84,14 @@ The dynamic tool results that were made in the last step.
   readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
-The reason why the generation finished.
-*/
+   * The unified reason why the generation finished.
+   */
   readonly finishReason: FinishReason;
+
+  /**
+   * The raw reason why the generation finished (from the provider).
+   */
+  readonly rawFinishReason: string | undefined;
 
   /**
 The token usage of the generated text.
@@ -133,6 +138,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
 {
   readonly content: StepResult<TOOLS>['content'];
   readonly finishReason: StepResult<TOOLS>['finishReason'];
+  readonly rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
   readonly usage: StepResult<TOOLS>['usage'];
   readonly warnings: StepResult<TOOLS>['warnings'];
   readonly request: StepResult<TOOLS>['request'];
@@ -142,6 +148,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   constructor({
     content,
     finishReason,
+    rawFinishReason,
     usage,
     warnings,
     request,
@@ -150,6 +157,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   }: {
     content: StepResult<TOOLS>['content'];
     finishReason: StepResult<TOOLS>['finishReason'];
+    rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
     usage: StepResult<TOOLS>['usage'];
     warnings: StepResult<TOOLS>['warnings'];
     request: StepResult<TOOLS>['request'];
@@ -158,6 +166,7 @@ export class DefaultStepResult<TOOLS extends ToolSet>
   }) {
     this.content = content;
     this.finishReason = finishReason;
+    this.rawFinishReason = rawFinishReason;
     this.usage = usage;
     this.warnings = warnings;
     this.request = request;

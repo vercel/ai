@@ -56,7 +56,7 @@ const testUsage: LanguageModelV3Usage = {
 };
 
 const dummyResponseValues = {
-  finishReason: 'stop' as const,
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
   usage: testUsage,
   warnings: [],
 };
@@ -678,7 +678,7 @@ describe('generateText', () => {
                 input: `{ "value": "value" }`,
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             response: {
               id: 'id-0',
@@ -739,6 +739,7 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -844,6 +845,7 @@ describe('generateText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "body": undefined,
@@ -1031,7 +1033,7 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 10,
@@ -1205,7 +1207,7 @@ describe('generateText', () => {
                       input: `{ "value": "value" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   usage: {
                     inputTokens: {
                       total: 10,
@@ -1354,6 +1356,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1421,6 +1424,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1561,6 +1565,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1628,6 +1633,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1914,7 +1920,7 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 10,
@@ -2003,6 +2009,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -2092,6 +2099,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -3287,7 +3295,7 @@ describe('generateText', () => {
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
               {
                 type: 'tool-call',
@@ -3443,7 +3451,7 @@ describe('generateText', () => {
                 result: { example: 'example' },
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
         tools: {
@@ -3574,7 +3582,7 @@ describe('generateText', () => {
                         input: `{ "player": "player1" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 3369,
@@ -3618,7 +3626,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -3662,7 +3670,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -3706,7 +3714,7 @@ describe('generateText', () => {
                         input: `{ "player": "player2" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
                       inputTokens: {
                         total: 0,
@@ -3756,7 +3764,7 @@ describe('generateText', () => {
                         text: "**Game Over!** \n\nPlayer 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:\n- **Round 1**: Both rolled 6 (Draw)\n- **Round 2**: Player 1 (5) beat Player 2 (4)\n- **Round 3**: Player 1 (6) beat Player 2 (4)\n- **Round 4**: Player 1 (6) beat Player 2 (3)\n\nBased on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.\n\nThe loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
                       },
                     ],
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: {
                       inputTokens: {
                         total: 4243,
@@ -4712,7 +4720,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -4779,7 +4787,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -4832,7 +4840,7 @@ describe('generateText', () => {
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
         experimental_context: {
@@ -4872,7 +4880,7 @@ describe('generateText', () => {
                   reasoning: undefined,
                 },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -5015,7 +5023,7 @@ describe('generateText', () => {
                   reasoning: undefined,
                 },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -5117,6 +5125,7 @@ describe('generateText', () => {
               ],
               "finishReason": "tool-calls",
               "providerMetadata": undefined,
+              "rawFinishReason": undefined,
               "request": {},
               "response": {
                 "body": undefined,
@@ -5246,7 +5255,7 @@ describe('generateText', () => {
                       input: `{ "value": "test" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   warnings: [warning1],
                 };
               case 1:
@@ -5322,7 +5331,7 @@ describe('generateText', () => {
                   input: `{ "value": "value" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -5436,7 +5445,7 @@ describe('generateText', () => {
                   input: `{ "value": "value-no-approval" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -5629,7 +5638,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
               };
             },
           }),
@@ -5795,7 +5804,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),
@@ -5954,7 +5963,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),

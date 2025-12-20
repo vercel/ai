@@ -156,7 +156,10 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapPerplexityFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapPerplexityFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertPerplexityUsage(response.usage),
       request: { body },
       response: {
@@ -205,7 +208,10 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage:
       | {
           prompt_tokens: number | undefined;
@@ -302,7 +308,10 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
 
             const choice = value.choices[0];
             if (choice?.finish_reason != null) {
-              finishReason = mapPerplexityFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapPerplexityFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.delta == null) {

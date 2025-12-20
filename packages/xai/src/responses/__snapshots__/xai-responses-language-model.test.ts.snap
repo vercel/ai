@@ -3761,7 +3761,10 @@ Sonora's style emerged from indigenous Yaqui and Mayo tribes, who used desert fo
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "completed",
+      "unified": "stop",
+    },
     "type": "finish",
     "usage": {
       "inputTokens": {
@@ -7079,7 +7082,10 @@ Sonoran's style is practical for its hot, dry climate—dishes are quick to prep
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "completed",
+      "unified": "stop",
+    },
     "type": "finish",
     "usage": {
       "inputTokens": {
@@ -10514,7 +10520,10 @@ Sonoran cuisine reflects Indigenous roots from tribes like the Tohono O'odham an
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "completed",
+      "unified": "stop",
+    },
     "type": "finish",
     "usage": {
       "inputTokens": {
@@ -11974,7 +11983,10 @@ Note: "XAI" can also refer to "Explainable AI," a field in machine learning that
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "completed",
+      "unified": "stop",
+    },
     "type": "finish",
     "usage": {
       "inputTokens": {
