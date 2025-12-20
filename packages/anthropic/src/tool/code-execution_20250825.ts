@@ -9,6 +9,21 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
       z.object({
+        type: z.literal('code_execution_result'),
+        stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+      z.object({
         type: z.literal('bash_code_execution_result'),
         content: z.array(
           z.object({
@@ -55,6 +70,11 @@ export const codeExecution_20250825OutputSchema = lazySchema(() =>
 export const codeExecution_20250825InputSchema = lazySchema(() =>
   zodSchema(
     z.discriminatedUnion('type', [
+      // Programmatic tool calling format (mapped from { code } by AI SDK)
+      z.object({
+        type: z.literal('programmatic-tool-call'),
+        code: z.string(),
+      }),
       z.object({
         type: z.literal('bash_code_execution'),
         command: z.string(),
@@ -84,6 +104,14 @@ export const codeExecution_20250825InputSchema = lazySchema(() =>
 );
 
 const factory = createProviderToolFactoryWithOutputSchema<
+  | {
+      type: 'programmatic-tool-call';
+      /**
+       * Programmatic tool calling: Python code to execute when code_execution
+       * is used with allowedCallers to trigger client-executed tools.
+       */
+      code: string;
+    }
   | {
       type: 'bash_code_execution';
 
@@ -134,6 +162,33 @@ const factory = createProviderToolFactoryWithOutputSchema<
        */
       new_str: string;
     },
+  | {
+      /**
+       * Programmatic tool calling result: returned when code_execution runs code
+       * that calls client-executed tools via allowedCallers.
+       */
+      type: 'code_execution_result';
+
+      /**
+       * Output from successful execution
+       */
+      stdout: string;
+
+      /**
+       * Error messages if execution fails
+       */
+      stderr: string;
+
+      /**
+       * 0 for success, non-zero for failure
+       */
+      return_code: number;
+
+      /**
+       * Output file Id list
+       */
+      content: Array<{ type: 'code_execution_output'; file_id: string }>;
+    }
   | {
       type: 'bash_code_execution_result';
 
@@ -213,6 +268,10 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.code_execution_20250825',
   inputSchema: codeExecution_20250825InputSchema,
   outputSchema: codeExecution_20250825OutputSchema,
+  // Programmatic tool calling: tool results may be deferred to a later turn
+  // when code execution triggers a client-executed tool that needs to be
+  // resolved before the code execution result can be returned.
+  supportsDeferredResults: true,
 });
 
 export const codeExecution_20250825 = (

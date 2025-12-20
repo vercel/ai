@@ -16,6 +16,20 @@ export default function AnthropicCodeExecutionView({
     case 'input-available': {
       return <InputView input={invocation.input} />;
     }
+    case 'output-error': {
+      return (
+        <>
+          <InputView input={invocation.input} />
+          <div className="mb-2 bg-red-900 rounded-xl border border-red-700 shadow-lg">
+            <pre className="overflow-x-auto p-4 text-sm text-red-100 whitespace-pre-wrap">
+              <span className="font-semibold">Code Execution Error</span>
+              <br />
+              {invocation.errorText}
+            </pre>
+          </div>
+        </>
+      );
+    }
     case 'output-available':
       return (
         <>
@@ -23,6 +37,30 @@ export default function AnthropicCodeExecutionView({
 
           <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
             <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+              {invocation.output.type === 'code_execution_result' && (
+                <>
+                  <span className="font-semibold">Stdout:</span>
+                  <br />
+                  {invocation.output.stdout}
+                  <br />
+                  {invocation.output.stderr && (
+                    <>
+                      <span className="font-semibold">Stderr:</span>
+                      <br />
+                      {invocation.output.stderr}
+                      <br />
+                    </>
+                  )}
+                  {invocation.output.return_code != null && (
+                    <>
+                      <span className="font-semibold">Return Code:</span>
+                      <br />
+                      {invocation.output.return_code}
+                      <br />
+                    </>
+                  )}
+                </>
+              )}
               {invocation.output.type === 'bash_code_execution_result' && (
                 <>
                   <span className="font-semibold">Stdout:</span>
@@ -159,7 +197,26 @@ function InputView({
     ReturnType<typeof anthropic.tools.codeExecution_20250825>
   >['input'];
 }) {
-  switch (input?.type) {
+  if (!input) {
+    return null;
+  }
+
+  switch (input.type) {
+    // Handle programmatic tool calling format
+    case 'programmatic-tool-call': {
+      return (
+        <div className="mb-2 bg-gray-600 rounded-xl border border-gray-900 shadow-lg">
+          <pre className="overflow-x-auto p-4 text-sm text-gray-100 whitespace-pre-wrap">
+            <span className="font-semibold">Code Execution</span>
+            <br />
+            <span className="font-semibold">Code:</span>
+            <br />
+            {input.code}
+          </pre>
+        </div>
+      );
+    }
+
     case 'text_editor_code_execution': {
       switch (input.command) {
         case 'view': {
@@ -237,6 +294,7 @@ function InputView({
           );
         }
       }
+      break;
     }
 
     case 'bash_code_execution': {
@@ -258,4 +316,6 @@ function InputView({
       );
     }
   }
+
+  return null;
 }

@@ -1,5 +1,26 @@
 # @ai-sdk/react
 
+## 3.0.0-beta.166
+
+### Patch Changes
+
+- ai@6.0.0-beta.163
+- @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - ai@6.0.0-beta.162
+
+## 3.0.0-beta.164
+
+### Patch Changes
+
+- ai@6.0.0-beta.161
+
 ## 3.0.0-beta.163
 
 ### Patch Changes

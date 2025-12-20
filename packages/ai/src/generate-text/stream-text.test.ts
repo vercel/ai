@@ -15389,6 +15389,1531 @@ describe('streamText', () => {
     });
   });
 
+  describe('programmatic tool calling', () => {
+    describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
+      let result: StreamTextResult<any, any>;
+      let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
+      let onStepFinishResults: StepResult<any>[];
+      let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let prepareStepCalls: Array<{
+        modelId: string;
+        stepNumber: number;
+        steps: Array<StepResult<any>>;
+        messages: Array<ModelMessage>;
+      }>;
+      let rollDieExecutions: Array<{ player: string }>;
+
+      // Fixture-based tool call IDs (from anthropic-programmatic-tool-calling.1.chunks.txt)
+      const CODE_EXEC_ID = 'srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK';
+      const CONTAINER_ID = 'container_011CWHPPTDTn1XufeRB9uHeH';
+
+      beforeEach(async () => {
+        onFinishResult = undefined as any;
+        onStepFinishResults = [];
+        doStreamCalls = [];
+        prepareStepCalls = [];
+        rollDieExecutions = [];
+
+        let responseCount = 0;
+
+        result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async options => {
+              doStreamCalls.push(options);
+
+              switch (responseCount++) {
+                case 0:
+                  // Step 1: text + server_tool_use (code_execution) + rollDie call
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg_01ERcBqAvLTHWQDk9c9qJLWC',
+                        modelId: 'claude-sonnet-4-5-20250929',
+                        timestamp: new Date(0),
+                      },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta:
+                          "I'll help you simulate this game between two players where one is using a loaded die.",
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'tool-call',
+                        toolCallId: CODE_EXEC_ID,
+                        toolName: 'code_execution',
+                        input: `{"type":"programmatic-tool-call","code":"game_loop()"}`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_019jKkXz4jAdwHweHBw92CVY',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: {
+                          inputTokens: {
+                            total: 3369,
+                            noCache: 3369,
+                            cacheRead: undefined,
+                            cacheWrite: undefined,
+                          },
+                          outputTokens: {
+                            total: 725,
+                            text: 725,
+                            reasoning: undefined,
+                          },
+                        },
+                        providerMetadata: {
+                          anthropic: {
+                            container: { id: CONTAINER_ID },
+                          },
+                        },
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+
+                case 1:
+                  // Step 2: rollDie call (player2)
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg_01KSVw3xmXbMNJPNMt46BC5W',
+                        modelId: 'claude-sonnet-4-5-20250929',
+                        timestamp: new Date(1000),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_015dGLMbwBKv1ZRQr6KdJzeH',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: {
+                          inputTokens: {
+                            total: 0,
+                            noCache: 0,
+                            cacheRead: undefined,
+                            cacheWrite: undefined,
+                          },
+                          outputTokens: {
+                            total: 0,
+                            text: 0,
+                            reasoning: undefined,
+                          },
+                        },
+                        providerMetadata: {
+                          anthropic: {
+                            container: { id: CONTAINER_ID },
+                          },
+                        },
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+
+                case 2:
+                  // Step 3: rollDie calls (round 2)
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg_016fLapHzDx8DG2SUcsGKyPA',
+                        modelId: 'claude-sonnet-4-5-20250929',
+                        timestamp: new Date(2000),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01YYqBNq5mk1wMtv3PAqY44m',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: {
+                          inputTokens: {
+                            total: 0,
+                            noCache: 0,
+                            cacheRead: undefined,
+                            cacheWrite: undefined,
+                          },
+                          outputTokens: {
+                            total: 0,
+                            text: 0,
+                            reasoning: undefined,
+                          },
+                        },
+                        providerMetadata: {
+                          anthropic: {
+                            container: { id: CONTAINER_ID },
+                          },
+                        },
+                      },
+                    ]),
+                    response: { headers: { call: '3' } },
+                  };
+
+                case 3:
+                  // Step 4: more rollDie calls
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg_01MQHz6AzmwmZoTry5nk5EQC',
+                        modelId: 'claude-sonnet-4-5-20250929',
+                        timestamp: new Date(3000),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_018WxjDkQG8h7i63poySGT2x',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: 'tool-calls',
+                        usage: {
+                          inputTokens: {
+                            total: 0,
+                            noCache: 0,
+                            cacheRead: undefined,
+                            cacheWrite: undefined,
+                          },
+                          outputTokens: {
+                            total: 0,
+                            text: 0,
+                            reasoning: undefined,
+                          },
+                        },
+                        providerMetadata: {
+                          anthropic: {
+                            container: { id: CONTAINER_ID },
+                          },
+                        },
+                      },
+                    ]),
+                    response: { headers: { call: '4' } },
+                  };
+
+                case 4:
+                  // Step 5: code_execution_tool_result + final text
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg_01CfmDducyrt61n4Q7QS8VFK',
+                        modelId: 'claude-sonnet-4-5-20250929',
+                        timestamp: new Date(4000),
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: CODE_EXEC_ID,
+                        toolName: 'code_execution',
+                        result: {
+                          type: 'code_execution_result',
+                          stdout:
+                            '=== DICE GAME: First to 3 Wins ===\n\n--- Round 1 ---\nPlayer 1 rolls: 5\nPlayer 2 rolls: 6\nPlayer 2 wins this round!\nScore: Player 1 = 0, Player 2 = 1\n\n--- Round 2 ---\nPlayer 1 rolls: 4\nPlayer 2 rolls: 6\nPlayer 2 wins this round!\nScore: Player 1 = 0, Player 2 = 2\n\n--- Round 3 ---\nPlayer 1 rolls: 5\nPlayer 2 rolls: 2\nPlayer 1 wins this round!\nScore: Player 1 = 1, Player 2 = 2\n\n--- Round 4 ---\nPlayer 1 rolls: 6\nPlayer 2 rolls: 6\nDraw! No one gets a point.\nScore: Player 1 = 1, Player 2 = 2\n\n--- Round 5 ---\nPlayer 1 rolls: 3\nPlayer 2 rolls: 2\nPlayer 1 wins this round!\nScore: Player 1 = 2, Player 2 = 2\n\n--- Round 6 ---\nPlayer 1 rolls: 6\nPlayer 2 rolls: 6\nDraw! No one gets a point.\nScore: Player 1 = 2, Player 2 = 2\n\n--- Round 7 ---\nPlayer 1 rolls: 2\nPlayer 2 rolls: 3\nPlayer 2 wins this round!\nScore: Player 1 = 2, Player 2 = 3\n\n========================================\n🏆 GAME OVER: Player 2 wins the game! (3-2)\n========================================\n\n📊 Analysis:\nTotal rounds played: 7\nPlayer 2 had better results - likely using the loaded die! 🎲\n',
+                          stderr: '',
+                          return_code: 0,
+                          content: [],
+                        },
+                        providerExecuted: true,
+                      },
+                      { type: 'text-start', id: '2' },
+                      {
+                        type: 'text-delta',
+                        id: '2',
+                        delta:
+                          '## Game Results\n\n**Player 2 wins the game 3-2!** 🏆\n\nThe game lasted 7 rounds with the following breakdown:\n- **Player 1**: 2 round wins\n- **Player 2**: 3 round wins\n- **Draws**: 2 rounds (both rolling 6)\n\nBased on the results, **Player 2 appears to be the one using the loaded die**.',
+                      },
+                      { type: 'text-end', id: '2' },
+                      {
+                        type: 'finish',
+                        finishReason: 'stop',
+                        usage: {
+                          inputTokens: {
+                            total: 4551,
+                            noCache: 4551,
+                            cacheRead: undefined,
+                            cacheWrite: undefined,
+                          },
+                          outputTokens: {
+                            total: 197,
+                            text: 197,
+                            reasoning: undefined,
+                          },
+                        },
+                      },
+                    ]),
+                    response: { headers: { call: '5' } },
+                  };
+
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            code_execution: {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              inputSchema: z.object({ code: z.string() }),
+              outputSchema: z.object({
+                stdout: z.string(),
+                stderr: z.string(),
+              }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+            rollDie: tool({
+              description: 'Roll a die and return the result.',
+              inputSchema: z.object({
+                player: z.enum(['player1', 'player2']),
+              }),
+              execute: async ({ player }) => {
+                rollDieExecutions.push({ player });
+                return player === 'player1' ? 6 : 3;
+              },
+              providerOptions: {
+                anthropic: {
+                  allowedCallers: ['code_execution_20250825'],
+                },
+              },
+            }),
+          },
+          prompt: 'Play a dice game between two players.',
+          stopWhen: stepCountIs(10),
+          onFinish: async event => {
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
+          onStepFinish: async event => {
+            onStepFinishResults.push(event);
+          },
+          prepareStep: async ({ model, stepNumber, steps, messages }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps: [...steps],
+              messages: [...messages],
+            });
+
+            // Forward container ID from previous step (simulating forwardAnthropicContainerIdFromLastStep)
+            if (stepNumber > 0 && steps.length > 0) {
+              const lastStep = steps[steps.length - 1];
+              const containerId = (
+                lastStep.providerMetadata?.anthropic as
+                  | { container?: { id?: string } }
+                  | undefined
+              )?.container?.id;
+
+              if (containerId) {
+                return {
+                  providerOptions: {
+                    anthropic: {
+                      container: { id: containerId },
+                    },
+                  },
+                };
+              }
+            }
+            return undefined;
+          },
+        });
+      });
+
+      describe('step inputs', () => {
+        it('should send correct prompt in step 1', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[0].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ]
+          `);
+        });
+
+        it('should send correct tools in step 1', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[0].tools).toMatchInlineSnapshot(`
+            [
+              {
+                "args": {},
+                "id": "anthropic.code_execution_20250825",
+                "name": "code_execution",
+                "type": "provider",
+              },
+              {
+                "description": "Roll a die and return the result.",
+                "inputSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "player": {
+                      "enum": [
+                        "player1",
+                        "player2",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "player",
+                  ],
+                  "type": "object",
+                },
+                "name": "rollDie",
+                "providerOptions": {
+                  "anthropic": {
+                    "allowedCallers": [
+                      "code_execution_20250825",
+                    ],
+                  },
+                },
+                "type": "function",
+              },
+            ]
+          `);
+        });
+
+        it('should include assistant messages and tool results in step 2 prompt', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[1].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include all previous messages in step 3 prompt (round 2)', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[2].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should forward container ID via providerOptions in step 2', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[1].providerOptions).toMatchInlineSnapshot(`
+            {
+              "anthropic": {
+                "container": {
+                  "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should include all previous messages in step 5 prompt (final step)', async () => {
+          await result.consumeStream();
+          expect(doStreamCalls[4].prompt).toMatchSnapshot();
+        });
+      });
+
+      describe('result.response.messages', () => {
+        it('should contain all response messages from all steps', async () => {
+          await result.consumeStream();
+          expect((await result.response).messages).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": {
+                        "content": [],
+                        "return_code": 0,
+                        "stderr": "",
+                        "stdout": "=== DICE GAME: First to 3 Wins ===
+
+            --- Round 1 ---
+            Player 1 rolls: 5
+            Player 2 rolls: 6
+            Player 2 wins this round!
+            Score: Player 1 = 0, Player 2 = 1
+
+            --- Round 2 ---
+            Player 1 rolls: 4
+            Player 2 rolls: 6
+            Player 2 wins this round!
+            Score: Player 1 = 0, Player 2 = 2
+
+            --- Round 3 ---
+            Player 1 rolls: 5
+            Player 2 rolls: 2
+            Player 1 wins this round!
+            Score: Player 1 = 1, Player 2 = 2
+
+            --- Round 4 ---
+            Player 1 rolls: 6
+            Player 2 rolls: 6
+            Draw! No one gets a point.
+            Score: Player 1 = 1, Player 2 = 2
+
+            --- Round 5 ---
+            Player 1 rolls: 3
+            Player 2 rolls: 2
+            Player 1 wins this round!
+            Score: Player 1 = 2, Player 2 = 2
+
+            --- Round 6 ---
+            Player 1 rolls: 6
+            Player 2 rolls: 6
+            Draw! No one gets a point.
+            Score: Player 1 = 2, Player 2 = 2
+
+            --- Round 7 ---
+            Player 1 rolls: 2
+            Player 2 rolls: 3
+            Player 2 wins this round!
+            Score: Player 1 = 2, Player 2 = 3
+
+            ========================================
+            🏆 GAME OVER: Player 2 wins the game! (3-2)
+            ========================================
+
+            📊 Analysis:
+            Total rounds played: 7
+            Player 2 had better results - likely using the loaded die! 🎲
+            ",
+                        "type": "code_execution_result",
+                      },
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                    "toolName": "code_execution",
+                    "type": "tool-result",
+                  },
+                  {
+                    "providerOptions": undefined,
+                    "text": "## Game Results
+
+            **Player 2 wins the game 3-2!** 🏆
+
+            The game lasted 7 rounds with the following breakdown:
+            - **Player 1**: 2 round wins
+            - **Player 2**: 3 round wins
+            - **Draws**: 2 rounds (both rolling 6)
+
+            Based on the results, **Player 2 appears to be the one using the loaded die**.",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('result.toolCalls and result.toolResults', () => {
+        it('should return empty toolCalls from final step (no tool calls in step 3)', async () => {
+          expect(await result.toolCalls).toMatchInlineSnapshot(`[]`);
+        });
+
+        it('should return deferred tool results from final step', async () => {
+          expect(await result.toolResults).toMatchInlineSnapshot(`
+            [
+              {
+                "dynamic": undefined,
+                "input": undefined,
+                "output": {
+                  "content": [],
+                  "return_code": 0,
+                  "stderr": "",
+                  "stdout": "=== DICE GAME: First to 3 Wins ===
+
+            --- Round 1 ---
+            Player 1 rolls: 5
+            Player 2 rolls: 6
+            Player 2 wins this round!
+            Score: Player 1 = 0, Player 2 = 1
+
+            --- Round 2 ---
+            Player 1 rolls: 4
+            Player 2 rolls: 6
+            Player 2 wins this round!
+            Score: Player 1 = 0, Player 2 = 2
+
+            --- Round 3 ---
+            Player 1 rolls: 5
+            Player 2 rolls: 2
+            Player 1 wins this round!
+            Score: Player 1 = 1, Player 2 = 2
+
+            --- Round 4 ---
+            Player 1 rolls: 6
+            Player 2 rolls: 6
+            Draw! No one gets a point.
+            Score: Player 1 = 1, Player 2 = 2
+
+            --- Round 5 ---
+            Player 1 rolls: 3
+            Player 2 rolls: 2
+            Player 1 wins this round!
+            Score: Player 1 = 2, Player 2 = 2
+
+            --- Round 6 ---
+            Player 1 rolls: 6
+            Player 2 rolls: 6
+            Draw! No one gets a point.
+            Score: Player 1 = 2, Player 2 = 2
+
+            --- Round 7 ---
+            Player 1 rolls: 2
+            Player 2 rolls: 3
+            Player 2 wins this round!
+            Score: Player 1 = 2, Player 2 = 3
+
+            ========================================
+            🏆 GAME OVER: Player 2 wins the game! (3-2)
+            ========================================
+
+            📊 Analysis:
+            Total rounds played: 7
+            Player 2 had better results - likely using the loaded die! 🎲
+            ",
+                  "type": "code_execution_result",
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                "toolName": "code_execution",
+                "type": "tool-result",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('tool execution', () => {
+        it('should execute rollDie tool 4 times (twice per step for steps 1 and 2)', async () => {
+          await result.consumeStream();
+          expect(rollDieExecutions).toMatchInlineSnapshot(`
+            [
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player2",
+              },
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player2",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('result.steps', () => {
+        it('should contain 5 steps', async () => {
+          expect((await result.steps).length).toBe(5);
+        });
+
+        it('should have correct finishReason for each step', async () => {
+          const steps = await result.steps;
+          expect(steps[0].finishReason).toBe('tool-calls');
+          expect(steps[1].finishReason).toBe('tool-calls');
+          expect(steps[2].finishReason).toBe('tool-calls');
+          expect(steps[3].finishReason).toBe('tool-calls');
+          expect(steps[4].finishReason).toBe('stop');
+        });
+      });
+
+      describe('result.text', () => {
+        it('should return final text from last step', async () => {
+          expect(await result.text).toContain('Game Results');
+        });
+      });
+
+      describe('result.finishReason', () => {
+        it('should return stop from final step', async () => {
+          expect(await result.finishReason).toBe('stop');
+        });
+      });
+
+      describe('result.totalUsage', () => {
+        it('should sum token usage across all steps', async () => {
+          await result.consumeStream();
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+            {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 7920,
+              },
+              "inputTokens": 7920,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 922,
+              },
+              "outputTokens": 922,
+              "reasoningTokens": undefined,
+              "totalTokens": 8842,
+            }
+          `);
+        });
+      });
+
+      describe('prepareStep calls', () => {
+        it('should call prepareStep for each step with correct stepNumber', async () => {
+          await result.consumeStream();
+          expect(prepareStepCalls.length).toBe(5);
+          expect(prepareStepCalls[0].stepNumber).toBe(0);
+          expect(prepareStepCalls[1].stepNumber).toBe(1);
+          expect(prepareStepCalls[2].stepNumber).toBe(2);
+          expect(prepareStepCalls[3].stepNumber).toBe(3);
+          expect(prepareStepCalls[4].stepNumber).toBe(4);
+        });
+
+        it('should pass empty steps array for first prepareStep call', async () => {
+          await result.consumeStream();
+          expect(prepareStepCalls[0].steps.length).toBe(0);
+        });
+
+        it('should pass accumulated steps to subsequent prepareStep calls', async () => {
+          await result.consumeStream();
+          expect(prepareStepCalls[1].steps.length).toBe(1);
+          expect(prepareStepCalls[2].steps.length).toBe(2);
+          expect(prepareStepCalls[3].steps.length).toBe(3);
+          expect(prepareStepCalls[4].steps.length).toBe(4);
+        });
+
+        it('should pass accumulated messages to prepareStep', async () => {
+          await result.consumeStream();
+          // Step 0: just the initial user message
+          expect(prepareStepCalls[0].messages.length).toBe(1);
+
+          // Step 1: user message + assistant message + tool message
+          expect(prepareStepCalls[1].messages.length).toBe(3);
+
+          // Step 2: user message + assistant + tool + assistant + tool
+          expect(prepareStepCalls[2].messages.length).toBe(5);
+
+          // Step 3: continued accumulation
+          expect(prepareStepCalls[3].messages.length).toBe(7);
+
+          // Step 4: continued accumulation
+          expect(prepareStepCalls[4].messages.length).toBe(9);
+        });
+      });
+
+      describe('onStepFinish callback', () => {
+        it('should be called for each step', async () => {
+          await result.consumeStream();
+          expect(onStepFinishResults.length).toBe(5);
+        });
+
+        it('should contain correct finishReason for each step', async () => {
+          await result.consumeStream();
+          expect(onStepFinishResults[0].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[1].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[2].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[3].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[4].finishReason).toBe('stop');
+        });
+
+        it('should contain provider metadata with container ID for steps 1 and 2', async () => {
+          await result.consumeStream();
+          expect(onStepFinishResults[0].providerMetadata)
+            .toMatchInlineSnapshot(`
+              {
+                "anthropic": {
+                  "container": {
+                    "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                  },
+                },
+              }
+            `);
+          expect(onStepFinishResults[1].providerMetadata)
+            .toMatchInlineSnapshot(`
+              {
+                "anthropic": {
+                  "container": {
+                    "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                  },
+                },
+              }
+            `);
+        });
+      });
+
+      describe('onFinish callback', () => {
+        it('should be called with correct text', async () => {
+          await result.consumeStream();
+          expect(onFinishResult.text).toContain('Game Results');
+        });
+
+        it('should be called with correct finishReason', async () => {
+          await result.consumeStream();
+          expect(onFinishResult.finishReason).toBe('stop');
+        });
+
+        it('should contain all steps', async () => {
+          await result.consumeStream();
+          expect(onFinishResult.steps.length).toBe(5);
+        });
+
+        it('should contain correct totalUsage', async () => {
+          await result.consumeStream();
+          expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
+            {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 7920,
+              },
+              "inputTokens": 7920,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 922,
+              },
+              "outputTokens": 922,
+              "reasoningTokens": undefined,
+              "totalTokens": 8842,
+            }
+          `);
+        });
+
+        it('should contain all response messages', async () => {
+          await result.consumeStream();
+          expect(onFinishResult.response.messages.length).toBe(9);
+        });
+      });
+
+      describe('fullStream events', () => {
+        it('should emit correct stream parts including tool calls and deferred results', async () => {
+          expect(await convertAsyncIterableToArray(result.fullStream))
+            .toMatchInlineSnapshot(`
+              [
+                {
+                  "type": "start",
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "id": "1",
+                  "type": "text-start",
+                },
+                {
+                  "id": "1",
+                  "providerMetadata": undefined,
+                  "text": "I'll help you simulate this game between two players where one is using a loaded die.",
+                  "type": "text-delta",
+                },
+                {
+                  "id": "1",
+                  "type": "text-end",
+                },
+                {
+                  "input": {
+                    "code": "game_loop()",
+                  },
+                  "providerExecuted": true,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                  "toolName": "code_execution",
+                  "type": "tool-call",
+                },
+                {
+                  "input": {
+                    "player": "player1",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                  "toolName": "rollDie",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "player": "player1",
+                  },
+                  "output": 6,
+                  "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+                  "toolName": "rollDie",
+                  "type": "tool-result",
+                },
+                {
+                  "finishReason": "tool-calls",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "container": {
+                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                      },
+                    },
+                  },
+                  "response": {
+                    "headers": {
+                      "call": "1",
+                    },
+                    "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
+                    "modelId": "claude-sonnet-4-5-20250929",
+                    "timestamp": 1970-01-01T00:00:00.000Z,
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3369,
+                    },
+                    "inputTokens": 3369,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 725,
+                    },
+                    "outputTokens": 725,
+                    "raw": undefined,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 4094,
+                  },
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "input": {
+                    "player": "player2",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                  "toolName": "rollDie",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "player": "player2",
+                  },
+                  "output": 3,
+                  "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+                  "toolName": "rollDie",
+                  "type": "tool-result",
+                },
+                {
+                  "finishReason": "tool-calls",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "container": {
+                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                      },
+                    },
+                  },
+                  "response": {
+                    "headers": {
+                      "call": "2",
+                    },
+                    "id": "msg_01KSVw3xmXbMNJPNMt46BC5W",
+                    "modelId": "claude-sonnet-4-5-20250929",
+                    "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 0,
+                    },
+                    "inputTokens": 0,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 0,
+                    },
+                    "outputTokens": 0,
+                    "raw": undefined,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 0,
+                  },
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "input": {
+                    "player": "player1",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+                  "toolName": "rollDie",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "player": "player1",
+                  },
+                  "output": 6,
+                  "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+                  "toolName": "rollDie",
+                  "type": "tool-result",
+                },
+                {
+                  "finishReason": "tool-calls",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "container": {
+                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                      },
+                    },
+                  },
+                  "response": {
+                    "headers": {
+                      "call": "3",
+                    },
+                    "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
+                    "modelId": "claude-sonnet-4-5-20250929",
+                    "timestamp": 1970-01-01T00:00:02.000Z,
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 0,
+                    },
+                    "inputTokens": 0,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 0,
+                    },
+                    "outputTokens": 0,
+                    "raw": undefined,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 0,
+                  },
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "input": {
+                    "player": "player2",
+                  },
+                  "providerExecuted": undefined,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+                  "toolName": "rollDie",
+                  "type": "tool-call",
+                },
+                {
+                  "dynamic": false,
+                  "input": {
+                    "player": "player2",
+                  },
+                  "output": 3,
+                  "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+                  "toolName": "rollDie",
+                  "type": "tool-result",
+                },
+                {
+                  "finishReason": "tool-calls",
+                  "providerMetadata": {
+                    "anthropic": {
+                      "container": {
+                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+                      },
+                    },
+                  },
+                  "response": {
+                    "headers": {
+                      "call": "4",
+                    },
+                    "id": "msg_01MQHz6AzmwmZoTry5nk5EQC",
+                    "modelId": "claude-sonnet-4-5-20250929",
+                    "timestamp": 1970-01-01T00:00:03.000Z,
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 0,
+                    },
+                    "inputTokens": 0,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 0,
+                    },
+                    "outputTokens": 0,
+                    "raw": undefined,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 0,
+                  },
+                },
+                {
+                  "request": {},
+                  "type": "start-step",
+                  "warnings": [],
+                },
+                {
+                  "dynamic": undefined,
+                  "input": undefined,
+                  "output": {
+                    "content": [],
+                    "return_code": 0,
+                    "stderr": "",
+                    "stdout": "=== DICE GAME: First to 3 Wins ===
+
+              --- Round 1 ---
+              Player 1 rolls: 5
+              Player 2 rolls: 6
+              Player 2 wins this round!
+              Score: Player 1 = 0, Player 2 = 1
+
+              --- Round 2 ---
+              Player 1 rolls: 4
+              Player 2 rolls: 6
+              Player 2 wins this round!
+              Score: Player 1 = 0, Player 2 = 2
+
+              --- Round 3 ---
+              Player 1 rolls: 5
+              Player 2 rolls: 2
+              Player 1 wins this round!
+              Score: Player 1 = 1, Player 2 = 2
+
+              --- Round 4 ---
+              Player 1 rolls: 6
+              Player 2 rolls: 6
+              Draw! No one gets a point.
+              Score: Player 1 = 1, Player 2 = 2
+
+              --- Round 5 ---
+              Player 1 rolls: 3
+              Player 2 rolls: 2
+              Player 1 wins this round!
+              Score: Player 1 = 2, Player 2 = 2
+
+              --- Round 6 ---
+              Player 1 rolls: 6
+              Player 2 rolls: 6
+              Draw! No one gets a point.
+              Score: Player 1 = 2, Player 2 = 2
+
+              --- Round 7 ---
+              Player 1 rolls: 2
+              Player 2 rolls: 3
+              Player 2 wins this round!
+              Score: Player 1 = 2, Player 2 = 3
+
+              ========================================
+              🏆 GAME OVER: Player 2 wins the game! (3-2)
+              ========================================
+
+              📊 Analysis:
+              Total rounds played: 7
+              Player 2 had better results - likely using the loaded die! 🎲
+              ",
+                    "type": "code_execution_result",
+                  },
+                  "providerExecuted": true,
+                  "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+                  "toolName": "code_execution",
+                  "type": "tool-result",
+                },
+                {
+                  "id": "2",
+                  "type": "text-start",
+                },
+                {
+                  "id": "2",
+                  "providerMetadata": undefined,
+                  "text": "## Game Results
+
+              **Player 2 wins the game 3-2!** 🏆
+
+              The game lasted 7 rounds with the following breakdown:
+              - **Player 1**: 2 round wins
+              - **Player 2**: 3 round wins
+              - **Draws**: 2 rounds (both rolling 6)
+
+              Based on the results, **Player 2 appears to be the one using the loaded die**.",
+                  "type": "text-delta",
+                },
+                {
+                  "id": "2",
+                  "type": "text-end",
+                },
+                {
+                  "finishReason": "stop",
+                  "providerMetadata": undefined,
+                  "response": {
+                    "headers": {
+                      "call": "5",
+                    },
+                    "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
+                    "modelId": "claude-sonnet-4-5-20250929",
+                    "timestamp": 1970-01-01T00:00:04.000Z,
+                  },
+                  "type": "finish-step",
+                  "usage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 4551,
+                    },
+                    "inputTokens": 4551,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 197,
+                    },
+                    "outputTokens": 197,
+                    "raw": undefined,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 4748,
+                  },
+                },
+                {
+                  "finishReason": "stop",
+                  "totalUsage": {
+                    "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 7920,
+                    },
+                    "inputTokens": 7920,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 922,
+                    },
+                    "outputTokens": 922,
+                    "reasoningTokens": undefined,
+                    "totalTokens": 8842,
+                  },
+                  "type": "finish",
+                },
+              ]
+            `);
+        });
+      });
+    });
+  });
+
   describe('logWarnings', () => {
     it('should call logWarnings with warnings from a single step', async () => {
       const expectedWarnings = [
@@ -17014,9 +18539,7 @@ describe('streamText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<
-        Parameters<LanguageModelV3['doGenerate']>[0]
-      > = [];
+      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
 
       const modelWithImageUrlSupport = new MockLanguageModelV3({
         provider: 'with-image-url-support',

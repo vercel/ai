@@ -97,11 +97,29 @@ export interface AnthropicDocumentContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+/**
+ * The caller information for programmatic tool calling.
+ * Present when a tool is called from within code execution.
+ */
+export type AnthropicToolCallCaller =
+  | {
+      type: 'code_execution_20250825';
+      tool_id: string;
+    }
+  | {
+      type: 'direct';
+    };
+
 export interface AnthropicToolCallContent {
   type: 'tool_use';
   id: string;
   name: string;
   input: unknown;
+  /**
+   * Present when this tool call was triggered by a server-executed tool
+   * (e.g., code execution calling a user-defined tool programmatically).
+   */
+  caller?: AnthropicToolCallCaller;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -195,12 +213,18 @@ export interface AnthropicToolSearchToolResultContent {
 export interface AnthropicCodeExecutionToolResultContent {
   type: 'code_execution_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'code_execution_result';
-    stdout: string;
-    stderr: string;
-    return_code: number;
-  };
+  content:
+    | {
+        type: 'code_execution_result';
+        stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      }
+    | {
+        type: 'code_execution_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -306,6 +330,14 @@ export type AnthropicTool =
        * discovered via the tool search tool.
        */
       defer_loading?: boolean;
+      /**
+       * Programmatic tool calling: specifies which server-executed tools
+       * are allowed to call this tool. When set, only the specified callers
+       * can invoke this tool programmatically.
+       *
+       * @example ['code_execution_20250825']
+       */
+      allowed_callers?: Array<'code_execution_20250825'>;
     }
   | {
       type: 'code_execution_20250522';
@@ -513,6 +545,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -599,6 +643,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),
@@ -739,11 +792,43 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
         message: z.object({
           id: z.string().nullish(),
           model: z.string().nullish(),
+          role: z.string().nullish(),
           usage: z.looseObject({
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
           }),
+          // Programmatic tool calling: content may be pre-populated for deferred tool calls
+          content: z
+            .array(
+              z.discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('tool_use'),
+                  id: z.string(),
+                  name: z.string(),
+                  input: z.unknown(),
+                  caller: z
+                    .union([
+                      z.object({
+                        type: z.literal('code_execution_20250825'),
+                        tool_id: z.string(),
+                      }),
+                      z.object({
+                        type: z.literal('direct'),
+                      }),
+                    ])
+                    .optional(),
+                }),
+              ]),
+            )
+            .nullish(),
+          stop_reason: z.string().nullish(),
+          container: z
+            .object({
+              expires_at: z.string(),
+              id: z.string(),
+            })
+            .nullish(),
         }),
       }),
       z.object({
@@ -762,6 +847,20 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            // Programmatic tool calling: input may be present directly for deferred tool calls
+            input: z.record(z.string(), z.unknown()).optional(),
+            // Programmatic tool calling: caller info when triggered from code execution
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20250825'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),
@@ -852,6 +951,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
               }),
               z.object({
                 type: z.literal('code_execution_tool_result_error'),

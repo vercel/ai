@@ -2,8 +2,10 @@ import {
   APICallError,
   JSONObject,
   LanguageModelV3,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -1852,9 +1854,255 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('programmatic tool calling', () => {
+      it('should include caller info when tool_use has caller field from code_execution', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'query_database',
+                input: { sql: 'SELECT * FROM users' },
+                caller: {
+                  type: 'code_execution_20250825',
+                  tool_id: 'srvtoolu_01CodeExec',
+                },
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"sql":"SELECT * FROM users"}",
+              "providerMetadata": {
+                "anthropic": {
+                  "caller": {
+                    "toolId": "srvtoolu_01CodeExec",
+                    "type": "code_execution_20250825",
+                  },
+                },
+              },
+              "toolCallId": "toolu_01Test",
+              "toolName": "query_database",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include caller info when tool_use has direct caller type', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'get_weather',
+                input: { city: 'Tokyo' },
+                caller: { type: 'direct' },
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"city":"Tokyo"}",
+              "providerMetadata": {
+                "anthropic": {
+                  "caller": {
+                    "toolId": undefined,
+                    "type": "direct",
+                  },
+                },
+              },
+              "toolCallId": "toolu_01Test",
+              "toolName": "get_weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should not include caller info when tool_use has no caller field', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_01Test',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01Test',
+                name: 'get_weather',
+                input: { city: 'Tokyo' },
+                // No caller field
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const { content } = await model.doGenerate({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": "{"city":"Tokyo"}",
+              "toolCallId": "toolu_01Test",
+              "toolName": "get_weather",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      describe('with fixture (multi-turn dice game)', () => {
+        let result: LanguageModelV3GenerateResult;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should parse content with text, server_tool_use, tool_use with caller, and code_execution_tool_result', () => {
+          expect(result.content).toMatchSnapshot();
+        });
+
+        it('should extract caller metadata for programmatic tool calls', () => {
+          const toolCalls = result.content.filter(
+            part => part.type === 'tool-call',
+          );
+
+          // The rollDie calls should have caller metadata pointing to code_execution
+          const rollDieCalls = toolCalls.filter(
+            tc => tc.toolName === 'rollDie',
+          );
+          expect(rollDieCalls.length).toBeGreaterThan(0);
+
+          for (const call of rollDieCalls) {
+            expect(call.providerMetadata?.anthropic?.caller).toEqual({
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CberhXc9TgYXrCZU8bQoks',
+            });
+          }
+        });
+
+        it('should include code_execution as provider-executed tool call', () => {
+          const codeExecCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          expect(codeExecCall).toBeDefined();
+          expect(codeExecCall).toMatchObject({
+            type: 'tool-call',
+            toolName: 'code_execution',
+            providerExecuted: true,
+          });
+        });
+
+        it('should include code_execution_tool_result as provider-executed tool result', () => {
+          const codeExecResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'code_execution',
+          );
+          expect(codeExecResult).toBeDefined();
+          expect(codeExecResult).toMatchObject({
+            type: 'tool-result',
+            toolName: 'code_execution',
+            result: {
+              stdout: expect.stringContaining('PLAYER 1 WINS THE GAME!'),
+              stderr: '',
+              return_code: 0,
+            },
+          });
+        });
+      });
+    });
+
     describe('web search tool', () => {
       describe('with fixture', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-search-tool.1');
@@ -2341,7 +2589,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('text response', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.1');
@@ -2392,7 +2640,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('text response without title', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.2');
@@ -2416,7 +2664,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('unavailable error', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-web-fetch-tool.error');
@@ -2442,7 +2690,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-regex.1');
@@ -2545,7 +2793,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+        let result: LanguageModelV3GenerateResult;
 
         beforeEach(async () => {
           prepareJsonFixtureResponse('anthropic-tool-search-bm25.1');
@@ -3254,7 +3502,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{"code":"print(\\"Hello, World!\\")"}",
+              "input": "{"type":"programmatic-tool-call","code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
@@ -3262,6 +3510,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             {
               "result": {
+                "content": [],
                 "return_code": 0,
                 "stderr": "",
                 "stdout": "Hello, World!
@@ -5915,6 +6164,294 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+    describe('programmatic tool calling', () => {
+      it('should include caller info when tool_use has caller field from code_execution', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"query_database","input":{},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"sql\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"SELECT * FROM users\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.input).toBe('{"sql": "SELECT * FROM users"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should include caller info when tool_use has direct caller type', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{},"caller":{"type":"direct"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"Tokyo\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'direct',
+              toolId: undefined,
+            },
+          },
+        });
+      });
+
+      it('should use non-empty input from content_block_start for deferred tool calls', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Deferred","name":"query_database","input":{"sql":"SELECT COUNT(*) FROM orders"},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.toolCallId).toBe('toolu_01Deferred');
+        expect(toolCall?.input).toBe('{"sql":"SELECT COUNT(*) FROM orders"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should NOT prepend empty {} input when deltas follow content_block_start', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            // Note: input is {} (empty object) - this should NOT be used as initial input
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"London\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.input).toBe('{"city": "London"}');
+      });
+
+      describe('with fixture (multi-turn dice game)', () => {
+        it('should stream programmatic tool calling with multiple message_start/stop sequences', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          expect(parts).toMatchSnapshot();
+        });
+
+        it('should extract caller metadata from streamed tool calls', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const toolCalls = parts.filter(
+            (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+              p.type === 'tool-call',
+          );
+
+          // Filter rollDie calls (not code_execution)
+          const rollDieCalls = toolCalls.filter(
+            tc => tc.toolName === 'rollDie',
+          );
+          expect(rollDieCalls.length).toBeGreaterThan(0);
+
+          // Each rollDie call should have caller metadata
+          for (const call of rollDieCalls) {
+            expect(call.providerMetadata?.anthropic?.caller).toEqual({
+              type: 'code_execution_20250825',
+              toolId: expect.stringMatching(/^srvtoolu_/),
+            });
+          }
+        });
+
+        it('should include code_execution_tool_result in stream', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const toolResults = parts.filter(p => p.type === 'tool-result');
+
+          // Should have code_execution result
+          const codeExecResult = toolResults.find(
+            tr => tr.type === 'tool-result' && tr.toolName === 'code_execution',
+          );
+          expect(codeExecResult).toBeDefined();
+          expect(codeExecResult).toMatchObject({
+            type: 'tool-result',
+            toolName: 'code_execution',
+          });
+        });
+      });
+    });
+
     describe('code execution 20250825 tool', () => {
       it('should stream code execution tool results', async () => {
         prepareChunksFixtureResponse('anthropic-code-execution-20250825.1');
@@ -5958,7 +6495,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('web fetch tool', () => {
       describe('txt response', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-web-fetch-tool.1');
@@ -5985,7 +6522,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+      let result: LanguageModelV3StreamResult;
 
       beforeEach(async () => {
         prepareChunksFixtureResponse('anthropic-web-search-tool.1');
@@ -6018,7 +6555,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
     describe('tool search tool', () => {
       describe('regex variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-regex.1');
@@ -6066,7 +6603,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       describe('bm25 variant', () => {
-        let result: Awaited<ReturnType<LanguageModelV3['doStream']>>;
+        let result: LanguageModelV3StreamResult;
 
         beforeEach(async () => {
           prepareChunksFixtureResponse('anthropic-tool-search-bm25.1');
