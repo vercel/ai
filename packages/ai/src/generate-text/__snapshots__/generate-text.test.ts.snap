@@ -1035,6 +1035,244 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
 ]
 `;
 
+exports[`generateText > programmatic tool calling > 5 steps: code_execution triggers client tool across multiple turns (dice game fixture) > step inputs > should include all previous messages in step 5 prompt (final step) 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Play a dice game between two players.",
+        "type": "text",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "user",
+  },
+  {
+    "content": [
+      {
+        "providerOptions": undefined,
+        "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+        "type": "text",
+      },
+      {
+        "input": {
+          "code": "game_loop()",
+        },
+        "providerExecuted": true,
+        "providerOptions": undefined,
+        "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+        "toolName": "code_execution",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "input": {
+          "player": "player1",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01DiUBRds64sNajVPTZRrDSM",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+      {
+        "input": {
+          "player": "player2",
+        },
+        "providerExecuted": undefined,
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01XQa3r3y1Fe8rnkGSncq626",
+        "toolName": "rollDie",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "output": {
+          "type": "json",
+          "value": 6,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01DiUBRds64sNajVPTZRrDSM",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+      {
+        "output": {
+          "type": "json",
+          "value": 3,
+        },
+        "providerOptions": undefined,
+        "toolCallId": "toolu_01XQa3r3y1Fe8rnkGSncq626",
+        "toolName": "rollDie",
+        "type": "tool-result",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+]
+`;
+
 exports[`generateText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFile {

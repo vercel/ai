@@ -2015,6 +2015,87 @@ describe('AnthropicMessagesLanguageModel', () => {
           ]
         `);
       });
+
+      describe('with fixture (multi-turn dice game)', () => {
+        let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+        });
+
+        it('should parse content with text, server_tool_use, tool_use with caller, and code_execution_tool_result', () => {
+          expect(result.content).toMatchSnapshot();
+        });
+
+        it('should extract caller metadata for programmatic tool calls', () => {
+          const toolCalls = result.content.filter(
+            part => part.type === 'tool-call',
+          );
+
+          // The rollDie calls should have caller metadata pointing to code_execution
+          const rollDieCalls = toolCalls.filter(
+            tc => tc.toolName === 'rollDie',
+          );
+          expect(rollDieCalls.length).toBeGreaterThan(0);
+
+          for (const call of rollDieCalls) {
+            expect(call.providerMetadata?.anthropic?.caller).toEqual({
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CberhXc9TgYXrCZU8bQoks',
+            });
+          }
+        });
+
+        it('should include code_execution as provider-executed tool call', () => {
+          const codeExecCall = result.content.find(
+            part =>
+              part.type === 'tool-call' && part.toolName === 'code_execution',
+          );
+          expect(codeExecCall).toBeDefined();
+          expect(codeExecCall).toMatchObject({
+            type: 'tool-call',
+            toolName: 'code_execution',
+            providerExecuted: true,
+          });
+        });
+
+        it('should include code_execution_tool_result as provider-executed tool result', () => {
+          const codeExecResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'code_execution',
+          );
+          expect(codeExecResult).toBeDefined();
+          expect(codeExecResult).toMatchObject({
+            type: 'tool-result',
+            toolName: 'code_execution',
+            result: {
+              stdout: expect.stringContaining('PLAYER 1 WINS THE GAME!'),
+              stderr: '',
+              return_code: 0,
+            },
+          });
+        });
+      });
     });
 
     describe('web search tool', () => {
@@ -6256,6 +6337,116 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         expect(toolCall).toBeDefined();
         expect(toolCall?.input).toBe('{"city": "London"}');
+      });
+
+      describe('with fixture (multi-turn dice game)', () => {
+        it('should stream programmatic tool calling with multiple message_start/stop sequences', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          expect(parts).toMatchSnapshot();
+        });
+
+        it('should extract caller metadata from streamed tool calls', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const toolCalls = parts.filter(
+            (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+              p.type === 'tool-call',
+          );
+
+          // Filter rollDie calls (not code_execution)
+          const rollDieCalls = toolCalls.filter(
+            tc => tc.toolName === 'rollDie',
+          );
+          expect(rollDieCalls.length).toBeGreaterThan(0);
+
+          // Each rollDie call should have caller metadata
+          for (const call of rollDieCalls) {
+            expect(call.providerMetadata?.anthropic?.caller).toEqual({
+              type: 'code_execution_20250825',
+              toolId: expect.stringMatching(/^srvtoolu_/),
+            });
+          }
+        });
+
+        it('should include code_execution_tool_result in stream', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const toolResults = parts.filter(p => p.type === 'tool-result');
+
+          // Should have code_execution result
+          const codeExecResult = toolResults.find(
+            tr => tr.type === 'tool-result' && tr.toolName === 'code_execution',
+          );
+          expect(codeExecResult).toBeDefined();
+          expect(codeExecResult).toMatchObject({
+            type: 'tool-result',
+            toolName: 'code_execution',
+          });
+        });
       });
     });
 
