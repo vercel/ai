@@ -18,18 +18,6 @@ export async function POST(request: Request) {
   return createAgentUIStreamResponse({
     agent: anthropicProgrammaticToolCallingAgent,
     uiMessages: messages,
-    messageMetadata({ part }) {
-      if (part.type === 'finish-step') {
-        const anthropicContainer = (
-          part.providerMetadata
-            ?.anthropic as unknown as AnthropicMessageMetadata
-        )?.container;
-
-        return {
-          containerId: anthropicContainer?.id,
-        };
-      }
-    },
     options: {
       containerId: lastAssistantMessage?.metadata?.containerId,
     },

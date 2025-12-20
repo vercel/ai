@@ -26,8 +26,9 @@ export default function ChatAnthropicProgrammaticToolCalling() {
         container.
       </p>
       <p className="mb-4 text-sm text-gray-500">
-        Try: &quot;Get the weather for Tokyo, Sydney, and London, then calculate
-        the average temperature&quot;
+        Try: &quot;Two players are playing a dice game. Each round both players
+        roll a die. The player with the higher roll wins the round. The first
+        player to win 3 rounds wins the game.&quot;
       </p>
 
       {messages.map(message => (
@@ -43,12 +44,12 @@ export default function ChatAnthropicProgrammaticToolCalling() {
                   <AnthropicCodeExecutionView invocation={part} key={index} />
                 );
               }
-              case 'tool-weather': {
+              case 'tool-rollDie': {
                 return (
                   <div key={index} className="text-gray-500">
                     {part.state === 'output-available'
-                      ? `Weather in ${part.input.city}: ${part.output.weather} (${part.output.temperature}°F)`
-                      : 'Fetching weather...'}
+                      ? `🎲 ${part.input.player} rolled: ${part.output.roll}`
+                      : `🎲 ${part.input?.player ?? 'Player'} rolling...`}
                   </div>
                 );
               }

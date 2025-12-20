@@ -1,4 +1,4 @@
-import { weatherToolWithProgrammaticCalling } from '@/tool/weather-tool-with-programmatic-calling';
+import { rollDieToolWithProgrammaticCalling } from '@/tool/roll-die-tool-with-programmatic-calling';
 import {
   anthropic,
   AnthropicProviderOptions,
@@ -14,7 +14,7 @@ export const anthropicProgrammaticToolCallingAgent = new ToolLoopAgent({
   }),
   tools: {
     code_execution: anthropic.tools.codeExecution_20250825(),
-    weather: weatherToolWithProgrammaticCalling,
+    rollDie: rollDieToolWithProgrammaticCalling,
   },
 
   prepareCall: ({ options, ...rest }) => ({
