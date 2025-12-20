@@ -320,16 +320,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           })),
         }),
 
-      // container with agent skills:
+      // container: For programmatic tool calling (just an ID string) or agent skills (object with id and skills)
       ...(anthropicOptions?.container && {
-        container: {
-          id: anthropicOptions.container.id,
-          skills: anthropicOptions.container.skills?.map(skill => ({
-            type: skill.type,
-            skill_id: skill.skillId,
-            version: skill.version,
-          })),
-        } satisfies AnthropicContainer,
+        container:
+          anthropicOptions.container.skills &&
+          anthropicOptions.container.skills.length > 0
+            ? // Object format when skills are provided (agent skills feature)
+              ({
+                id: anthropicOptions.container.id,
+                skills: anthropicOptions.container.skills.map(skill => ({
+                  type: skill.type,
+                  skill_id: skill.skillId,
+                  version: skill.version,
+                })),
+              } satisfies AnthropicContainer)
+            : // String format for container ID only (programmatic tool calling)
+              anthropicOptions.container.id,
       }),
 
       // prompt:
@@ -716,11 +722,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               text: JSON.stringify(part.input),
             });
           } else {
+            const caller = part.caller;
+            const callerInfo = caller
+              ? {
+                  type: caller.type,
+                  toolId: 'tool_id' in caller ? caller.tool_id : undefined,
+                }
+              : undefined;
+
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: part.name,
               input: JSON.stringify(part.input),
+              ...(callerInfo && {
+                providerMetadata: {
+                  anthropic: {
+                    caller: callerInfo,
+                  },
+                },
+              }),
             });
           }
 
@@ -744,11 +765,21 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             part.name === 'code_execution' ||
             part.name === 'web_fetch'
           ) {
+            // For code_execution, inject 'programmatic-tool-call' type when input has { code } format
+            const inputToSerialize =
+              part.name === 'code_execution' &&
+              part.input != null &&
+              typeof part.input === 'object' &&
+              'code' in part.input &&
+              !('type' in part.input)
+                ? { type: 'programmatic-tool-call', ...part.input }
+                : part.input;
+
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
               toolName: toolNameMapping.toCustomToolName(part.name),
-              input: JSON.stringify(part.input),
+              input: JSON.stringify(inputToSerialize),
               providerExecuted: true,
             });
           } else if (
@@ -888,6 +919,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 stdout: part.content.stdout,
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
+                content: part.content.content ?? [],
               },
             });
           } else if (part.content.type === 'code_execution_tool_result_error') {
@@ -1037,6 +1069,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           providerExecuted?: boolean;
           firstDelta: boolean;
           providerToolName?: string;
+          caller?: {
+            type: 'code_execution_20250825' | 'direct';
+            toolId?: string;
+          };
         }
       | { type: 'text' | 'reasoning' }
     > = {};
@@ -1153,12 +1189,32 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                       id: String(value.index),
                     });
                   } else {
+                    // Extract caller info for type-safe access
+                    const caller = part.caller;
+                    const callerInfo = caller
+                      ? {
+                          type: caller.type,
+                          toolId:
+                            'tool_id' in caller ? caller.tool_id : undefined,
+                        }
+                      : undefined;
+
+                    // Programmatic tool calling: for deferred tool calls from code_execution,
+                    // input may be present directly in content_block_start.
+                    // Only use if non-empty (empty {} means input comes via deltas)
+                    const hasNonEmptyInput =
+                      part.input && Object.keys(part.input).length > 0;
+                    const initialInput = hasNonEmptyInput
+                      ? JSON.stringify(part.input)
+                      : '';
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
                       toolCallId: part.id,
                       toolName: part.name,
-                      input: '',
-                      firstDelta: true,
+                      input: initialInput,
+                      firstDelta: initialInput.length === 0,
+                      ...(callerInfo && { caller: callerInfo }),
                     };
 
                     controller.enqueue({
@@ -1335,6 +1391,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         stdout: part.content.stdout,
                         stderr: part.content.stderr,
                         return_code: part.content.return_code,
+                        content: part.content.content ?? [],
                       },
                     });
                   } else if (
@@ -1472,13 +1529,42 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                         id: contentBlock.toolCallId,
                       });
 
+                      // For code_execution, inject 'programmatic-tool-call' type
+                      // when input has { code } format (programmatic tool calling)
+                      let finalInput =
+                        contentBlock.input === '' ? '{}' : contentBlock.input;
+                      if (contentBlock.providerToolName === 'code_execution') {
+                        try {
+                          const parsed = JSON.parse(finalInput);
+                          if (
+                            parsed != null &&
+                            typeof parsed === 'object' &&
+                            'code' in parsed &&
+                            !('type' in parsed)
+                          ) {
+                            finalInput = JSON.stringify({
+                              type: 'programmatic-tool-call',
+                              ...parsed,
+                            });
+                          }
+                        } catch {
+                          // ignore parse errors, use original input
+                        }
+                      }
+
                       controller.enqueue({
                         type: 'tool-call',
                         toolCallId: contentBlock.toolCallId,
                         toolName: contentBlock.toolName,
-                        input:
-                          contentBlock.input === '' ? '{}' : contentBlock.input,
+                        input: finalInput,
                         providerExecuted: contentBlock.providerExecuted,
+                        ...(contentBlock.caller && {
+                          providerMetadata: {
+                            anthropic: {
+                              caller: contentBlock.caller,
+                            },
+                          },
+                        }),
                       });
                     }
                     break;
@@ -1628,11 +1714,80 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               cacheCreationInputTokens =
                 value.message.usage.cache_creation_input_tokens ?? null;
 
+              if (value.message.container != null) {
+                container = {
+                  expiresAt: value.message.container.expires_at,
+                  id: value.message.container.id,
+                  skills: null,
+                };
+              }
+
+              if (value.message.stop_reason != null) {
+                finishReason = mapAnthropicStopReason({
+                  finishReason: value.message.stop_reason,
+                  isJsonResponseFromTool,
+                });
+              }
+
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.message.id ?? undefined,
                 modelId: value.message.model ?? undefined,
               });
+
+              // Programmatic tool calling: process pre-populated content blocks
+              // (for deferred tool calls, content may be in message_start)
+              if (value.message.content != null) {
+                for (
+                  let contentIndex = 0;
+                  contentIndex < value.message.content.length;
+                  contentIndex++
+                ) {
+                  const part = value.message.content[contentIndex];
+                  if (part.type === 'tool_use') {
+                    const caller = part.caller;
+                    const callerInfo = caller
+                      ? {
+                          type: caller.type,
+                          toolId:
+                            'tool_id' in caller ? caller.tool_id : undefined,
+                        }
+                      : undefined;
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: part.name,
+                    });
+
+                    const inputStr = JSON.stringify(part.input ?? {});
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: part.id,
+                      delta: inputStr,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-end',
+                      id: part.id,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: part.name,
+                      input: inputStr,
+                      ...(callerInfo && {
+                        providerMetadata: {
+                          anthropic: {
+                            caller: callerInfo,
+                          },
+                        },
+                      }),
+                    });
+                  }
+                }
+              }
 
               return;
             }

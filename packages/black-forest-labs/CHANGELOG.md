@@ -1,5 +1,21 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 1.0.0-beta.25
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
 ## 1.0.0-beta.24
 
 ### Patch Changes

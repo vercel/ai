@@ -1,5 +1,27 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.87
+
+### Patch Changes
+
+- ee71658: feat (provider/gateway): add zero data retention provider option
+
+## 2.0.0-beta.86
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
 ## 2.0.0-beta.85
 
 ### Patch Changes

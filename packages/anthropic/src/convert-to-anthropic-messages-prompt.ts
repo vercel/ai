@@ -540,6 +540,26 @@ export async function convertToAnthropicMessagesPrompt({
                       input: part.input,
                       cache_control: cacheControl,
                     });
+                  } else if (
+                    // code execution 20250825 programmatic tool calling:
+                    // Strip the fake 'programmatic-tool-call' type before sending to Anthropic
+                    providerToolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    part.input.type === 'programmatic-tool-call'
+                  ) {
+                    const { type: _, ...inputWithoutType } = part.input as {
+                      type: string;
+                      code: string;
+                    };
+                    anthropicContent.push({
+                      type: 'server_tool_use',
+                      id: part.toolCallId,
+                      name: 'code_execution',
+                      input: inputWithoutType,
+                      cache_control: cacheControl,
+                    });
                   } else {
                     if (
                       providerToolName === 'code_execution' || // code execution 20250522
@@ -575,11 +595,28 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
+                // Extract caller info from provider options for programmatic tool calling
+                const callerOptions = part.providerOptions?.anthropic as
+                  | { caller?: { type: string; toolId?: string } }
+                  | undefined;
+                const caller = callerOptions?.caller
+                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                    callerOptions.caller.toolId
+                    ? {
+                        type: 'code_execution_20250825' as const,
+                        tool_id: callerOptions.caller.toolId,
+                      }
+                    : callerOptions.caller.type === 'direct'
+                      ? { type: 'direct' as const }
+                      : undefined
+                  : undefined;
+
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.input,
+                  ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
                 break;
@@ -613,6 +650,47 @@ export async function convertToAnthropicMessagesPrompt({
                   });
                 } else if (providerToolName === 'code_execution') {
                   const output = part.output;
+
+                  // Handle error types for code_execution tools (e.g., from programmatic tool calling)
+                  if (
+                    output.type === 'error-text' ||
+                    output.type === 'error-json'
+                  ) {
+                    let errorInfo: { type?: string; errorCode?: string } = {};
+                    try {
+                      if (typeof output.value === 'string') {
+                        errorInfo = JSON.parse(output.value);
+                      } else if (
+                        typeof output.value === 'object' &&
+                        output.value !== null
+                      ) {
+                        errorInfo = output.value as typeof errorInfo;
+                      }
+                    } catch {}
+
+                    if (errorInfo.type === 'code_execution_tool_result_error') {
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: 'code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: {
+                          type: 'bash_code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                      });
+                    }
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({
@@ -653,6 +731,7 @@ export async function convertToAnthropicMessagesPrompt({
                         stdout: codeExecutionOutput.stdout,
                         stderr: codeExecutionOutput.stderr,
                         return_code: codeExecutionOutput.return_code,
+                        content: codeExecutionOutput.content ?? [],
                       },
                       cache_control: cacheControl,
                     });
@@ -663,24 +742,40 @@ export async function convertToAnthropicMessagesPrompt({
                       schema: codeExecution_20250825OutputSchema,
                     });
 
-                    anthropicContent.push(
+                    if (codeExecutionOutput.type === 'code_execution_result') {
+                      // Programmatic tool calling result - same format as 20250522
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: codeExecutionOutput.type,
+                          stdout: codeExecutionOutput.stdout,
+                          stderr: codeExecutionOutput.stderr,
+                          return_code: codeExecutionOutput.return_code,
+                          content: codeExecutionOutput.content ?? [],
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else if (
                       codeExecutionOutput.type ===
                         'bash_code_execution_result' ||
-                        codeExecutionOutput.type ===
-                          'bash_code_execution_tool_result_error'
-                        ? {
-                            type: 'bash_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          }
-                        : {
-                            type: 'text_editor_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          },
-                    );
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_tool_result_error'
+                    ) {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'text_editor_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    }
                   }
                   break;
                 }

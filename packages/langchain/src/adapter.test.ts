@@ -106,6 +106,7 @@ describe('toUIMessageStream', () => {
           "data": {
             "custom": "data",
           },
+          "id": undefined,
           "transient": true,
           "type": "data-custom",
         },
@@ -132,6 +133,7 @@ describe('toUIMessageStream', () => {
           "data": {
             "data": "value",
           },
+          "id": undefined,
           "transient": true,
           "type": "data-custom",
         },
@@ -303,6 +305,12 @@ describe('toUIMessageStream', () => {
         },
         {
           "dynamic": true,
+          "toolCallId": "call-123",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
           "input": {
             "city": "SF",
           },
@@ -347,6 +355,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-456",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
         },
         {
           "dynamic": true,
@@ -461,13 +475,19 @@ describe('toUIMessageStream', () => {
       toUIMessageStream(inputStream),
     );
 
-    // Should only have one tool call event from values (not from streaming)
+    // Should have tool-input-start followed by tool-input-available from values
     const toolCallEvents = result.filter(
       (e: { type: string }) =>
         e.type === 'tool-input-start' || e.type === 'tool-input-available',
     );
-    expect(toolCallEvents).toHaveLength(1);
+    expect(toolCallEvents).toHaveLength(2);
     expect(toolCallEvents[0]).toEqual({
+      type: 'tool-input-start',
+      toolCallId: 'call-real-id',
+      toolName: 'get_weather',
+      dynamic: true,
+    });
+    expect(toolCallEvents[1]).toEqual({
       type: 'tool-input-available',
       toolCallId: 'call-real-id',
       toolName: 'get_weather',

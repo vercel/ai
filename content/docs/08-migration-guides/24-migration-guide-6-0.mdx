@@ -566,12 +566,6 @@ const resultNoStrict = await generateObject({
 
 The `structuredOutputs` provider option has been removed from chat models ([PR #10752](https://github.com/vercel/ai/pull/10752)). Use `strictJsonSchema` instead.
 
-#### Unrecognized Models Treated as Reasoning Models
-
-The `@ai-sdk/openai` provider now treats unrecognized model IDs as reasoning models by default ([PR #9976](https://github.com/vercel/ai/pull/9976)). Previously, unrecognized models were treated as non-reasoning models.
-
-This change impacts users who configure `@ai-sdk/openai` with a custom `baseUrl` to use non-OpenAI models. Reasoning models exclude certain parameters like `temperature`, which may cause unexpected behavior if the model does not support reasoning. Consider using `@ai-sdk/openai-compatible` instead.
-
 ### Azure
 
 #### Default Provider Uses Responses API

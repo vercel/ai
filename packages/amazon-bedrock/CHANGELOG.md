@@ -1,5 +1,37 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.93
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
+
+  The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
+  - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
+  - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
+  - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
+
+- 9ab6ebe: Add stop sequence support for amazon bedrock provider
+
 ## 4.0.0-beta.101
 
 ### Patch Changes

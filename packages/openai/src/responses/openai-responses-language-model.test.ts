@@ -751,6 +751,37 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       );
 
+      it('should allow forcing reasoning mode for unrecognized model IDs via providerOptions', async () => {
+        const { warnings } = await createModel(
+          'stealth-reasoning-model',
+        ).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              forceReasoning: true,
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'stealth-reasoning-model',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send xhigh reasoningEffort for codex-max model', async () => {
         const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
           prompt: TEST_PROMPT,

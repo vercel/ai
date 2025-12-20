@@ -2,9 +2,10 @@
 
 import { useChat } from '@ai-sdk/react';
 import { ChatContainer } from '../components/chat-container';
+import { type CustomDataMessage } from './types';
 
 export default function Chat() {
-  const { messages, sendMessage, status, error } = useChat();
+  const { messages, sendMessage, status, error } = useChat<CustomDataMessage>();
 
   return (
     <ChatContainer

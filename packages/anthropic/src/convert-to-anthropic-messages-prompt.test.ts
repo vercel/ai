@@ -1272,40 +1272,41 @@ describe('assistant messages', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-      {
-        "betas": Set {},
-        "prompt": {
-          "messages": [
-            {
-              "content": [
-                {
-                  "cache_control": undefined,
-                  "id": "srvtoolu_01XyZ1234567890",
-                  "input": {
-                    "code": "print(\"Hello, world!\")",
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01XyZ1234567890",
+                    "input": {
+                      "code": "print("Hello, world!")",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
                   },
-                  "name": "code_execution",
-                  "type": "server_tool_use",
-                },
-                {
-                  "cache_control": undefined,
-                  "content": {
-                    "return_code": 0,
-                    "stderr": "",
-                    "stdout": "Hello, world!\",
-                    "type": "code_execution_result",
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "Hello, world!",
+                      "type": "code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_01XyZ1234567890",
+                    "type": "code_execution_tool_result",
                   },
-                  "tool_use_id": "srvtoolu_01XyZ1234567890",
-                  "type": "code_execution_tool_result",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          "system": undefined,
-        },
-      }
-    `);
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });

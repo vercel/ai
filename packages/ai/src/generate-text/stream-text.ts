@@ -65,6 +65,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -671,6 +672,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
 
+    // Track provider-executed tool calls that support deferred results
+    // (e.g., code_execution in programmatic tool calling scenarios).
+    // These tools may not return their results in the same turn as their call.
+    const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
     let rootSpan!: Span;
 
     let activeTextContent: Record<
@@ -1231,6 +1237,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           experimental_context =
             prepareStepResult?.experimental_context ?? experimental_context;
 
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
           const {
             result: { stream, response, request },
             doStreamSpan,
@@ -1289,7 +1299,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers,
                   includeRawChunks,
@@ -1604,10 +1614,45 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     toolOutput => toolOutput.providerExecuted !== true,
                   );
 
+                  // Track provider-executed tool calls that support deferred results.
+                  // In programmatic tool calling, a server tool (e.g., code_execution) may
+                  // trigger a client tool, and the server tool's result is deferred until
+                  // the client tool's result is sent back.
+                  for (const toolCall of stepToolCalls) {
+                    if (toolCall.providerExecuted !== true) continue;
+                    const tool = tools?.[toolCall.toolName];
+                    if (
+                      tool?.type === 'provider' &&
+                      tool.supportsDeferredResults
+                    ) {
+                      // Check if this tool call already has a result in the current step
+                      const hasResultInStep = stepToolOutputs.some(
+                        output =>
+                          output.type === 'tool-result' &&
+                          output.toolCallId === toolCall.toolCallId,
+                      );
+                      if (!hasResultInStep) {
+                        pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                          toolName: toolCall.toolName,
+                        });
+                      }
+                    }
+                  }
+
+                  // Mark deferred tool calls as resolved when we receive their results
+                  for (const output of stepToolOutputs) {
+                    if (output.type === 'tool-result') {
+                      pendingDeferredToolCalls.delete(output.toolCallId);
+                    }
+                  }
+
                   if (
-                    clientToolCalls.length > 0 &&
-                    // all current tool calls have outputs (incl. execution errors):
-                    clientToolOutputs.length === clientToolCalls.length &&
+                    // Continue if:
+                    // 1. There are client tool calls that have all been executed, OR
+                    // 2. There are pending deferred results from provider-executed tools
+                    ((clientToolCalls.length > 0 &&
+                      clientToolOutputs.length === clientToolCalls.length) ||
+                      pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,
