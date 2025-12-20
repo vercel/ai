@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';

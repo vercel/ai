@@ -1,16 +1,16 @@
 import {
   APICallError,
+  JSONValue,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
-  JSONValue,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3CallOptions,
   LanguageModelV3StreamResult,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -25,6 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
@@ -33,9 +34,9 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { mcpOutputSchema } from '../tool/mcp';
 import { shellInputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
-import { mcpOutputSchema } from '../tool/mcp';
 import {
   convertOpenAIResponsesUsage,
   OpenAIResponsesUsage,
@@ -57,7 +58,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';

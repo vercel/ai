@@ -1,11 +1,11 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3Prompt,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  UnsupportedFunctionalityError,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -13,7 +13,6 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  generateId,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -23,10 +22,10 @@ import {
   cohereChatModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
+import { prepareTools } from './cohere-prepare-tools';
 import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
-import { prepareTools } from './cohere-prepare-tools';
 
 type CohereChatConfig = {
   provider: string;

@@ -1,10 +1,13 @@
 import {
   APICallError,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,13 +22,13 @@ import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
 import { huggingfaceFailedResponseHandler } from '../huggingface-error';
 import {
-  HuggingFaceResponsesUsage,
   convertHuggingFaceResponsesUsage,
+  HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
-import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
-import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
+import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
+import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
 export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
