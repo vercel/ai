@@ -127,6 +127,9 @@ export async function convertToXaiResponsesInput({
 
       case 'tool': {
         for (const part of message.content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           let outputValue: string;
