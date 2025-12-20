@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.0-beta.162
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/gateway@2.0.0-beta.88
+
 ## 6.0.0-beta.161
 
 ### Patch Changes
