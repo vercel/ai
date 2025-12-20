@@ -1,5 +1,6 @@
 import {
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';

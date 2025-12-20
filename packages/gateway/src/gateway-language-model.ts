@@ -4,6 +4,8 @@ import type {
   SharedV3Warning,
   LanguageModelV3FilePart,
   LanguageModelV3StreamPart,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

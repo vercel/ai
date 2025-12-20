@@ -1,4 +1,9 @@
-import { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamResult,
+} from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 

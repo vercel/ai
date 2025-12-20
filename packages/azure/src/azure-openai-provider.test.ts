@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
