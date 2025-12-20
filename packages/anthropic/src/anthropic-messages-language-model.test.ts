@@ -3419,7 +3419,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "input": "{"code":"print(\\"Hello, World!\\")"}",
+              "input": "{"type":"programmatic-tool-call","code":"print(\\"Hello, World!\\")"}",
               "providerExecuted": true,
               "toolCallId": "tool_1",
               "toolName": "code_execution",
