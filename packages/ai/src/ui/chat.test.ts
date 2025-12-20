@@ -98,7 +98,7 @@ describe('Chat', () => {
           formatChunk({ type: 'finish-step' }),
           formatChunk({
             type: 'finish',
-            finishReason: { unified: 'stop', raw: 'stop' },
+            finishReason: 'stop',
           }),
         ],
       };
@@ -908,7 +908,7 @@ describe('Chat', () => {
         formatChunk({ type: 'finish-step' }),
         formatChunk({
           type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
+          finishReason: 'stop',
         }),
       ],
     };
@@ -1565,7 +1565,7 @@ describe('Chat', () => {
       controller1.write(
         formatChunk({
           type: 'finish',
-          finishReason: { unified: 'stop', raw: 'stop' },
+          finishReason: 'stop',
         }),
       );
 
@@ -1936,7 +1936,7 @@ describe('Chat', () => {
             formatChunk({ type: 'finish-step' }),
             formatChunk({
               type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
+              finishReason: 'stop',
             }),
           ],
         },
@@ -2442,7 +2442,7 @@ describe('Chat', () => {
               formatChunk({ type: 'finish-step' }),
               formatChunk({
                 type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
+                finishReason: 'stop',
               }),
             ],
           },

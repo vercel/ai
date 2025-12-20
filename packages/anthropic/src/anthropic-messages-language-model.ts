@@ -982,10 +982,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapAnthropicStopReason({
-        finishReason: response.stop_reason,
-        isJsonResponseFromTool,
-      }),
+      finishReason: {
+        unified: mapAnthropicStopReason({
+          finishReason: response.stop_reason,
+          isJsonResponseFromTool,
+        }),
+        raw: response.stop_reason ?? undefined,
+      },
       usage: convertAnthropicMessagesUsage(response.usage),
       request: { body: args },
       response: {
@@ -1728,10 +1731,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               }
 
               if (value.message.stop_reason != null) {
-                finishReason = mapAnthropicStopReason({
-                  finishReason: value.message.stop_reason,
-                  isJsonResponseFromTool,
-                });
+                finishReason = {
+                  unified: mapAnthropicStopReason({
+                    finishReason: value.message.stop_reason,
+                    isJsonResponseFromTool,
+                  }),
+                  raw: value.message.stop_reason,
+                };
               }
 
               controller.enqueue({
@@ -1800,10 +1806,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             case 'message_delta': {
               usage.output_tokens = value.usage.output_tokens;
 
-              finishReason = mapAnthropicStopReason({
-                finishReason: value.delta.stop_reason,
-                isJsonResponseFromTool,
-              });
+              finishReason = {
+                unified: mapAnthropicStopReason({
+                  finishReason: value.delta.stop_reason,
+                  isJsonResponseFromTool,
+                }),
+                raw: value.delta.stop_reason ?? undefined,
+              };
 
               stopSequence = value.delta.stop_sequence ?? null;
               container =

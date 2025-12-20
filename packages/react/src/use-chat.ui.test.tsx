@@ -312,7 +312,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatChunk({
         type: 'finish',
-        finishReason: { unified: 'stop', raw: 'stop' },
+        finishReason: 'stop',
         messageMetadata: {
           example: 'metadata',
         },

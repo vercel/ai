@@ -1,6 +1,7 @@
 import {
   getErrorMessage,
   LanguageModelV3,
+  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -1328,7 +1329,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           const activeToolCallToolNames: Record<string, string> = {};
 
-          let stepFinishReason: FinishReason = 'unknown';
+          let stepFinishReason: FinishReason = 'other';
+
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;

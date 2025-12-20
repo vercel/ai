@@ -376,7 +376,7 @@ functionality that can be fully encapsulated in the provider.
 
           case 'finish': {
             finishEvent = {
-              finishReason: value.finishReason,
+              finishReason: value.finishReason?.unified,
               usage: value.usage,
               warnings,
               response: result.response,
