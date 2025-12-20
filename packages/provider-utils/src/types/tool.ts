@@ -248,6 +248,8 @@ The arguments for configuring the tool. Must match the expected arguments define
          *
          * This flag allows the AI SDK to handle tool results that arrive without
          * a matching tool call in the current response.
+         *
+         * @default false
          */
         supportsDeferredResults?: boolean;
       }

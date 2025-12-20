@@ -87,6 +87,8 @@ export function createProviderToolFactoryWithOutputSchema<
    * tool call (e.g., when using programmatic tool calling where a server tool
    * triggers a client-executed tool, and the server tool's result is deferred
    * until the client tool is resolved).
+   *
+   * @default false
    */
   supportsDeferredResults?: boolean;
 }): ProviderToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS> {
