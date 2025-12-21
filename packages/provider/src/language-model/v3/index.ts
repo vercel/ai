@@ -17,6 +17,5 @@ export * from './language-model-v3-text';
 export * from './language-model-v3-tool-approval-request';
 export * from './language-model-v3-tool-call';
 export * from './language-model-v3-tool-choice';
-export * from './language-model-v3-tool-approval-request';
 export * from './language-model-v3-tool-result';
 export * from './language-model-v3-usage';

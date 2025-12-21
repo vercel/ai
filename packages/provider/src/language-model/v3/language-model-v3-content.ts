@@ -12,6 +12,5 @@ export type LanguageModelV3Content =
   | LanguageModelV3File
   | LanguageModelV3ToolApprovalRequest
   | LanguageModelV3Source
-  | LanguageModelV3ToolApprovalRequest
   | LanguageModelV3ToolCall
   | LanguageModelV3ToolResult;
