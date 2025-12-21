@@ -42,6 +42,7 @@
     { "path": "packages/svelte" },
     { "path": "packages/test-server" },
     { "path": "packages/togetherai" },
+    { "path": "packages/typedriver" },
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
     { "path": "packages/vue" },
