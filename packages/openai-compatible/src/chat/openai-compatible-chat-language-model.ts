@@ -2,9 +2,12 @@ import {
   APICallError,
   InvalidResponseDataError,
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -111,7 +114,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     seed,
     toolChoice,
     tools,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
@@ -209,8 +212,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
@@ -285,7 +288,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
+      finishReason: {
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
+      },
       usage: convertOpenAICompatibleChatUsage(responseBody.usage),
       providerMetadata,
       request: { body },
@@ -299,8 +305,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = {
@@ -341,7 +347,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
@@ -367,7 +376,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -376,7 +385,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in chunk.value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({
                 type: 'error',
                 error: chunk.value.error.message,
@@ -404,9 +413,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAICompatibleFinishReason(
-                choice.finish_reason,
-              );
+              finishReason = {
+                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
+                raw: choice.finish_reason ?? undefined,
+              };
             }
 
             if (choice?.delta == null) {

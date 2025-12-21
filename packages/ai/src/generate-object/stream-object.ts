@@ -573,7 +573,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         // store information for onFinish callback:
         let warnings: SharedV3Warning[] | undefined;
         let usage: LanguageModelUsage = createNullLanguageModelUsage();
-        let finishReason: LanguageModelV3FinishReason | undefined;
+        let finishReason: FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
@@ -696,7 +696,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason;
+                    finishReason = chunk.finishReason.unified;
 
                     // store usage and metadata for promises and onFinish callback:
                     usage = asLanguageModelUsage(chunk.usage);
@@ -704,6 +704,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                     controller.enqueue({
                       ...chunk,
+                      finishReason: chunk.finishReason.unified,
                       usage,
                       response: fullResponse,
                     });
@@ -723,7 +724,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       ...fullResponse,
                       headers: response?.headers,
                     });
-                    self._finishReason.resolve(finishReason ?? 'unknown');
+                    self._finishReason.resolve(finishReason ?? 'other');
 
                     try {
                       object = await parseAndValidateObjectResultWithRepair(

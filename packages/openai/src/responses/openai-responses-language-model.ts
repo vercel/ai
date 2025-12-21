@@ -1,15 +1,18 @@
 import {
   APICallError,
+  JSONValue,
   LanguageModelV3,
   LanguageModelV3Prompt,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  SharedV3ProviderMetadata,
+  LanguageModelV3StreamResult,
   LanguageModelV3ToolApprovalRequest,
-  JSONValue,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -24,6 +27,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
@@ -32,9 +36,9 @@ import {
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
 import { localShellInputSchema } from '../tool/local-shell';
+import { mcpOutputSchema } from '../tool/mcp';
 import { shellInputSchema } from '../tool/shell';
 import { webSearchOutputSchema } from '../tool/web-search';
-import { mcpOutputSchema } from '../tool/mcp';
 import {
   convertOpenAIResponsesUsage,
   OpenAIResponsesUsage,
@@ -56,7 +60,6 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 
 /**
  * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
@@ -118,7 +121,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
@@ -148,6 +151,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    const isReasoningModel =
+      openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
         type: 'unsupported',
@@ -175,7 +181,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       await convertToOpenAIResponsesInput({
         prompt,
         toolNameMapping,
-        systemMessageMode: modelCapabilities.systemMessageMode,
+        systemMessageMode:
+          openaiOptions?.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -237,7 +247,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const store = openaiOptions?.store;
 
     // store defaults to true in the OpenAI responses API, so check for false exactly:
-    if (store === false && modelCapabilities.isReasoningModel) {
+    if (store === false && isReasoningModel) {
       addInclude('reasoning.encrypted_content');
     }
 
@@ -286,7 +296,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       truncation: openaiOptions?.truncation,
 
       // model-specific settings:
-      ...(modelCapabilities.isReasoningModel &&
+      ...(isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
@@ -302,7 +312,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
-    if (modelCapabilities.isReasoningModel) {
+    if (isReasoningModel) {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
@@ -400,8 +410,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const {
       args: body,
       warnings,
@@ -712,7 +722,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_list_tools': {
-          // Skip listTools - we don't expose this to the UI or send it back
+          // skip
           break;
         }
 
@@ -847,10 +857,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapOpenAIResponseFinishReason({
-        finishReason: response.incomplete_details?.reason,
-        hasFunctionCall,
-      }),
+      finishReason: {
+        unified: mapOpenAIResponseFinishReason({
+          finishReason: response.incomplete_details?.reason,
+          hasFunctionCall,
+        }),
+        raw: response.incomplete_details?.reason ?? undefined,
+      },
       usage: convertOpenAIResponsesUsage(usage),
       request: { body },
       response: {
@@ -866,8 +879,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       args: body,
       warnings,
@@ -905,7 +918,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string
     >();
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: OpenAIResponsesUsage | undefined = undefined;
     const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
@@ -960,7 +976,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -1297,6 +1313,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_list_tools') {
                 // Skip listTools - we don't expose this to the UI or send it back
                 ongoingToolCalls[value.output_index] = undefined;
+
+                // skip
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -1565,10 +1583,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ] = 'can-conclude';
               }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = mapOpenAIResponseFinishReason({
-                finishReason: value.response.incomplete_details?.reason,
-                hasFunctionCall,
-              });
+              finishReason = {
+                unified: mapOpenAIResponseFinishReason({
+                  finishReason: value.response.incomplete_details?.reason,
+                  hasFunctionCall,
+                }),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
               usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;

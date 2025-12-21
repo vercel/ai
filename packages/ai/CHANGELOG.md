@@ -1,5 +1,60 @@
 # ai
 
+## 6.0.0-beta.165
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/gateway@2.0.0-beta.91
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 6.0.0-beta.164
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.90
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 6.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/gateway@2.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 6.0.0-beta.162
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/gateway@2.0.0-beta.88
+
+## 6.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [ee71658]
+  - @ai-sdk/gateway@2.0.0-beta.87
+
+## 6.0.0-beta.160
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.86
+
 ## 6.0.0-beta.159
 
 ### Patch Changes

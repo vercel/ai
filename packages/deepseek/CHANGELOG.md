@@ -1,5 +1,46 @@
 # @ai-sdk/deepseek
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
 ## 2.0.0-beta.56
 
 ### Patch Changes

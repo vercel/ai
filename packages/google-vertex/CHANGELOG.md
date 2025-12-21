@@ -1,5 +1,69 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.132
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/anthropic@3.0.0-beta.96
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/google@3.0.0-beta.88
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 4.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/anthropic@3.0.0-beta.95
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/google@3.0.0-beta.87
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 4.0.0-beta.130
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/anthropic@3.0.0-beta.94
+  - @ai-sdk/google@3.0.0-beta.86
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 4.0.0-beta.129
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.93
+  - @ai-sdk/google@3.0.0-beta.85
+
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [fd788ce]
+  - @ai-sdk/google@3.0.0-beta.84
+
+## 4.0.0-beta.127
+
+### Patch Changes
+
+- Updated dependencies [166b6d7]
+  - @ai-sdk/google@3.0.0-beta.83
+
+## 4.0.0-beta.126
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/google@3.0.0-beta.82
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
 ## 4.0.0-beta.125
 
 ### Patch Changes

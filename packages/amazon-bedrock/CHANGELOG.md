@@ -1,5 +1,52 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/anthropic@3.0.0-beta.96
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/anthropic@3.0.0-beta.95
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 4.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/anthropic@3.0.0-beta.94
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.93
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
 ## 4.0.0-beta.102
 
 ### Patch Changes

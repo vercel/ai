@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+
 ## 3.0.0-beta.7
 
 ### Patch Changes

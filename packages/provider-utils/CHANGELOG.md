@@ -1,5 +1,40 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider@3.0.0-beta.28
+
 ## 4.0.0-beta.53
 
 ### Patch Changes

@@ -134,7 +134,6 @@ export async function convertToXaiResponsesInput({
           if (part.type === 'tool-approval-response') {
             continue;
           }
-
           const output = part.output;
 
           let outputValue: string;

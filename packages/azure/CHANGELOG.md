@@ -1,5 +1,58 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.112
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/openai@3.0.0-beta.110
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 3.0.0-beta.111
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/openai@3.0.0-beta.109
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 3.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/openai@3.0.0-beta.108
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/openai@3.0.0-beta.107
+
+## 3.0.0-beta.108
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/openai@3.0.0-beta.106
+
+## 3.0.0-beta.107
+
+### Patch Changes
+
+- Updated dependencies [88574c1]
+  - @ai-sdk/openai@3.0.0-beta.105
+
 ## 3.0.0-beta.106
 
 ### Patch Changes

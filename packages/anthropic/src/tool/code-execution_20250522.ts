@@ -12,6 +12,15 @@ export const codeExecution_20250522OutputSchema = lazySchema(() =>
       stdout: z.string(),
       stderr: z.string(),
       return_code: z.number(),
+      content: z
+        .array(
+          z.object({
+            type: z.literal('code_execution_output'),
+            file_id: z.string(),
+          }),
+        )
+        .optional()
+        .default([]),
     }),
   ),
 );
@@ -36,6 +45,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
     stdout: string;
     stderr: string;
     return_code: number;
+    content: Array<{ type: 'code_execution_output'; file_id: string }>;
   },
   {}
 >({

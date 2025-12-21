@@ -10,6 +10,7 @@ export type LanguageModelV3Content =
   | LanguageModelV3Text
   | LanguageModelV3Reasoning
   | LanguageModelV3File
+  | LanguageModelV3ToolApprovalRequest
   | LanguageModelV3Source
   | LanguageModelV3ToolApprovalRequest
   | LanguageModelV3ToolCall
