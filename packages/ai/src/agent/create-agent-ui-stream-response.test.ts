@@ -216,7 +216,7 @@ describe('createAgentUIStreamResponse', () => {
             },
           ]
         `);
-      });
+    });
 
     it('should return the UI message stream response', () => {
       expect(decodedChunks).toMatchInlineSnapshot(`
