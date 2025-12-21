@@ -260,6 +260,10 @@ export async function convertToAnthropicMessagesPrompt({
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
 
+                if (part.type === 'tool-approval-response') {
+                  continue;
+                }
+
                 // cache control: first add cache control from part.
                 // for the last part of a message,
                 // check also if the message has cache control.

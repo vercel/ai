@@ -1039,62 +1039,65 @@ function asContent<TOOLS extends ToolSet>({
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
   tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
-  return [
-    ...content.map(part => {
-      switch (part.type) {
-        case 'text':
-        case 'reasoning':
-        case 'source':
-          return part;
+  const contentParts: Array<ContentPart<TOOLS>> = [];
 
-        case 'file': {
-          return {
-            type: 'file' as const,
-            file: new DefaultGeneratedFile(part),
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-          };
-        }
+  for (const part of content) {
+    switch (part.type) {
+      case 'text':
+      case 'reasoning':
+      case 'source':
+        contentParts.push(part);
+        break;
 
-        case 'tool-call': {
-          return toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
-        }
+      case 'file': {
+        contentParts.push({
+          type: 'file' as const,
+          file: new DefaultGeneratedFile(part),
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      }
 
-        case 'tool-result': {
-          const toolCall = toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          );
+      case 'tool-call': {
+        contentParts.push(
+          toolCalls.find(toolCall => toolCall.toolCallId === part.toolCallId)!,
+        );
+        break;
+      }
 
-          // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
-          // When a server tool (like code_execution) triggers a client tool, the server tool's
-          // result may be deferred to a later turn. In this case, there's no matching tool-call
-          // in the current response.
-          if (toolCall == null) {
-            const tool = tools?.[part.toolName];
-            const supportsDeferredResults =
-              tool?.type === 'provider' && tool.supportsDeferredResults;
+      case 'tool-result': {
+        const toolCall = toolCalls.find(
+          toolCall => toolCall.toolCallId === part.toolCallId,
+        );
 
-            if (!supportsDeferredResults) {
-              throw new Error(`Tool call ${part.toolCallId} not found.`);
-            }
+        // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
+        // When a server tool (like code_execution) triggers a client tool, the server tool's
+        // result may be deferred to a later turn. In this case, there's no matching tool-call
+        // in the current response.
+        if (toolCall == null) {
+          const tool = tools?.[part.toolName];
+          const supportsDeferredResults =
+            tool?.type === 'provider' && tool.supportsDeferredResults;
 
-            // Create tool result without tool call input (deferred result)
-            if (part.isError) {
-              return {
-                type: 'tool-error' as const,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName as keyof TOOLS & string,
-                input: undefined,
-                error: part.result,
-                providerExecuted: true,
-                dynamic: part.dynamic,
-              } as TypedToolError<TOOLS>;
-            }
+          if (!supportsDeferredResults) {
+            throw new Error(`Tool call ${part.toolCallId} not found.`);
+          }
 
-            return {
+          // Create tool result without tool call input (deferred result)
+          if (part.isError) {
+            contentParts.push({
+              type: 'tool-error' as const,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName as keyof TOOLS & string,
+              input: undefined,
+              error: part.result,
+              providerExecuted: true,
+              dynamic: part.dynamic,
+            } as TypedToolError<TOOLS>);
+          } else {
+            contentParts.push({
               type: 'tool-result' as const,
               toolCallId: part.toolCallId,
               toolName: part.toolName as keyof TOOLS & string,
@@ -1102,22 +1105,23 @@ function asContent<TOOLS extends ToolSet>({
               output: part.result,
               providerExecuted: true,
               dynamic: part.dynamic,
-            } as TypedToolResult<TOOLS>;
+            } as TypedToolResult<TOOLS>);
           }
+          break;
+        }
 
-          if (part.isError) {
-            return {
-              type: 'tool-error' as const,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName as keyof TOOLS & string,
-              input: toolCall.input,
-              error: part.result,
-              providerExecuted: true,
-              dynamic: toolCall.dynamic,
-            } as TypedToolError<TOOLS>;
-          }
-
-          return {
+        if (part.isError) {
+          contentParts.push({
+            type: 'tool-error' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName as keyof TOOLS & string,
+            input: toolCall.input,
+            error: part.result,
+            providerExecuted: true,
+            dynamic: toolCall.dynamic,
+          } as TypedToolError<TOOLS>);
+        } else {
+          contentParts.push({
             type: 'tool-result' as const,
             toolCallId: part.toolCallId,
             toolName: part.toolName as keyof TOOLS & string,
@@ -1125,11 +1129,17 @@ function asContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
-          } as TypedToolResult<TOOLS>;
+          } as TypedToolResult<TOOLS>);
         }
+        break;
       }
-    }),
-    ...toolOutputs,
-    ...toolApprovalRequests,
-  ];
+
+      case 'tool-approval-request': {
+        // Skip tool-approval-request in content conversion
+        break;
+      }
+    }
+  }
+
+  return [...contentParts, ...toolOutputs, ...toolApprovalRequests];
 }
