@@ -1190,6 +1190,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       approvalId: toolApproval.approvalResponse.approvalId,
                       approved: toolApproval.approvalResponse.approved,
                       reason: toolApproval.approvalResponse.reason,
+                      providerExecuted: true,
                     }) satisfies ToolApprovalResponse,
                 ),
               });

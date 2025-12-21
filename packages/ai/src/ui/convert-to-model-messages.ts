@@ -267,6 +267,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: toolPart.approval.id,
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
+                      providerExecuted: toolPart.providerExecuted,
                     });
                   }
 

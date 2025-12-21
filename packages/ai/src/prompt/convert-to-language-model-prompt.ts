@@ -212,27 +212,35 @@ export function convertToLanguageModelMessage({
     case 'tool': {
       return {
         role: 'tool',
-        content: message.content.map(part => {
-          switch (part.type) {
-            case 'tool-result': {
-              return {
-                type: 'tool-result' as const,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
-                output: mapToolResultOutput(part.output),
-                providerOptions: part.providerOptions,
-              };
+        content: message.content
+          .filter(part => {
+            // Only include tool-approval-response for provider-executed tools
+            if (part.type === 'tool-approval-response') {
+              return part.providerExecuted === true;
             }
-            case 'tool-approval-response': {
-              return {
-                type: 'tool-approval-response' as const,
-                approvalId: part.approvalId,
-                approved: part.approved,
-                reason: part.reason,
-              };
+            return true;
+          })
+          .map(part => {
+            switch (part.type) {
+              case 'tool-result': {
+                return {
+                  type: 'tool-result' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  output: mapToolResultOutput(part.output),
+                  providerOptions: part.providerOptions,
+                };
+              }
+              case 'tool-approval-response': {
+                return {
+                  type: 'tool-approval-response' as const,
+                  approvalId: part.approvalId,
+                  approved: part.approved,
+                  reason: part.reason,
+                };
+              }
             }
-          }
-        }),
+          }),
         providerOptions: message.providerOptions,
       };
     }
