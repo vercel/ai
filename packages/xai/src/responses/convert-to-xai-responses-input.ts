@@ -1,7 +1,4 @@
-import {
-  SharedV3Warning,
-  LanguageModelV3Message,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, LanguageModelV3Message } from '@ai-sdk/provider';
 import { XaiResponsesInput } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
