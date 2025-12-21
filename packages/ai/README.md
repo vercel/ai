@@ -50,16 +50,20 @@ const { text } = await generateText({
 ### Generating Structured Data
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+const { output } = await generateText({
+  model: 'openai/gpt-5',
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -72,7 +76,7 @@ const { object } = await generateObject({
 import { ToolLoopAgent } from 'ai';
 
 const sandboxAgent = new ToolLoopAgent({
-  model: 'openai/gpt-5-codex',
+  model: 'openai/gpt-5',
   system: 'You are an agent with access to a shell environment.',
   tools: {
     shell: openai.tools.localShell({
