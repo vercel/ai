@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.0-beta.165
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/gateway@2.0.0-beta.91
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
 ## 6.0.0-beta.164
 
 ### Patch Changes

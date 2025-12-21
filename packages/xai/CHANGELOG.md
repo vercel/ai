@@ -1,5 +1,15 @@
 # @ai-sdk/xai
 
+## 3.0.0-beta.68
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/openai-compatible@2.0.0-beta.59
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
 ## 3.0.0-beta.67
 
 ### Patch Changes

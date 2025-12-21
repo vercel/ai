@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+
 ## 3.0.0-beta.30
 
 ### Patch Changes

@@ -340,6 +340,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'tool-approval-request': {
+          // Skip tool-approval-request for now
+          break;
+        }
+
         default: {
           const _exhaustiveCheck: never = chunkType;
           throw new Error(`Unhandled chunk type: ${_exhaustiveCheck}`);

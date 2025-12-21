@@ -2,6 +2,7 @@ import {
   APICallError,
   JSONValue,
   LanguageModelV3,
+  LanguageModelV3Prompt,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
@@ -9,6 +10,7 @@ import {
   LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
+  LanguageModelV3ToolApprovalRequest,
   SharedV3ProviderMetadata,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -677,58 +679,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'mcp_list_tools': {
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            input: JSON.stringify({}),
-            providerExecuted: true,
-          });
-
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            result: {
-              type: 'listTools',
-              serverLabel: part.server_label,
-              tools: part.tools.map(t => ({
-                name: t.name,
-                description: t.description ?? undefined,
-                inputSchema: t.input_schema,
-                annotations:
-                  (t.annotations as Record<string, JSONValue> | undefined) ??
-                  undefined,
-              })),
-              ...(part.error != null
-                ? { error: part.error as unknown as JSONValue }
-                : {}),
-            } satisfies InferSchema<typeof mcpOutputSchema>,
-          });
+          // skip
           break;
         }
 
         case 'mcp_approval_request': {
-          content.push({
-            type: 'tool-call',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            input: JSON.stringify({}),
-            providerExecuted: true,
-          });
-
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName: toolNameMapping.toCustomToolName('mcp'),
-            result: {
-              type: 'approvalRequest',
-              serverLabel: part.server_label,
-              name: part.name,
-              arguments: part.arguments,
-              approvalRequestId: part.approval_request_id,
-            } satisfies InferSchema<typeof mcpOutputSchema>,
-          });
+          // skip
           break;
         }
 
@@ -1261,27 +1217,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_list_tools') {
                 ongoingToolCalls[value.output_index] = undefined;
 
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
-                  result: {
-                    type: 'listTools',
-                    serverLabel: value.item.server_label,
-                    tools: value.item.tools.map(t => ({
-                      name: t.name,
-                      description: t.description ?? undefined,
-                      inputSchema: t.input_schema,
-                      annotations:
-                        (t.annotations as
-                          | Record<string, JSONValue>
-                          | undefined) ?? undefined,
-                    })),
-                    ...(value.item.error != null
-                      ? { error: value.item.error as unknown as JSONValue }
-                      : {}),
-                  } satisfies InferSchema<typeof mcpOutputSchema>,
-                });
+                // skip
               } else if (value.item.type === 'apply_patch_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -1305,18 +1241,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
-                controller.enqueue({
-                  type: 'tool-result',
-                  toolCallId: value.item.id,
-                  toolName: toolNameMapping.toCustomToolName('mcp'),
-                  result: {
-                    type: 'approvalRequest',
-                    serverLabel: value.item.server_label,
-                    name: value.item.name,
-                    arguments: value.item.arguments,
-                    approvalRequestId: value.item.approval_request_id,
-                  } satisfies InferSchema<typeof mcpOutputSchema>,
-                });
+                // skip
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 

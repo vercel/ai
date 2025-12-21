@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
 ## 3.0.0-beta.87
 
 ### Patch Changes
