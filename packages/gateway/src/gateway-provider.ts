@@ -55,7 +55,7 @@ Creates a model for generating text embeddings.
 
 export interface GatewayProviderSettings {
   /**
-The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
+The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v2/ai`.
    */
   baseURL?: string;
 
@@ -104,7 +104,7 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v1/ai';
+    'https://ai-gateway.vercel.sh/v2/ai';
 
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);

@@ -331,7 +331,7 @@ describe('GatewayProvider', () => {
       // Check that GatewayFetchMetadata was instantiated with the default baseURL
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v2/ai',
         }),
       );
     });
@@ -841,7 +841,7 @@ describe('GatewayProvider', () => {
       expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v2/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
