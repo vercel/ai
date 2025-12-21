@@ -1,7 +1,6 @@
 import {
   SharedV3Warning,
   LanguageModelV3Message,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { XaiResponsesInput } from './xai-responses-api';
 
@@ -159,6 +158,10 @@ export async function convertToXaiResponsesInput({
                 })
                 .join('');
               break;
+            default: {
+              const _exhaustiveCheck: never = output;
+              outputValue = '';
+            }
           }
 
           input.push({

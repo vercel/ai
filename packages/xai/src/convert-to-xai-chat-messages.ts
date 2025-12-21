@@ -104,7 +104,6 @@ export function convertToXaiChatMessages(prompt: LanguageModelV3Prompt): {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
           }
-
           const output = toolResponse.output;
 
           let contentValue: string;

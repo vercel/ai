@@ -125,7 +125,6 @@ export function convertToMistralChatMessages(
           if (toolResponse.type === 'tool-approval-response') {
             continue;
           }
-
           const output = toolResponse.output;
 
           let contentValue: string;

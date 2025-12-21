@@ -149,7 +149,6 @@ export async function convertToBedrockChatMessages(
                 if (part.type === 'tool-approval-response') {
                   continue;
                 }
-
                 let toolResultContent;
 
                 const output = part.output;

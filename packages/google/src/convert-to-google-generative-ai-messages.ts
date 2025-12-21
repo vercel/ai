@@ -148,7 +148,6 @@ export function convertToGoogleGenerativeAIMessages(
           if (part.type === 'tool-approval-response') {
             continue;
           }
-
           const output = part.output;
 
           if (output.type === 'content') {
