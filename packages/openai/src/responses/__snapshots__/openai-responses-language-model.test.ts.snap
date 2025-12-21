@@ -4376,13 +4376,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "response-metadata",
   },
   {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "MCP",
-    "type": "tool-call",
-  },
-  {
     "id": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2:0",
     "providerMetadata": {
       "openai": {
