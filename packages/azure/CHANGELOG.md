@@ -1,5 +1,12 @@
 # @ai-sdk/azure
 
+## 3.0.0-beta.113
+
+### Patch Changes
+
+- Updated dependencies [304222e]
+  - @ai-sdk/openai@3.0.0-beta.111
+
 ## 3.0.0-beta.112
 
 ### Patch Changes
