@@ -903,6 +903,185 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "response-metadata",
   },
   {
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "toolName": "apply_patch",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "##",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Shopping",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Checklist",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Milk",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Bread",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Eggs",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fresh",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " fruit",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Coffee",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}}",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-end",
+  },
+  {
     "input": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Fresh fruit\\n+- [ ] Coffee\\n"}}",
     "providerMetadata": {
       "openai": {
@@ -943,6 +1122,82 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
           "cached_tokens": 0,
         },
         "output_tokens": 67,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > should stream apply_patch delete_file calls 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_delete_001",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-11-26T18:07:47.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_delete_1",
+    "toolName": "apply_patch",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"callId":"call_delete_1","operation":{"type":"delete_file","path":"obsolete.txt"}}",
+    "id": "call_delete_1",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_delete_1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"callId":"call_delete_1","operation":{"type":"delete_file","path":"obsolete.txt"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_delete_001",
+      },
+    },
+    "toolCallId": "call_delete_1",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_delete_001",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 24,
+        "total": 24,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 0,
+        "total": 0,
+      },
+      "raw": {
+        "input_tokens": 24,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 0,
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
