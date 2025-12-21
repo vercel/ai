@@ -526,7 +526,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
             usage: testUsage,
           },
         ]);
@@ -584,6 +584,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -618,7 +619,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: undefined },
             usage: testUsage,
           },
         ]);
@@ -647,6 +648,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -699,7 +701,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
             usage: testUsage,
           },
         ]);
@@ -789,6 +791,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
