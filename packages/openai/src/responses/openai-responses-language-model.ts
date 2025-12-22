@@ -730,7 +730,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
         case 'mcp_approval_request': {
           const approvalRequestId = part.approval_request_id ?? part.id;
-          const dummyToolCallId = generateId();
+          const dummyToolCallId = this.config.generateId?.() ?? generateId();
           const toolName = `mcp.${part.name}`;
 
           content.push({
@@ -1391,7 +1391,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'mcp_approval_request') {
                 ongoingToolCalls[value.output_index] = undefined;
 
-                const dummyToolCallId = generateId();
+                const dummyToolCallId =
+                  self.config.generateId?.() ?? generateId();
                 const approvalRequestId =
                   value.item.approval_request_id ?? value.item.id;
                 approvalRequestIdToDummyToolCallIdFromStream.set(
