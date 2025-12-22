@@ -1,6 +1,6 @@
 {
   "name": "@example/mcp",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "server:sse": "tsx src/sse/server.ts",
@@ -27,9 +27,9 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.0-beta.112",
+    "@ai-sdk/openai": "3.0.0",
     "@modelcontextprotocol/sdk": "^1.24.0",
-    "ai": "6.0.0-beta.169",
+    "ai": "6.0.0",
     "dotenv": "16.4.5",
     "express": "5.0.1",
     "zod": "3.25.76"

@@ -1,5 +1,186 @@
 # @ai-sdk/azure
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 68cedbf: Update default Azure Provider to use Responses API
+- 046aa3b: feat(provider): speech model v3 spec
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 0c4822d: feat: `EmbeddingModelV3`
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 423ba08: Set the annotations from the Responses API to doStream
+- 8dac895: feat: `LanguageModelV3`
+- f1eed1c: Support idempotent doGenerate/doStream with pre-supplied result chunks in Responses API tests.
+- 9061dc0: feat: image editing
+- 3771a27: The default api-version for Microsoft Azure OpenAI has been changed from preview to v1
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 4616b86: chore: update zod peer depenedency version
+- 64aa48f: Azure OpenAI enabled web-search-preview
+- 21e20c0: feat(provider): transcription model v3 spec
+- 522f6b8: feat: `ImageModelV3`
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+- Updated dependencies [0c3b58b]
+- Updated dependencies [4920119]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [92c6241]
+- Updated dependencies [88fc415]
+- Updated dependencies [817e601]
+- Updated dependencies [dae2185]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [f1277fe]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [60f4775]
+- Updated dependencies [9a51b92]
+- Updated dependencies [d64ece9]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [2e86082]
+- Updated dependencies [37c58a0]
+- Updated dependencies [0877683]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [d0f1baf]
+- Updated dependencies [831b6cc]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [edc5548]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [77f2b20]
+- Updated dependencies [0c4822d]
+- Updated dependencies [73d9883]
+- Updated dependencies [d2039d7]
+- Updated dependencies [521c537]
+- Updated dependencies [88edc28]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [1cad0ab]
+- Updated dependencies [bb36798]
+- Updated dependencies [e85fa2f]
+- Updated dependencies [423ba08]
+- Updated dependencies [401f561]
+- Updated dependencies [4122d2a]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [0153bfa]
+- Updated dependencies [8dac895]
+- Updated dependencies [304222e]
+- Updated dependencies [23f132b]
+- Updated dependencies [a755db5]
+- Updated dependencies [1d0de66]
+- Updated dependencies [000e87b]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [2c0a758]
+- Updated dependencies [1b982e6]
+- Updated dependencies [475189e]
+- Updated dependencies [b82987c]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [79b4e46]
+- Updated dependencies [3997a42]
+- Updated dependencies [348fd10]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [fe49278]
+- Updated dependencies [32223c8]
+- Updated dependencies [cb4d238]
+- Updated dependencies [357cfd7]
+- Updated dependencies [c1efac4]
+- Updated dependencies [38a4035]
+- Updated dependencies [40d5419]
+- Updated dependencies [366f50b]
+- Updated dependencies [2b0caef]
+- Updated dependencies [b60d2e2]
+- Updated dependencies [fd47df5]
+- Updated dependencies [4616b86]
+- Updated dependencies [7756857]
+- Updated dependencies [cad6445]
+- Updated dependencies [81d4308]
+- Updated dependencies [64aa48f]
+- Updated dependencies [0b9fdd5]
+- Updated dependencies [61c52dc]
+- Updated dependencies [9549c9e]
+- Updated dependencies [ef739fa]
+- Updated dependencies [3220329]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [d270a5d]
+- Updated dependencies [f18ef7f]
+- Updated dependencies [21e20c0]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [484aa93]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [88574c1]
+- Updated dependencies [68c6187]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [10c1322]
+- Updated dependencies [5648ec0]
+- Updated dependencies [78f813e]
+- Updated dependencies [40dc7fa]
+- Updated dependencies [0273b74]
+- Updated dependencies [960ec8f]
+- Updated dependencies [5bf101a]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [d86b52f]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+- Updated dependencies [59561f8]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/openai@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.114
 
 ### Patch Changes

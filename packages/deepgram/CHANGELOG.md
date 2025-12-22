@@ -1,5 +1,115 @@
 # @ai-sdk/deepgram
 
+## 2.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 7f91f36: feat(deepgram): add language detection support
+
+  Add language detection support for Deepgram transcription. When `detectLanguage` is enabled, Deepgram will automatically detect the spoken language and return it in the response via `providerMetadata.deepgram.detectedLanguage`.
+
+- f118108: feat(deepgram): add text-to-speech support
+
+  Add text-to-speech support for Deepgram Aura models via the REST API. Supports all Aura voice models (aura-2-helena-en, aura-2-thalia-en, etc.) with proper audio format validation, encoding/container/sample_rate/bitrate combinations, and comprehensive parameter validation.
+
+- 95f65c2: chore: use import \* from zod/v4
+- ed329cb: feat: `Provider-V3`
+- 1cad0ab: feat: add provider version to user-agent header
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 4616b86: chore: update zod peer depenedency version
+- 21e20c0: feat(provider): transcription model v3 spec
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [0c4822d]
+- Updated dependencies [521c537]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [366f50b]
+- Updated dependencies [4616b86]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 2.0.0-beta.61
 
 ### Patch Changes

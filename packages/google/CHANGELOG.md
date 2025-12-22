@@ -1,5 +1,157 @@
 # @ai-sdk/google
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 0adc679: feat(provider): shared spec v3
+- 9be07c8: feat(google): `thinking_level` option for Gemini 3
+- fd788ce: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 2625a04: feat(openai); update spec for mcp approval
+- 7728ac5: The mediaResolution option has been added and is now passed to the Google API.
+- 9a728c8: support latest gemini model id
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- 95f65c2: chore: use import \* from zod/v4
+- e300a3b: Fixed Zod validation error when using `google.tools.fileSearch()`. The Google File Search API returns `fileSearchStore` instead of `uri` in `retrievedContext`. Updated `extractSources()` function to handle both the old format (Google Search with `uri`) and new format (File Search with `fileSearchStore`), maintaining backward compatibility while preventing validation errors. Also fixed title handling to use `undefined` for URL sources and `'Unknown Document'` for document sources.
+- 218bba1: fix(google): use dynamic providerOptionsName when retrieving thoughtSignature in convertToGoogleGenerativeAIMessages
+
+  When using @ai-sdk/google-vertex provider with Gemini thinking models, multi-step tool calls would fail with "function call is missing a thought_signature" error. This was because thoughtSignature was stored under providerOptions.vertex but retrieved using hardcoded providerOptions.google. This fix passes providerOptionsName to convertToGoogleGenerativeAIMessages and uses it dynamically.
+
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 0c4822d: feat: `EmbeddingModelV3`
+- f8c981f: Fix adding google search along with url context in vertex ai
+- 6078060: fix(provider/google): remove includethoughts warning
+- bb28cac: Change streamText loop to merge file part processing into main parts loop
+- fff8d59: feat(provider/google): Add support for the imageSize provider option
+- 1742445: Support for custom provider name in google and anthropic providers
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 9b17031: Improve error message when mixing function tools with provider-defined tools to clarify fallback behavior and list ignored function tools
+- 8dac895: feat: `LanguageModelV3`
+- ee50cc5: fix(provider/google): lazy schema loading
+
+  import time improved by 12.5% (22.3ms ➡️ 19.5ms)
+
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- 9061dc0: feat: image editing
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+- 7dea60e: add promptFeedback outputs
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 8ee8edc: Prepare search tool for gemini-3-pro-preview
+- 2825757: Add Google File search tool
+- 4616b86: chore: update zod peer depenedency version
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+- 0cfae4c: feat(vertex): support 'trafficType' in provider usageMetadata
+- 09ba2dd: Support `imageConfig.aspectRatio` configuration for Gemini models
+- 32a8c82: feat: add gemini 3 pro
+- 166b6d7: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+- 522f6b8: feat: `ImageModelV3`
+- 599a97f: fix: update gemini 3 model id
+- 49e2b6a: fix(google): return request as object
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 870297d: feat(google): gemini-3-flash
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- c8003fb: fix(@ai-sdk/google): Make title field optional in grounding metadata schema
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [0c4822d]
+- Updated dependencies [521c537]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [366f50b]
+- Updated dependencies [4616b86]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.90
 
 ### Patch Changes

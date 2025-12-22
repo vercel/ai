@@ -1,5 +1,92 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- dce03c4: feat: tool input examples
+- 3b1d015: feat(ai): Effect schema support
+- 95f65c2: chore: use import \* from zod/v4
+- 016b111: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- e8109d3: feat: tool execution approval
+- 03849b0: move DelayedPromise into provider utils
+- e06565c: feat(provider-utils): add needsApproval support to provider-defined tools
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+- d116b4b: feat(ai): arktype support
+- 293a6b7: Added a title to the tools
+- 703459a: feat: tool execution approval for dynamic tools
+- 83e5744: feat: support async Tool.toModelOutput
+- 7e32fea: feat(ai): valibot support
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- 8dac895: feat: `LanguageModelV3`
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+- 9061dc0: feat: image editing
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- c1efac4: feat: add input arg to toModelOutput
+- 4616b86: chore: update zod peer depenedency version
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+- 81e29ab: chore: update docs
+- 6306603: chore: replace Validator with Schema
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+- 763d04a: feat: Standard JSON Schema support
+- 3794514: feat: flexible tool output content support
+- e9e157f: fix: generate zod4 json schema from input schema
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- 1bd7d32: feat: tool-specific strict mode
+- f0b2157: fix: revert zod import change
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [2b0caef]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [0c4822d]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [ed329cb]
+- Updated dependencies [53f3368]
+- Updated dependencies [3bd2689]
+- Updated dependencies [bb36798]
+- Updated dependencies [8dac895]
+- Updated dependencies [a755db5]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [366f50b]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [af3780b]
+- Updated dependencies [522f6b8]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider@3.0.0
+
 ## 4.0.0-beta.59
 
 ### Patch Changes
