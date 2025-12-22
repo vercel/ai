@@ -362,18 +362,32 @@ Custom download function can be passed via the `experimental_download` property:
 ```ts
 const result = await generateText({
   model: __MODEL__,
-  experimental_download: async (
-    requestedDownloads: Array<{
-      url: URL;
-      isUrlSupportedByModel: boolean;
-    }>,
-  ): PromiseLike<
-    Array<{
-      data: Uint8Array;
-      mediaType: string | undefined;
-    } | null>
-  > => {
-    // ... download the files and return an array with similar order
+  experimental_download: async (requestedDownloads) => {
+    return Promise.all(
+      requestedDownloads.map(async ({ url, isUrlSupportedByModel }) => {
+        // Pass through if model supports this URL
+        if (isUrlSupportedByModel) return url;
+
+        try {
+          const response = await fetch(url);
+
+          // Remove broken images/files
+          if (response.status === 404) return null;
+
+          // Replace with text for auth errors
+          if (response.status === 403) return '[Access denied]';
+
+          // Return downloaded content
+          return {
+            data: new Uint8Array(await response.arrayBuffer()),
+            mediaType: response.headers.get('content-type') ?? undefined,
+          };
+        } catch {
+          // Remove on network errors
+          return null;
+        }
+      }),
+    );
   },
   messages: [
     {
@@ -389,6 +403,13 @@ const result = await generateText({
   ],
 });
 ```
+
+The download function can return:
+
+- `{ data: Uint8Array, mediaType?: string }` - downloaded content
+- `URL` - pass URL through to model as-is
+- `string` - replace image/file part with text
+- `null` - remove the part entirely
 
 <Note>
   The `experimental_download` option is experimental and may change in future
