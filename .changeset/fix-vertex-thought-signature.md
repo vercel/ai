@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/google": patch
+'@ai-sdk/google': patch
 ---
 
 fix(google): use dynamic providerOptionsName when retrieving thoughtSignature in convertToGoogleGenerativeAIMessages
