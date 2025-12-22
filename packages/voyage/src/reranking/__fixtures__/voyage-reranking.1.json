@@ -1,0 +1,19 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "index": 1,
+      "relevance_score": 0.87890625,
+      "document": "rainy day in the city"
+    },
+    {
+      "index": 0,
+      "relevance_score": 0.12109375,
+      "document": "sunny day at the beach"
+    }
+  ],
+  "model": "rerank-2.5",
+  "usage": {
+    "total_tokens": 18
+  }
+}
