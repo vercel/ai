@@ -382,6 +382,17 @@ export async function convertToOpenAIResponsesInput({
 
           const output = part.output;
 
+          // Skip execution-denied with approvalId - already handled via tool-approval-response
+          if (output.type === 'execution-denied') {
+            const approvalId = (
+              output.providerOptions?.openai as { approvalId?: string }
+            )?.approvalId;
+
+            if (approvalId) {
+              continue;
+            }
+          }
+
           const resolvedToolName = toolNameMapping.toProviderToolName(
             part.toolName,
           );

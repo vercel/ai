@@ -362,18 +362,9 @@ A function that attempts to repair a tool call that failed to parse.
         const localApprovedToolApprovals = approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
         );
-        const localDeniedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
 
-        let pendingDeniedProviderExecutedToolApprovals =
-          deniedToolApprovals.filter(
-            toolApproval => toolApproval.toolCall.providerExecuted,
-          );
-
-        // Local tool approvals keep existing behavior:
         if (
-          localDeniedToolApprovals.length > 0 ||
+          deniedToolApprovals.length > 0 ||
           localApprovedToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
@@ -409,8 +400,8 @@ A function that attempts to repair a tool call that failed to parse.
             });
           }
 
-          // add execution denied tool results for denied local tool approvals:
-          for (const toolApproval of localDeniedToolApprovals) {
+          // add execution denied tool results for all denied tool approvals:
+          for (const toolApproval of deniedToolApprovals) {
             toolContent.push({
               type: 'tool-result' as const,
               toolCallId: toolApproval.toolCall.toolCallId,
@@ -418,6 +409,14 @@ A function that attempts to repair a tool call that failed to parse.
               output: {
                 type: 'execution-denied' as const,
                 reason: toolApproval.approvalResponse.reason,
+                // For provider-executed tools, include approvalId so provider can correlate
+                ...(toolApproval.toolCall.providerExecuted && {
+                  providerOptions: {
+                    openai: {
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                    },
+                  },
+                }),
               },
             });
           }
@@ -760,24 +759,6 @@ A function that attempts to repair a tool call that failed to parse.
             toolApprovalRequests: Object.values(toolApprovalRequests),
             tools,
           });
-
-          // Emit denied provider-executed tool approvals as execution-denied tool results.
-          for (const deniedApproval of pendingDeniedProviderExecutedToolApprovals) {
-            stepContent.push({
-              type: 'tool-result',
-              toolCallId: deniedApproval.toolCall.toolCallId,
-              toolName: deniedApproval.toolCall.toolName,
-              input: deniedApproval.toolCall.input,
-              output: {
-                type: 'execution-denied',
-                reason: deniedApproval.approvalResponse.reason,
-              },
-              providerExecuted: deniedApproval.toolCall.providerExecuted,
-              dynamic: true,
-            });
-          }
-          // Reset after emitting to ensure we only emit once per denied approval
-          pendingDeniedProviderExecutedToolApprovals = [];
 
           // append to messages for potential next step:
           responseMessages.push(
