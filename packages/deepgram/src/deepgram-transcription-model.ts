@@ -167,7 +167,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
           startSecond: word.start,
           endSecond: word.end,
         })) ?? [],
-      language: response.results?.channels.at(0)?.detected_language ?? undefined,
+      language:
+        response.results?.channels.at(0)?.detected_language ?? undefined,
       durationInSeconds: response.metadata?.duration ?? undefined,
       warnings,
       response: {
