@@ -286,7 +286,10 @@ Final result: 570",
       "type": "text",
     },
   ],
-  "finishReason": "stop",
+  "finishReason": {
+    "raw": undefined,
+    "unified": "stop",
+  },
   "providerMetadata": {
     "azure": {
       "responseId": "resp_09d58369f84fca7901693cb8381f608196acdaff061ff8de58",
@@ -3625,7 +3628,10 @@ I",
     "type": "text-end",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0ca3f598125653cf01693c1f2ae8a081959804dec902c996c2",

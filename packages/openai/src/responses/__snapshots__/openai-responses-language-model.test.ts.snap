@@ -7233,7 +7233,10 @@ I'll",
     "type": "text-end",
   },
   {
-    "finishReason": "tool-calls",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "tool-calls",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_01830d662ab3856501693c3217ba4c8190a3ddf6c839d4f12a",
