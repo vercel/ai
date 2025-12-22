@@ -213,13 +213,11 @@ export function convertToLanguageModelMessage({
       return {
         role: 'tool',
         content: message.content
-          .filter(part => {
+          .filter(
             // Only include tool-approval-response for provider-executed tools
-            if (part.type === 'tool-approval-response') {
-              return part.providerExecuted === true;
-            }
-            return true;
-          })
+            part =>
+              part.type !== 'tool-approval-response' || part.providerExecuted,
+          )
           .map(part => {
             switch (part.type) {
               case 'tool-result': {
