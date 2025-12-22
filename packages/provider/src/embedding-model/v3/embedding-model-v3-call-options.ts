@@ -1,6 +1,6 @@
 import { SharedV3Headers, SharedV3ProviderOptions } from '../../shared';
 
-export type EmbeddingModelCallOptions = {
+export type EmbeddingModelV3CallOptions = {
   /**
  List of text values to generate embeddings for.
  */
