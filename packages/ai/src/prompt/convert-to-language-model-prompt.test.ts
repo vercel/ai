@@ -784,7 +784,7 @@ describe('convertToLanguageModelPrompt', () => {
       });
     });
 
-    it('should download files when intermediate file cannot be downloaded', async () => {
+    it('should download files when intermediate file is passed through', async () => {
       const imageUrlA = `http://example.com/my-image-A.png`; // supported
       const fileUrl = `http://127.0.0.1:3000/file`; // unsupported
       const imageUrlB = `http://example.com/my-image-B.png`; // supported
@@ -795,7 +795,7 @@ describe('convertToLanguageModelPrompt', () => {
           data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0]), // empty png and 0
           mediaType: 'image/png',
         },
-        null,
+        new URL(fileUrl), // passthrough - return URL to keep it
         {
           url: new URL(imageUrlB),
           data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]), // empty png and 1
@@ -1014,6 +1014,239 @@ describe('convertToLanguageModelPrompt', () => {
               data: new Uint8Array([72, 101, 108, 108, 111]),
             },
           ],
+        },
+      ]);
+    });
+
+    it('should remove part when download function returns null', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([null]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Check this image:' },
+                {
+                  type: 'image',
+                  image: 'https://example.com/broken-image.png',
+                  mediaType: 'image/png',
+                },
+                { type: 'text', text: 'What do you see?' },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Check this image:' },
+            { type: 'text', text: 'What do you see?' },
+          ],
+        },
+      ]);
+    });
+
+    it('should replace part with text when download function returns a string', async () => {
+      const mockDownload = vi
+        .fn()
+        .mockResolvedValue(['[Image unavailable: 404 Not Found]']);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Check this image:' },
+                {
+                  type: 'image',
+                  image: 'https://example.com/missing-image.png',
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Check this image:' },
+            { type: 'text', text: '[Image unavailable: 404 Not Found]' },
+          ],
+        },
+      ]);
+    });
+
+    it('should passthrough URL when download function returns the URL', async () => {
+      const imageUrl = new URL('https://example.com/image.png');
+      const mockDownload = vi.fn().mockResolvedValue([imageUrl]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: imageUrl,
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: imageUrl,
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle mixed download results (downloaded, removed, text, passthrough)', async () => {
+      const passthroughUrl = new URL('https://example.com/image4.png');
+      const mockDownload = vi.fn().mockResolvedValue([
+        { data: new Uint8Array([1, 2, 3]), mediaType: 'image/png' }, // downloaded
+        null, // removed
+        '[Image 3 unavailable]', // text replacement
+        passthroughUrl, // passthrough
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: 'https://example.com/image1.png',
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'image',
+                  image: 'https://example.com/image2.png',
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'image',
+                  image: 'https://example.com/image3.png',
+                  mediaType: 'image/png',
+                },
+                {
+                  type: 'image',
+                  image: 'https://example.com/image4.png',
+                  mediaType: 'image/png',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            // image2 is removed
+            { type: 'text', text: '[Image 3 unavailable]' },
+            {
+              type: 'file',
+              data: passthroughUrl,
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should remove file parts when download function returns null', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([null]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Here is the document:' },
+                {
+                  type: 'file',
+                  data: 'https://example.com/missing.pdf',
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Here is the document:' }],
+        },
+      ]);
+    });
+
+    it('should replace file parts with text when download function returns a string', async () => {
+      const mockDownload = vi.fn().mockResolvedValue(['[Document unavailable]']);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'https://example.com/missing.pdf',
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: '[Document unavailable]' }],
         },
       ]);
     });
