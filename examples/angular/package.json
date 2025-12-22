@@ -1,6 +1,6 @@
 {
   "name": "@example/angular",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "scripts": {
     "ng": "ng",
     "start": "concurrently 'ng serve --proxy-config proxy.conf.json' 'tsx src/server.ts'",

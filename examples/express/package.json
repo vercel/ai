@@ -1,6 +1,6 @@
 {
   "name": "@example/express",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "type": "module",
   "private": true,
   "scripts": {

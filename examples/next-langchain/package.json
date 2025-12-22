@@ -1,6 +1,6 @@
 {
   "name": "@example/next-langchain",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "run-p dev:next dev:langgraph",

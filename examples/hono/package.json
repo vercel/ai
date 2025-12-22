@@ -1,6 +1,6 @@
 {
   "name": "@example/hono",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "3.0.0",

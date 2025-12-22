@@ -1,6 +1,6 @@
 {
   "name": "@example/mcp",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "server:sse": "tsx src/sse/server.ts",
