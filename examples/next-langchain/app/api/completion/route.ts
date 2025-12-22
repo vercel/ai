@@ -1,21 +1,46 @@
-import { toUIMessageStream } from '@ai-sdk/langchain';
-import { ChatOpenAI } from '@langchain/openai';
 import { createUIMessageStreamResponse } from 'ai';
+import { NextResponse } from 'next/server';
 
-// Allow streaming responses up to 30 seconds
+import { ChatOpenAI } from '@langchain/openai';
+import { toUIMessageStream } from '@ai-sdk/langchain';
+
+/**
+ * Allow streaming responses up to 30 seconds
+ */
 export const maxDuration = 30;
 
+/**
+ * The API route for text completion using useCompletion hook
+ * @param req - The request object
+ * @returns The response from the API
+ */
 export async function POST(req: Request) {
-  const { prompt } = await req.json();
+  try {
+    const { prompt }: { prompt: string } = await req.json();
 
-  const model = new ChatOpenAI({
-    model: 'gpt-3.5-turbo-0125',
-    temperature: 0,
-  });
+    /**
+     * The model to use for completion
+     */
+    const model = new ChatOpenAI({
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+    });
 
-  const stream = await model.stream(prompt);
+    /**
+     * Stream the response from the model using a simple prompt
+     * Note: We wrap the prompt in a HumanMessage format for the chat model
+     */
+    const stream = await model.stream([{ role: 'user', content: prompt }]);
 
-  return createUIMessageStreamResponse({
-    stream: toUIMessageStream(stream),
-  });
+    /**
+     * Convert the LangChain stream to UI message stream
+     */
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream(stream),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

@@ -38,7 +38,7 @@ async function main() {
                   reasoning: undefined,
                 },
               },
-              finishReason: 'tool-calls',
+              finishReason: { raw: undefined, unified: 'tool-calls' },
               content: [
                 {
                   type: 'tool-call',

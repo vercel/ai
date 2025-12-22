@@ -170,7 +170,12 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "completed",
+            "unified": "stop",
+          }
+        `);
       });
     });
 

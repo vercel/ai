@@ -76,77 +76,7 @@ export default function OpenAIMCPView({
               </div>
             );
           }
-          case 'listTools': {
-            return (
-              <div className="mb-4 p-3 bg-purple-50 rounded border-l-4 border-purple-400 shadow">
-                <div className="flex items-center font-semibold text-purple-700">
-                  <span className="inline-block mr-2 bg-purple-200 text-purple-900 rounded px-2 py-0.5 text-xs font-mono tracking-wider">
-                    MCP
-                  </span>
-                  Listed MCP tools
-                </div>
-                <div className="mt-2 pl-5 text-sm text-purple-800">
-                  <div className="mb-2">
-                    <span className="font-semibold">Server:</span>{' '}
-                    <span className="font-mono">{output.serverLabel}</span>
-                  </div>
-                  {output.tools && output.tools.length > 0 && (
-                    <div className="mb-2">
-                      <span className="font-semibold">Available tools:</span>
-                      <ul className="mt-1 list-disc pl-5">
-                        {output.tools.map((tool, index) => (
-                          <li key={index} className="font-mono text-xs">
-                            {tool.name}
-                            {tool.description && (
-                              <span className="ml-2 text-gray-600 font-normal">
-                                - {tool.description}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {output.error && (
-                    <div className="mb-2 text-red-600">
-                      <span className="font-semibold">Error:</span>
-                      <pre className="mt-1 text-xs overflow-auto bg-red-50 p-2 rounded border border-red-200">
-                        {typeof output.error === 'string'
-                          ? output.error
-                          : JSON.stringify(output.error, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-          case 'approvalRequest': {
-            return (
-              <div className="mb-4 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400 shadow">
-                <div className="flex items-center font-semibold text-yellow-700">
-                  <span className="inline-block mr-2 bg-yellow-200 text-yellow-900 rounded px-2 py-0.5 text-xs font-mono tracking-wider">
-                    MCP
-                  </span>
-                  Approval requested
-                </div>
-                <div className="mt-2 pl-5 text-sm text-yellow-800">
-                  <div className="mb-2">
-                    <span className="font-semibold">Tool:</span>{' '}
-                    <span className="font-mono">{output.name}</span>
-                  </div>
-                  {output.arguments && (
-                    <div className="mb-2">
-                      <span className="font-semibold">Arguments:</span>
-                      <pre className="mt-1 text-xs overflow-auto bg-white p-2 rounded border border-yellow-100">
-                        {output.arguments}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
+
           default: {
             // Fallback for unknown output types
             return (

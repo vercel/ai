@@ -1,5 +1,109 @@
 # ai
 
+## 6.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [7294355]
+  - @ai-sdk/gateway@2.0.0-beta.93
+
+## 6.0.0-beta.167
+
+### Patch Changes
+
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.92
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 6.0.0-beta.166
+
+### Patch Changes
+
+- 9f20c87: chore: updated README
+
+## 6.0.0-beta.165
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/gateway@2.0.0-beta.91
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 6.0.0-beta.164
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.90
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 6.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/gateway@2.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 6.0.0-beta.162
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/gateway@2.0.0-beta.88
+
+## 6.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [ee71658]
+  - @ai-sdk/gateway@2.0.0-beta.87
+
+## 6.0.0-beta.160
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.86
+
+## 6.0.0-beta.159
+
+### Patch Changes
+
+- 3071620: fix header loss when statusText is undefined in writeHead
+- Updated dependencies [870297d]
+  - @ai-sdk/gateway@2.0.0-beta.85
+
+## 6.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/gateway@2.0.0-beta.84
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 6.0.0-beta.157
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/gateway@2.0.0-beta.83
+
 ## 6.0.0-beta.156
 
 ### Patch Changes

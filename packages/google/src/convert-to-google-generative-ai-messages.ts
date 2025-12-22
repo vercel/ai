@@ -145,6 +145,9 @@ export function convertToGoogleGenerativeAIMessages(
         const parts: GoogleGenerativeAIContentPart[] = [];
 
         for (const part of content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           if (output.type === 'content') {

@@ -55,6 +55,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
   private async getArgs({
     prompt,
+    files,
+    mask,
     size,
     aspectRatio,
     seed,
@@ -89,6 +91,43 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
 
+    const inputImages: string[] =
+      files?.map(file => {
+        if (file.type === 'url') {
+          return file.url;
+        }
+
+        if (typeof file.data === 'string') {
+          return file.data;
+        }
+
+        return Buffer.from(file.data).toString('base64');
+      }) || [];
+
+    if (inputImages.length > 10) {
+      throw new Error('Black Forest Labs supports up to 10 input images.');
+    }
+
+    const inputImagesObj: Record<string, string> = inputImages.reduce<
+      Record<string, string>
+    >((acc, img, index) => {
+      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      return acc;
+    }, {});
+
+    let maskValue: string | undefined;
+    if (mask) {
+      if (mask.type === 'url') {
+        maskValue = mask.url;
+      } else {
+        if (typeof mask.data === 'string') {
+          maskValue = mask.data;
+        } else {
+          maskValue = Buffer.from(mask.data).toString('base64');
+        }
+      }
+    }
+
     const body: Record<string, unknown> = {
       prompt,
       seed,
@@ -99,16 +138,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       guidance: bflOptions?.guidance,
       image_prompt_strength: bflOptions?.imagePromptStrength,
       image_prompt: bflOptions?.imagePrompt,
-      input_image: bflOptions?.inputImage,
-      input_image_2: bflOptions?.inputImage2,
-      input_image_3: bflOptions?.inputImage3,
-      input_image_4: bflOptions?.inputImage4,
-      input_image_5: bflOptions?.inputImage5,
-      input_image_6: bflOptions?.inputImage6,
-      input_image_7: bflOptions?.inputImage7,
-      input_image_8: bflOptions?.inputImage8,
-      input_image_9: bflOptions?.inputImage9,
-      input_image_10: bflOptions?.inputImage10,
+      ...inputImagesObj,
+      mask: maskValue,
       output_format: bflOptions?.outputFormat,
       prompt_upsampling: bflOptions?.promptUpsampling,
       raw: bflOptions?.raw,
@@ -122,6 +153,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
 
   async doGenerate({
     prompt,
+    files,
+    mask,
     size,
     aspectRatio,
     seed,
@@ -133,6 +166,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   > {
     const { body, warnings } = await this.getArgs({
       prompt,
+      files,
+      mask,
       size,
       aspectRatio,
       seed,
@@ -303,15 +338,25 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
     z.object({
       imagePrompt: z.string().optional(),
       imagePromptStrength: z.number().min(0).max(1).optional(),
+      /** @deprecated use prompt.images instead */
       inputImage: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage2: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage3: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage4: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage5: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage6: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage7: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage8: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage9: z.string().optional(),
+      /** @deprecated use prompt.images instead */
       inputImage10: z.string().optional(),
       steps: z.number().int().positive().optional(),
       guidance: z.number().min(0).optional(),
@@ -375,12 +420,14 @@ const bflStatus = z.union([
   z.literal('Ready'),
   z.literal('Error'),
   z.literal('Failed'),
+  z.literal('Request Moderated'),
 ]);
 
 const bflPollSchema = z
   .object({
     status: bflStatus.optional(),
     state: bflStatus.optional(),
+    details: z.unknown().optional(),
     result: z
       .object({
         sample: z.url(),

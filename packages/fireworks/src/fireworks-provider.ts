@@ -83,6 +83,11 @@ Creates a text embedding model for text generation.
   embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
+
+  /**
 Creates a model for image generation.
 */
   image(modelId: FireworksImageModelId): ImageModelV3;
@@ -158,6 +163,7 @@ export function createFireworks(
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   return provider;
