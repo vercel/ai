@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.0-beta.32
+
+### Patch Changes
+
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+
 ## 3.0.0-beta.31
 
 ### Patch Changes

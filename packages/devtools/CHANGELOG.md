@@ -1,5 +1,12 @@
 # @ai-sdk/devtools
 
+## 0.0.1-beta.7
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+
 ## 0.0.1-beta.6
 
 ### Patch Changes
