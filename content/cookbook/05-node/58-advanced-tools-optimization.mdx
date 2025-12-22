@@ -1,0 +1,292 @@
+---
+title: Advanced Tools Optimization
+description: Reduce context waste and improve performance with llm-advanced-tools
+tags: ['node', 'tool use', 'optimization', 'performance']
+---
+
+# Advanced Tools Optimization
+
+When working with many tools, loading all of them upfront can waste tokens and reduce performance. The `llm-advanced-tools` library provides features to optimize tool usage:
+
+- **Tool Search**: Dynamically discover and load tools on-demand (85%+ token savings)
+- **Defer Loading**: Don't load all tools upfront, only when needed
+- **Tool Examples**: Improve accuracy with usage examples (18%+ improvement)
+
+## Installation
+
+```bash
+npm install llm-advanced-tools
+```
+
+## Basic Example
+
+Convert your AI SDK tools to work with `llm-advanced-tools`:
+
+```ts
+import { Client, ToolRegistry, VercelAIAdapter, ToolDefinition } from 'llm-advanced-tools';
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+// 1. Create tool registry with smart search
+const registry = new ToolRegistry({
+  strategy: 'smart',  // BM25 semantic search
+  maxResults: 5
+});
+
+// 2. Define tools with advanced features
+const weatherTool: ToolDefinition = {
+  name: 'weather',
+  description: 'Get the weather in a location',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      location: { type: 'string', description: 'The location to get the weather for' }
+    },
+    required: ['location']
+  },
+  inputExamples: [
+    { location: 'San Francisco' },
+    { location: 'Tokyo, Japan' }
+  ],
+  deferLoading: true,  // Only load when needed
+  handler: async ({ location }) => ({
+    location,
+    temperature: 72 + Math.floor(Math.random() * 21) - 10,
+  })
+};
+
+const cityAttractionsTool: ToolDefinition = {
+  name: 'cityAttractions',
+  description: 'Get attractions for a city',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      city: { type: 'string', description: 'The city name' }
+    },
+    required: ['city']
+  },
+  inputExamples: [
+    { city: 'San Francisco' },
+    { city: 'Paris' }
+  ],
+  deferLoading: true,
+  handler: async ({ city }) => ({
+    city,
+    attractions: ['Museum', 'Park', 'Landmark']
+  })
+};
+
+// 3. Register tools
+registry.register(weatherTool);
+registry.register(cityAttractionsTool);
+
+// 4. Create client with advanced features
+const client = new Client({
+  adapter: new VercelAIAdapter(openai('gpt-4o-mini')),
+  enableToolSearch: true,  // Enable dynamic tool discovery
+  enableProgrammaticCalling: false
+}, registry);
+
+// 5. Use with automatic tool search
+const response = await client.ask(
+  "What's the weather in San Francisco?",
+  "Use tool search to find relevant tools, then get the weather."
+);
+
+console.log(response);
+```
+
+## Converting AI SDK Tools
+
+If you already have AI SDK tools defined with `tool()`, you can convert them:
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+// Original AI SDK tool
+const weatherToolAI = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  execute: async ({ location }) => ({
+    location,
+    temperature: 72,
+  }),
+});
+
+// Convert to ToolDefinition
+function convertAISDKTool(
+  name: string,
+  description: string,
+  aiTool: any,
+  examples?: any[]
+): ToolDefinition {
+  // Extract schema from Zod
+  const zodSchema = aiTool.inputSchema;
+  let jsonSchema: any = {};
+
+  if (zodSchema && zodSchema._def) {
+    const shape = zodSchema._def.shape();
+    jsonSchema = {
+      type: 'object',
+      properties: {},
+      required: []
+    };
+
+    for (const [key, value] of Object.entries(shape)) {
+      const zodType: any = value;
+      const def = zodType._def;
+      
+      let propSchema: any = {};
+      
+      if (def.typeName === 'ZodString') {
+        propSchema.type = 'string';
+      } else if (def.typeName === 'ZodNumber') {
+        propSchema.type = 'number';
+      } else if (def.typeName === 'ZodBoolean') {
+        propSchema.type = 'boolean';
+      }
+
+      if (def.description) {
+        propSchema.description = def.description;
+      }
+
+      if (def.typeName !== 'ZodOptional' && def.typeName !== 'ZodDefault') {
+        jsonSchema.required.push(key);
+      }
+
+      jsonSchema.properties[key] = propSchema;
+    }
+  }
+
+  return {
+    name,
+    description,
+    inputSchema: jsonSchema,
+    inputExamples: examples,
+    deferLoading: true,
+    handler: async (input: any) => {
+      return await aiTool.execute(input);
+    }
+  };
+}
+
+// Use it
+const weatherToolDef = convertAISDKTool(
+  'weather',
+  'Get the weather in a location',
+  weatherToolAI,
+  [{ location: 'San Francisco' }]
+);
+
+registry.register(weatherToolDef);
+```
+
+## Benefits
+
+### Before (Standard Approach)
+
+```ts
+// All tools loaded upfront - wastes tokens
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    weather: weatherTool,
+    cityAttractions: cityAttractionsTool,
+    // ... 10 more tools
+  }
+});
+// All 12 tools loaded: ~8000 tokens
+```
+
+**Token Usage**: ~8000 tokens for tool definitions
+
+### After (Advanced Tools)
+
+```ts
+// Tools loaded on-demand via search
+const response = await client.ask(
+  "What's the weather in San Francisco?",
+  "Search for relevant tools first."
+);
+// Only weather tool loaded: ~300 tokens
+```
+
+**Token Usage**: ~300 tokens (96% reduction!)
+
+## Performance Comparison
+
+| Scenario | Standard Approach | With Advanced Tools | Savings |
+|----------|------------------|---------------------|---------|
+| 2 tools | ~500 tokens | ~300 tokens | **40%** |
+| 10 tools | ~4000 tokens | ~600 tokens | **85%** |
+| 50 tools | ~20000 tokens | ~3000 tokens | **85%** |
+
+## When to Use
+
+Use advanced tools optimization when:
+
+- ✅ You have many tools (10+)
+- ✅ You want to reduce token costs
+- ✅ Tools are only needed occasionally
+- ✅ You want better tool selection accuracy
+
+Stick with standard approach when:
+
+- ❌ You only have 1-2 tools
+- ❌ Tools are always needed
+- ❌ Simplicity is more important than token savings
+
+## Complete Example
+
+```ts
+import { Client, ToolRegistry, VercelAIAdapter, ToolDefinition } from 'llm-advanced-tools';
+import { openai } from '@ai-sdk/openai';
+
+async function setupOptimizedTools() {
+  const registry = new ToolRegistry({ strategy: 'smart' });
+
+  // Register multiple tools with defer loading
+  const tools = [
+    {
+      name: 'weather',
+      description: 'Get weather information',
+      // ... tool definition
+    },
+    {
+      name: 'calendar',
+      description: 'Manage calendar events',
+      // ... tool definition
+    },
+    // ... 20 more tools
+  ];
+
+  tools.forEach(tool => {
+    registry.register({
+      ...tool,
+      deferLoading: true,
+      inputExamples: getExamplesForTool(tool.name)
+    });
+  });
+
+  const client = new Client({
+    adapter: new VercelAIAdapter(openai('gpt-4o-mini')),
+    enableToolSearch: true,
+  }, registry);
+
+  return client;
+}
+
+const client = await setupOptimizedTools();
+
+// LLM will automatically search and load only relevant tools
+const response = await client.ask(
+  "What's the weather today?",
+  "Use tool search to find relevant tools."
+);
+```
+
