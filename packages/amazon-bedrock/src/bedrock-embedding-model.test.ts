@@ -162,8 +162,13 @@ describe('should support Nova embeddings', () => {
         },
         body: Buffer.from(
           JSON.stringify({
-            embedding: mockEmbeddings[0],
-            inputTextTokenCount: 8,
+            embeddings: [
+              {
+                embeddingType: 'TEXT',
+                embedding: mockEmbeddings[0],
+              },
+            ],
+            inputTokenCount: 8,
           }),
         ),
       },
@@ -178,7 +183,7 @@ describe('should support Nova embeddings', () => {
     fetch: fakeFetchWithAuth,
   });
 
-  it('should send messages-based payload (not inputText) for Nova embeddings', async () => {
+  it('should send SINGLE_EMBEDDING payload for Nova embeddings', async () => {
     const { embeddings } = await model.doEmbed({
       values: [testValues[0]],
     });
@@ -187,12 +192,15 @@ describe('should support Nova embeddings', () => {
 
     const body = await server.calls[0].requestBodyJson;
     expect(body).toEqual({
-      messages: [
-        {
-          role: 'user',
-          content: [{ text: testValues[0] }],
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 1024,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
         },
-      ],
+      },
     });
   });
 });
