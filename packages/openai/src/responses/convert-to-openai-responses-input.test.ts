@@ -2315,6 +2315,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
         hasShellTool: true,
         hasApplyPatchTool: true,
