@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- 218bba1: fix(google): use dynamic providerOptionsName when retrieving thoughtSignature in convertToGoogleGenerativeAIMessages
+
+  When using @ai-sdk/google-vertex provider with Gemini thinking models, multi-step tool calls would fail with "function call is missing a thought_signature" error. This was because thoughtSignature was stored under providerOptions.vertex but retrieved using hardcoded providerOptions.google. This fix passes providerOptionsName to convertToGoogleGenerativeAIMessages and uses it dynamically.
+
 ## 3.0.0-beta.89
 
 ### Patch Changes
