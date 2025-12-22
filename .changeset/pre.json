@@ -166,6 +166,7 @@
     "fix-async-iterator-cancel-cleanup",
     "fix-google-file-search-uri",
     "fix-headers-normalization",
+    "fix-vertex-thought-signature",
     "flat-birds-judge",
     "flat-donkeys-pretend",
     "flat-geese-hammer",
