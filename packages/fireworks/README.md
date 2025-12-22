@@ -34,7 +34,7 @@ const { text } = await generateText({
 
 ```ts
 import { fireworks } from '@ai-sdk/fireworks';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({

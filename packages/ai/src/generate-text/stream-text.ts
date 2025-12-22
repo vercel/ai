@@ -1,6 +1,7 @@
 import {
   getErrorMessage,
   LanguageModelV3,
+  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -9,6 +10,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -64,6 +66,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -570,6 +573,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   private readonly _finishReason = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['finishReason']>
   >();
+  private readonly _rawFinishReason = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, OUTPUT>['rawFinishReason']>
+  >();
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
@@ -665,10 +671,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
+    let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+
+    // Track provider-executed tool calls that support deferred results
+    // (e.g., code_execution in programmatic tool calling scenarios).
+    // These tools may not return their results in the same turn as their call.
+    const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
 
     let rootSpan!: Span;
 
@@ -849,7 +861,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }
 
         if (part.type === 'finish-step') {
-          const stepMessages = toResponseMessages({
+          const stepMessages = await toResponseMessages({
             content: recordedContent,
             tools,
           });
@@ -858,6 +870,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
             finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
             usage: part.usage,
             warnings: recordedWarnings,
             request: recordedRequest,
@@ -888,6 +901,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         if (part.type === 'finish') {
           recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
+          recordedRawFinishReason = part.rawFinishReason;
         }
       },
 
@@ -899,6 +913,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             });
 
             self._finishReason.reject(error);
+            self._rawFinishReason.reject(error);
             self._totalUsage.reject(error);
             self._steps.reject(error);
 
@@ -906,12 +921,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           }
 
           // derived:
-          const finishReason = recordedFinishReason ?? 'unknown';
+          const finishReason = recordedFinishReason ?? 'other';
           const totalUsage =
             recordedTotalUsage ?? createNullLanguageModelUsage();
 
           // from finish:
           self._finishReason.resolve(finishReason);
+          self._rawFinishReason.resolve(recordedRawFinishReason);
           self._totalUsage.resolve(totalUsage);
 
           // aggregate results:
@@ -920,7 +936,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
-            finishReason,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
             totalUsage,
             usage: finalStep.usage,
             content: finalStep.content,
@@ -1141,34 +1158,41 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
+            const content: ToolContent = [];
+
+            for (const output of toolOutputs) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: output.toolCallId,
+                toolName: output.toolName,
+                output: await createToolModelOutput({
+                  toolCallId: output.toolCallId,
+                  input: output.input,
+                  tool: tools?.[output.toolName],
+                  output:
+                    output.type === 'tool-result'
+                      ? output.output
+                      : output.error,
+                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                }),
+              });
+            }
+
+            for (const toolApproval of deniedToolApprovals) {
+              content.push({
+                type: 'tool-result' as const,
+                toolCallId: toolApproval.toolCall.toolCallId,
+                toolName: toolApproval.toolCall.toolName,
+                output: {
+                  type: 'execution-denied' as const,
+                  reason: toolApproval.approvalResponse.reason,
+                },
+              });
+            }
+
             initialResponseMessages.push({
               role: 'tool',
-              content: [
-                // add regular tool results for approved tool calls:
-                ...toolOutputs.map(output => ({
-                  type: 'tool-result' as const,
-                  toolCallId: output.toolCallId,
-                  toolName: output.toolName,
-                  output: createToolModelOutput({
-                    tool: tools?.[output.toolName],
-                    output:
-                      output.type === 'tool-result'
-                        ? output.output
-                        : output.error,
-                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                  }),
-                })),
-                // add execution denied tool results for denied tool approvals:
-                ...deniedToolApprovals.map(toolApproval => ({
-                  type: 'tool-result' as const,
-                  toolCallId: toolApproval.toolCall.toolCallId,
-                  toolName: toolApproval.toolCall.toolName,
-                  output: {
-                    type: 'execution-denied' as const,
-                    reason: toolApproval.approvalResponse.reason,
-                  },
-                })),
-              ],
+              content,
             });
           } finally {
             toolExecutionStepStreamController?.close();
@@ -1223,6 +1247,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           experimental_context =
             prepareStepResult?.experimental_context ?? experimental_context;
 
+          const stepProviderOptions = mergeObjects(
+            providerOptions,
+            prepareStepResult?.providerOptions,
+          );
           const {
             result: { stream, response, request },
             doStreamSpan,
@@ -1281,7 +1309,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers,
                   includeRawChunks,
@@ -1310,7 +1338,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           const activeToolCallToolNames: Record<string, string> = {};
 
-          let stepFinishReason: FinishReason = 'unknown';
+          let stepFinishReason: FinishReason = 'other';
+          let stepRawFinishReason: string | undefined = undefined;
+
           let stepUsage: LanguageModelUsage = createNullLanguageModelUsage();
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1432,6 +1462,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
+                      stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
 
                       // Telemetry for finish event timing
@@ -1575,6 +1606,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   controller.enqueue({
                     type: 'finish-step',
                     finishReason: stepFinishReason,
+                    rawFinishReason: stepRawFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
                     response: {
@@ -1596,10 +1628,45 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     toolOutput => toolOutput.providerExecuted !== true,
                   );
 
+                  // Track provider-executed tool calls that support deferred results.
+                  // In programmatic tool calling, a server tool (e.g., code_execution) may
+                  // trigger a client tool, and the server tool's result is deferred until
+                  // the client tool's result is sent back.
+                  for (const toolCall of stepToolCalls) {
+                    if (toolCall.providerExecuted !== true) continue;
+                    const tool = tools?.[toolCall.toolName];
+                    if (
+                      tool?.type === 'provider' &&
+                      tool.supportsDeferredResults
+                    ) {
+                      // Check if this tool call already has a result in the current step
+                      const hasResultInStep = stepToolOutputs.some(
+                        output =>
+                          output.type === 'tool-result' &&
+                          output.toolCallId === toolCall.toolCallId,
+                      );
+                      if (!hasResultInStep) {
+                        pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                          toolName: toolCall.toolName,
+                        });
+                      }
+                    }
+                  }
+
+                  // Mark deferred tool calls as resolved when we receive their results
+                  for (const output of stepToolOutputs) {
+                    if (output.type === 'tool-result') {
+                      pendingDeferredToolCalls.delete(output.toolCallId);
+                    }
+                  }
+
                   if (
-                    clientToolCalls.length > 0 &&
-                    // all current tool calls have outputs (incl. execution errors):
-                    clientToolOutputs.length === clientToolCalls.length &&
+                    // Continue if:
+                    // 1. There are client tool calls that have all been executed, OR
+                    // 2. There are pending deferred results from provider-executed tools
+                    ((clientToolCalls.length > 0 &&
+                      clientToolOutputs.length === clientToolCalls.length) ||
+                      pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,
@@ -1608,12 +1675,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   ) {
                     // append to messages for the next step:
                     responseMessages.push(
-                      ...toResponseMessages({
+                      ...(await toResponseMessages({
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
                         tools,
-                      }),
+                      })),
                     );
 
                     try {
@@ -1634,6 +1701,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,
+                      rawFinishReason: stepRawFinishReason,
                       totalUsage: combinedUsage,
                     });
 
@@ -1760,6 +1828,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     this.consumeStream();
 
     return this._finishReason.promise;
+  }
+
+  get rawFinishReason() {
+    // when any of the promises are accessed, the stream is consumed
+    // so it resolves without needing to consume the stream separately
+    this.consumeStream();
+
+    return this._rawFinishReason.promise;
   }
 
   /**

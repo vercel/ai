@@ -2274,6 +2274,74 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  describe('provider tool outputs', () => {
+    it('should include apply_patch output when multiple tool results are present', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-shell',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout: 'hi\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-apply',
+                toolName: 'apply_patch',
+                output: {
+                  type: 'json',
+                  value: {
+                    status: 'completed',
+                    output: 'patched',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+        hasShellTool: true,
+        hasApplyPatchTool: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'shell_call_output',
+          call_id: 'call-shell',
+          output: [
+            {
+              stdout: 'hi\n',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        },
+        {
+          type: 'apply_patch_call_output',
+          call_id: 'call-apply',
+          status: 'completed',
+          output: 'patched',
+        },
+      ]);
+    });
+  });
+
   describe('function tools', () => {
     it('should include client-side tool calls in prompt', async () => {
       const result = await convertToOpenAIResponsesInput({

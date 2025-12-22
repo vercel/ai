@@ -31,7 +31,7 @@ const imageAnalysisTool = tool({
     }
   },
 
-  toModelOutput(output: { base64Image?: string }) {
+  toModelOutput({ output }) {
     return {
       type: 'content',
       value: [

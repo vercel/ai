@@ -1,5 +1,181 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0-beta.134
+
+### Patch Changes
+
+- Updated dependencies [2049c5b]
+  - @ai-sdk/anthropic@3.0.0-beta.98
+
+## 4.0.0-beta.133
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/anthropic@3.0.0-beta.97
+  - @ai-sdk/google@3.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 4.0.0-beta.132
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/anthropic@3.0.0-beta.96
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/google@3.0.0-beta.88
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 4.0.0-beta.131
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/anthropic@3.0.0-beta.95
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/google@3.0.0-beta.87
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 4.0.0-beta.130
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/anthropic@3.0.0-beta.94
+  - @ai-sdk/google@3.0.0-beta.86
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 4.0.0-beta.129
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.93
+  - @ai-sdk/google@3.0.0-beta.85
+
+## 4.0.0-beta.128
+
+### Patch Changes
+
+- Updated dependencies [fd788ce]
+  - @ai-sdk/google@3.0.0-beta.84
+
+## 4.0.0-beta.127
+
+### Patch Changes
+
+- Updated dependencies [166b6d7]
+  - @ai-sdk/google@3.0.0-beta.83
+
+## 4.0.0-beta.126
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/google@3.0.0-beta.82
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
+## 4.0.0-beta.125
+
+### Patch Changes
+
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+- Updated dependencies [0ad470b]
+  - @ai-sdk/google@3.0.0-beta.81
+
+## 4.0.0-beta.124
+
+### Patch Changes
+
+- Updated dependencies [d129d89]
+  - @ai-sdk/anthropic@3.0.0-beta.91
+
+## 4.0.0-beta.123
+
+### Patch Changes
+
+- 870297d: feat(google): gemini-3-flash
+- Updated dependencies [870297d]
+  - @ai-sdk/google@3.0.0-beta.80
+
+## 4.0.0-beta.122
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/google@3.0.0-beta.79
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 4.0.0-beta.121
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/anthropic@3.0.0-beta.89
+  - @ai-sdk/google@3.0.0-beta.78
+
+## 4.0.0-beta.120
+
+### Patch Changes
+
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- Updated dependencies [87db851]
+  - @ai-sdk/anthropic@3.0.0-beta.88
+
+## 4.0.0-beta.119
+
+### Patch Changes
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- Updated dependencies [32a6c13]
+  - @ai-sdk/google@3.0.0-beta.77
+
+## 4.0.0-beta.118
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/anthropic@3.0.0-beta.87
+  - @ai-sdk/google@3.0.0-beta.76
+
+## 4.0.0-beta.117
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/anthropic@3.0.0-beta.86
+  - @ai-sdk/google@3.0.0-beta.75
+
+## 4.0.0-beta.116
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/anthropic@3.0.0-beta.85
+  - @ai-sdk/google@3.0.0-beta.74
+
+## 4.0.0-beta.115
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/anthropic@3.0.0-beta.84
+  - @ai-sdk/google@3.0.0-beta.73
+
 ## 4.0.0-beta.114
 
 ### Patch Changes

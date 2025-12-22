@@ -55,6 +55,7 @@ The result object of `generateText` contains several promises that resolve when 
 - `result.toolCalls`: The tool calls that were made in the last step.
 - `result.toolResults`: The results of the tool calls from the last step.
 - `result.finishReason`: The reason the model finished generating text.
+- `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
 - `result.usage`: The usage of the model during the final step of text generation.
 - `result.totalUsage`: The total usage across all steps (for multi-step generations).
 - `result.warnings`: Warnings from the model provider (e.g. unsupported settings).
@@ -160,6 +161,7 @@ It also provides several promises that resolve when the stream is finished:
 - `result.toolCalls`: The tool calls that have been executed in the last step.
 - `result.toolResults`: The tool results that have been generated in the last step.
 - `result.finishReason`: The reason the model finished generating text.
+- `result.rawFinishReason`: The raw reason why the generation finished (from the provider).
 - `result.usage`: The usage of the model during the final step of text generation.
 - `result.totalUsage`: The total usage across all steps (for multi-step generations).
 - `result.warnings`: Warnings from the model provider (e.g. unsupported settings).

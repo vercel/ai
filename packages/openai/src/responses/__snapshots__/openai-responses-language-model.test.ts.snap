@@ -433,77 +433,6 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > local shell tool > should i
 exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include mcp tool call and result in content 1`] = `
 [
   {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "MCP",
-    "type": "tool-call",
-  },
-  {
-    "result": {
-      "serverLabel": "dmcp",
-      "tools": [
-        {
-          "annotations": {
-            "read_only": false,
-          },
-          "description": "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "numResults": {
-                "description": "Number of search results to return (default: 5)",
-                "type": "number",
-              },
-              "query": {
-                "description": "Search query",
-                "type": "string",
-              },
-            },
-            "required": [
-              "query",
-            ],
-            "type": "object",
-          },
-          "name": "web_search_exa",
-        },
-        {
-          "annotations": {
-            "read_only": false,
-          },
-          "description": "Search and get relevant context for any programming task. Exa-code has the highest quality and freshest context for libraries, SDKs, and APIs. Use this tool for ANY question or task for related to programming. RULE: when the user's query contains exa-code or anything related to code, you MUST use this tool.",
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "query": {
-                "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
-                "type": "string",
-              },
-              "tokensNum": {
-                "default": 5000,
-                "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
-                "maximum": 50000,
-                "minimum": 1000,
-                "type": "number",
-              },
-            },
-            "required": [
-              "query",
-            ],
-            "type": "object",
-          },
-          "name": "get_code_context_exa",
-        },
-      ],
-      "type": "listTools",
-    },
-    "toolCallId": "mcpl_0a4801d792de11eb00690ccb8559c48197aec5714d3995da77",
-    "toolName": "MCP",
-    "type": "tool-result",
-  },
-  {
     "providerMetadata": {
       "openai": {
         "itemId": "rs_0a4801d792de11eb00690ccb8775988197b6c6f6d3f6882f5e",
@@ -1004,6 +933,185 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "response-metadata",
   },
   {
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "toolName": "apply_patch",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "##",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Shopping",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Checklist",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Milk",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Bread",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Eggs",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Fresh",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " fruit",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "+-",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " [",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ]",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Coffee",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}}",
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_kA46f91ZwocQyMCKyyZqRyC5",
+    "type": "tool-input-end",
+  },
+  {
     "input": "{"callId":"call_kA46f91ZwocQyMCKyyZqRyC5","operation":{"type":"create_file","path":"shopping-checklist.md","diff":"+## Shopping Checklist\\n+\\n+- [ ] Milk\\n+- [ ] Bread\\n+- [ ] Eggs\\n+- [ ] Fresh fruit\\n+- [ ] Coffee\\n"}}",
     "providerMetadata": {
       "openai": {
@@ -1015,7 +1123,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
     "type": "tool-call",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0372d86dfc1762fe00692741f339a08190bce9b78ee2079295",
@@ -1041,6 +1152,82 @@ exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > 
           "cached_tokens": 0,
         },
         "output_tokens": 67,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > apply_patch tool streaming > should stream apply_patch delete_file calls 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_delete_001",
+    "modelId": "gpt-5.1-2025-11-13",
+    "timestamp": 2025-11-26T18:07:47.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_delete_1",
+    "toolName": "apply_patch",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"callId":"call_delete_1","operation":{"type":"delete_file","path":"obsolete.txt"}}",
+    "id": "call_delete_1",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_delete_1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"callId":"call_delete_1","operation":{"type":"delete_file","path":"obsolete.txt"}}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "apc_delete_001",
+      },
+    },
+    "toolCallId": "call_delete_1",
+    "toolName": "apply_patch",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_delete_001",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 24,
+        "total": 24,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 0,
+        "total": 0,
+      },
+      "raw": {
+        "input_tokens": 24,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 0,
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
@@ -3107,7 +3294,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > code interpreter tool > shoul
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_68c2e6efa238819383d5f52a2c2a3baa02d3a5742c7ddae9",
@@ -3675,7 +3865,10 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
@@ -4216,7 +4409,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > file search tool > should str
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
@@ -4326,7 +4522,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > image generation tool > shoul
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0df93c0bb83a72f20068c979db26ac819e8b5a444fad3f0d7f",
@@ -4405,7 +4604,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > local shell tool > should str
     "type": "tool-call",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_68da7fd5d24481949fc2cf1cc60377050faf5df54b42d9a6",
@@ -4458,70 +4660,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
     "toolName": "MCP",
     "type": "tool-call",
-  },
-  {
-    "result": {
-      "serverLabel": "dmcp",
-      "tools": [
-        {
-          "annotations": {
-            "read_only": false,
-          },
-          "description": "Search the web using Exa AI - performs real-time web searches and can scrape content from specific URLs. Supports configurable result counts and returns the content from the most relevant websites.",
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "numResults": {
-                "description": "Number of search results to return (default: 5)",
-                "type": "number",
-              },
-              "query": {
-                "description": "Search query",
-                "type": "string",
-              },
-            },
-            "required": [
-              "query",
-            ],
-            "type": "object",
-          },
-          "name": "web_search_exa",
-        },
-        {
-          "annotations": {
-            "read_only": false,
-          },
-          "description": "Search and get relevant context for any programming task. Exa-code has the highest quality and freshest context for libraries, SDKs, and APIs. Use this tool for ANY question or task for related to programming. RULE: when the user's query contains exa-code or anything related to code, you MUST use this tool.",
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "query": {
-                "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
-                "type": "string",
-              },
-              "tokensNum": {
-                "default": 5000,
-                "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
-                "maximum": 50000,
-                "minimum": 1000,
-                "type": "number",
-              },
-            },
-            "required": [
-              "query",
-            ],
-            "type": "object",
-          },
-          "name": "get_code_context_exa",
-        },
-      ],
-      "type": "listTools",
-    },
-    "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "MCP",
-    "type": "tool-result",
   },
   {
     "id": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2:0",
@@ -6371,7 +6509,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0c72b1033351981300690ccf79c6d88193b7d054f4f83ad50a",
@@ -8003,7 +8144,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > shell tool > should stream sh
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0434d6d64b12b08900692f639d784481959af65f985b9c13e2",
@@ -8102,7 +8246,10 @@ exports[`OpenAIResponsesLanguageModel > doStream > web search tool > should hand
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_test",
@@ -9364,7 +9511,10 @@ Would you like",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "responseId": "resp_0cc96ac817fdc57e00693337060a408198b92bf1f99cf1b8ec",

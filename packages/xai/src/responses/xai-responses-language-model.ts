@@ -1,8 +1,11 @@
 import {
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   LanguageModelV3Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';
@@ -69,7 +72,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     const options =
@@ -114,7 +117,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
-      max_tokens: maxOutputTokens,
+      max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       seed,
@@ -148,8 +151,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const {
       args: body,
       warnings,
@@ -270,7 +273,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapXaiResponsesFinishReason(response.status),
+      finishReason: {
+        unified: mapXaiResponsesFinishReason(response.status),
+        raw: response.status ?? undefined,
+      },
       usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
@@ -283,8 +289,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       args,
       warnings,
@@ -309,7 +315,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -450,7 +459,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
 
               if (response.status) {
-                finishReason = mapXaiResponsesFinishReason(response.status);
+                finishReason = {
+                  unified: mapXaiResponsesFinishReason(response.status),
+                  raw: response.status,
+                };
               }
 
               return;

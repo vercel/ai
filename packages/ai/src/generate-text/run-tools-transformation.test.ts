@@ -37,7 +37,7 @@ describe('runToolsTransformation', () => {
         { type: 'text-end', id: '1' },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -75,6 +75,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -109,7 +110,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -160,6 +161,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -194,7 +196,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -245,6 +247,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -279,7 +282,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -334,6 +337,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -368,7 +372,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -428,6 +432,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -472,7 +477,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -516,7 +521,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);
@@ -571,6 +576,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -606,7 +612,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);
@@ -677,6 +683,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,

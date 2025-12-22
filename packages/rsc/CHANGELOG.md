@@ -1,5 +1,148 @@
 # @ai-sdk/rsc
 
+## 2.0.0-beta.170
+
+### Patch Changes
+
+- ai@6.0.0-beta.168
+
+## 2.0.0-beta.169
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - ai@6.0.0-beta.167
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 2.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [9f20c87]
+  - ai@6.0.0-beta.166
+
+## 2.0.0-beta.167
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - ai@6.0.0-beta.165
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 2.0.0-beta.166
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - ai@6.0.0-beta.164
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 2.0.0-beta.165
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - ai@6.0.0-beta.163
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.164
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - ai@6.0.0-beta.162
+
+## 2.0.0-beta.163
+
+### Patch Changes
+
+- ai@6.0.0-beta.161
+
+## 2.0.0-beta.162
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - ai@6.0.0-beta.160
+
+## 2.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [3071620]
+  - ai@6.0.0-beta.159
+
+## 2.0.0-beta.160
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - ai@6.0.0-beta.158
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.159
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - ai@6.0.0-beta.157
+
+## 2.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [2406576]
+  - ai@6.0.0-beta.156
+
+## 2.0.0-beta.157
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - ai@6.0.0-beta.155
+
+## 2.0.0-beta.156
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - ai@6.0.0-beta.154
+
+## 2.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - ai@6.0.0-beta.153
+
+## 2.0.0-beta.154
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - ai@6.0.0-beta.152
+
+## 2.0.0-beta.153
+
+### Patch Changes
+
+- Updated dependencies [dcdac8c]
+  - ai@6.0.0-beta.151
+
 ## 2.0.0-beta.152
 
 ### Patch Changes

@@ -5,7 +5,15 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        imageUrl: z.string().nullish(),
+        /** @deprecated use prompt.images instead */
+        imageUrl: z.string().nullish().meta({
+          deprecated: true,
+          description: 'Use `prompt.images` instead',
+        }),
+        maskUrl: z
+          .string()
+          .nullish()
+          .meta({ deprecated: true, description: 'Use `prompt.mask` instead' }),
         guidanceScale: z.number().min(1).max(20).nullish(),
         numInferenceSteps: z.number().min(1).max(50).nullish(),
         enableSafetyChecker: z.boolean().nullish(),
@@ -20,6 +28,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
 
         // Deprecated snake_case versions
         image_url: z.string().nullish(),
+        mask_url: z.string().nullish(),
         guidance_scale: z.number().min(1).max(20).nullish(),
         num_inference_steps: z.number().min(1).max(50).nullish(),
         enable_safety_checker: z.boolean().nullish(),
@@ -50,6 +59,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
 
         // Map all known parameters
         mapKey('image_url', 'imageUrl');
+        mapKey('mask_url', 'maskUrl');
         mapKey('guidance_scale', 'guidanceScale');
         mapKey('num_inference_steps', 'numInferenceSteps');
         mapKey('enable_safety_checker', 'enableSafetyChecker');
@@ -70,6 +80,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
             ![
               // camelCase known keys
               'imageUrl',
+              'maskUrl',
               'guidanceScale',
               'numInferenceSteps',
               'enableSafetyChecker',
@@ -80,6 +91,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
               'safetyTolerance',
               // snake_case known keys
               'image_url',
+              'mask_url',
               'guidance_scale',
               'num_inference_steps',
               'enable_safety_checker',

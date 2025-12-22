@@ -162,7 +162,6 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'tool-calls',
             'error',
             'other',
-            'unknown',
           ] as const satisfies readonly FinishReason[])
           .optional(),
         messageMetadata: z.unknown().optional(),

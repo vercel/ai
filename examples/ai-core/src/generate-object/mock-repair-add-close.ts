@@ -21,7 +21,7 @@ async function main() {
           },
         },
         warnings: [],
-        finishReason: 'tool-calls',
+        finishReason: { raw: undefined, unified: 'tool-calls' },
         content: [
           { type: 'text', text: `{ "content": "provider metadata test"` },
         ],

@@ -532,7 +532,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -626,7 +629,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -729,7 +735,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": [
@@ -824,7 +833,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -1053,7 +1065,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "unknown",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "other",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,

@@ -16,7 +16,7 @@ describe('ToolLoopAgent', () => {
           doGenerateOptions = options;
           return {
             content: [{ type: 'text', text: 'reply' }],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: {
               cachedInputTokens: undefined,
               inputTokens: {
@@ -266,7 +266,7 @@ describe('ToolLoopAgent', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: {
                   inputTokens: {
                     total: 3,
