@@ -103,7 +103,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     });
 
     const embedding =
-      'embedding' in response ? response.embedding : response.embeddings[0];
+      'embedding' in response
+        ? response.embedding
+        : Array.isArray(response.embeddings)
+          ? response.embeddings[0]
+          : response.embeddings.float[0];
 
     return {
       warnings: [],
@@ -124,8 +128,14 @@ const BedrockEmbeddingResponseSchema = z.union([
     embedding: z.array(z.number()),
     inputTextTokenCount: z.number(),
   }),
-  // Cohere-style response
+  // Cohere v3-style response
   z.object({
     embeddings: z.array(z.array(z.number())),
+  }),
+  // Cohere v4-style response
+  z.object({
+    embeddings: z.object({
+      float: z.array(z.array(z.number())),
+    }),
   }),
 ]);

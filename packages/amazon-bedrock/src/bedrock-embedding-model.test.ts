@@ -20,6 +20,10 @@ const cohereEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${
   'cohere.embed-english-v3',
 )}/invoke`;
 
+const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'cohere.embed-v4:0',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -50,6 +54,19 @@ describe('doEmbed', () => {
         body: Buffer.from(
           JSON.stringify({
             embeddings: [mockEmbeddings[0]],
+          }),
+        ),
+      },
+    },
+    [cohereV4EmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: { float: [mockEmbeddings[0]] },
           }),
         ),
       },
@@ -112,6 +129,29 @@ describe('doEmbed', () => {
     });
 
     const { embeddings, usage } = await cohereModel.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+    expect(Number.isNaN(usage?.tokens)).toBe(true);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+    });
+  });
+
+  it('should support Cohere v4 embedding models', async () => {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings, usage } = await cohereV4Model.doEmbed({
       values: [testValues[0]],
     });
 
