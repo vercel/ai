@@ -332,6 +332,9 @@ export async function convertToOpenAIResponsesInput({
 
       case 'tool': {
         for (const part of content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           const resolvedToolName = toolNameMapping.toProviderToolName(

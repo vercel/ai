@@ -207,7 +207,7 @@ You can create Runpod image models using the `.imageModel()` factory method.
 
 ```ts
 import { runpod } from '@runpod/ai-sdk-provider';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: runpod.imageModel('qwen/qwen-image'),

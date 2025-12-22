@@ -1,5 +1,76 @@
 # @ai-sdk/deepgram
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- 7f91f36: feat(deepgram): add language detection support
+
+  Add language detection support for Deepgram transcription. When `detectLanguage` is enabled, Deepgram will automatically detect the spoken language and return it in the response via `providerMetadata.deepgram.detectedLanguage`.
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
 ## 2.0.0-beta.52
 
 ### Patch Changes

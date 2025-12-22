@@ -35,6 +35,25 @@ const { text } = await transcribe({
 });
 ```
 
+### Transcription with Language Detection
+
+```ts
+import { deepgram } from '@ai-sdk/deepgram';
+import { experimental_transcribe as transcribe } from 'ai';
+
+const { text, language } = await transcribe({
+  model: deepgram.transcription('nova-3'),
+  audio: new URL(
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+  ),
+  providerOptions: {
+    deepgram: {
+      detectLanguage: true,
+    },
+  },
+});
+```
+
 ### Text-to-Speech
 
 ```ts

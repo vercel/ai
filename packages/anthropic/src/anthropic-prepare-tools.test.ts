@@ -681,6 +681,107 @@ describe('prepareTools', () => {
     });
   });
 
+  describe('allowedCallers for function tools (programmatic tool calling)', () => {
+    it('should include allowed_callers and advanced-tool-use beta when allowedCallers is set', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                allowedCallers: ['code_execution_20250825'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "structured-outputs-2025-11-13",
+            "advanced-tool-use-2025-11-20",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_callers": [
+                "code_execution_20250825",
+              ],
+              "cache_control": undefined,
+              "description": "Query a database",
+              "input_schema": {
+                "properties": {
+                  "sql": {
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+              "name": "query_database",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include allowed_callers when not specified', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result.tools?.[0]).not.toHaveProperty('allowed_callers');
+    });
+
+    it('should include both deferLoading and allowedCallers when both are set', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'query_database',
+            description: 'Query a database',
+            inputSchema: {
+              type: 'object',
+              properties: { sql: { type: 'string' } },
+            },
+            providerOptions: {
+              anthropic: {
+                deferLoading: true,
+                allowedCallers: ['code_execution_20250825'],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+      });
+
+      expect(result.tools?.[0]).toHaveProperty('defer_loading', true);
+      expect(result.tools?.[0]).toHaveProperty('allowed_callers', [
+        'code_execution_20250825',
+      ]);
+      expect(result.betas).toContain('advanced-tool-use-2025-11-20');
+    });
+  });
+
   it('should add warnings for unsupported tools', async () => {
     const result = await prepareTools({
       tools: [

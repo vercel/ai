@@ -101,17 +101,12 @@ describe('GatewayEmbeddingModel', () => {
       expect(usage).toStrictEqual({ tokens: 42 });
     });
 
-    it('should send single value as string, multiple values as array', async () => {
+    it('should send value as array', async () => {
       prepareJsonResponse();
 
       await createTestModel().doEmbed({ values: testValues });
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        input: testValues,
-      });
-
-      await createTestModel().doEmbed({ values: [testValues[0]] });
-      expect(await server.calls[1].requestBodyJson).toStrictEqual({
-        input: testValues[0],
+        values: testValues,
       });
     });
 
@@ -124,7 +119,7 @@ describe('GatewayEmbeddingModel', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        input: testValues,
+        values: testValues,
         providerOptions: { openai: { dimensions: 64 } },
       });
     });
@@ -135,7 +130,7 @@ describe('GatewayEmbeddingModel', () => {
       await createTestModel().doEmbed({ values: testValues });
 
       const body = await server.calls[0].requestBodyJson;
-      expect(body).toStrictEqual({ input: testValues });
+      expect(body).toStrictEqual({ values: testValues });
       expect('providerOptions' in body).toBe(false);
     });
 

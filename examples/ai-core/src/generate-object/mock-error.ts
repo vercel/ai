@@ -15,7 +15,7 @@ async function main() {
             timestamp: new Date(123),
             modelId: 'model-1',
           },
-          finishReason: 'stop',
+          finishReason: { raw: undefined, unified: 'stop' },
           usage: {
             inputTokens: {
               total: 10,

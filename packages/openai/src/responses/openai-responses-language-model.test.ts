@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
@@ -82,6 +82,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     const chunks = fs
       .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
+      .filter(line => line.trim().length > 0)
       .map(line => `data: ${line}\n\n`);
     chunks.push('data: [DONE]\n\n');
 
@@ -750,6 +751,37 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([]);
         },
       );
+
+      it('should allow forcing reasoning mode for unrecognized model IDs via providerOptions', async () => {
+        const { warnings } = await createModel(
+          'stealth-reasoning-model',
+        ).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              forceReasoning: true,
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'stealth-reasoning-model',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
 
       it('should send xhigh reasoningEffort for codex-max model', async () => {
         const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
@@ -2224,12 +2256,17 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.finishReason).toStrictEqual('tool-calls');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "tool-calls",
+          }
+        `);
       });
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -2306,7 +2343,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2363,7 +2400,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-local-shell-tool.1');
@@ -2411,7 +2448,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-web-search-tool.1');
@@ -2462,7 +2499,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-shell-tool.1');
@@ -2591,7 +2628,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-mcp-tool.1');
@@ -2647,7 +2684,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -2801,7 +2838,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('apply_patch tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('create_file operation', () => {
         beforeEach(async () => {
@@ -3540,7 +3577,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3632,7 +3672,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "length",
+            "finishReason": {
+              "raw": "max_output_tokens",
+              "unified": "length",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3778,7 +3821,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -3896,7 +3942,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
@@ -3993,7 +4042,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "logprobs": [
@@ -4340,7 +4392,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "error",
               },
               {
-                "finishReason": "unknown",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "other",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
@@ -4527,7 +4582,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4659,7 +4717,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4862,7 +4923,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4996,7 +5060,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5281,7 +5348,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5329,6 +5399,24 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe('apply_patch tool streaming', () => {
       it('should handle apply_patch tool calls in streaming mode', async () => {
         prepareChunksFixtureResponse('openai-apply-patch-tool.1');
+
+        const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.apply_patch',
+              name: 'apply_patch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should stream apply_patch delete_file calls', async () => {
+        prepareChunksFixtureResponse('openai-apply-patch-tool-delete.1');
 
         const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
           prompt: TEST_PROMPT,
@@ -5569,7 +5657,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5678,7 +5769,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5891,7 +5985,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -6095,7 +6192,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,

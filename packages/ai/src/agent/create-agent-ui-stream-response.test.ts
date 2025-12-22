@@ -42,7 +42,7 @@ describe('createAgentUIStreamResponse', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: {
                     inputTokens: {
                       total: 10,

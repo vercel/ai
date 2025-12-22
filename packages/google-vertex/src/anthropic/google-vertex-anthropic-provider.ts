@@ -29,6 +29,11 @@ Creates a model for text generation.
 Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GoogleVertexAnthropicProviderSettings {
@@ -122,6 +127,7 @@ export function createVertexAnthropic(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

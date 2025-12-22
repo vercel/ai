@@ -1,5 +1,89 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.112
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 3.0.0-beta.111
+
+### Patch Changes
+
+- 304222e: Add streaming support for apply_patch partial diffs.
+
+## 3.0.0-beta.110
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 3.0.0-beta.109
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 3.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 3.0.0-beta.107
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 3.0.0-beta.106
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- 88574c1: Change `isReasoningModel` detection from blocklist to allowlist and add override option
+
+## 3.0.0-beta.104
+
+### Patch Changes
+
+- 61c52dc: feat (provider/openai): add gpt-image-1.5 model support
+
+## 3.0.0-beta.103
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 3.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
 ## 3.0.0-beta.101
 
 ### Patch Changes

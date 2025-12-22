@@ -1,9 +1,9 @@
 ---
-title: experimental_createMCPClient
+title: createMCPClient
 description: Create a client for connecting to MCP servers
 ---
 
-# `experimental_createMCPClient()`
+# `createMCPClient()`
 
 Creates a lightweight Model Context Protocol (MCP) client that connects to an MCP server. The client provides:
 
@@ -14,12 +14,10 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 
 It currently does not support accepting notifications from an MCP server, and custom configuration of the client.
 
-This feature is experimental and may change or be removed in the future.
-
 ## Import
 
 <Snippet
-  text={`import { experimental_createMCPClient } from "@ai-sdk/mcp"`}
+  text={`import { createMCPClient } from "@ai-sdk/mcp"`}
   prompt={false}
 />
 
@@ -245,12 +243,13 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
-      name: 'listPrompts',
+      name: 'experimental_listPrompts',
       type: `async (options?: {
         params?: PaginatedRequest['params'];
         options?: RequestOptions;
       }) => Promise<ListPromptsResult>`,
-      description: 'Lists available prompts from the MCP server.',
+      description:
+        'Lists available prompts from the MCP server. This method is experimental and may change in the future.',
       properties: [
         {
           type: 'options',
@@ -273,13 +272,14 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
       ],
     },
     {
-      name: 'getPrompt',
+      name: 'experimental_getPrompt',
       type: `async (args: {
         name: string;
         arguments?: Record<string, unknown>;
         options?: RequestOptions;
       }) => Promise<GetPromptResult>`,
-      description: 'Retrieves a prompt by name, optionally passing arguments.',
+      description:
+        'Retrieves a prompt by name, optionally passing arguments. This method is experimental and may change in the future.',
       properties: [
         {
           type: 'args',
@@ -346,10 +346,8 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
 ## Example
 
 ```typescript
-import {
-  experimental_createMCPClient as createMCPClient,
-  generateText,
-} from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
+import { generateText } from 'ai';
 import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
 
 let client;

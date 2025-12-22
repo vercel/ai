@@ -88,6 +88,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'A beautiful sunset over mountains',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -109,6 +111,8 @@ describe('GatewayImageModel', () => {
       const prompt = 'A cat playing piano';
       await createTestModel().doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: '16:9',
@@ -135,6 +139,8 @@ describe('GatewayImageModel', () => {
       const prompt = 'A simple prompt';
       await createTestModel().doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -159,6 +165,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -190,6 +198,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -213,6 +223,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -236,6 +248,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -253,6 +267,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -275,6 +291,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -292,6 +310,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -309,6 +329,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -326,6 +348,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -355,6 +379,8 @@ describe('GatewayImageModel', () => {
         },
       }).doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -375,6 +401,8 @@ describe('GatewayImageModel', () => {
       const abortController = new AbortController();
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -401,6 +429,8 @@ describe('GatewayImageModel', () => {
       await expect(
         createTestModel().doGenerate({
           prompt: 'Test prompt',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -425,6 +455,8 @@ describe('GatewayImageModel', () => {
       await expect(
         createTestModel().doGenerate({
           prompt: 'Test prompt',
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: undefined,
           aspectRatio: undefined,
@@ -439,6 +471,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -473,6 +507,8 @@ describe('GatewayImageModel', () => {
 
       await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -502,6 +538,8 @@ describe('GatewayImageModel', () => {
 
       await model.doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -543,6 +581,8 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
