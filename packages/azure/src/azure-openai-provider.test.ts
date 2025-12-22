@@ -1277,6 +1277,7 @@ describe('responses', () => {
               store: false,
               include: ['reasoning.encrypted_content'],
               reasoningSummary: 'auto',
+              forceReasoning:true,
             },
           },
         });
@@ -1762,6 +1763,7 @@ describe('responses', () => {
             store: false,
             include: ['reasoning.encrypted_content'],
             reasoningSummary: 'auto',
+            forceReasoning:true,
           },
         },
       });
