@@ -1,10 +1,13 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   LanguageModelV3Usage,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,6 +20,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToXaiChatMessages } from './convert-to-xai-chat-messages';
+import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
 import { XaiChatModelId, xaiProviderOptions } from './xai-chat-options';
@@ -65,7 +69,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     providerOptions,
     tools,
     toolChoice,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     // parse xai-specific provider options
@@ -114,7 +118,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       model: this.modelId,
 
       // standard generation settings
-      max_tokens: maxOutputTokens,
+      max_completion_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       seed,
@@ -187,8 +191,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -262,17 +266,11 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapXaiFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage.prompt_tokens,
-        outputTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-        reasoningTokens:
-          response.usage.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
+      finishReason: {
+        unified: mapXaiFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
+      usage: convertXaiChatUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -284,8 +282,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {
       ...args,
@@ -306,14 +304,11 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
     const lastReasoningDeltas: Record<string, string> = {};
@@ -366,21 +361,17 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
             // update usage if present
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              usage = convertXaiChatUsage(value.usage);
             }
 
             const choice = value.choices[0];
 
             // update finish reason if present
             if (choice?.finish_reason != null) {
-              finishReason = mapXaiFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapXaiFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             // exit if no delta to process
@@ -490,7 +481,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage });
+            controller.enqueue({ type: 'finish', finishReason, usage: usage! });
           },
         }),
       ),
@@ -522,6 +513,8 @@ const xaiUsageSchema = z.object({
     })
     .nullish(),
 });
+
+export type XaiChatUsage = z.infer<typeof xaiUsageSchema>;
 
 const xaiChatResponseSchema = z.object({
   id: z.string().nullish(),

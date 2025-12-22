@@ -1,19 +1,19 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import { run } from '../lib/run';
 import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
     model: anthropic('claude-haiku-4-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    maxRetries: 0,
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  printFullStream({ result });
 
-  console.log();
-  print('Request body:', (await result.request).body);
-  print('Warnings:', await result.warnings);
+  print('Usage:', await result.usage);
+  print('Finish reason:', await result.finishReason);
+  print('Raw finish reason:', await result.rawFinishReason);
 });

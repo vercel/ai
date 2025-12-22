@@ -13,6 +13,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
+  | OpenAIResponsesShellCall
+  | OpenAIResponsesShellCallOutput
   | OpenAIResponsesApplyPatchCall
   | OpenAIResponsesApplyPatchCallOutput
   | OpenAIResponsesReasoning
@@ -31,6 +33,21 @@ export type OpenAIResponsesIncludeOptions =
   | Array<OpenAIResponsesIncludeValue>
   | undefined
   | null;
+
+export type OpenAIResponsesApplyPatchOperationDiffDeltaChunk = {
+  type: 'response.apply_patch_call_operation_diff.delta';
+  item_id: string;
+  output_index: number;
+  delta: string;
+  obfuscation?: string | null;
+};
+
+export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
+  type: 'response.apply_patch_call_operation_diff.done';
+  item_id: string;
+  output_index: number;
+  diff: string;
+};
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -101,6 +118,32 @@ export type OpenAIResponsesLocalShellCallOutput = {
   output: string;
 };
 
+/**
+ * Official OpenAI API Specifications: https://platform.openai.com/docs/api-reference/responses/object#responses-object-output-shell_tool_call
+ */
+export type OpenAIResponsesShellCall = {
+  type: 'shell_call';
+  id: string;
+  call_id: string;
+  status: 'in_progress' | 'completed' | 'incomplete';
+  action: {
+    commands: string[];
+    timeout_ms?: number;
+    max_output_length?: number;
+  };
+};
+
+export type OpenAIResponsesShellCallOutput = {
+  type: 'shell_call_output';
+  call_id: string;
+  max_output_length?: number;
+  output: Array<{
+    stdout: string;
+    stderr: string;
+    outcome: { type: 'timeout' } | { type: 'exit'; exit_code: number };
+  }>;
+};
+
 export type OpenAIResponsesApplyPatchCall = {
   type: 'apply_patch_call';
   id?: string;
@@ -145,14 +188,14 @@ export type OpenAIResponsesFileSearchToolComparisonFilter = {
   key: string;
 
   /**
-   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte.
+   * Specifies the comparison operator: eq, ne, gt, gte, lt, lte, in, nin.
    */
-  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
+  type: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin';
 
   /**
-   * The value to compare against the attribute key; supports string, number, or boolean types.
+   * The value to compare against the attribute key; supports string, number, boolean, or array of string types.
    */
-  value: string | number | boolean;
+  value: string | number | boolean | string[];
 };
 
 /**
@@ -179,7 +222,7 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
-      strict: boolean | undefined;
+      strict?: boolean;
     }
   | {
       type: 'apply_patch';
@@ -276,6 +319,9 @@ export type OpenAIResponsesTool =
     }
   | {
       type: 'local_shell';
+    }
+  | {
+      type: 'shell';
     };
 
 export type OpenAIResponsesReasoning = {
@@ -424,6 +470,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          z.object({
+            type: z.literal('shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            action: z.object({
+              commands: z.array(z.string()),
+            }),
+          }),
         ]),
       }),
       z.object({
@@ -485,12 +540,12 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               }),
               z.object({
                 type: z.literal('open_page'),
-                url: z.string(),
+                url: z.string().nullish(),
               }),
               z.object({
-                type: z.literal('find'),
-                url: z.string(),
-                pattern: z.string(),
+                type: z.literal('find_in_page'),
+                url: z.string().nullish(),
+                pattern: z.string().nullish(),
               }),
             ]),
           }),
@@ -607,6 +662,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
+          z.object({
+            type: z.literal('shell_call'),
+            id: z.string(),
+            call_id: z.string(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
+            action: z.object({
+              commands: z.array(z.string()),
+            }),
+          }),
         ]),
       }),
       z.object({
@@ -683,6 +747,19 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.literal('response.reasoning_summary_part.done'),
         item_id: z.string(),
         summary_index: z.number(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+        obfuscation: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        diff: z.string(),
       }),
       z.object({
         type: z.literal('error'),
@@ -818,12 +895,12 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                 }),
                 z.object({
                   type: z.literal('open_page'),
-                  url: z.string(),
+                  url: z.string().nullish(),
                 }),
                 z.object({
-                  type: z.literal('find'),
-                  url: z.string(),
-                  pattern: z.string(),
+                  type: z.literal('find_in_page'),
+                  url: z.string().nullish(),
+                  pattern: z.string().nullish(),
                 }),
               ]),
             }),
@@ -976,6 +1053,15 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   diff: z.string(),
                 }),
               ]),
+            }),
+            z.object({
+              type: z.literal('shell_call'),
+              id: z.string(),
+              call_id: z.string(),
+              status: z.enum(['in_progress', 'completed', 'incomplete']),
+              action: z.object({
+                commands: z.array(z.string()),
+              }),
             }),
           ]),
         )

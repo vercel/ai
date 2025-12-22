@@ -2072,7 +2072,10 @@ Error message: Unexpected end of JSON input],
     "type": "error",
   },
   {
-    "finishReason": "error",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0ad69c3c5fcb01f60068eba78cacd08193bf9a57724aa55ab8",
@@ -2081,11 +2084,27 @@ Error message: Unexpected end of JSON input],
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 1280,
-      "inputTokens": 2143,
-      "outputTokens": 919,
-      "reasoningTokens": 576,
-      "totalTokens": 3062,
+      "inputTokens": {
+        "cacheRead": 1280,
+        "cacheWrite": undefined,
+        "noCache": 863,
+        "total": 2143,
+      },
+      "outputTokens": {
+        "reasoning": 576,
+        "text": 343,
+        "total": 919,
+      },
+      "raw": {
+        "input_tokens": 2143,
+        "input_tokens_details": {
+          "cached_tokens": 1280,
+        },
+        "output_tokens": 919,
+        "output_tokens_details": {
+          "reasoning_tokens": 576,
+        },
+      },
     },
   },
 ]
@@ -2624,7 +2643,10 @@ providers and models, and which ones are available in the AI SDK.",
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
@@ -2633,11 +2655,27 @@ providers and models, and which ones are available in the AI SDK.",
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3748,
-      "outputTokens": 543,
-      "reasoningTokens": 448,
-      "totalTokens": 4291,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1444,
+        "total": 3748,
+      },
+      "outputTokens": {
+        "reasoning": 448,
+        "text": 95,
+        "total": 543,
+      },
+      "raw": {
+        "input_tokens": 3748,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 543,
+        "output_tokens_details": {
+          "reasoning_tokens": 448,
+        },
+      },
     },
   },
 ]
@@ -3149,7 +3187,10 @@ exports[`responses > file search tool > should stream file search results withou
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
@@ -3158,11 +3199,27 @@ exports[`responses > file search tool > should stream file search results withou
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 2304,
-      "inputTokens": 3737,
-      "outputTokens": 621,
-      "reasoningTokens": 512,
-      "totalTokens": 4358,
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1433,
+        "total": 3737,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 109,
+        "total": 621,
+      },
+      "raw": {
+        "input_tokens": 3737,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 621,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
     },
   },
 ]
@@ -5035,7 +5092,10 @@ Error message: Unexpected end of JSON input],
     "type": "error",
   },
   {
-    "finishReason": "error",
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
     "providerMetadata": {
       "azure": {
         "responseId": "resp_0dcf1a118189f28100691daa5591108194a7dc13f2d6faa80c",
@@ -5044,11 +5104,27 @@ Error message: Unexpected end of JSON input],
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 5093,
-      "outputTokens": 369,
-      "reasoningTokens": 0,
-      "totalTokens": 5462,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 5093,
+        "total": 5093,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 369,
+        "total": 369,
+      },
+      "raw": {
+        "input_tokens": 5093,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 369,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
     },
   },
 ]

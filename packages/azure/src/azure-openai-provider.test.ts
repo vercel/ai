@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -585,6 +586,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -604,6 +607,8 @@ describe('image', () => {
         .imageModel('dalle-deployment')
         .doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: undefined,
@@ -629,6 +634,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -660,6 +667,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -677,6 +686,8 @@ describe('image', () => {
 
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -692,6 +703,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -1004,7 +1017,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1058,7 +1071,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1212,7 +1225,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1236,7 +1249,7 @@ describe('responses', () => {
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
       prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -1358,7 +1371,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -1366,11 +1382,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 234,
-              "inputTokens": 543,
-              "outputTokens": 478,
-              "reasoningTokens": 123,
-              "totalTokens": 1021,
+              "inputTokens": {
+                "cacheRead": 234,
+                "cacheWrite": undefined,
+                "noCache": 309,
+                "total": 543,
+              },
+              "outputTokens": {
+                "reasoning": 123,
+                "text": 355,
+                "total": 478,
+              },
+              "raw": {
+                "input_tokens": 543,
+                "input_tokens_details": {
+                  "cached_tokens": 234,
+                },
+                "output_tokens": 478,
+                "output_tokens_details": {
+                  "reasoning_tokens": 123,
+                },
+              },
             },
           },
         ]
@@ -1490,7 +1522,10 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -1498,11 +1533,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1586,7 +1637,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": null,
@@ -1594,11 +1648,27 @@ describe('responses', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 50,
+                "total": 50,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 50,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 25,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]

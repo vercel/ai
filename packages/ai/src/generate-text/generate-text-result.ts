@@ -29,7 +29,6 @@ export interface GenerateTextResult<
   /**
 The content that was generated in the last step.
    */
-  // TODO AI SDK 5.1 / AI SDK 6: consider renaming to output
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
@@ -90,9 +89,14 @@ The dynamic tool results that were made in the last step.
   readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
-The reason why the generation finished.
+   * The unified reason why the generation finished.
    */
   readonly finishReason: FinishReason;
+
+  /**
+   * The raw reason why the generation finished (from the provider).
+   */
+  readonly rawFinishReason: string | undefined;
 
   /**
 The token usage of the last step.

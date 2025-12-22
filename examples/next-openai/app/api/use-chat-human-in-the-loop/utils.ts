@@ -1,11 +1,11 @@
 import {
   convertToModelMessages,
   Tool,
-  ToolCallOptions,
+  ToolExecutionOptions,
   ToolSet,
   UIMessageStreamWriter,
-  getToolName,
-  isToolUIPart,
+  getStaticToolName,
+  isStaticToolUIPart,
 } from 'ai';
 import { HumanInTheLoopUIMessage } from './types';
 
@@ -51,7 +51,7 @@ export async function processToolCalls<
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
       args: ExecutableTools[K] extends Tool<infer P> ? P : never,
-      context: ToolCallOptions,
+      context: ToolExecutionOptions,
     ) => Promise<any>;
   },
 ): Promise<HumanInTheLoopUIMessage[]> {
@@ -62,9 +62,9 @@ export async function processToolCalls<
   const processedParts = await Promise.all(
     parts.map(async part => {
       // Only process tool invocations parts
-      if (!isToolUIPart(part)) return part;
+      if (!isStaticToolUIPart(part)) return part;
 
-      const toolName = getToolName(part);
+      const toolName = getStaticToolName(part);
 
       // Only continue if we have an execute function for the tool (meaning it requires confirmation) and it's in a 'result' state
       if (!(toolName in executeFunctions) || part.state !== 'output-available')
@@ -84,7 +84,7 @@ export async function processToolCalls<
         const toolInstance = executeFunctions[toolName] as Tool['execute'];
         if (toolInstance) {
           result = await toolInstance(part.input, {
-            messages: convertToModelMessages(messages),
+            messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
           });
         } else {

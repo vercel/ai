@@ -81,6 +81,11 @@ Creates a language model for text generation. Alias for chatModel.
 Creates a embedding model for text generation.
 */
   embeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV3;
 }
 
 // by default, we use the Model APIs
@@ -209,11 +214,12 @@ export function createBaseten(
         const embeddings = response.data.map((item: any) => item.embedding);
 
         return {
-          embeddings: embeddings,
+          embeddings,
           usage: response.usage
             ? { tokens: response.usage.total_tokens }
             : undefined,
           response: { headers: {}, body: response },
+          warnings: [],
         };
       };
 
@@ -234,6 +240,7 @@ export function createBaseten(
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   return provider;
 }
 

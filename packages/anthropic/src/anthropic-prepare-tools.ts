@@ -10,16 +10,27 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
+export interface AnthropicToolOptions {
+  deferLoading?: boolean;
+  allowedCallers?: Array<'code_execution_20250825'>;
+}
+
 export async function prepareTools({
   tools,
   toolChoice,
   disableParallelToolUse,
   cacheControlValidator,
+  supportsStructuredOutput,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
+
+  /**
+   * Whether the model supports structured output.
+   */
+  supportsStructuredOutput: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -47,12 +58,42 @@ export async function prepareTools({
           canCache: true,
         });
 
+        // Read Anthropic-specific provider options
+        const anthropicOptions = tool.providerOptions?.anthropic as
+          | AnthropicToolOptions
+          | undefined;
+        const deferLoading = anthropicOptions?.deferLoading;
+        const allowedCallers = anthropicOptions?.allowedCallers;
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(supportsStructuredOutput === true && tool.strict != null
+            ? { strict: tool.strict }
+            : {}),
+          ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
+          ...(allowedCallers != null
+            ? { allowed_callers: allowedCallers }
+            : {}),
+          ...(tool.inputExamples != null
+            ? {
+                input_examples: tool.inputExamples.map(
+                  example => example.input,
+                ),
+              }
+            : {}),
         });
+
+        if (supportsStructuredOutput === true) {
+          betas.add('structured-outputs-2025-11-13');
+        }
+
+        if (tool.inputExamples != null || allowedCallers != null) {
+          betas.add('advanced-tool-use-2025-11-20');
+        }
+
         break;
       }
 
@@ -199,6 +240,24 @@ export async function prepareTools({
               blocked_domains: args.blockedDomains,
               user_location: args.userLocation,
               cache_control: undefined,
+            });
+            break;
+          }
+
+          case 'anthropic.tool_search_regex_20251119': {
+            betas.add('advanced-tool-use-2025-11-20');
+            anthropicTools.push({
+              type: 'tool_search_tool_regex_20251119',
+              name: 'tool_search_tool_regex',
+            });
+            break;
+          }
+
+          case 'anthropic.tool_search_bm25_20251119': {
+            betas.add('advanced-tool-use-2025-11-20');
+            anthropicTools.push({
+              type: 'tool_search_tool_bm25_20251119',
+              name: 'tool_search_tool_bm25',
             });
             break;
           }

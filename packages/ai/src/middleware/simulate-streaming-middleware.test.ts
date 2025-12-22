@@ -1,3 +1,4 @@
+import { LanguageModelV3Usage } from '@ai-sdk/provider';
 import { jsonSchema, tool } from '@ai-sdk/provider-utils';
 import {
   convertAsyncIterableToArray,
@@ -19,12 +20,18 @@ const DEFAULT_SETTINGs = {
   },
 };
 
-const testUsage = {
-  inputTokens: 5,
-  outputTokens: 10,
-  totalTokens: 18,
-  reasoningTokens: 3,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 5,
+    noCache: 5,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 3,
+  },
 };
 
 describe('simulateStreamingMiddleware', () => {
@@ -45,7 +52,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -88,6 +95,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -96,21 +104,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -130,7 +158,7 @@ describe('simulateStreamingMiddleware', () => {
             },
             { type: 'text', text: 'This is a test response' },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -188,6 +216,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-1",
@@ -196,21 +225,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -242,7 +291,7 @@ describe('simulateStreamingMiddleware', () => {
               },
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -334,6 +383,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-2",
@@ -342,21 +392,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -385,7 +455,7 @@ describe('simulateStreamingMiddleware', () => {
               text: 'This is a test response',
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -462,6 +532,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-3",
@@ -470,21 +541,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -516,7 +607,7 @@ describe('simulateStreamingMiddleware', () => {
               toolCallType: 'function',
             },
           ],
-          finishReason: 'tool-calls',
+          finishReason: { unified: 'tool-calls', raw: undefined },
           usage: testUsage,
           warnings: [],
         };
@@ -593,6 +684,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "response": {
               "headers": undefined,
               "id": "id-4",
@@ -601,21 +693,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "tool-calls",
+            "rawFinishReason": undefined,
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -628,7 +740,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           providerMetadata: { custom: { key: 'value' } },
           warnings: [],
@@ -676,6 +788,7 @@ describe('simulateStreamingMiddleware', () => {
                 "key": "value",
               },
             },
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-5",
@@ -684,21 +797,41 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish-step",
             "usage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
+              "raw": undefined,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
-              "cachedInputTokens": undefined,
+              "cachedInputTokens": 0,
+              "inputTokenDetails": {
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "noCacheTokens": 5,
+              },
               "inputTokens": 5,
+              "outputTokenDetails": {
+                "reasoningTokens": 3,
+                "textTokens": 10,
+              },
               "outputTokens": 10,
               "reasoningTokens": 3,
-              "totalTokens": 18,
+              "totalTokens": 15,
             },
             "type": "finish",
           },
@@ -711,7 +844,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: '' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -736,7 +869,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },

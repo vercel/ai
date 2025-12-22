@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
   FinishReason,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageChunk,
@@ -756,7 +756,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
                 {JSON.stringify(toolPart)}
               </div>
@@ -834,7 +834,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
@@ -2313,6 +2313,71 @@ describe('chat instance changes', () => {
     await userEvent.click(screen.getByTestId('do-change-chat'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+
+  it('should handle streaming correctly when the id changes', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });
 

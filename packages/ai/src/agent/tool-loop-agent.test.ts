@@ -16,13 +16,20 @@ describe('ToolLoopAgent', () => {
           doGenerateOptions = options;
           return {
             content: [{ type: 'text', text: 'reply' }],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: {
               cachedInputTokens: undefined,
-              inputTokens: 3,
-              outputTokens: 10,
-              reasoningTokens: undefined,
-              totalTokens: 13,
+              inputTokens: {
+                total: 3,
+                noCache: 3,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 10,
+                text: 10,
+                reasoning: undefined,
+              },
             },
             warnings: [],
           };
@@ -173,6 +180,61 @@ describe('ToolLoopAgent', () => {
         ]
       `);
       });
+
+      it('should pass array of system message instructions', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          instructions: [
+            {
+              role: 'system',
+              content: 'INSTRUCTIONS',
+              providerOptions: { test: { value: 'test' } },
+            },
+            {
+              role: 'system',
+              content: 'INSTRUCTIONS 2',
+              providerOptions: { test: { value: 'test 2' } },
+            },
+          ],
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
+
+        expect(doGenerateOptions?.prompt).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "INSTRUCTIONS",
+              "providerOptions": {
+                "test": {
+                  "value": "test",
+                },
+              },
+              "role": "system",
+            },
+            {
+              "content": "INSTRUCTIONS 2",
+              "providerOptions": {
+                "test": {
+                  "value": "test 2",
+                },
+              },
+              "role": "system",
+            },
+            {
+              "content": [
+                {
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+      });
     });
   });
 
@@ -204,13 +266,19 @@ describe('ToolLoopAgent', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: {
-                  inputTokens: 3,
-                  outputTokens: 10,
-                  totalTokens: 13,
-                  reasoningTokens: undefined,
-                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
                 },
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },

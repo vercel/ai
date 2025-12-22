@@ -1,21 +1,27 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
+import {
+  convertOpenAICompletionUsage,
+  OpenAICompletionUsage,
+} from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -77,7 +83,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     toolChoice,
     seed,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
@@ -155,8 +161,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -188,12 +194,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     return {
       content: [{ type: 'text', text: choice.text }],
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens,
+      usage: convertOpenAICompletionUsage(response.usage),
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
       request: { body: args },
       response: {
         ...getResponseMetadata(response),
@@ -206,8 +211,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -234,13 +239,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
     return {
@@ -260,7 +264,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -269,7 +273,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -286,15 +290,16 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapOpenAIFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.logprobs != null) {
@@ -319,7 +324,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               providerMetadata,
-              usage,
+              usage: convertOpenAICompletionUsage(usage),
             });
           },
         }),

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
@@ -82,6 +82,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     const chunks = fs
       .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
+      .filter(line => line.trim().length > 0)
       .map(line => `data: ${line}\n\n`);
     chunks.push('data: [DONE]\n\n');
 
@@ -187,11 +188,27 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
-            "cachedInputTokens": 234,
-            "inputTokens": 345,
-            "outputTokens": 538,
-            "reasoningTokens": 123,
-            "totalTokens": 883,
+            "inputTokens": {
+              "cacheRead": 234,
+              "cacheWrite": undefined,
+              "noCache": 111,
+              "total": 345,
+            },
+            "outputTokens": {
+              "reasoning": 123,
+              "text": 415,
+              "total": 538,
+            },
+            "raw": {
+              "input_tokens": 345,
+              "input_tokens_details": {
+                "cached_tokens": 234,
+              },
+              "output_tokens": 538,
+              "output_tokens_details": {
+                "reasoning_tokens": 123,
+              },
+            },
           }
         `);
       });
@@ -248,6 +265,43 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should keep temperature and topP for gpt-5.1 models when reasoning effort is none', async () => {
+        const { warnings } = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.3,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'none',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "reasoning": {
+              "effort": "none",
+            },
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
+
+        expect(warnings).toMatchInlineSnapshot(`[]`);
       });
 
       it('should remove unsupported settings for o1', async () => {
@@ -373,7 +427,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -697,6 +751,63 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([]);
         },
       );
+
+      it('should allow forcing reasoning mode for unrecognized model IDs via providerOptions', async () => {
+        const { warnings } = await createModel(
+          'stealth-reasoning-model',
+        ).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              forceReasoning: true,
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'stealth-reasoning-model',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send xhigh reasoningEffort for codex-max model', async () => {
+        const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'xhigh',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.1-codex-max',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'xhigh',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
 
       it.each(nonReasoningModelIds)(
         'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
@@ -1103,7 +1214,7 @@ describe('OpenAIResponsesLanguageModel', () => {
                   ],
                   "type": "object",
                 },
-                "strict": false,
+                "strict": true,
                 "type": "json_schema",
               },
             },
@@ -1113,7 +1224,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send responseFormat json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           responseFormat: {
             type: 'json',
@@ -1130,8 +1241,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
-              strictSchemas: false,
-            },
+              strictJsonSchema: false,
+            } satisfies OpenAIResponsesProviderOptions,
           },
         });
 
@@ -2145,12 +2256,17 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.finishReason).toStrictEqual('tool-calls');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "tool-calls",
+          }
+        `);
       });
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-code-interpreter-tool.1');
@@ -2227,7 +2343,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('image generation tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -2284,7 +2400,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('local shell tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-local-shell-tool.1');
@@ -2332,7 +2448,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('web search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-web-search-tool.1');
@@ -2378,6 +2494,54 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should include web search tool call and result in content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('shell tool', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-shell-tool.1');
+
+        result = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+      });
+
+      it('should send request body with include and tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "tools": [
+              {
+                "type": "shell",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should include shell tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
     });
@@ -2464,7 +2628,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('mcp tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('openai-mcp-tool.1');
@@ -2520,7 +2684,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -2674,7 +2838,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('apply_patch tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('create_file operation', () => {
         beforeEach(async () => {
@@ -2719,25 +2883,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         it('should include apply_patch tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
-        });
-
-        it('should parse create_file operation correctly', () => {
-          const toolCall = result.content.find(
-            item =>
-              item.type === 'tool-call' && item.toolName === 'apply_patch',
-          );
-          expect(toolCall).toBeDefined();
-          if (toolCall && toolCall.type === 'tool-call') {
-            const input = JSON.parse(toolCall.input);
-            expect(input).toMatchObject({
-              callId: 'call_CdXiGtcRl49Q6Ek20tG9lYOr',
-              operation: {
-                type: 'create_file',
-                path: 'shopping-checklist.md',
-                diff: expect.stringContaining('Shopping Checklist'),
-              },
-            });
-          }
         });
       });
     });
@@ -3432,7 +3577,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3440,11 +3588,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 234,
-              "inputTokens": 543,
-              "outputTokens": 478,
-              "reasoningTokens": 123,
-              "totalTokens": 1021,
+              "inputTokens": {
+                "cacheRead": 234,
+                "cacheWrite": undefined,
+                "noCache": 309,
+                "total": 543,
+              },
+              "outputTokens": {
+                "reasoning": 123,
+                "text": 355,
+                "total": 478,
+              },
+              "raw": {
+                "input_tokens": 543,
+                "input_tokens_details": {
+                  "cached_tokens": 234,
+                },
+                "output_tokens": 478,
+                "output_tokens_details": {
+                  "reasoning_tokens": 123,
+                },
+              },
             },
           },
         ]
@@ -3508,7 +3672,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "length",
+            "finishReason": {
+              "raw": "max_output_tokens",
+              "unified": "length",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -3516,11 +3683,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -3638,7 +3821,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -3646,11 +3832,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -3740,7 +3942,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": "resp_68b08bfa71908196889e9ae5668b2ae40cd677a623b867d5",
@@ -3749,11 +3954,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 15,
-              "outputTokens": 263,
-              "reasoningTokens": 256,
-              "totalTokens": 278,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 256,
+                "text": 7,
+                "total": 263,
+              },
+              "raw": {
+                "input_tokens": 15,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 263,
+                "output_tokens_details": {
+                  "reasoning_tokens": 256,
+                },
+              },
             },
           },
         ]
@@ -3821,7 +4042,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "logprobs": [
@@ -3860,11 +4084,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 12,
-              "outputTokens": 2,
-              "reasoningTokens": 0,
-              "totalTokens": 14,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 12,
+                "total": 12,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 2,
+                "total": 2,
+              },
+              "raw": {
+                "input_tokens": 12,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 2,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -4070,6 +4310,28 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('shell tool', () => {
+      it('should stream shell tool results', async () => {
+        prepareChunksFixtureResponse('openai-shell-tool.1');
+
+        const result = await createModel('gpt-5.1').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {},
+            },
+          ],
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
     describe('mcp tool', () => {
       it('should stream mcp tool results (list tools, tool calls, tool results)', async () => {
         prepareChunksFixtureResponse('openai-mcp-tool.1');
@@ -4130,7 +4392,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "error",
               },
               {
-                "finishReason": "unknown",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "other",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
@@ -4138,9 +4403,18 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "totalTokens": undefined,
+                  "inputTokens": {
+                    "cacheRead": undefined,
+                    "cacheWrite": undefined,
+                    "noCache": undefined,
+                    "total": undefined,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": undefined,
+                  },
+                  "raw": undefined,
                 },
               },
             ]
@@ -4308,7 +4582,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4316,11 +4593,27 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 34,
-                  "outputTokens": 538,
-                  "reasoningTokens": 320,
-                  "totalTokens": 572,
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 34,
+                    "total": 34,
+                  },
+                  "outputTokens": {
+                    "reasoning": 320,
+                    "text": 218,
+                    "total": 538,
+                  },
+                  "raw": {
+                    "input_tokens": 34,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 538,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 320,
+                    },
+                  },
                 },
               },
             ]
@@ -4424,7 +4717,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4432,11 +4728,27 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 34,
-                  "outputTokens": 538,
-                  "reasoningTokens": 320,
-                  "totalTokens": 572,
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 34,
+                    "total": 34,
+                  },
+                  "outputTokens": {
+                    "reasoning": 320,
+                    "text": 218,
+                    "total": 538,
+                  },
+                  "raw": {
+                    "input_tokens": 34,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 538,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 320,
+                    },
+                  },
                 },
               },
             ]
@@ -4611,7 +4923,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4619,11 +4934,27 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 34,
-                  "outputTokens": 538,
-                  "reasoningTokens": 320,
-                  "totalTokens": 572,
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 34,
+                    "total": 34,
+                  },
+                  "outputTokens": {
+                    "reasoning": 320,
+                    "text": 218,
+                    "total": 538,
+                  },
+                  "raw": {
+                    "input_tokens": 34,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 538,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 320,
+                    },
+                  },
                 },
               },
             ]
@@ -4729,7 +5060,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -4737,11 +5071,27 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 34,
-                  "outputTokens": 538,
-                  "reasoningTokens": 320,
-                  "totalTokens": 572,
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 34,
+                    "total": 34,
+                  },
+                  "outputTokens": {
+                    "reasoning": 320,
+                    "text": 218,
+                    "total": 538,
+                  },
+                  "raw": {
+                    "input_tokens": 34,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 538,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 320,
+                    },
+                  },
                 },
               },
             ]
@@ -4998,7 +5348,10 @@ describe('OpenAIResponsesLanguageModel', () => {
                 "type": "text-end",
               },
               {
-                "finishReason": "stop",
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
                 "providerMetadata": {
                   "openai": {
                     "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -5006,11 +5359,27 @@ describe('OpenAIResponsesLanguageModel', () => {
                 },
                 "type": "finish",
                 "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokens": 45,
-                  "outputTokens": 628,
-                  "reasoningTokens": 420,
-                  "totalTokens": 673,
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": undefined,
+                    "noCache": 45,
+                    "total": 45,
+                  },
+                  "outputTokens": {
+                    "reasoning": 420,
+                    "text": 208,
+                    "total": 628,
+                  },
+                  "raw": {
+                    "input_tokens": 45,
+                    "input_tokens_details": {
+                      "cached_tokens": 0,
+                    },
+                    "output_tokens": 628,
+                    "output_tokens_details": {
+                      "reasoning_tokens": 420,
+                    },
+                  },
                 },
               },
             ]
@@ -5043,24 +5412,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        const parts = await convertReadableStreamToArray(stream);
-        const toolCallParts = parts.filter(
-          part => part.type === 'tool-call' && part.toolName === 'apply_patch',
-        );
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
 
-        expect(toolCallParts.length).toBeGreaterThan(0);
-        const toolCall = toolCallParts[0];
-        if (toolCall && toolCall.type === 'tool-call') {
-          const input = JSON.parse(toolCall.input);
-          expect(input).toMatchObject({
-            callId: 'call_kA46f91ZwocQyMCKyyZqRyC5',
-            operation: {
-              type: 'create_file',
-              path: 'shopping-checklist.md',
-              diff: expect.stringContaining('Shopping Checklist'),
+      it('should stream apply_patch delete_file calls', async () => {
+        prepareChunksFixtureResponse('openai-apply-patch-tool-delete.1');
+
+        const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.apply_patch',
+              name: 'apply_patch',
+              args: {},
             },
-          });
-        }
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
     });
   });
@@ -5287,7 +5657,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5295,11 +5668,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 100,
-              "outputTokens": 50,
-              "reasoningTokens": 0,
-              "totalTokens": 150,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 100,
+                "total": 100,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 50,
+                "total": 50,
+              },
+              "raw": {
+                "input_tokens": 100,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 50,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -5380,7 +5769,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5388,11 +5780,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 50,
+                "total": 50,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 50,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 25,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -5577,7 +5985,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5585,11 +5996,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 2944,
-              "inputTokens": 6047,
-              "outputTokens": 1623,
-              "reasoningTokens": 1408,
-              "totalTokens": 7670,
+              "inputTokens": {
+                "cacheRead": 2944,
+                "cacheWrite": undefined,
+                "noCache": 3103,
+                "total": 6047,
+              },
+              "outputTokens": {
+                "reasoning": 1408,
+                "text": 215,
+                "total": 1623,
+              },
+              "raw": {
+                "input_tokens": 6047,
+                "input_tokens_details": {
+                  "cached_tokens": 2944,
+                },
+                "output_tokens": 1623,
+                "output_tokens_details": {
+                  "reasoning_tokens": 1408,
+                },
+              },
             },
           },
         ]
@@ -5765,7 +6192,10 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {
                 "responseId": null,
@@ -5773,11 +6203,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 2944,
-              "inputTokens": 6047,
-              "outputTokens": 1623,
-              "reasoningTokens": 1408,
-              "totalTokens": 7670,
+              "inputTokens": {
+                "cacheRead": 2944,
+                "cacheWrite": undefined,
+                "noCache": 3103,
+                "total": 6047,
+              },
+              "outputTokens": {
+                "reasoning": 1408,
+                "text": 215,
+                "total": 1623,
+              },
+              "raw": {
+                "input_tokens": 6047,
+                "input_tokens_details": {
+                  "cached_tokens": 2944,
+                },
+                "output_tokens": 1623,
+                "output_tokens_details": {
+                  "reasoning_tokens": 1408,
+                },
+              },
             },
           },
         ]

@@ -66,11 +66,19 @@ const generateLongContent = (tokens: number, includeTools = false) => {
 
   chunks.push({
     type: 'finish',
-    finishReason: 'stop',
+    finishReason: { raw: undefined, unified: 'stop' },
     usage: {
-      inputTokens: 10,
-      outputTokens: tokens,
-      totalTokens: tokens + 10,
+      inputTokens: {
+        total: 10,
+        noCache: 10,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: tokens,
+        text: tokens,
+        reasoning: undefined,
+      },
     },
   });
 

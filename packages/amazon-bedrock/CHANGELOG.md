@@ -1,5 +1,274 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.107
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/anthropic@3.0.0-beta.96
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 4.0.0-beta.106
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/anthropic@3.0.0-beta.95
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 4.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/anthropic@3.0.0-beta.94
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 4.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/anthropic@3.0.0-beta.93
+
+## 4.0.0-beta.103
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/anthropic@3.0.0-beta.92
+
+## 4.0.0-beta.102
+
+### Patch Changes
+
+- 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
+
+  The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
+  - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
+  - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
+  - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
+
+- 9ab6ebe: Add stop sequence support for amazon bedrock provider
+
+## 4.0.0-beta.101
+
+### Patch Changes
+
+- Updated dependencies [d129d89]
+  - @ai-sdk/anthropic@3.0.0-beta.91
+
+## 4.0.0-beta.100
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/anthropic@3.0.0-beta.90
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 4.0.0-beta.99
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/anthropic@3.0.0-beta.89
+
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [87db851]
+  - @ai-sdk/anthropic@3.0.0-beta.88
+
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/anthropic@3.0.0-beta.87
+
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/anthropic@3.0.0-beta.86
+
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/anthropic@3.0.0-beta.85
+
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/anthropic@3.0.0-beta.84
+
+## 4.0.0-beta.93
+
+### Patch Changes
+
+- Updated dependencies [6c38080]
+  - @ai-sdk/anthropic@3.0.0-beta.83
+
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/anthropic@3.0.0-beta.82
+
+## 4.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/anthropic@3.0.0-beta.81
+
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [05d5b9a]
+  - @ai-sdk/anthropic@3.0.0-beta.80
+
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/anthropic@3.0.0-beta.79
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [9e1e758]
+  - @ai-sdk/anthropic@3.0.0-beta.78
+
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [b2dbfbf]
+  - @ai-sdk/anthropic@3.0.0-beta.77
+
+## 4.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/anthropic@3.0.0-beta.76
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [0ae783e]
+  - @ai-sdk/anthropic@3.0.0-beta.75
+
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [dce03c4]
+  - @ai-sdk/provider-utils@4.0.0-beta.43
+  - @ai-sdk/anthropic@3.0.0-beta.74
+  - @ai-sdk/provider@3.0.0-beta.24
+
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [3ed5519]
+  - @ai-sdk/provider-utils@4.0.0-beta.42
+  - @ai-sdk/anthropic@3.0.0-beta.73
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- ef9d7d6: fix(bedrock): send {} as tool input when streaming tool calls without arguments
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [a5f77a6]
+  - @ai-sdk/anthropic@3.0.0-beta.72
+
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- f65d7df: feat(provider/bedrock): Support Nova 2 extended reasoning `maxReasoningEffort` field
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [1bd7d32]
+  - @ai-sdk/provider-utils@4.0.0-beta.41
+  - @ai-sdk/anthropic@3.0.0-beta.71
+  - @ai-sdk/provider@3.0.0-beta.23
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [f13958c]
+  - @ai-sdk/anthropic@3.0.0-beta.70
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [589a4ee]
+  - @ai-sdk/anthropic@3.0.0-beta.69
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [9e35785]
+  - @ai-sdk/anthropic@3.0.0-beta.68
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [eb56fc6]
+  - @ai-sdk/anthropic@3.0.0-beta.67
+
 ## 4.0.0-beta.74
 
 ### Patch Changes

@@ -7,11 +7,9 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const prompt = convertToModelMessages(messages);
-
   const result = streamText({
     model: groq('llama-3.3-70b-versatile'),
-    prompt,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

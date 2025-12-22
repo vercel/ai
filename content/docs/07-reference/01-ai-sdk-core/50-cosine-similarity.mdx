@@ -12,7 +12,6 @@ like cosine similarity are often used.
 A high value (close to 1) indicates that the vectors are very similar, while a low value (close to -1) indicates that they are different.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { cosineSimilarity, embedMany } from 'ai';
 
 const { embeddings } = await embedMany({

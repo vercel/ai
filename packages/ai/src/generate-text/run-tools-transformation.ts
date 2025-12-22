@@ -1,4 +1,4 @@
-import { SharedV3Warning, LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart, SharedV3Warning } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
@@ -9,6 +9,7 @@ import { Tracer } from '@opentelemetry/api';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
+import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -96,6 +97,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'finish';
       finishReason: FinishReason;
+      rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
@@ -118,7 +120,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  system: string | SystemModelMessage | undefined;
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -209,8 +211,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'finish': {
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason,
-            usage: chunk.usage,
+            finishReason: chunk.finishReason.unified,
+            rawFinishReason: chunk.finishReason.raw,
+            usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
           break;
@@ -334,6 +337,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
+          break;
+        }
+
+        case 'tool-approval-request': {
+          // Skip tool-approval-request for now
           break;
         }
 

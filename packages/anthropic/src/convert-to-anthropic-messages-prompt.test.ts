@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { SharedV3Warning } from '@ai-sdk/provider';
+import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
+
+// Create a default identity tool name mapping for tests (no tools = no mapping)
+const defaultToolNameMapping = createToolNameMapping({
+  tools: [],
+  providerToolNames: {},
+});
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
@@ -9,6 +16,7 @@ describe('system messages', () => {
       prompt: [{ role: 'system', content: 'This is a system message' }],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -28,6 +36,7 @@ describe('system messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -60,6 +69,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -101,6 +111,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -141,6 +152,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -182,6 +194,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -225,6 +238,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -269,6 +283,7 @@ describe('user messages', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       }),
     ).rejects.toThrow('media type: video/mp4');
   });
@@ -295,6 +310,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -344,6 +360,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -397,6 +414,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -451,6 +469,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -520,6 +539,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -585,6 +605,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -644,6 +665,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -694,6 +716,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -730,6 +753,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -770,6 +794,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -803,6 +828,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -848,6 +874,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -895,6 +922,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -952,6 +980,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -998,6 +1027,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -1062,6 +1092,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -1149,6 +1180,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -1236,43 +1268,45 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
-      {
-        "betas": Set {},
-        "prompt": {
-          "messages": [
-            {
-              "content": [
-                {
-                  "cache_control": undefined,
-                  "id": "srvtoolu_01XyZ1234567890",
-                  "input": {
-                    "code": "print(\"Hello, world!\")",
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01XyZ1234567890",
+                    "input": {
+                      "code": "print("Hello, world!")",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
                   },
-                  "name": "code_execution",
-                  "type": "server_tool_use",
-                },
-                {
-                  "cache_control": undefined,
-                  "content": {
-                    "return_code": 0,
-                    "stderr": "",
-                    "stdout": "Hello, world!\",
-                    "type": "code_execution_result",
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "Hello, world!",
+                      "type": "code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_01XyZ1234567890",
+                    "type": "code_execution_tool_result",
                   },
-                  "tool_use_id": "srvtoolu_01XyZ1234567890",
-                  "type": "code_execution_tool_result",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          "system": undefined,
-        },
-      }
-    `);
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
@@ -1339,6 +1373,7 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1443,6 +1478,7 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1512,6 +1548,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1551,6 +1588,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1590,6 +1628,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1639,6 +1678,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1684,6 +1724,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1727,6 +1768,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1778,6 +1820,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1829,6 +1872,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1885,6 +1929,7 @@ describe('cache control', () => {
         sendReasoning: true,
         warnings,
         cacheControlValidator,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1940,6 +1985,7 @@ describe('cache control', () => {
         sendReasoning: true,
         warnings,
         cacheControlValidator,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result.prompt.messages[0].content[0]).not.toHaveProperty(
@@ -2017,6 +2063,7 @@ describe('cache control', () => {
       sendReasoning: true,
       warnings,
       cacheControlValidator,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     // First 4 should have cache_control
@@ -2066,6 +2113,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2118,6 +2166,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2176,6 +2225,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2251,6 +2301,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2389,6 +2440,7 @@ describe('citations', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result.prompt).toMatchInlineSnapshot(`

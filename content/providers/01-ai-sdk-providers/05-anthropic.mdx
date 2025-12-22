@@ -190,7 +190,7 @@ and specifying a thinking budget in tokens.
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: anthropic('claude-opus-4-20250514'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -200,13 +200,104 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
+
+### Context Management
+
+Anthropic's Context Management feature allows you to automatically manage conversation context by clearing tool uses or thinking content when certain conditions are met. This helps optimize token usage and manage long conversations more efficiently.
+
+You can configure context management using the `contextManagement` provider option:
+
+```ts highlight="7-20"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt: 'Continue our conversation...',
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            trigger: { type: 'input_tokens', value: 10000 },
+            keep: { type: 'tool_uses', value: 5 },
+            clearAtLeast: { type: 'input_tokens', value: 1000 },
+            clearToolInputs: true,
+            excludeTools: ['important_tool'],
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+// Check what was cleared
+console.log(result.providerMetadata?.anthropic?.contextManagement);
+```
+
+#### Clear Tool Uses
+
+The `clear_tool_uses_20250919` edit type removes old tool calls from the conversation history:
+
+- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }`)
+- **keep** - How many recent tool uses to preserve (e.g., `{ type: 'tool_uses', value: 5 }`)
+- **clearAtLeast** - Minimum amount to clear (e.g., `{ type: 'input_tokens', value: 1000 }`)
+- **clearToolInputs** - Whether to clear tool input parameters (boolean)
+- **excludeTools** - Array of tool names to never clear
+
+#### Clear Thinking
+
+The `clear_thinking_20251015` edit type removes thinking/reasoning content:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Continue reasoning...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_thinking_20251015',
+            keep: { type: 'thinking_turns', value: 2 },
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+#### Applied Edits Metadata
+
+After generation, you can check which edits were applied in the provider metadata:
+
+```ts
+const metadata = result.providerMetadata?.anthropic?.contextManagement;
+
+if (metadata?.appliedEdits) {
+  metadata.appliedEdits.forEach(edit => {
+    if (edit.type === 'clear_tool_uses_20250919') {
+      console.log(`Cleared ${edit.clearedToolUses} tool uses`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'clear_thinking_20251015') {
+      console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    }
+  });
+}
+```
+
+For more details, see [Anthropic's Context Management documentation](https://docs.anthropic.com/en/docs/build-with-claude/context-management).
 
 ### Cache Control
 
@@ -366,10 +457,7 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-<Note>
-  The bash tool must have the name `bash`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Memory Tool
 
@@ -385,10 +473,7 @@ const memory = anthropic.tools.memory_20250818({
 });
 ```
 
-<Note>
-  The memory tool must have the name `memory`. Only certain Claude versions are
-  supported.
-</Note>
+<Note>Only certain Claude versions are supported.</Note>
 
 ### Text Editor Tool
 
@@ -396,7 +481,6 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 
 ```ts
 const tools = {
-  // tool name must be str_replace_based_edit_tool
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
     async execute({ command, path, old_str, new_str }) {
@@ -408,7 +492,7 @@ const tools = {
 
 <Note>
   Different models support different versions of the tool. For Claude Sonnet 3.5
-  and 3.7 you need to use older tool versions and tool names.
+  and 3.7 you need to use older tool versions.
 </Note>
 
 Parameters:
@@ -456,10 +540,10 @@ const computerTool = anthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  toModelOutput(result) {
-    return typeof result === 'string'
-      ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -562,6 +646,64 @@ const result = await generateText({
   },
 });
 ```
+
+### Tool Search
+
+Anthropic provides provider-defined tool search tools that enable Claude to work with hundreds or thousands of tools by dynamically discovering and loading them on-demand. Instead of loading all tool definitions into the context window upfront, Claude searches your tool catalog and loads only the tools it needs.
+
+There are two variants:
+
+- **BM25 Search** - Uses natural language queries to find tools
+- **Regex Search** - Uses regex patterns (Python `re.search()` syntax) to find tools
+
+#### Basic Usage
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    toolSearch: anthropic.tools.toolSearchBm25_20251119(),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({
+        location: z.string().describe('The city and state'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+        condition: 'Sunny',
+      }),
+      // Defer tool here - Claude discovers these via the tool search tool
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+#### Using Regex Search
+
+For more precise tool matching, you can use the regex variant:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Get the weather data',
+  tools: {
+    toolSearch: anthropic.tools.toolSearchRegex_20251119(),
+    // ... deferred tools
+  },
+});
+```
+
+Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
 
 ### MCP Connectors
 
@@ -737,6 +879,66 @@ for await (const part of result.textStream) {
 }
 ```
 
+### Programmatic Tool Calling
+
+[Programmatic Tool Calling](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/programmatic-tool-calling) allows Claude to write code that calls your tools programmatically within a code execution container, rather than requiring round trips through the model for each tool invocation. This reduces latency for multi-tool workflows and decreases token consumption.
+
+To enable programmatic tool calling, use the `allowedCallers` provider option on tools that you want to be callable from within code execution:
+
+```ts highlight="13-17"
+import {
+  anthropic,
+  forwardAnthropicContainerIdFromLastStep,
+} from '@ai-sdk/anthropic';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  stopWhen: stepCountIs(10),
+  prompt:
+    'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+
+    getWeather: tool({
+      description: 'Get current weather data for a city.',
+      inputSchema: z.object({
+        city: z.string().describe('Name of the city'),
+      }),
+      execute: async ({ city }) => {
+        // Your weather API implementation
+        return { temp: 22, condition: 'Sunny' };
+      },
+      // Enable this tool to be called from within code execution
+      providerOptions: {
+        anthropic: {
+          allowedCallers: ['code_execution_20250825'],
+        },
+      },
+    }),
+  },
+
+  // Propagate container ID between steps for code execution continuity
+  prepareStep: forwardAnthropicContainerIdFromLastStep,
+});
+```
+
+In this flow:
+
+1. Claude writes Python code that calls your `getWeather` tool multiple times in parallel
+2. The SDK automatically executes your tool and returns results to the code execution container
+3. Claude processes the results in code and generates the final response
+
+<Note>
+  Programmatic tool calling requires `claude-sonnet-4-5` or `claude-opus-4-5`
+  models and uses the `code_execution_20250825` tool.
+</Note>
+
+#### Container Persistence
+
+When using programmatic tool calling across multiple steps, you need to preserve the container ID between steps using `prepareStep`. You can use the `forwardAnthropicContainerIdFromLastStep` helper function to do this automatically. The container ID is available in `providerMetadata.anthropic.container.id` after each step completes.
+
 ## Agent Skills
 
 [Anthropic Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.
@@ -875,16 +1077,16 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

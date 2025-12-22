@@ -184,6 +184,9 @@ export function convertToOpenAIChatMessages({
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type === 'tool-approval-response') {
+            continue;
+          }
           const output = toolResponse.output;
 
           let contentValue: string;

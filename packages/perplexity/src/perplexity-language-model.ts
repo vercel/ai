@@ -1,10 +1,12 @@
 import {
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV3StreamResult,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,6 +18,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { convertPerplexityUsage } from './convert-perplexity-usage';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
 import { PerplexityLanguageModelId } from './perplexity-language-model-options';
@@ -59,7 +62,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
     responseFormat,
     seed,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
     if (topK != null) {
@@ -107,8 +110,8 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args: body, warnings } = this.getArgs(options);
 
     const {
@@ -153,13 +156,11 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapPerplexityFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: response.usage?.reasoning_tokens ?? undefined,
+      finishReason: {
+        unified: mapPerplexityFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
+      usage: convertPerplexityUsage(response.usage),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -186,8 +187,8 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = this.getArgs(options);
 
     const body = { ...args, stream: true };
@@ -207,13 +208,17 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-      reasoningTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let usage:
+      | {
+          prompt_tokens: number | undefined;
+          completion_tokens: number | undefined;
+          reasoning_tokens?: number | null | undefined;
+        }
+      | undefined = undefined;
 
     const providerMetadata: {
       perplexity: {
@@ -284,9 +289,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.reasoningTokens = value.usage.reasoning_tokens ?? undefined;
+              usage = value.usage;
 
               providerMetadata.perplexity.usage = {
                 citationTokens: value.usage.citation_tokens ?? null,
@@ -305,7 +308,10 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
 
             const choice = value.choices[0];
             if (choice?.finish_reason != null) {
-              finishReason = mapPerplexityFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapPerplexityFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.delta == null) {
@@ -337,7 +343,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertPerplexityUsage(usage),
               providerMetadata,
             });
           },

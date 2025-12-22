@@ -11,6 +11,7 @@ import {
   parseProviderOptions,
   validateTypes,
   isNonNullable,
+  ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -24,6 +25,7 @@ import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { toolSearchRegex_20251119OutputSchema as toolSearchOutputSchema } from './tool/tool-search-regex_20251119';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
@@ -52,11 +54,13 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
   cacheControlValidator,
+  toolNameMapping,
 }: {
   prompt: LanguageModelV3Prompt;
   sendReasoning: boolean;
   warnings: SharedV3Warning[];
   cacheControlValidator?: CacheControlValidator;
+  toolNameMapping: ToolNameMapping;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -255,6 +259,10 @@ export async function convertToAnthropicMessagesPrompt({
             case 'tool': {
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
+
+                if (part.type === 'tool-approval-response') {
+                  continue;
+                }
 
                 // cache control: first add cache control from part.
                 // for the last part of a message,
@@ -490,6 +498,9 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
+                  const providerToolName = toolNameMapping.toProviderToolName(
+                    part.toolName,
+                  );
                   const isMcpToolUse =
                     part.providerOptions?.anthropic?.type === 'mcp-tool-use';
 
@@ -518,7 +529,7 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                   } else if (
                     // code execution 20250825:
-                    part.toolName === 'code_execution' &&
+                    providerToolName === 'code_execution' &&
                     part.input != null &&
                     typeof part.input === 'object' &&
                     'type' in part.input &&
@@ -534,38 +545,92 @@ export async function convertToAnthropicMessagesPrompt({
                       cache_control: cacheControl,
                     });
                   } else if (
-                    part.toolName === 'code_execution' || // code execution 20250522
-                    part.toolName === 'web_fetch' ||
-                    part.toolName === 'web_search'
+                    // code execution 20250825 programmatic tool calling:
+                    // Strip the fake 'programmatic-tool-call' type before sending to Anthropic
+                    providerToolName === 'code_execution' &&
+                    part.input != null &&
+                    typeof part.input === 'object' &&
+                    'type' in part.input &&
+                    part.input.type === 'programmatic-tool-call'
                   ) {
+                    const { type: _, ...inputWithoutType } = part.input as {
+                      type: string;
+                      code: string;
+                    };
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.toolName,
-                      input: part.input,
+                      name: 'code_execution',
+                      input: inputWithoutType,
                       cache_control: cacheControl,
                     });
                   } else {
-                    warnings.push({
-                      type: 'other',
-                      message: `provider executed tool call for tool ${part.toolName} is not supported`,
-                    });
+                    if (
+                      providerToolName === 'code_execution' || // code execution 20250522
+                      providerToolName === 'web_fetch' ||
+                      providerToolName === 'web_search'
+                    ) {
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: providerToolName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
+                    } else if (
+                      providerToolName === 'tool_search_tool_regex' ||
+                      providerToolName === 'tool_search_tool_bm25'
+                    ) {
+                      anthropicContent.push({
+                        type: 'server_tool_use',
+                        id: part.toolCallId,
+                        name: providerToolName,
+                        input: part.input,
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      warnings.push({
+                        type: 'other',
+                        message: `provider executed tool call for tool ${part.toolName} is not supported`,
+                      });
+                    }
                   }
 
                   break;
                 }
+
+                // Extract caller info from provider options for programmatic tool calling
+                const callerOptions = part.providerOptions?.anthropic as
+                  | { caller?: { type: string; toolId?: string } }
+                  | undefined;
+                const caller = callerOptions?.caller
+                  ? callerOptions.caller.type === 'code_execution_20250825' &&
+                    callerOptions.caller.toolId
+                    ? {
+                        type: 'code_execution_20250825' as const,
+                        tool_id: callerOptions.caller.toolId,
+                      }
+                    : callerOptions.caller.type === 'direct'
+                      ? { type: 'direct' as const }
+                      : undefined
+                  : undefined;
 
                 anthropicContent.push({
                   type: 'tool_use',
                   id: part.toolCallId,
                   name: part.toolName,
                   input: part.input,
+                  ...(caller && { caller }),
                   cache_control: cacheControl,
                 });
                 break;
               }
 
               case 'tool-result': {
+                const providerToolName = toolNameMapping.toProviderToolName(
+                  part.toolName,
+                );
+
                 if (mcpToolUseIds.has(part.toolCallId)) {
                   const output = part.output;
 
@@ -587,8 +652,49 @@ export async function convertToAnthropicMessagesPrompt({
                       | Array<{ type: 'text'; text: string }>,
                     cache_control: cacheControl,
                   });
-                } else if (part.toolName === 'code_execution') {
+                } else if (providerToolName === 'code_execution') {
                   const output = part.output;
+
+                  // Handle error types for code_execution tools (e.g., from programmatic tool calling)
+                  if (
+                    output.type === 'error-text' ||
+                    output.type === 'error-json'
+                  ) {
+                    let errorInfo: { type?: string; errorCode?: string } = {};
+                    try {
+                      if (typeof output.value === 'string') {
+                        errorInfo = JSON.parse(output.value);
+                      } else if (
+                        typeof output.value === 'object' &&
+                        output.value !== null
+                      ) {
+                        errorInfo = output.value as typeof errorInfo;
+                      }
+                    } catch {}
+
+                    if (errorInfo.type === 'code_execution_tool_result_error') {
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: 'code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: {
+                          type: 'bash_code_execution_tool_result_error' as const,
+                          error_code: errorInfo.errorCode ?? 'unknown',
+                        },
+                      });
+                    }
+                    break;
+                  }
 
                   if (output.type !== 'json') {
                     warnings.push({
@@ -629,6 +735,7 @@ export async function convertToAnthropicMessagesPrompt({
                         stdout: codeExecutionOutput.stdout,
                         stderr: codeExecutionOutput.stderr,
                         return_code: codeExecutionOutput.return_code,
+                        content: codeExecutionOutput.content ?? [],
                       },
                       cache_control: cacheControl,
                     });
@@ -639,29 +746,45 @@ export async function convertToAnthropicMessagesPrompt({
                       schema: codeExecution_20250825OutputSchema,
                     });
 
-                    anthropicContent.push(
+                    if (codeExecutionOutput.type === 'code_execution_result') {
+                      // Programmatic tool calling result - same format as 20250522
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: codeExecutionOutput.type,
+                          stdout: codeExecutionOutput.stdout,
+                          stderr: codeExecutionOutput.stderr,
+                          return_code: codeExecutionOutput.return_code,
+                          content: codeExecutionOutput.content ?? [],
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else if (
                       codeExecutionOutput.type ===
                         'bash_code_execution_result' ||
-                        codeExecutionOutput.type ===
-                          'bash_code_execution_tool_result_error'
-                        ? {
-                            type: 'bash_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          }
-                        : {
-                            type: 'text_editor_code_execution_tool_result',
-                            tool_use_id: part.toolCallId,
-                            cache_control: cacheControl,
-                            content: codeExecutionOutput,
-                          },
-                    );
+                      codeExecutionOutput.type ===
+                        'bash_code_execution_tool_result_error'
+                    ) {
+                      anthropicContent.push({
+                        type: 'bash_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    } else {
+                      anthropicContent.push({
+                        type: 'text_editor_code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        cache_control: cacheControl,
+                        content: codeExecutionOutput,
+                      });
+                    }
                   }
                   break;
                 }
 
-                if (part.toolName === 'web_fetch') {
+                if (providerToolName === 'web_fetch') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -702,7 +825,7 @@ export async function convertToAnthropicMessagesPrompt({
                   break;
                 }
 
-                if (part.toolName === 'web_search') {
+                if (providerToolName === 'web_search') {
                   const output = part.output;
 
                   if (output.type !== 'json') {
@@ -729,6 +852,45 @@ export async function convertToAnthropicMessagesPrompt({
                       encrypted_content: result.encryptedContent,
                       type: result.type,
                     })),
+                    cache_control: cacheControl,
+                  });
+
+                  break;
+                }
+
+                if (
+                  providerToolName === 'tool_search_tool_regex' ||
+                  providerToolName === 'tool_search_tool_bm25'
+                ) {
+                  const output = part.output;
+
+                  if (output.type !== 'json') {
+                    warnings.push({
+                      type: 'other',
+                      message: `provider executed tool result output type ${output.type} for tool ${part.toolName} is not supported`,
+                    });
+
+                    break;
+                  }
+
+                  const toolSearchOutput = await validateTypes({
+                    value: output.value,
+                    schema: toolSearchOutputSchema,
+                  });
+
+                  // Convert tool references back to API format
+                  const toolReferences = toolSearchOutput.map(ref => ({
+                    type: 'tool_reference' as const,
+                    tool_name: ref.toolName,
+                  }));
+
+                  anthropicContent.push({
+                    type: 'tool_search_tool_result',
+                    tool_use_id: part.toolCallId,
+                    content: {
+                      type: 'tool_search_tool_search_result',
+                      tool_references: toolReferences,
+                    },
                     cache_control: cacheControl,
                   });
 
