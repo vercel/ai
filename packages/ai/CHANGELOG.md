@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.0-beta.169
+
+### Patch Changes
+
+- ee651d7: `https://v6.ai-sdk.dev` -> `https://ai-sdk.dev`
+
 ## 6.0.0-beta.168
 
 ### Patch Changes
