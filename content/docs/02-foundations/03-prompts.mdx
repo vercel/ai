@@ -362,7 +362,7 @@ Custom download function can be passed via the `experimental_download` property:
 ```ts
 const result = await generateText({
   model: __MODEL__,
-  experimental_download: async (requestedDownloads) => {
+  experimental_download: async requestedDownloads => {
     return Promise.all(
       requestedDownloads.map(async ({ url, isUrlSupportedByModel }) => {
         // Pass through if model supports this URL

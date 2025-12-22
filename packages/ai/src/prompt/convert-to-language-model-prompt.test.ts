@@ -1222,7 +1222,9 @@ describe('convertToLanguageModelPrompt', () => {
     });
 
     it('should replace file parts with text when download function returns a string', async () => {
-      const mockDownload = vi.fn().mockResolvedValue(['[Document unavailable]']);
+      const mockDownload = vi
+        .fn()
+        .mockResolvedValue(['[Document unavailable]']);
 
       const result = await convertToLanguageModelPrompt({
         prompt: {
