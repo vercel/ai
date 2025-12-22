@@ -5287,7 +5287,7 @@ describe('OpenAIResponsesLanguageModel', () => {
               store: false,
               include: ['reasoning.encrypted_content'],
               reasoningSummary: 'auto',
-              forceReasoning:true,
+              forceReasoning: true,
             },
           },
         });
