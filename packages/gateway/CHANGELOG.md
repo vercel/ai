@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.0-beta.93
+
+### Patch Changes
+
+- 7294355: feat (provider/gateway): update route path version and embed format
+
 ## 2.0.0-beta.92
 
 ### Patch Changes
