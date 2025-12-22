@@ -23,11 +23,11 @@ const Vector3 = schema(`{
   x: number,
   y: number,
   z: number
-}`)                                               // const Vector3: Schema<{
-                                                  //   x: number;
-                                                  //   y: number;
-                                                  //   z: number;
-                                                  // }>
+}`); // const Vector3: Schema<{
+//   x: number;
+//   y: number;
+//   z: number;
+// }>
 
 const result = await generateText({
   model: anthropic('claude-3-7-sonnet-latest'),
@@ -45,7 +45,7 @@ const Vector3 = schema(`{
   x: number,
   y: number,
   z: number
-}`)
+}`);
 ```
 
 ## With JSON Schema
@@ -55,13 +55,13 @@ import { schema } from '@ai-sdk/typedriver';
 
 const Vector3 = schema({
   type: 'object',
-  required: [ 'x', 'y', 'z'],
+  required: ['x', 'y', 'z'],
   properties: {
     x: { type: 'number' },
     y: { type: 'number' },
-    z: { type: 'number' }
-  }
-})
+    z: { type: 'number' },
+  },
+});
 ```
 
 ## With Zod
@@ -70,11 +70,13 @@ const Vector3 = schema({
 import { schema } from '@ai-sdk/typedriver';
 import * as z from 'zod';
 
-const Vector3 = schema(z.object({
-  x: z.number(),
-  y: z.number(),
-  z: z.number()
-}))
+const Vector3 = schema(
+  z.object({
+    x: z.number(),
+    y: z.number(),
+    z: z.number(),
+  }),
+);
 ```
 
 ## With ArkType
@@ -83,11 +85,13 @@ const Vector3 = schema(z.object({
 import { schema } from '@ai-sdk/typedriver';
 import { type } from 'arktype';
 
-const Vector3 = schema(type({
-  x: 'number',
-  y: 'number',
-  z: 'number'
-}))
+const Vector3 = schema(
+  type({
+    x: 'number',
+    y: 'number',
+    z: 'number',
+  }),
+);
 ```
 
 ## With Valibot
@@ -97,9 +101,13 @@ import { schema } from '@ai-sdk/typedriver';
 import * as v from 'valibot';
 import { toStandardJsonSchema } from '@valibot/to-json-schema';
 
-const Vector3 = schema(toStandardJsonSchema(v.object({
-  x: v.number(),
-  y: v.number(),
-  z: v.number()
-})))
+const Vector3 = schema(
+  toStandardJsonSchema(
+    v.object({
+      x: v.number(),
+      y: v.number(),
+      z: v.number(),
+    }),
+  ),
+);
 ```
