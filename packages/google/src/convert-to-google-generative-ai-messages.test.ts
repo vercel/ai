@@ -83,6 +83,102 @@ describe('thought signatures', () => {
       }
     `);
   });
+
+  it('should use custom providerOptionsName to read thought signatures', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Regular text',
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig1' } },
+            },
+            {
+              type: 'reasoning',
+              text: 'Reasoning text',
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig2' } },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'test',
+              input: { value: 'test' },
+              providerOptions: { vertex: { thoughtSignature: 'vertex_sig3' } },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": "vertex_sig1",
+              },
+              {
+                "text": "Reasoning text",
+                "thought": true,
+                "thoughtSignature": "vertex_sig2",
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "value": "test",
+                  },
+                  "name": "test",
+                },
+                "thoughtSignature": "vertex_sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should not find thought signatures when providerOptionsName does not match', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Regular text',
+              providerOptions: { google: { thoughtSignature: 'google_sig' } },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Regular text",
+                "thoughtSignature": undefined,
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
 });
 
 describe('Gemma model system instructions', () => {
