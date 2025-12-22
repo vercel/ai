@@ -49,6 +49,11 @@ Creates a Hugging Face responses model for text generation.
 Creates a Hugging Face responses model for text generation.
 */
   responses(modelId: HuggingFaceResponsesModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 /**
@@ -94,6 +99,7 @@ export function createHuggingFace(
         'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({

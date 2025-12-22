@@ -1,5 +1,74 @@
 # @ai-sdk/replicate
 
+## 2.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 2.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 2.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.55
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 2.0.0-beta.54
+
+### Patch Changes
+
+- d0920f9: feat(replicate): add configurable maxWaitTimeInSeconds option for image generation
+
+  Added `maxWaitTimeInSeconds` provider option to control sync wait duration for Replicate image predictions:
+
+  - When not specified: Uses default 60-second sync wait (`prefer: wait`)
+  - When set to a positive number: Uses that duration (`prefer: wait=N`)
+
+  This allows longer predictions to complete by extending the sync timeout beyond the default 60 seconds.
+
+## 2.0.0-beta.53
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
 ## 2.0.0-beta.51
 
 ### Patch Changes

@@ -14,7 +14,7 @@ async function main() {
           { type: 'text-end', id: '0' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { raw: undefined, unified: 'stop' },
             logprobs: undefined,
             usage: {
               inputTokens: {

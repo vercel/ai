@@ -237,6 +237,21 @@ The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
      */
         args: Record<string, unknown>;
+
+        /**
+         * Whether this provider-executed tool supports deferred results.
+         *
+         * When true, the tool result may not be returned in the same turn as the
+         * tool call (e.g., when using programmatic tool calling where a server tool
+         * triggers a client-executed tool, and the server tool's result is deferred
+         * until the client tool is resolved).
+         *
+         * This flag allows the AI SDK to handle tool results that arrive without
+         * a matching tool call in the current response.
+         *
+         * @default false
+         */
+        supportsDeferredResults?: boolean;
       }
   );
 

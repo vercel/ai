@@ -879,6 +879,66 @@ for await (const part of result.textStream) {
 }
 ```
 
+### Programmatic Tool Calling
+
+[Programmatic Tool Calling](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/programmatic-tool-calling) allows Claude to write code that calls your tools programmatically within a code execution container, rather than requiring round trips through the model for each tool invocation. This reduces latency for multi-tool workflows and decreases token consumption.
+
+To enable programmatic tool calling, use the `allowedCallers` provider option on tools that you want to be callable from within code execution:
+
+```ts highlight="13-17"
+import {
+  anthropic,
+  forwardAnthropicContainerIdFromLastStep,
+} from '@ai-sdk/anthropic';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  stopWhen: stepCountIs(10),
+  prompt:
+    'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
+  tools: {
+    code_execution: anthropic.tools.codeExecution_20250825(),
+
+    getWeather: tool({
+      description: 'Get current weather data for a city.',
+      inputSchema: z.object({
+        city: z.string().describe('Name of the city'),
+      }),
+      execute: async ({ city }) => {
+        // Your weather API implementation
+        return { temp: 22, condition: 'Sunny' };
+      },
+      // Enable this tool to be called from within code execution
+      providerOptions: {
+        anthropic: {
+          allowedCallers: ['code_execution_20250825'],
+        },
+      },
+    }),
+  },
+
+  // Propagate container ID between steps for code execution continuity
+  prepareStep: forwardAnthropicContainerIdFromLastStep,
+});
+```
+
+In this flow:
+
+1. Claude writes Python code that calls your `getWeather` tool multiple times in parallel
+2. The SDK automatically executes your tool and returns results to the code execution container
+3. Claude processes the results in code and generates the final response
+
+<Note>
+  Programmatic tool calling requires `claude-sonnet-4-5` or `claude-opus-4-5`
+  models and uses the `code_execution_20250825` tool.
+</Note>
+
+#### Container Persistence
+
+When using programmatic tool calling across multiple steps, you need to preserve the container ID between steps using `prepareStep`. You can use the `forwardAnthropicContainerIdFromLastStep` helper function to do this automatically. The container ID is available in `providerMetadata.anthropic.container.id` after each step completes.
+
 ## Agent Skills
 
 [Anthropic Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) enable Claude to perform specialized tasks like document processing (PPTX, DOCX, PDF, XLSX) and data analysis. Skills run in a sandboxed container and require the code execution tool to be enabled.

@@ -77,6 +77,11 @@ Creates a completion model for text generation.
 Creates a embedding model for text generation.
 */
   embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
 }
 
 export function createDeepInfra(
@@ -148,6 +153,7 @@ export function createDeepInfra(
   provider.imageModel = createImageModel;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider;
 }

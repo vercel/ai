@@ -29,9 +29,25 @@ Creates a model for text generation.
 */
   languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
   /**
    * Creates a model for reranking.
@@ -135,6 +151,8 @@ export function createCohere(
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 

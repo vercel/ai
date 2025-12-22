@@ -1,4 +1,4 @@
-import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
 
 async function main() {
   const mcpClient = await createMCPClient({
@@ -9,10 +9,10 @@ async function main() {
   });
 
   try {
-    const prompts = await mcpClient.listPrompts();
+    const prompts = await mcpClient.experimental_listPrompts();
     console.log('PROMPTS:', JSON.stringify(prompts, null, 2));
 
-    const prompt = await mcpClient.getPrompt({
+    const prompt = await mcpClient.experimental_getPrompt({
       name: 'code_review',
       arguments: {
         code: 'function add(a, b) { return a + b; }\n',

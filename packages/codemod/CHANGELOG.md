@@ -1,5 +1,23 @@
 # @ai-sdk/codemod
 
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- b586bf4: chore(codemod): add codemod for making convertToModelMessages async
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- 7e4eb2e: chore(codemod): add codemod for destructuring the toModelOutput param
+
 ## 3.0.0-beta.5
 
 ### Patch Changes

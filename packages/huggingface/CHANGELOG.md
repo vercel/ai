@@ -1,5 +1,68 @@
 # @ai-sdk/huggingface
 
+## 1.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/openai-compatible@2.0.0-beta.59
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 1.0.0-beta.54
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/openai-compatible@2.0.0-beta.58
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 1.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/openai-compatible@2.0.0-beta.57
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 1.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/openai-compatible@2.0.0-beta.56
+
+## 1.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [9061dc0]
+  - @ai-sdk/openai-compatible@2.0.0-beta.55
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 1.0.0-beta.50
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/openai-compatible@2.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 1.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/openai-compatible@2.0.0-beta.53
+
 ## 1.0.0-beta.48
 
 ### Patch Changes
