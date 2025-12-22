@@ -52,15 +52,27 @@ async function main() {
   }> = [];
 
   // timestamps
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  const yesterdayTimestamp = d.toISOString().split('T')[0];
-  d.setDate(d.getDate() - 6);
-  const sevenDaysAgoTimestamp = d.toISOString().split('T')[0];
-  d.setDate(d.getDate() - 1);
-  const eightDaysAgoTimestamp = d.toISOString().split('T')[0];
-  d.setDate(d.getDate() - 6);
-  const fourteenDaysAgoTimestamp = d.toISOString().split('T')[0];
+  const now = new Date();
+  
+  const formatDate = (date: Date) =>
+    date.toISOString().split('T')[0];
+  
+  const yesterdayTimestamp = formatDate(
+    new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+  );
+  
+  const sevenDaysAgoTimestamp = formatDate(
+    new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+  );
+  
+  const eightDaysAgoTimestamp = formatDate(
+    new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+  );
+  
+  const fourteenDaysAgoTimestamp = formatDate(
+    new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+  );
+
 
   console.log(
     `Fetching download stats from ${sevenDaysAgoTimestamp} to ${yesterdayTimestamp} and ${fourteenDaysAgoTimestamp} to ${eightDaysAgoTimestamp}...`,
