@@ -1,5 +1,210 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- ef9d7d6: fix(bedrock): send {} as tool input when streaming tool calls without arguments
+- 9ab6ebe: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
+
+  The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
+  - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
+  - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
+  - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
+
+- 0adc679: feat(provider): shared spec v3
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 2625a04: feat(openai); update spec for mcp approval
+- cc24427: Fix reasoning with Bedrock when additionalModelRequestFields is used
+- 95f65c2: chore: use import \* from zod/v4
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- 2a2e17d: fix (provider/amazon-bedrock): deal gracefully with empty tool descriptions
+- 9524761: feat: shorthand names for reranking models
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 0c4822d: feat: `EmbeddingModelV3`
+- 33343c3: fix(amazon-bedrock): clamp temperature to valid 0-1 range with warnings
+- 11eefa4: Support user provided filenames in amazon-bedrock-provider
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- d1bdadb: Added support for reranking models
+- 1cad0ab: feat: add provider version to user-agent header
+- d711ff8: chore: add model ID for Haiku 4.5
+- 8dac895: feat: `LanguageModelV3`
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 9061dc0: feat: image editing
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- c5e2a7c: Support citations in amazon-bedrock-provider
+- 4616b86: chore: update zod peer depenedency version
+- d4b2964: fix(provider/amazon-bedrock): normalise headers and body if input is of instance Request
+- 88b2c7e: feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
+
+  Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
+
+  **Amazon Bedrock Changes:**
+
+  - Removed incorrect warning that prevented using tools with JSON response format
+  - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
+  - Added `isJsonResponseFromTool` parameter to finish reason mapping
+  - JSON tool responses are correctly converted to text content and finish reason is mapped from `tool_use` to `stop`
+  - Added comprehensive test coverage for combining tools with structured outputs
+  - Added example files demonstrating the feature
+
+  **Google Vertex Anthropic Changes:**
+
+  - Inherits support from underlying Anthropic provider implementation
+  - Added test coverage to verify the feature works correctly
+  - Added example files demonstrating the feature
+
+  This brings Anthropic provider's structured output capabilities to the Amazon Bedrock and Google Vertex Anthropic providers.
+
+- 3aeb791: Add Claude Sonnet 4.5 (claude-sonnet-4-5-20250929-v1:0) model support
+- 522f6b8: feat: `ImageModelV3`
+- 0a6fd91: fix(amazon-bedrock): move anthropic_beta to request body
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- f65d7df: feat(provider/bedrock): Support Nova 2 extended reasoning `maxReasoningEffort` field
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- 9ab6ebe: Add stop sequence support for amazon bedrock provider
+- 1bd7d32: feat: tool-specific strict mode
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [b8ea36e]
+- Updated dependencies [ed537e1]
+- Updated dependencies [2109385]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [7c4328e]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [f33a018]
+- Updated dependencies [78928cb]
+- Updated dependencies [b2dbfbf]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [11e4abe]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [f13958c]
+- Updated dependencies [afb00e3]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [9e35785]
+- Updated dependencies [544d4e8]
+- Updated dependencies [a5f77a6]
+- Updated dependencies [ca07285]
+- Updated dependencies [0c4822d]
+- Updated dependencies [a5a8db4]
+- Updated dependencies [521c537]
+- Updated dependencies [1742445]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [87db851]
+- Updated dependencies [03849b0]
+- Updated dependencies [f6603b7]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [1cad0ab]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [2049c5b]
+- Updated dependencies [3ed5519]
+- Updated dependencies [4c5a6be]
+- Updated dependencies [9e1e758]
+- Updated dependencies [589a4ee]
+- Updated dependencies [8dac895]
+- Updated dependencies [6f845b4]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [9354297]
+- Updated dependencies [475189e]
+- Updated dependencies [03849b0]
+- Updated dependencies [0ae783e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [eb56fc6]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [fa35e95]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [80894b3]
+- Updated dependencies [366f50b]
+- Updated dependencies [81d4308]
+- Updated dependencies [6fc35cb]
+- Updated dependencies [f4db7b5]
+- Updated dependencies [6c38080]
+- Updated dependencies [4616b86]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [dedf206]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [983e394]
+- Updated dependencies [81e29ab]
+- Updated dependencies [0e38a79]
+- Updated dependencies [cf4e2a9]
+- Updated dependencies [f4e4a95]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [21f378c]
+- Updated dependencies [c5440c5]
+- Updated dependencies [fca786b]
+- Updated dependencies [1d15673]
+- Updated dependencies [763d04a]
+- Updated dependencies [9cff587]
+- Updated dependencies [d129d89]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [e1e2821]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [10c1322]
+- Updated dependencies [d08308b]
+- Updated dependencies [05d5b9a]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [83aaad8]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/anthropic@3.0.0
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 4.0.0-beta.109
 
 ### Patch Changes

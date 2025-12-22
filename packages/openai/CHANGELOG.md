@@ -1,5 +1,199 @@
 # @ai-sdk/openai
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 4920119: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+- 0adc679: feat(provider): shared spec v3
+- 92c6241: feat(openai): additional settings for file search tool
+- 88fc415: feat(openai): add the new provider 'apply_patch' tool
+- 817e601: fix(openai); fix url_citation schema in chat api
+- dae2185: fix(openai): extract meta data from first chunk that contains any
+- 046aa3b: feat(provider): speech model v3 spec
+- f1277fe: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+- 9a51b92: support OPENAI_BASE_URL env
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+- 2625a04: feat(openai); update spec for mcp approval
+- 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
+- 0877683: feat(provider/openai): support conversations api
+- d0f1baf: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+- 95f65c2: chore: use import \* from zod/v4
+- edc5548: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 0c4822d: feat: `EmbeddingModelV3`
+- 73d9883: chore(openai): enable strict json by default
+- d2039d7: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+- 88edc28: feat (provider/openai): include more image generation response metadata
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- e85fa2f: feat(openai): add sources in web-search actions
+- 423ba08: Set the annotations from the Responses API to doStream
+- 401f561: fix(provider/openai): fix web search tool input types
+- 4122d2a: feat(provider/openai): add gpt-5-codex model id
+- 0153bfa: fix(openai): fix parameter exclusion logic
+- 8dac895: feat: `LanguageModelV3`
+- 304222e: Add streaming support for apply_patch partial diffs.
+- 23f132b: fix: error schema for Responses API
+- 1d0de66: refactoring(provider/openai): simplify code
+- 000e87b: fix(provider/openai): add providerExecuted flag to tool start chunks
+- 2c0a758: chore(openai): add JSDoc to responses options
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+- b82987c: feat(openai): support openai code-interpreter annotations
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- 79b4e46: feat(openai): add 'gpt-5.1' modelID
+- 3997a42: feat(provider/openai): local shell tool
+- 348fd10: fix(openai): treat unknown models as reasoning
+- 9061dc0: feat: image editing
+- fe49278: feat(provider/openai): only send item references for reasoning when store: true
+- cb4d238: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+- 357cfd7: feat(provider/openai): add new model IDs `gpt-image-1-mini`, `gpt-5-pro`, `gpt-5-pro-2025-10-06`
+- 38a4035: added support for external_web_access parameter on web_search tool
+- 40d5419: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 2b0caef: feat(provider/openai): preview image generation results
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+- fd47df5: fix(openai): revised_prompt sometimes returns null, causing errors
+- 4616b86: chore: update zod peer depenedency version
+- 7756857: fix(provider/openai): add truncation parameter support for Responses API
+- cad6445: feat(openai); adding OpenAI's new shell tool
+- 64aa48f: Azure OpenAI enabled web-search-preview
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+- 61c52dc: feat (provider/openai): add gpt-image-1.5 model support
+- ef739fa: fix(openai): refactor apply-patch tool
+- 3220329: fix openai responses input: process all provider tool outputs (shell/apply_patch) so parallel tool results aren’t dropped and apply_patch outputs are forwarded.
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+- f18ef7f: feat(openai): add gpt-5.2 models
+- 21e20c0: feat(provider): transcription model v3 spec
+- 522f6b8: feat: `ImageModelV3`
+- 484aa93: Add 'default' as service tier
+- 88574c1: Change `isReasoningModel` detection from blocklist to allowlist and add override option
+- 68c6187: feat(provider/openai): support file and image tool results
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- 5648ec0: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+- 78f813e: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+- 0273b74: fix(openai): add support for sources type 'api'
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+- 1bd7d32: feat: tool-specific strict mode
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+- 95f65c2: chore: load zod schemas lazily
+- 59561f8: fix(openai); fix url_citation schema in chat api
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [0c4822d]
+- Updated dependencies [521c537]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [366f50b]
+- Updated dependencies [4616b86]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.112
 
 ### Patch Changes

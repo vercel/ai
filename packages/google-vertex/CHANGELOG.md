@@ -1,5 +1,231 @@
 # @ai-sdk/google-vertex
 
+## 4.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 47a88a1: Remove duplicate gemini-1.0-pro-001 model ID
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
+- 95f65c2: chore: use import \* from zod/v4
+- 0b92881: Add Google Vertex RAG Engine grounding provider tool
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 0c4822d: feat: `EmbeddingModelV3`
+- f8c981f: Fix adding google search along with url context in vertex ai
+- 00dfa76: feat(provider/google-vertex): Add support for the imageSize provider option
+- 0e29b86: Add claude-opus-4-5@20251101 to Google Vertex Anthropic models
+- e8109d3: feat: tool execution approval
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 024e778: feat(provider/vertext): add express mode support
+- 8dac895: feat: `LanguageModelV3`
+- 82ceb49: Add claude sonnet 4.5 in google vertex anthropic provider
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 0ad470b: feat(provider/google): add enterpriseWebSearch tool
+- 9061dc0: feat: image editing
+- ee8cd23: fix(vertex): allow 'vertex' as a key for providerOptions
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 2825757: Add Google File search tool
+- 4616b86: chore: update zod peer depenedency version
+- 33d9327: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+- 88b2c7e: feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
+
+  Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
+
+  **Amazon Bedrock Changes:**
+
+  - Removed incorrect warning that prevented using tools with JSON response format
+  - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
+  - Added `isJsonResponseFromTool` parameter to finish reason mapping
+  - JSON tool responses are correctly converted to text content and finish reason is mapped from `tool_use` to `stop`
+  - Added comprehensive test coverage for combining tools with structured outputs
+  - Added example files demonstrating the feature
+
+  **Google Vertex Anthropic Changes:**
+
+  - Inherits support from underlying Anthropic provider implementation
+  - Added test coverage to verify the feature works correctly
+  - Added example files demonstrating the feature
+
+  This brings Anthropic provider's structured output capabilities to the Amazon Bedrock and Google Vertex Anthropic providers.
+
+- 522f6b8: feat: `ImageModelV3`
+- 870297d: feat(google): gemini-3-flash
+- cdb463a: update google-auth-library to ^10.5.0
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- 4d2e88e: fix(google,google-vertex): update known model IDs
+- e833473: chore (provider/google): Add preview modelIds for gemini 2.5 flash and lite
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [b8ea36e]
+- Updated dependencies [ed537e1]
+- Updated dependencies [2109385]
+- Updated dependencies [dee8b05]
+- Updated dependencies [9be07c8]
+- Updated dependencies [fd788ce]
+- Updated dependencies [046aa3b]
+- Updated dependencies [7c4328e]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [f33a018]
+- Updated dependencies [78928cb]
+- Updated dependencies [b2dbfbf]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [11e4abe]
+- Updated dependencies [7728ac5]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [f13958c]
+- Updated dependencies [9a728c8]
+- Updated dependencies [afb00e3]
+- Updated dependencies [32a6c13]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [e300a3b]
+- Updated dependencies [58920e0]
+- Updated dependencies [218bba1]
+- Updated dependencies [954c356]
+- Updated dependencies [0b92881]
+- Updated dependencies [9e35785]
+- Updated dependencies [544d4e8]
+- Updated dependencies [a5f77a6]
+- Updated dependencies [ca07285]
+- Updated dependencies [0c4822d]
+- Updated dependencies [f8c981f]
+- Updated dependencies [6078060]
+- Updated dependencies [bb28cac]
+- Updated dependencies [fff8d59]
+- Updated dependencies [a5a8db4]
+- Updated dependencies [521c537]
+- Updated dependencies [1742445]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [87db851]
+- Updated dependencies [03849b0]
+- Updated dependencies [f6603b7]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [1cad0ab]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [2049c5b]
+- Updated dependencies [3ed5519]
+- Updated dependencies [4c5a6be]
+- Updated dependencies [9b17031]
+- Updated dependencies [9e1e758]
+- Updated dependencies [589a4ee]
+- Updated dependencies [8dac895]
+- Updated dependencies [ee50cc5]
+- Updated dependencies [6f845b4]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [9354297]
+- Updated dependencies [475189e]
+- Updated dependencies [03849b0]
+- Updated dependencies [0ae783e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [eb56fc6]
+- Updated dependencies [0ad470b]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [fa35e95]
+- Updated dependencies [32223c8]
+- Updated dependencies [8370068]
+- Updated dependencies [c1efac4]
+- Updated dependencies [ee8cd23]
+- Updated dependencies [7dea60e]
+- Updated dependencies [80894b3]
+- Updated dependencies [366f50b]
+- Updated dependencies [81d4308]
+- Updated dependencies [6fc35cb]
+- Updated dependencies [8ee8edc]
+- Updated dependencies [2825757]
+- Updated dependencies [f4db7b5]
+- Updated dependencies [6c38080]
+- Updated dependencies [4616b86]
+- Updated dependencies [33d9327]
+- Updated dependencies [81d4308]
+- Updated dependencies [0cfae4c]
+- Updated dependencies [9549c9e]
+- Updated dependencies [dedf206]
+- Updated dependencies [09ba2dd]
+- Updated dependencies [32a8c82]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [983e394]
+- Updated dependencies [81e29ab]
+- Updated dependencies [0e38a79]
+- Updated dependencies [166b6d7]
+- Updated dependencies [cf4e2a9]
+- Updated dependencies [f4e4a95]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [21f378c]
+- Updated dependencies [599a97f]
+- Updated dependencies [c5440c5]
+- Updated dependencies [fca786b]
+- Updated dependencies [1d15673]
+- Updated dependencies [763d04a]
+- Updated dependencies [49e2b6a]
+- Updated dependencies [9cff587]
+- Updated dependencies [d129d89]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [e1e2821]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [870297d]
+- Updated dependencies [e9e157f]
+- Updated dependencies [10c1322]
+- Updated dependencies [c8003fb]
+- Updated dependencies [d08308b]
+- Updated dependencies [05d5b9a]
+- Updated dependencies [960ec8f]
+- Updated dependencies [4d2e88e]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [83aaad8]
+- Updated dependencies [e833473]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/anthropic@3.0.0
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/google@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 4.0.0-beta.135
 
 ### Patch Changes

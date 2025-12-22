@@ -1,5 +1,289 @@
 # ai
 
+## 6.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 58920e0: fix(ai): do not drop custom headers in HttpChatTransport
+- a7da2b6: feat(agent): change output generics
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- 2d28066: chore(agent): limit agent call parameters
+- fca786b: feat(agent): configurable call options
+- 046aa3b: feat(provider): speech model v3 spec
+- e1f6e8e: feat(ai): add Output.json()
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+- ab6f01a: Improve ai gateway error message when api key is not present
+- 9388ff1: feat(ui): add isDataUIPart helper
+- dce03c4: feat: tool input examples
+- 2625a04: feat(openai); update spec for mcp approval
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+- 457f1c6: feat(ai): onFinish callback for generateText
+- 95f65c2: chore: use import \* from zod/v4
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+- 90e5bdd: chore(ai): restructure agent files
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 4812235: fix(ai): add missing export for `LoadSettingError`
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+- 614599a: chore(ai): deprecate generateObject and streamObject
+- 0c4822d: feat: `EmbeddingModelV3`
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+- ee651d7: `https://v6.ai-sdk.dev` -> `https://ai-sdk.dev`
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+- 077aea3: feat(ai): stable structured output on generateText, streamText, and ToolLoopAgent
+- 9f20c87: chore: updated README
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- 7169511: feat(agent): support context in onFinish callback
+- e8109d3: feat: tool execution approval
+- 03849b0: move DelayedPromise into provider utils
+- ed329cb: feat: `Provider-V3`
+- 22ef5c6: feat(ai): Output.text() is default output mode
+- 9ba4324: feat(ai): support SystemModelMessage[] in system and instructions properties
+- 3bd2689: feat: extended token usage
+- 293a6b7: Added a title to the tools
+- 7c3c216: fixed docs and exported NoSpeechGeneratedError
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+- d1bdadb: Added experimental_rerank support
+- 703459a: feat: tool execution approval for dynamic tools
+- 3071620: fix header loss when statusText is undefined in writeHead
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+- e06b663: feat(agent): support experimental stream transforms
+- 83e5744: feat: support async Tool.toModelOutput
+- 8c98371: Extend addToolResult to support error results
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+- a5e152d: fix(ai): back version support for V2 providers
+- aa0515c: feat(ai): move Agent to stable
+- f6f0c5a: chore: remove zod from ui packages
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- eb8d1cb: fix not catching of empty arrays in validateUIMessage
+- e7d9b00: feat(agent): add optional name property to agent
+- d5b25ee: feat(ai): add Output.array()
+- d7bae86: feat(ai): add Output.choice()
+- 8dac895: feat: `LanguageModelV3`
+- a755db5: feat(ai): improve warnings with provider and model id
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+- 686103c: chore(ai): export ContentPart type
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+- 9b8d17e: fix(agent): move provider options to main agent config
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- c99da05: feat(ai): add onFinish to Agent
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- 9061dc0: feat: image editing
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+- 5e313e3: fix(agent): do not allow static tools when tools is empty
+- db62f7d: Added schema name and description for generateText and output
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+- 9524761: chore(ai): rename relevanceScore to score
+- ca13d26: feat(ai): add output to StreamTextResult
+- 4616b86: chore: update zod peer depenedency version
+- a322efa: Added finishReason on useChat onFinish callbck
+- 2d166e4: feat(provider/gateway): add support for image models
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+- 36b175c: chore(ai): change output generics
+- 2b1bf9d: feat(ai): add pruneMessages helper function
+- 81d4308: feat: provider-executed dynamic tools
+- e0d1ea9: fix(ai): align logic of text-end with reasoning-end
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- dce4e7b: chore(agent): rename system to instructions
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+- a417a34: feat(agent): introduce version property
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 21e20c0: feat(provider): transcription model v3 spec
+- afe7093: feat: add middleware for tool input examples
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+- 522f6b8: feat: `ImageModelV3`
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+- 69768c2: chore(ai): remove UI message reference from model message validation
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+- 763d04a: feat: Standard JSON Schema support
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 14ca35d: feat: add support for v2 specs
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- dcdac8c: chore(ai): rename tool helpers
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- b59d924: feat(ai): support SystemModelMessage in system and instructions properties
+- 1bd7d32: feat: tool-specific strict mode
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies [0c3b58b]
+- Updated dependencies [ea9ca31]
+- Updated dependencies [5dd4c6a]
+- Updated dependencies [5d21222]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [7294355]
+- Updated dependencies [e8694af]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [aaf5ebf]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [c823faf]
+- Updated dependencies [544d4e8]
+- Updated dependencies [2b6a848]
+- Updated dependencies [0c4822d]
+- Updated dependencies [34ee8d0]
+- Updated dependencies [521c537]
+- Updated dependencies [1890317]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [2f8b0c8]
+- Updated dependencies [e8109d3]
+- Updated dependencies [636e614]
+- Updated dependencies [03849b0]
+- Updated dependencies [7ccb36f]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [5f66123]
+- Updated dependencies [703459a]
+- Updated dependencies [1cad0ab]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [bca7e61]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [3e83633]
+- Updated dependencies [1d8ea2c]
+- Updated dependencies [ef62178]
+- Updated dependencies [a755db5]
+- Updated dependencies [0a2ff8a]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [ee71658]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [7d73922]
+- Updated dependencies [e6bfe91]
+- Updated dependencies [c1efac4]
+- Updated dependencies [acc14d8]
+- Updated dependencies [f83903d]
+- Updated dependencies [0e29b8b]
+- Updated dependencies [366f50b]
+- Updated dependencies [cdd0bc2]
+- Updated dependencies [96322b7]
+- Updated dependencies [4616b86]
+- Updated dependencies [2d166e4]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [6c766ef]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [7b1b1b1]
+- Updated dependencies [3782645]
+- Updated dependencies [f18ef7f]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [1425df5]
+- Updated dependencies [9f6149e]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [cc5170d]
+- Updated dependencies [a90dca6]
+- Updated dependencies [b1624f0]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [870297d]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/gateway@2.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 6.0.0-beta.169
 
 ### Patch Changes

@@ -1,5 +1,166 @@
 # @ai-sdk/anthropic
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- b8ea36e: feat(provider/anthropic): Anthropic-native structured outputs
+- ed537e1: Add support for pdf file in tool result in anthropic
+- 2109385: 'fix(anthropic): Opus 4.5 `maxOutputTokens` bump `32000` -> `64000`'
+- 7c4328e: Adds url-based pdf and image support for anthropic tool results
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- f33a018: chore: add model ID for Haiku 4.5
+- b2dbfbf: add context_management for anthropic
+- dce03c4: feat: tool input examples
+- 2625a04: feat(openai); update spec for mcp approval
+- 11e4abe: feat(provider/anthropic): web search tool updates
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+- afb00e3: feat(provider/anthropic): add text_editor_20250728 tool support
+
+  Add text_editor_20250728 tool for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional max_characters parameter and no undo_edit command support.
+
+- 95f65c2: chore: use import \* from zod/v4
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+- ca07285: feat(anthropic): add prompt caching validation
+- a5a8db4: chore: add model ID for Sonnet 4.5
+- 1742445: Support for custom provider name in google and anthropic providers
+- e8109d3: feat: tool execution approval
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- f6603b7: fix(provider/anthropic): correct raw usage information
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 2049c5b: Fix handling of error in web fetch tool in anthropic
+- 4c5a6be: feat(provider/anthropic): default and limit maxTokens based on model
+- 9e1e758: fix(anthropic): use default thinking budget when unspecified
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+- 8dac895: feat: `LanguageModelV3`
+- 6f845b4: Add support for 2025-08-25 code execution tool
+- 9354297: feat(provider/anthropic): add support for Agent Skills
+- 03849b0: throw 500 error when the first stream chunk is an error
+- 0ae783e: feat(anthropic): add the new tool search tools
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+- fa35e95: feat(provider/anthropic): add web fetch tool
+- 80894b3: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 81d4308: feat(provider/anthropic): mcp connector support
+- 6fc35cb: Retain user-supplied betas.
+- f4db7b5: feat(provider/anthropic): expose container from response in provider metadata
+- 6c38080: fix(anthropic): support pdf responses in web_fetch_tool_result schema validation
+- 4616b86: chore: update zod peer depenedency version
+- dedf206: feat(provider/anthropic): expose stop_sequence in provider metadata
+- 983e394: chore(provider/anthropic): add missing provider options jsdoc
+- 0e38a79: support ANTHROPIC_BASE_URL
+- cf4e2a9: Add support for tool calling with structured output
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+- 21f378c: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+- c5440c5: chore(provider/anthropic): update anthropic model ids
+- 1d15673: fix(provider/anthropic): clamp temperature to valid 0-1 range with warnings
+- 9cff587: chore(provider/anthropic): lazy schema loading
+- d129d89: chore(anthropic): remove unnecessary doc
+- 3794514: feat: flexible tool output content support
+- e1e2821: fix(provider/anthropic): support null title in web fetch tool
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- d08308b: feat(provider/anthropic): memory tool
+- 05d5b9a: fix(anthropic): make title field nullable in web_fetch and web_search tool output schemas
+- 1bd7d32: feat: tool-specific strict mode
+- 83aaad8: Opus 4.5 and `effort` provider option
+- Updated dependencies [0c3b58b]
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [d1bdadb]
+- Updated dependencies [dee8b05]
+- Updated dependencies [046aa3b]
+- Updated dependencies [8d9e8ad]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [2625a04]
+- Updated dependencies [37c58a0]
+- Updated dependencies [3b1d015]
+- Updated dependencies [2b0caef]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [0c4822d]
+- Updated dependencies [521c537]
+- Updated dependencies [4c44a5b]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [ed329cb]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [53f3368]
+- Updated dependencies [d116b4b]
+- Updated dependencies [3bd2689]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [bb36798]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [a755db5]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [475189e]
+- Updated dependencies [457318b]
+- Updated dependencies [b681d7d]
+- Updated dependencies [db913bd]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [366f50b]
+- Updated dependencies [4616b86]
+- Updated dependencies [81d4308]
+- Updated dependencies [9549c9e]
+- Updated dependencies [af3780b]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [522f6b8]
+- Updated dependencies [6306603]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [10d819b]
+- Updated dependencies [3794514]
+- Updated dependencies [cbf52cd]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.98
 
 ### Patch Changes

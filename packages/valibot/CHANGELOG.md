@@ -1,5 +1,59 @@
 # @ai-sdk/valibot
 
+## 2.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [0adc679]
+- Updated dependencies [50b70d6]
+- Updated dependencies [dee8b05]
+- Updated dependencies [78928cb]
+- Updated dependencies [dce03c4]
+- Updated dependencies [3b1d015]
+- Updated dependencies [95f65c2]
+- Updated dependencies [016b111]
+- Updated dependencies [58920e0]
+- Updated dependencies [954c356]
+- Updated dependencies [544d4e8]
+- Updated dependencies [521c537]
+- Updated dependencies [e8109d3]
+- Updated dependencies [03849b0]
+- Updated dependencies [e06565c]
+- Updated dependencies [32d8dbb]
+- Updated dependencies [d116b4b]
+- Updated dependencies [293a6b7]
+- Updated dependencies [703459a]
+- Updated dependencies [83e5744]
+- Updated dependencies [7e32fea]
+- Updated dependencies [3ed5519]
+- Updated dependencies [8dac895]
+- Updated dependencies [cbb1d35]
+- Updated dependencies [9061dc0]
+- Updated dependencies [32223c8]
+- Updated dependencies [c1efac4]
+- Updated dependencies [4616b86]
+- Updated dependencies [4f16c37]
+- Updated dependencies [81e29ab]
+- Updated dependencies [6306603]
+- Updated dependencies [fca786b]
+- Updated dependencies [763d04a]
+- Updated dependencies [3794514]
+- Updated dependencies [e9e157f]
+- Updated dependencies [960ec8f]
+- Updated dependencies [1bd7d32]
+- Updated dependencies [f0b2157]
+- Updated dependencies [95f65c2]
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 2.0.0-beta.59
 
 ### Patch Changes
