@@ -1,5 +1,11 @@
 # ai-core-e2e-next-server
 
+## 0.0.2
+
+### Patch Changes
+
+- ai@6.0.1
+
 ## 0.0.1
 
 ### Patch Changes
