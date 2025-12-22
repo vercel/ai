@@ -150,7 +150,8 @@ const uiMessagesSchema = lazySchema(() =>
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('output-error'),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
+                  rawInput: z.unknown().optional(),
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
@@ -253,7 +254,8 @@ const uiMessagesSchema = lazySchema(() =>
                   toolCallId: z.string(),
                   state: z.literal('output-error'),
                   providerExecuted: z.boolean().optional(),
-                  input: z.unknown(),
+                  input: z.unknown().optional(),
+                  rawInput: z.unknown().optional(),
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
@@ -404,6 +406,9 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             toolPart.state === 'output-available' ||
             toolPart.state === 'output-error'
           ) {
+            if ('rawInput' in toolPart || toolPart.input === undefined) {
+              continue;
+            }
             await validateTypes({
               value: toolPart.input,
               schema: tool.inputSchema,
