@@ -1,12 +1,21 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { z } from 'zod';
 import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
-    prompt: 'Write a short story and end it with the word END.',
-    stopSequences: ['END'],
+    model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    prompt: 'Find me 3 accounts',
+    tools: {
+      querySalesforce: {
+        description: 'Query Salesforce',
+        inputSchema: z.object({ query: z.string() }),
+        execute: async ({ query }) => {
+          return `Results for query: ${query}`;
+        },
+      },
+    },
   });
 
   console.log(result.text);
@@ -16,4 +25,6 @@ async function main() {
   console.log('Stop sequence:', result.providerMetadata?.bedrock?.stopSequence);
 }
 
-main().catch(console.error);
+main().catch(error => {
+  console.error('Error generating text:', error);
+});
