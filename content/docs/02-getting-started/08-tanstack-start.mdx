@@ -273,7 +273,9 @@ export const Route = createFileRoute('/api/chat')({
             weather: tool({
               description: 'Get the weather in a location (fahrenheit)',
               inputSchema: z.object({
-                location: z.string().describe('The location to get the weather for'),
+                location: z
+                  .string()
+                  .describe('The location to get the weather for'),
               }),
               execute: async ({ location }) => {
                 const temperature = Math.round(Math.random() * (90 - 32) + 32);
@@ -409,7 +411,9 @@ export const Route = createFileRoute('/api/chat')({
             weather: tool({
               description: 'Get the weather in a location (fahrenheit)',
               inputSchema: z.object({
-                location: z.string().describe('The location to get the weather for'),
+                location: z
+                  .string()
+                  .describe('The location to get the weather for'),
               }),
               execute: async ({ location }) => {
                 const temperature = Math.round(Math.random() * (90 - 32) + 32);
@@ -468,7 +472,9 @@ export const Route = createFileRoute('/api/chat')({
             weather: tool({
               description: 'Get the weather in a location (fahrenheit)',
               inputSchema: z.object({
-                location: z.string().describe('The location to get the weather for'),
+                location: z
+                  .string()
+                  .describe('The location to get the weather for'),
               }),
               execute: async ({ location }) => {
                 const temperature = Math.round(Math.random() * (90 - 32) + 32);
