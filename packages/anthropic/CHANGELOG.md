@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.0-beta.98
+
+### Patch Changes
+
+- 2049c5b: Fix handling of error in web fetch tool in anthropic
+
 ## 3.0.0-beta.97
 
 ### Patch Changes
