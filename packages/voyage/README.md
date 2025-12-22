@@ -38,3 +38,21 @@ const { ranking } = await rerank({
   topN: 2,
 });
 ```
+
+## Model Capabilities
+
+### Reranking Models
+
+| Model           | Context Length (tokens) | Description                                                                         |
+| --------------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| `rerank-2.5`      | 32,000                  | Generalist reranker optimized for quality with instruction-following and multilingual support. |
+| `rerank-2.5-lite` | 32,000                  | Generalist reranker optimized for both latency and quality with instruction-following and multilingual support. |
+
+#### Legacy Models
+
+| Model           | Context Length (tokens) | Description                                                                         |
+| --------------- | ----------------------- | ----------------------------------------------------------------------------------- |
+| `rerank-2`      | 16,000                  | Second-generation reranker optimized for quality with multilingual support.         |
+| `rerank-2-lite` | 8,000                   | Second-generation reranker optimized for both latency and quality with multilingual support. |
+| `rerank-1`      | 8,000                   | First-generation reranker optimized for quality with multilingual support.          |
+| `rerank-lite-1` | 4,000                   | First-generation reranker optimized for both latency and quality.                   |
