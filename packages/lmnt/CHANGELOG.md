@@ -19,70 +19,7 @@
 - 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
 - 4616b86: chore: update zod peer depenedency version
 - 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
-- Updated dependencies [0c3b58b]
-- Updated dependencies [0adc679]
-- Updated dependencies [50b70d6]
-- Updated dependencies [d1bdadb]
-- Updated dependencies [dee8b05]
-- Updated dependencies [046aa3b]
-- Updated dependencies [8d9e8ad]
-- Updated dependencies [78928cb]
-- Updated dependencies [dce03c4]
-- Updated dependencies [2625a04]
-- Updated dependencies [37c58a0]
-- Updated dependencies [3b1d015]
-- Updated dependencies [2b0caef]
-- Updated dependencies [95f65c2]
-- Updated dependencies [016b111]
-- Updated dependencies [58920e0]
-- Updated dependencies [954c356]
-- Updated dependencies [544d4e8]
-- Updated dependencies [0c4822d]
-- Updated dependencies [521c537]
-- Updated dependencies [4c44a5b]
-- Updated dependencies [e8109d3]
-- Updated dependencies [03849b0]
-- Updated dependencies [ed329cb]
-- Updated dependencies [e06565c]
-- Updated dependencies [32d8dbb]
-- Updated dependencies [53f3368]
-- Updated dependencies [d116b4b]
-- Updated dependencies [3bd2689]
-- Updated dependencies [293a6b7]
-- Updated dependencies [703459a]
-- Updated dependencies [bb36798]
-- Updated dependencies [83e5744]
-- Updated dependencies [7e32fea]
-- Updated dependencies [3ed5519]
-- Updated dependencies [8dac895]
-- Updated dependencies [a755db5]
-- Updated dependencies [cbb1d35]
-- Updated dependencies [475189e]
-- Updated dependencies [457318b]
-- Updated dependencies [b681d7d]
-- Updated dependencies [db913bd]
-- Updated dependencies [9061dc0]
-- Updated dependencies [32223c8]
-- Updated dependencies [c1efac4]
-- Updated dependencies [366f50b]
-- Updated dependencies [4616b86]
-- Updated dependencies [81d4308]
-- Updated dependencies [9549c9e]
-- Updated dependencies [af3780b]
-- Updated dependencies [4f16c37]
-- Updated dependencies [81e29ab]
-- Updated dependencies [522f6b8]
-- Updated dependencies [6306603]
-- Updated dependencies [fca786b]
-- Updated dependencies [763d04a]
-- Updated dependencies [10d819b]
-- Updated dependencies [3794514]
-- Updated dependencies [cbf52cd]
-- Updated dependencies [e9e157f]
-- Updated dependencies [960ec8f]
-- Updated dependencies [1bd7d32]
-- Updated dependencies [f0b2157]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider@3.0.0
   - @ai-sdk/provider-utils@4.0.0
 
@@ -454,8 +391,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 2.0.0-beta.10
@@ -489,8 +425,7 @@
 ### Patch Changes
 
 - 046aa3b: feat(provider): speech model v3 spec
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -498,8 +433,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -525,8 +459,7 @@
 ### Patch Changes
 
 - ed329cb: feat: `Provider-V3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -543,8 +476,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
 
@@ -606,8 +538,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 1.0.2
@@ -631,108 +562,7 @@
 - 40d6708: feat(providers/lmnt): add speech
 - d1a034f: feature: using Zod 4 for internal stuff
 - 205077b: fix: improve Zod compatibility
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -776,8 +606,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 1.0.0-beta.4
@@ -800,32 +629,14 @@
 ### Patch Changes
 
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 1.0.0-beta.1
 
 ### Patch Changes
 
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -833,8 +644,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -842,9 +652,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -892,8 +700,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 
@@ -977,10 +784,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -988,8 +792,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -997,8 +800,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -1006,9 +808,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -1016,9 +816,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -1034,8 +832,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
