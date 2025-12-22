@@ -1,5 +1,21 @@
 # @ai-sdk/devtools
 
+## 0.0.1
+
+### Patch Changes
+
+- 8e9300f: Initial release of package
+- 4e9f4f5: fix: handle extended token usage format with cache and reasoning breakdowns
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+
+## 0.0.1-beta.7
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+
 ## 0.0.1-beta.6
 
 ### Patch Changes
