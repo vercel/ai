@@ -224,17 +224,25 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model             | Context Length |
-| ----------------- | -------------- |
-| `rerank-2.5`      | 32,000 tokens  |
-| `rerank-2.5-lite` | 32,000 tokens  |
-| `rerank-2`        | 16,000 tokens  |
-| `rerank-2-lite`   | 8,000 tokens   |
-| `rerank-1`        | 8,000 tokens   |
-| `rerank-lite-1`   | 4,000 tokens   |
+| Model             | Context Length | Description                                                                                     |
+| ----------------- | -------------- | ----------------------------------------------------------------------------------------------- |
+| `rerank-2.5`      | 32,000 tokens  | Generalist reranker optimized for quality with instruction-following and multilingual support.  |
+| `rerank-2.5-lite` | 32,000 tokens  | Generalist reranker optimized for latency and quality with instruction-following and multilingual support. |
+
+#### Legacy Models
+
+The following are older models that are still accessible from the API.
+The latest models listed above are recommended for better quality and efficiency.
+
+| Model           | Context Length | Description                                                                        |
+| --------------- | -------------- | ---------------------------------------------------------------------------------- |
+| `rerank-2`      | 16,000 tokens  | Second-generation reranker optimized for quality with multilingual support.        |
+| `rerank-2-lite` | 8,000 tokens   | Second-generation reranker optimized for latency and quality with multilingual support. |
+| `rerank-1`      | 8,000 tokens   | First-generation reranker optimized for quality with multilingual support.         |
+| `rerank-lite-1` | 4,000 tokens   | First-generation reranker optimized for latency and quality.                       |
 
 <Note>
-  The table above lists popular models. Please see the [Voyage AI
+  The tables above list popular models. Please see the [Voyage AI
   docs](https://docs.voyageai.com/docs/reranker) for a full list of available
   models. You can also pass any available provider model ID as a string if
   needed.

@@ -1,10 +1,11 @@
 ---
-'@ai-sdk/voyage': minor
+'@ai-sdk/voyage': patch
 ---
 
 Add @ai-sdk/voyage provider with embedding and reranking model support for Voyage AI APIs.
 
 **Embedding Models:**
+
 - voyage-3.5, voyage-3.5-lite, voyage-3-large, voyage-3, voyage-3-lite
 - voyage-code-3, voyage-code-2
 - voyage-finance-2, voyage-multilingual-2, voyage-law-2
@@ -12,9 +13,9 @@ Add @ai-sdk/voyage provider with embedding and reranking model support for Voyag
 Supports provider options: `inputType`, `outputDimension`, `outputDtype`, `truncation`
 
 **Reranking Models:**
-- rerank-2.5, rerank-2.5-lite
-- rerank-2, rerank-2-lite
-- rerank-1, rerank-lite-1
+
+- rerank-2.5, rerank-2.5-lite (recommended)
+- rerank-2, rerank-2-lite, rerank-1, rerank-lite-1 (legacy)
 
 Supports provider options: `truncation`
 
