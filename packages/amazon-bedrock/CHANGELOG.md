@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.1
+
+### Patch Changes
+
+- 9260982: handle `stop_sequence: null`
+
 ## 4.0.0
 
 ### Major Changes
