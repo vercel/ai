@@ -1,5 +1,21 @@
 # @ai-sdk/deepgram
 
+## 2.0.0-beta.61
+
+### Patch Changes
+
+- 7f91f36: feat(deepgram): add language detection support
+
+  Add language detection support for Deepgram transcription. When `detectLanguage` is enabled, Deepgram will automatically detect the spoken language and return it in the response via `providerMetadata.deepgram.detectedLanguage`.
+
+## 2.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
 ## 2.0.0-beta.59
 
 ### Patch Changes

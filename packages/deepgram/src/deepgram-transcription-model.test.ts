@@ -20,8 +20,10 @@ const server = createTestServer({
 describe('doGenerate', () => {
   function prepareJsonResponse({
     headers,
+    detectedLanguage,
   }: {
     headers?: Record<string, string>;
+    detectedLanguage?: string;
   } = {}) {
     server.urls['https://api.deepgram.com/v1/listen'].response = {
       type: 'json-value',
@@ -47,6 +49,7 @@ describe('doGenerate', () => {
         results: {
           channels: [
             {
+              detected_language: detectedLanguage,
               alternatives: [
                 {
                   transcript: 'Hello world!',
@@ -198,5 +201,49 @@ describe('doGenerate', () => {
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('nova-3');
+  });
+
+  it('should pass detectLanguage as detect_language query parameter', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        deepgram: {
+          detectLanguage: true,
+        },
+      },
+    });
+
+    const requestUrl = server.calls[0].requestUrl;
+    expect(requestUrl).toContain('detect_language=true');
+  });
+
+  it('should return detected language from response', async () => {
+    prepareJsonResponse({ detectedLanguage: 'sv' });
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        deepgram: {
+          detectLanguage: true,
+        },
+      },
+    });
+
+    expect(result.language).toBe('sv');
+  });
+
+  it('should return undefined language when not detected', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.language).toBeUndefined();
   });
 });

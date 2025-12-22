@@ -1,5 +1,21 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [2049c5b]
+  - @ai-sdk/anthropic@3.0.0-beta.98
+
+## 4.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/anthropic@3.0.0-beta.97
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
 ## 4.0.0-beta.107
 
 ### Patch Changes

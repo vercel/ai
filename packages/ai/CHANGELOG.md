@@ -1,5 +1,28 @@
 # ai
 
+## 6.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [7294355]
+  - @ai-sdk/gateway@2.0.0-beta.93
+
+## 6.0.0-beta.167
+
+### Patch Changes
+
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.92
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 6.0.0-beta.166
+
+### Patch Changes
+
+- 9f20c87: chore: updated README
+
 ## 6.0.0-beta.165
 
 ### Patch Changes

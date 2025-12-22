@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 3.0.0-beta.112
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 3.0.0-beta.111
+
+### Patch Changes
+
+- 304222e: Add streaming support for apply_patch partial diffs.
+
 ## 3.0.0-beta.110
 
 ### Patch Changes
