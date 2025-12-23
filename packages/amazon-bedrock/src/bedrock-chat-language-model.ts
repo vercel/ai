@@ -1018,7 +1018,7 @@ const BedrockCitationSchema = z.object({
   sourceContent: z
     .array(
       z.object({
-        text: z.string(),
+        text: z.string().nullish(),
       }),
     )
     .nullish(),
@@ -1028,10 +1028,10 @@ const BedrockCitationSchema = z.object({
 const BedrockCitationsContentSchema = z.object({
   content: z.array(
     z.object({
-      text: z.string(),
+      text: z.string().nullish(),
     }),
-  ),
-  citations: z.array(BedrockCitationSchema),
+  ).nullish(),
+  citations: z.array(BedrockCitationSchema).nullish(),
 });
 
 // limited version of the schema, focused on what is needed for the implementation

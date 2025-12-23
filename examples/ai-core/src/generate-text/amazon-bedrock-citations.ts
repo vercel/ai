@@ -5,7 +5,7 @@ import fs from 'fs';
 
 async function main() {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('eu.anthropic.claude-3-7-sonnet-20250219-v1:0'),
     messages: [
       {
         role: 'user',
