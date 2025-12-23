@@ -896,7 +896,7 @@ describe('doStream', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -1058,7 +1058,7 @@ describe('doStream', () => {
         JSON.stringify({
           messageStop: {
             stopReason: 'stop_sequence',
-            additionalModelResponseFields: { stop_sequence: 'STOP' },
+            additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
           },
         }) + '\n',
       ],
@@ -2718,7 +2718,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -2789,7 +2789,7 @@ describe('doGenerate', () => {
           },
         },
         stopReason: 'stop_sequence',
-        additionalModelResponseFields: { stop_sequence: 'STOP' },
+        additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
         usage: {
           inputTokens: 4,
           outputTokens: 30,
