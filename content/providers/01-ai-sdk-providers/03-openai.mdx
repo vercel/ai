@@ -189,13 +189,14 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
   The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-  models. Setting `reasoningEffort` to 'none' with other models will result in
-  an error.
+  models. Also, the 'xhigh' type for `reasoningEffort` is only available for
+  OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or
+  'xhigh' with unsupported models will result in an error.
 </Note>
 
 - **reasoningSummary** _'auto' | 'detailed'_
@@ -245,6 +246,12 @@ The following provider options are available:
 
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
+- **systemMessageMode** _'system' | 'developer' | 'remove'_
+  Controls the role of the system message when making requests. By default (when omitted), for models that support reasoning the `system` message is automatically converted to a `developer` message. Setting `systemMessageMode` to `system` passes the system message as a system-level instruction; `developer` passes it as a developer message; `remove` omits the system message from the request.
+
+- **forceReasoning** _boolean_
+  Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
 The OpenAI responses provider also returns provider-specific metadata:
 
@@ -687,7 +694,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -734,7 +741,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -875,7 +882,7 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
@@ -967,6 +974,30 @@ console.log('Usage:', {
   System messages are automatically converted to OpenAI developer messages for
   reasoning models when supported.
 </Note>
+
+- You can control how system messages are handled by providerOptions `systemMessageMode`:
+
+  - `developer`: treat the prompt as a developer message (default for reasoning models).
+  - `system`: keep the system message as a system-level instruction.
+  - `remove`: remove the system message from the messages.
+
+```ts highlight="12"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.chat('gpt-5'),
+  messages: [
+    { role: 'system', content: 'You are a helpful assistant.' },
+    { role: 'user', content: 'Tell me a joke.' },
+  ],
+  providerOptions: {
+    openai: {
+      systemMessageMode: 'system',
+    },
+  },
+});
+```
 
 <Note>
   Reasoning models require additional runtime inference to complete their
@@ -1069,7 +1100,7 @@ const result = await generateText({
         },
         {
           type: 'image',
-          image: fs.readFileSync('./data/image.png'),
+          image: readFileSync('./data/image.png'),
         },
       ],
     },
@@ -1107,7 +1138,7 @@ const result = await generateText({
         },
         {
           type: 'file',
-          data: fs.readFileSync('./data/ai.pdf'),
+          data: readFileSync('./data/ai.pdf'),
           mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
@@ -1353,7 +1384,7 @@ const result = await generateText({
         {
           type: 'file',
           mediaType: 'audio/mpeg',
-          data: fs.readFileSync('./data/galileo.mp3'),
+          data: readFileSync('./data/galileo.mp3'),
         },
       ],
     },
@@ -1438,6 +1469,9 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-codex-mini`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.1-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1523,10 +1557,96 @@ const model = openai.image('dall-e-3');
   parameter instead.
 </Note>
 
+### Image Editing
+
+OpenAI's `gpt-image-1` model supports powerful image editing capabilities. Pass input images via `prompt.images` to transform, combine, or edit existing images.
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Turn the cat into a dog but retain the style of the original image',
+    images: [imageBuffer],
+  },
+});
+```
+
+#### Inpainting with Mask
+
+Edit specific parts of an image using a mask. Transparent areas in the mask indicate where the image should be edited:
+
+```ts
+const image = readFileSync('./input-image.png');
+const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask: mask,
+  },
+});
+```
+
+#### Background Removal
+
+Remove the background from an image by setting `background` to `transparent`:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'do not change anything',
+    images: [imageBuffer],
+  },
+  providerOptions: {
+    openai: {
+      background: 'transparent',
+      output_format: 'png',
+    },
+  },
+});
+```
+
+#### Multi-Image Combining
+
+Combine multiple reference images into a single output. `gpt-image-1` supports up to 16 input images:
+
+```ts
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+const owl = readFileSync('./owl.png');
+const bear = readFileSync('./bear.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: {
+    text: 'Combine these animals into a group photo, retaining the original style',
+    images: [cat, dog, owl, bear],
+  },
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. For `gpt-image-1`, each image should be a `png`,
+  `webp`, or `jpg` file less than 50MB.
+</Note>
+
 ### Model Capabilities
 
 | Model              | Sizes                           |
 | ------------------ | ------------------------------- |
+| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
 | `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
@@ -1536,7 +1656,7 @@ You can pass optional `providerOptions` to the image model. These are prone to c
 
 ```ts
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-1'),
+  model: openai.image('gpt-image-1.5'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },

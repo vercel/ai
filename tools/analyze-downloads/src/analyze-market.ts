@@ -9,7 +9,7 @@ async function main() {
     'AI SDK': ['ai'],
     OpenAI: ['openai'],
     Anthropic: ['@anthropic-ai/sdk'],
-    LangChain: ['langchain'],
+    LangChain: ['@langchain/core'],
     'AWS Bedrock': ['@aws-sdk/client-bedrock-runtime'],
     Google: [
       '@google/generative-ai',
@@ -35,6 +35,8 @@ async function main() {
       '@xsai/embed',
     ],
     'pi-ai': ['@mariozechner/pi-ai'],
+    OpenRouter: ['@openrouter/sdk'],
+    Mastra: ['@mastra/core'],
   };
 
   // Helper for flattened package to group map
@@ -145,7 +147,7 @@ main();
 function fetchWithRetry(
   url: string,
   options: RequestInit = {},
-  retries = 3,
+  retries = 5,
   backoff = 10000,
 ): Promise<Response> {
   return new Promise((resolve, reject) => {

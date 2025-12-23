@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -585,6 +586,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -604,6 +607,8 @@ describe('image', () => {
         .imageModel('dalle-deployment')
         .doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: undefined,
@@ -629,6 +634,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -660,6 +667,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -677,6 +686,8 @@ describe('image', () => {
 
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -692,6 +703,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -1004,7 +1017,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1058,7 +1071,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1212,7 +1225,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1236,7 +1249,7 @@ describe('responses', () => {
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
       prepareJsonFixtureResponse('openai-image-generation-tool.1');
@@ -1358,7 +1371,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -1506,7 +1522,10 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -1622,7 +1641,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": null,

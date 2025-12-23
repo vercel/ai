@@ -1,10 +1,5 @@
-import {
-  SharedV3Headers,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
-} from '../../shared';
-import { EmbeddingModelCallOptions } from './embedding-model-v3-call-options';
-import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
+import { EmbeddingModelV3CallOptions } from './embedding-model-v3-call-options';
+import { EmbeddingModelV3Result } from './embedding-model-v3-result';
 
 /**
 Specification for an embedding model that implements the embedding model
@@ -53,42 +48,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: EmbeddingModelCallOptions): PromiseLike<{
-    /**
-Generated embeddings. They are in the same order as the input values.
-     */
-    embeddings: Array<EmbeddingModelV3Embedding>;
-
-    /**
-Token usage. We only have input tokens for embeddings.
-    */
-    usage?: { tokens: number };
-
-    /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-     */
-    providerMetadata?: SharedV3ProviderMetadata;
-
-    /**
-Optional response information for debugging purposes.
-     */
-    response?: {
-      /**
-Response headers.
-       */
-      headers?: SharedV3Headers;
-
-      /**
-      The response body.
-      */
-      body?: unknown;
-    };
-
-    /**
-Warnings for the call, e.g. unsupported settings.
-     */
-    warnings: Array<SharedV3Warning>;
-  }>;
+  doEmbed(
+    options: EmbeddingModelV3CallOptions,
+  ): PromiseLike<EmbeddingModelV3Result>;
 };

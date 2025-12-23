@@ -63,6 +63,11 @@ Creates a model for transcription.
 Creates a model for speech generation.
    */
   speech(modelId: FalSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -148,6 +153,13 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
@@ -159,12 +171,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       });
     },
     speech: createSpeechModel,
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
   };
 }

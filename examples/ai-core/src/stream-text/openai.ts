@@ -14,4 +14,6 @@ run(async () => {
   printFullStream({ result });
 
   print('Usage:', await result.usage);
+  print('Finish reason:', await result.finishReason);
+  print('Raw finish reason:', await result.rawFinishReason);
 });

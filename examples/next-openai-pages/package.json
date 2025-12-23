@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.0-beta.91",
-    "@ai-sdk/react": "3.0.0-beta.149",
-    "ai": "6.0.0-beta.146",
-    "next": "^15.5.7",
+    "@ai-sdk/openai": "3.0.0",
+    "@ai-sdk/react": "3.0.1",
+    "ai": "6.0.1",
+    "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.25.76"

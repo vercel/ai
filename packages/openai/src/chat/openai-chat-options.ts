@@ -40,6 +40,9 @@ export type OpenAIChatModelId =
   | 'gpt-5-chat-latest'
   | 'gpt-5.1'
   | 'gpt-5.1-chat-latest'
+  | 'gpt-5.2'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
   | (string & {});
 
 export const openaiChatLanguageModelOptions = lazySchema(() =>
@@ -79,7 +82,7 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`.
        */
       reasoningEffort: z
-        .enum(['none', 'minimal', 'low', 'medium', 'high'])
+        .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh'])
         .optional(),
 
       /**
@@ -151,6 +154,27 @@ export const openaiChatLanguageModelOptions = lazySchema(() =>
        * information.
        */
       safetyIdentifier: z.string().optional(),
+
+      /**
+       * Override the system message mode for this model.
+       * - 'system': Use the 'system' role for system messages (default for most models)
+       * - 'developer': Use the 'developer' role for system messages (used by reasoning models)
+       * - 'remove': Remove system messages entirely
+       *
+       * If not specified, the mode is automatically determined based on the model.
+       */
+      systemMessageMode: z.enum(['system', 'developer', 'remove']).optional(),
+
+      /**
+       * Force treating this model as a reasoning model.
+       *
+       * This is useful for "stealth" reasoning models (e.g. via a custom baseURL)
+       * where the model ID is not recognized by the SDK's allowlist.
+       *
+       * When enabled, the SDK applies reasoning-model parameter compatibility rules
+       * and defaults `systemMessageMode` to `developer` unless overridden.
+       */
+      forceReasoning: z.boolean().optional(),
     }),
   ),
 );

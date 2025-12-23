@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { text } = await generateText({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-3-pro-preview'),
     prompt: 'What is the weather in New York City? ',
     tools: {
       weather: tool({

@@ -184,17 +184,30 @@ functionality that can be fully encapsulated in the provider.
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
-Optional conversion function that maps the tool result to an output that can be used by the language model.
+     * Optional conversion function that maps the tool result to an output that can be used by the language model.
+     *
+     * If not provided, the tool result will be sent as a JSON object.
+     */
+    toModelOutput?: (options: {
+      /**
+       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+       */
+      toolCallId: string;
 
-If not provided, the tool result will be sent as a JSON object.
-  */
-    toModelOutput?: (
+      /**
+       * The input of the tool call.
+       */
+      input: [INPUT] extends [never] ? unknown : INPUT;
+
+      /**
+       * The output of the tool call.
+       */
       output: 0 extends 1 & OUTPUT
         ? any
         : [OUTPUT] extends [never]
           ? any
-          : NoInfer<OUTPUT>,
-    ) => ToolResultOutput;
+          : NoInfer<OUTPUT>;
+    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
   } & (
     | {
         /**
@@ -224,6 +237,21 @@ The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
      */
         args: Record<string, unknown>;
+
+        /**
+         * Whether this provider-executed tool supports deferred results.
+         *
+         * When true, the tool result may not be returned in the same turn as the
+         * tool call (e.g., when using programmatic tool calling where a server tool
+         * triggers a client-executed tool, and the server tool's result is deferred
+         * until the client tool is resolved).
+         *
+         * This flag allows the AI SDK to handle tool results that arrive without
+         * a matching tool call in the current response.
+         *
+         * @default false
+         */
+        supportsDeferredResults?: boolean;
       }
   );
 
@@ -262,7 +290,28 @@ export function dynamicTool(tool: {
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => ToolResultOutput;
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   */
+  toModelOutput?: (options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * The input of the tool call.
+     */
+    input: unknown;
+
+    /**
+     * The output of the tool call.
+     */
+    output: unknown;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
 
   /**
    * Whether the tool needs approval before it can be executed.

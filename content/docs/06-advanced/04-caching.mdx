@@ -155,7 +155,7 @@ export async function POST(req: Request) {
   // Call the language model:
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     async onFinish({ text }) {
       // Cache the response text:
       await redis.set(key, text);

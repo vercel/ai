@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { convertToModelMessages, stepCountIs, streamText } from 'ai';
-import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
       system: 'You are a helpful chatbot capable of basic arithmetic problems',
-      messages: convertToModelMessages(messages),
+      messages: await convertToModelMessages(messages),
       onFinish: async () => {
         await client.close();
       },

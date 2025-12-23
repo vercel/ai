@@ -34,6 +34,21 @@ export type OpenAIResponsesIncludeOptions =
   | undefined
   | null;
 
+export type OpenAIResponsesApplyPatchOperationDiffDeltaChunk = {
+  type: 'response.apply_patch_call_operation_diff.delta';
+  item_id: string;
+  output_index: number;
+  delta: string;
+  obfuscation?: string | null;
+};
+
+export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
+  type: 'response.apply_patch_call_operation_diff.done';
+  item_id: string;
+  output_index: number;
+  diff: string;
+};
+
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
   content: string;
@@ -528,7 +543,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                 url: z.string().nullish(),
               }),
               z.object({
-                type: z.literal('find'),
+                type: z.literal('find_in_page'),
                 url: z.string().nullish(),
                 pattern: z.string().nullish(),
               }),
@@ -730,6 +745,19 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         summary_index: z.number(),
       }),
       z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+        obfuscation: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        diff: z.string(),
+      }),
+      z.object({
         type: z.literal('error'),
         sequence_number: z.number(),
         error: z.object({
@@ -862,7 +890,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                   url: z.string().nullish(),
                 }),
                 z.object({
-                  type: z.literal('find'),
+                  type: z.literal('find_in_page'),
                   url: z.string().nullish(),
                   pattern: z.string().nullish(),
                 }),
