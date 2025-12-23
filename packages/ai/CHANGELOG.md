@@ -1,5 +1,16 @@
 # ai
 
+## 6.0.2
+
+### Patch Changes
+
+- 129ff26: fix(ai): skip tool input validation in `safeValidateUIMessages` when `output-error` state has undefined input
+
+  Fixes #11392
+
+- Updated dependencies [c0c8a0e]
+  - @ai-sdk/gateway@3.0.1
+
 ## 6.0.1
 
 ### Patch Changes

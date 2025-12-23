@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.1
+
+### Patch Changes
+
+- c0c8a0e: Add zai/glm-4.7 model support
+
 ## 3.0.0
 
 ### Major Changes
