@@ -20,10 +20,16 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | {
+      inlineData: { mimeType: string; data: string };
+      mediaResolution?: { level: string };
+    }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | { functionResponse: { name: string; response: unknown } }
-  | { fileData: { mimeType: string; fileUri: string } };
+  | {
+      fileData: { mimeType: string; fileUri: string };
+      mediaResolution?: { level: string };
+    };
 
 export type GoogleGenerativeAIGroundingMetadata = GroundingMetadataSchema;
 

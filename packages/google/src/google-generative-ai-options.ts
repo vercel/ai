@@ -191,3 +191,49 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
 export type GoogleGenerativeAIProviderOptions = InferSchema<
   typeof googleGenerativeAIProviderOptions
 >;
+
+/**
+ * Schema for per-part provider options for file parts.
+ * Allows setting media resolution on individual file parts.
+ *
+ * **Important:** Per-part media resolution is an experimental feature
+ * exclusive to Gemini 3 models. Using this option with older models
+ * (Gemini 2.x, 1.5, etc.) may result in errors.
+ *
+ * @see https://ai.google.dev/gemini-api/docs/media-resolution#per-part-media-resolution
+ */
+export const googleGenerativeAIFilePartProviderOptions = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Optional. Per-part media resolution setting.
+       * Overrides global mediaResolution for this specific media part.
+       *
+       * **Experimental feature - Gemini 3 models only.**
+       *
+       * This allows fine-grained optimization of token usage by setting
+       * different resolution levels for individual media parts. For example,
+       * using high resolution for a complex diagram and low resolution for
+       * a simple contextual image.
+       *
+       * Note: `MEDIA_RESOLUTION_ULTRA_HIGH` is only available as a per-part
+       * setting and cannot be used globally.
+       *
+       * @see https://ai.google.dev/gemini-api/docs/media-resolution#per-part-media-resolution
+       */
+      mediaResolution: z
+        .enum([
+          'MEDIA_RESOLUTION_UNSPECIFIED',
+          'MEDIA_RESOLUTION_LOW',
+          'MEDIA_RESOLUTION_MEDIUM',
+          'MEDIA_RESOLUTION_HIGH',
+          'MEDIA_RESOLUTION_ULTRA_HIGH', // Per-part only, not available globally
+        ])
+        .optional(),
+    }),
+  ),
+);
+
+export type GoogleGenerativeAIFilePartProviderOptions = InferSchema<
+  typeof googleGenerativeAIFilePartProviderOptions
+>;
