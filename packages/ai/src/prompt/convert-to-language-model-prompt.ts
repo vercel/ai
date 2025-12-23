@@ -213,14 +213,32 @@ export function convertToLanguageModelMessage({
       return {
         role: 'tool',
         content: message.content
-          .filter(part => part.type !== 'tool-approval-response')
-          .map(part => ({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: mapToolResultOutput(part.output),
-            providerOptions: part.providerOptions,
-          })),
+          .filter(
+            // Only include tool-approval-response for provider-executed tools
+            part =>
+              part.type !== 'tool-approval-response' || part.providerExecuted,
+          )
+          .map(part => {
+            switch (part.type) {
+              case 'tool-result': {
+                return {
+                  type: 'tool-result' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  output: mapToolResultOutput(part.output),
+                  providerOptions: part.providerOptions,
+                };
+              }
+              case 'tool-approval-response': {
+                return {
+                  type: 'tool-approval-response' as const,
+                  approvalId: part.approvalId,
+                  approved: part.approved,
+                  reason: part.reason,
+                };
+              }
+            }
+          }),
         providerOptions: message.providerOptions,
       };
     }

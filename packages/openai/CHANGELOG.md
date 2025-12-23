@@ -1,5 +1,13 @@
 # @ai-sdk/openai
 
+## 3.0.1
+
+### Patch Changes
+
+- 29264a3: feat: add MCP tool approval
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+
 ## 3.0.0
 
 ### Major Changes
