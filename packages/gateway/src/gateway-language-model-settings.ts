@@ -47,6 +47,7 @@ export type GatewayModelId =
   | 'google/gemini-2.5-pro'
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
+  | 'google/gemini-3-flash'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
@@ -135,4 +136,5 @@ export type GatewayModelId =
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
   | 'zai/glm-4.6'
+  | 'zai/glm-4.7'
   | (string & {});

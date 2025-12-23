@@ -72,6 +72,11 @@ Creates a text embedding model for text generation.
   embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
 Creates a model for image generation.
 */
   image(modelId: TogetherAIImageModelId): ImageModelV3;
@@ -163,6 +168,7 @@ export function createTogetherAI(
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.reranking = createRerankingModel;

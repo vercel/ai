@@ -9,7 +9,7 @@ export function mapAnthropicStopReason({
 }: {
   finishReason: string | null | undefined;
   isJsonResponseFromTool?: boolean;
-}): LanguageModelV3FinishReason {
+}): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'pause_turn':
     case 'end_turn':
@@ -20,10 +20,9 @@ export function mapAnthropicStopReason({
     case 'tool_use':
       return isJsonResponseFromTool ? 'stop' : 'tool-calls';
     case 'max_tokens':
-      return 'length';
     case 'model_context_window_exceeded':
       return 'length';
     default:
-      return 'unknown';
+      return 'other';
   }
 }

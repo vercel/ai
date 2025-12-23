@@ -170,7 +170,12 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(result.finishReason).toBe('stop');
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "completed",
+            "unified": "stop",
+          }
+        `);
       });
     });
 
@@ -207,7 +212,7 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "user",
               },
             ],
-            "max_tokens": 100,
+            "max_output_tokens": 100,
             "model": "grok-4-fast",
             "temperature": 0.5,
             "top_p": 0.9,
