@@ -424,6 +424,111 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    describe('Tool result transformation for tool execution approval', () => {
+      it('should convert execution-denied tool result to text', async () => {
+        prepareJsonResponse({ content: { type: 'text', text: '' } });
+
+        const prompt: LanguageModelV3Prompt = [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_1',
+                toolName: 'tool1',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied',
+                },
+              },
+            ],
+          },
+        ];
+
+        await createTestModel().doGenerate({
+          prompt,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const toolResultPart = requestBody.prompt[0].content[0];
+
+        expect(toolResultPart).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'call_1',
+          toolName: 'tool1',
+          output: {
+            type: 'text',
+            value: 'User denied',
+          },
+        });
+      });
+
+      it('should use default message for execution-denied without reason', async () => {
+        prepareJsonResponse({ content: { type: 'text', text: '' } });
+
+        const prompt: LanguageModelV3Prompt = [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_1',
+                toolName: 'tool1',
+                output: {
+                  type: 'execution-denied',
+                },
+              },
+            ],
+          },
+        ];
+
+        await createTestModel().doGenerate({
+          prompt,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const toolResultPart = requestBody.prompt[0].content[0];
+
+        expect(toolResultPart.output).toEqual({
+          type: 'text',
+          value: 'Tool execution denied.',
+        });
+      });
+
+      it('should not modify other tool result types', async () => {
+        prepareJsonResponse({ content: { type: 'text', text: '' } });
+
+        const prompt: LanguageModelV3Prompt = [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_1',
+                toolName: 'tool1',
+                output: {
+                  type: 'text',
+                  value: 'Success',
+                },
+              },
+            ],
+          },
+        ];
+
+        await createTestModel().doGenerate({
+          prompt,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        const toolResultPart = requestBody.prompt[0].content[0];
+
+        expect(toolResultPart.output).toEqual({
+          type: 'text',
+          value: 'Success',
+        });
+      });
+    });
+
     it('should handle various error types with proper conversion', async () => {
       const model = createTestModel();
 
