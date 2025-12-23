@@ -11,12 +11,13 @@ import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
-  options?: { isGemmaModel?: boolean },
+  options?: { isGemmaModel?: boolean; providerOptionsName?: string },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const providerOptionsName = options?.providerOptionsName ?? 'google';
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -81,9 +82,10 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
+              const providerOpts = part.providerOptions?.[providerOptionsName];
               const thoughtSignature =
-                part.providerOptions?.google?.thoughtSignature != null
-                  ? String(part.providerOptions.google?.thoughtSignature)
+                providerOpts?.thoughtSignature != null
+                  ? String(providerOpts.thoughtSignature)
                   : undefined;
 
               switch (part.type) {

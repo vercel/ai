@@ -1,5 +1,41 @@
 # @ai-sdk/huggingface
 
+## 1.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+- ec640c6: feat(huggingface): add responses api support
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 95f65c2: chore: use import \* from zod/v4
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 3bd2689: feat: extended token usage
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- cbf52cd: feat: expose raw finish reason
+- 1bbce64: extract reasoning content
+- Updated dependencies
+  - @ai-sdk/openai-compatible@2.0.0
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 1.0.0-beta.56
 
 ### Patch Changes
@@ -448,8 +484,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/openai-compatible@2.0.0-beta.11
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
@@ -486,8 +521,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/openai-compatible@1.1.0-beta.7
   - @ai-sdk/provider-utils@3.1.0-beta.7
@@ -496,8 +530,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.6
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
@@ -510,8 +543,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [8dac895]
-- Updated dependencies [10c1322]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.5
   - @ai-sdk/provider@2.1.0-beta.3

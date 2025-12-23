@@ -1,5 +1,103 @@
 # @ai-sdk/anthropic
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- b8ea36e: feat(provider/anthropic): Anthropic-native structured outputs
+- ed537e1: Add support for pdf file in tool result in anthropic
+- 2109385: 'fix(anthropic): Opus 4.5 `maxOutputTokens` bump `32000` -> `64000`'
+- 7c4328e: Adds url-based pdf and image support for anthropic tool results
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- f33a018: chore: add model ID for Haiku 4.5
+- b2dbfbf: add context_management for anthropic
+- dce03c4: feat: tool input examples
+- 2625a04: feat(openai); update spec for mcp approval
+- 11e4abe: feat(provider/anthropic): web search tool updates
+- f13958c: chore(antropic): allow custom names for provider-defined tools
+- afb00e3: feat(provider/anthropic): add text_editor_20250728 tool support
+
+  Add text_editor_20250728 tool for Claude 4 models (Sonnet 4, Opus 4, Opus 4.1) with optional max_characters parameter and no undo_edit command support.
+
+- 95f65c2: chore: use import \* from zod/v4
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 9e35785: fix(anthropic): send {} as tool input when streaming tool calls without arguments
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- a5f77a6: fix(anthropic): remove outdated tool name docs
+- ca07285: feat(anthropic): add prompt caching validation
+- a5a8db4: chore: add model ID for Sonnet 4.5
+- 1742445: Support for custom provider name in google and anthropic providers
+- e8109d3: feat: tool execution approval
+- 87db851: fix(vertex/anthropic): passing beta header only for structured outputs
+- f6603b7: fix(provider/anthropic): correct raw usage information
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- 2049c5b: Fix handling of error in web fetch tool in anthropic
+- 4c5a6be: feat(provider/anthropic): default and limit maxTokens based on model
+- 9e1e758: fix(anthropic): use default thinking budget when unspecified
+- 589a4ee: fix(anthropic): simplify pulling first chunk
+- 8dac895: feat: `LanguageModelV3`
+- 6f845b4: Add support for 2025-08-25 code execution tool
+- 9354297: feat(provider/anthropic): add support for Agent Skills
+- 03849b0: throw 500 error when the first stream chunk is an error
+- 0ae783e: feat(anthropic): add the new tool search tools
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- eb56fc6: fix(anthropic): pull first chunk without async IIFE
+- fa35e95: feat(provider/anthropic): add web fetch tool
+- 80894b3: add return `file_id` property for anthropic code-execution-20250825 to download output files.
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 81d4308: feat(provider/anthropic): mcp connector support
+- 6fc35cb: Retain user-supplied betas.
+- f4db7b5: feat(provider/anthropic): expose container from response in provider metadata
+- 6c38080: fix(anthropic): support pdf responses in web_fetch_tool_result schema validation
+- 4616b86: chore: update zod peer depenedency version
+- dedf206: feat(provider/anthropic): expose stop_sequence in provider metadata
+- 983e394: chore(provider/anthropic): add missing provider options jsdoc
+- 0e38a79: support ANTHROPIC_BASE_URL
+- cf4e2a9: Add support for tool calling with structured output
+- f4e4a95: feat(provider/anthropic): enable fine grained tool streaming by default
+- 21f378c: fix(provider/anthropic): do not limit maxTokens when model id is unknown
+- c5440c5: chore(provider/anthropic): update anthropic model ids
+- 1d15673: fix(provider/anthropic): clamp temperature to valid 0-1 range with warnings
+- 9cff587: chore(provider/anthropic): lazy schema loading
+- d129d89: chore(anthropic): remove unnecessary doc
+- 3794514: feat: flexible tool output content support
+- e1e2821: fix(provider/anthropic): support null title in web fetch tool
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- d08308b: feat(provider/anthropic): memory tool
+- 05d5b9a: fix(anthropic): make title field nullable in web_fetch and web_search tool output schemas
+- 1bd7d32: feat: tool-specific strict mode
+- 83aaad8: Opus 4.5 and `effort` provider option
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.98
 
 ### Patch Changes
@@ -605,8 +703,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 3.0.0-beta.14
@@ -640,8 +737,7 @@
 ### Patch Changes
 
 - e8109d3: feat: tool execution approval
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -656,8 +752,7 @@
 ### Patch Changes
 
 - 0adc679: feat(provider): shared spec v3
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -709,8 +804,7 @@
 ### Patch Changes
 
 - ed329cb: feat: `Provider-V3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -727,8 +821,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
 
@@ -840,8 +933,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 2.0.2
@@ -898,108 +990,7 @@
 - 0b678b2: feat (provider/anthropic): enable streaming tool calls
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
 - a753b3a: feat (provider/anthropic): cache control for tools
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -1048,8 +1039,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 2.0.0-beta.7
@@ -1087,9 +1077,7 @@
 - a85c85f: fix (provider/anthropic): streaming json output
 - d1a034f: feature: using Zod 4 for internal stuff
 - 0b678b2: feat (provider/anthropic): enable streaming tool calls
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 2.0.0-beta.2
@@ -1106,23 +1094,7 @@
 - 5d959e7: refactor: updated openai + anthropic tool use server side
 - 9f73965: feat (provider/anthropic): parse websearch tool args
 - 399e056: fix: anthropic computer tool
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -1130,8 +1102,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -1141,9 +1112,7 @@
 
 - 2e13791: feat(anthropic): add server-side web search support
 - 6392f60: fix(anthropic): resolve web search API validation errors with partial location + provider output
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -1198,8 +1167,7 @@
 
 - ad66c0e: feat (provider/anthropic): json response schema support via tool calls
 - 075711d: fix (provider/anthropic): return stop finish reason for json output with tool
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 
@@ -1284,10 +1252,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -1295,8 +1260,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -1304,8 +1268,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -1314,9 +1277,7 @@
 ### Patch Changes
 
 - 5c9eec4: chore(providers/anthropic): switch to providerOptions
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -1325,9 +1286,7 @@
 ### Patch Changes
 
 - 66962ed: fix(packages): export node10 compatible types
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -1343,8 +1302,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
@@ -1352,10 +1310,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
 
@@ -1363,18 +1318,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
 
@@ -1383,11 +1327,7 @@
 ### Patch Changes
 
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
 
@@ -1412,11 +1352,7 @@
 ### Patch Changes
 
 - 61ab528: Add support for URL-based PDF documents in the Anthropic provider
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
 
@@ -1424,8 +1360,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/provider-utils@3.0.0-canary.2
 
@@ -1433,9 +1368,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
 
 ## 2.0.0-canary.0
@@ -1618,8 +1551,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [ed012d2]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/provider@1.0.6
 
@@ -1629,8 +1561,7 @@
 
 - 858f934: feat (provider/anthropic): default cache-control on and mark model setting deprecated
 - b284e2c: feat (provider/google-vertex): support prompt caching for Anthropic Claude models
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/provider@1.0.5
 
@@ -1656,18 +1587,14 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
 
 ## 1.0.7
 
 ### Patch Changes
 
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
 
@@ -1727,13 +1654,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [dce4158]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [b1da952]
-- Updated dependencies [dce4158]
-- Updated dependencies [8426f55]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0
   - @ai-sdk/provider@1.0.0
 
@@ -1754,8 +1675,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [dce4158]
-- Updated dependencies [dce4158]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.2
 
 ## 1.0.0-canary.1
@@ -1778,9 +1698,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.0
   - @ai-sdk/provider@1.0.0-canary.0
 
@@ -1811,11 +1729,7 @@
 - 3b1b69a: feat: provider-defined tools
 - 8c222cd: feat (provider/anthropic): update model ids
 - 811a317: feat (ai/core): multi-part tool results (incl. images)
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.22
   - @ai-sdk/provider@0.0.26
 
@@ -1849,8 +1763,7 @@
 
 - 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
 - 3be7c1c: fix (provider/anthropic): support prompt caching on assistant messages
-- Updated dependencies [03313cd]
-- Updated dependencies [3be7c1c]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.18
   - @ai-sdk/provider@0.0.23
 
@@ -1921,8 +1834,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4bd27a9]
-- Updated dependencies [845754b]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.10
   - @ai-sdk/provider@0.0.18
 
@@ -1954,8 +1866,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9614584]
-- Updated dependencies [0762a22]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.6
 
 ## 0.0.35
@@ -1994,10 +1905,7 @@
 - a5b58845: feat (core): support topK setting
 - 4aa8deb3: feat (provider): support responseFormat setting in provider api
 - 13b27ec6: chore (ai/core): remove grammar mode
-- Updated dependencies [2b9da0f0]
-- Updated dependencies [a5b58845]
-- Updated dependencies [4aa8deb3]
-- Updated dependencies [13b27ec6]
+- Updated dependencies
   - @ai-sdk/provider@0.0.13
   - @ai-sdk/provider-utils@1.0.3
 
@@ -2033,9 +1941,7 @@
 ### Patch Changes
 
 - 5edc6110: feat (ai/core): add custom request header support
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
+- Updated dependencies
   - @ai-sdk/provider@0.0.11
   - @ai-sdk/provider-utils@1.0.0
 
@@ -2068,8 +1974,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [85712895]
-- Updated dependencies [85712895]
+- Updated dependencies
   - @ai-sdk/provider-utils@0.0.15
 
 ## 0.0.20
@@ -2094,9 +1999,7 @@
 ### Patch Changes
 
 - 09295e2e: feat (@ai-sdk/anthropic): automatically download image URLs
-- Updated dependencies [09295e2e]
-- Updated dependencies [09295e2e]
-- Updated dependencies [043a5de2]
+- Updated dependencies
   - @ai-sdk/provider@0.0.9
   - @ai-sdk/provider-utils@0.0.12
 
@@ -2122,8 +2025,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [6a50ac4]
-- Updated dependencies [6a50ac4]
+- Updated dependencies
   - @ai-sdk/provider@0.0.6
   - @ai-sdk/provider-utils@0.0.9
 
@@ -2182,8 +2084,7 @@
 ### Patch Changes
 
 - 25f3350: ai/core: add support for getting raw response headers.
-- Updated dependencies [d6431ae]
-- Updated dependencies [25f3350]
+- Updated dependencies
   - @ai-sdk/provider@0.0.2
   - @ai-sdk/provider-utils@0.0.3
 

@@ -1,5 +1,39 @@
 # @ai-sdk/mcp
 
+## 1.0.0
+
+### Major Changes
+
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+### Patch Changes
+
+- 90ede04: feat(mcp): make MCPClient stable
+- 6f1577e: fix(mcp): pass json header for refreshAuth
+- 17c04d4: feat(mcp): expose `_meta` field from MCP tool definitions
+- 1cff766: feat(packages/mcp): add support for MCP server prompts exposed
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- ba2ca2d: feat(mcp): add the possibility to define client version in mcp client definition
+- f702df2: feat(mcp): add client elicitation support
+- 5939b92: feat(mcp): adding resources support to MCP client
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 1.0.0-beta.46
 
 ### Patch Changes
