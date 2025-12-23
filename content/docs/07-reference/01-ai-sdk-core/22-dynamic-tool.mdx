@@ -163,7 +163,7 @@ When used with useChat (`UIMessage` format), dynamic tools appear as `dynamic-to
     switch (part.type) {
       case 'dynamic-tool':
         return (
-          <div>
+          <div key={part.toolCallId}>
             <h4>Tool: {part.toolName}</h4>
             <pre>{JSON.stringify(part.input, null, 2)}</pre>
           </div>
