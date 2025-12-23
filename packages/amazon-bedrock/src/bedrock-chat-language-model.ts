@@ -308,13 +308,19 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
+    const additionalModelResponseFieldPaths = isAnthropicModel
+      ? ['/delta/stop_sequence']
+      : undefined;
+
     return {
       command: {
         system,
         messages,
         additionalModelRequestFields:
           bedrockOptions.additionalModelRequestFields,
-        additionalModelResponseFieldPaths: ['/stop_sequence'],
+        ...(additionalModelResponseFieldPaths && {
+          additionalModelResponseFieldPaths,
+        }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
@@ -432,7 +438,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
     // provider metadata:
     const stopSequence =
-      response.additionalModelResponseFields?.stop_sequence ?? null;
+      response.additionalModelResponseFields?.delta?.stop_sequence ?? null;
 
     const providerMetadata =
       response.trace || response.usage || isJsonResponseFromTool || stopSequence
@@ -572,7 +578,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 isJsonResponseFromTool,
               );
               stopSequence =
-                value.messageStop.additionalModelResponseFields
+                value.messageStop.additionalModelResponseFields?.delta
                   ?.stop_sequence ?? null;
             }
 
@@ -852,7 +858,15 @@ const BedrockStopReasonSchema = z.union([
 
 const BedrockAdditionalModelResponseFieldsSchema = z
   .object({
+<<<<<<< HEAD
     stop_sequence: z.string().optional(),
+=======
+    delta: z
+      .object({
+        stop_sequence: z.string().nullish(),
+      })
+      .nullish(),
+>>>>>>> afe9730ab (Fix bedrock ConverseStream undocumented `/delta/stop_sequence` (#11410))
   })
   .catchall(z.unknown());
 
