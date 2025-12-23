@@ -2293,4 +2293,288 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('MCP tool approval responses', () => {
+    it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-123',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-123",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-123",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert denied tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-456',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-456",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-456",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool-approval-response to mcp_approval_response without item_reference when store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-789',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcp-approval-789",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip duplicate tool-approval-response with same approvalId', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "duplicate-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "duplicate-approval",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple different tool-approval-responses', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-2',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-1",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-1",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "id": "approval-2",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-2",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip execution-denied output when it has approvalId in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'denied-approval',
+                approved: false,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-123',
+                toolName: 'mcp_tool',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                  providerOptions: {
+                    openai: {
+                      approvalId: 'denied-approval',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      // Only the mcp_approval_response should be present, not a function_call_output
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "denied-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "denied-approval",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle tool-approval-response mixed with regular tool results', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-for-mcp',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'regular-call-1',
+                toolName: 'calculator',
+                output: {
+                  type: 'json',
+                  value: { result: 42 },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-for-mcp",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-for-mcp",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "call_id": "regular-call-1",
+            "output": "{"result":42}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+  });
 });

@@ -443,13 +443,19 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
     "type": "reasoning",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"NYC mayoral election results 2025 latest","numResults":5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
+      },
+    },
     "result": {
       "arguments": "{"query":"NYC mayoral election results 2025 latest","numResults":5}",
       "name": "web_search_exa",
@@ -458,7 +464,7 @@ exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool > should include m
       "type": "call",
     },
     "toolCallId": "mcp_0a4801d792de11eb00690ccb8c3fac8197a4fd94f4528cd432",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {
@@ -492,6 +498,142 @@ Main sources I found:
 - Wikipedia summary (results table and reporting percentage): https://en.wikipedia.org/wiki/2025_New_York_City_mayoral_election
 
 Would you like me to pull official certified results from the NYC Board of Elections or a precinct/borough-level breakdown or map?",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool approval > should emit new tool-approval-request when retrying (turn 3) 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04f6b17429cf2b02006949a68a9c7c8196b850018869363b06",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "id-0",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "approvalId": "mcpr_04f6b17429cf2b02006949a68bf5808196b6f2008a315c9aa4",
+    "toolCallId": "id-0",
+    "type": "tool-approval-request",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool approval > should emit text response after denial (turn 2) 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04f6b17429cf2b02006949a67543c88196ad1f56cb7c8fe476",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04f6b17429cf2b02006949a679f35c81968e9b234489fa32b8",
+      },
+    },
+    "text": "I couldn't create the short link because the shortening tool call was not approved. Do you want me to proceed and create a short URL on zip1.io with max clicks = 100? If yes, please confirm and optionally provide:
+- a custom alias (alphanumeric and hyphens only), and/or
+- a password, and/or
+- a short description.
+
+If you don't want me to use the tool, I can give instructions so you can shorten it yourself.",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool approval > should emit tool-call and tool-approval-request when model requests approval (turn 1) 2`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04f6b17429cf2b02006949a66f4df88196a44362d8a21f9cea",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "text": "",
+    "type": "reasoning",
+  },
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "id-0",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "approvalId": "mcpr_04f6b17429cf2b02006949a6712b1081968b3c7a72dec695d8",
+    "toolCallId": "id-0",
+    "type": "tool-approval-request",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > mcp tool approval > should emit tool-call with result after approval (turn 4) 1`] = `
+[
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_04f6b17429cf2b02006949a6908fc4819686c02f71f7faecc6",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_04f6b17429cf2b02006949a6908fc4819686c02f71f7faecc6",
+      },
+    },
+    "result": {
+      "arguments": "{"alias":"","description":"","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+      "name": "create_short_url",
+      "output": "✅ Short URL created: https://zip1.io/oMAchr
+🔤 Generated code: oMAchr
+🔢 Max clicks: 100
+🔗 Original URL: https://ai-sdk.dev/
+
+📊 View stats: https://zip1.io/stats/oMAchr",
+      "serverLabel": "zip1",
+      "type": "call",
+    },
+    "toolCallId": "mcp_04f6b17429cf2b02006949a6908fc4819686c02f71f7faecc6",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04f6b17429cf2b02006949a6930b308196a3ad4f35aa6e0b1b",
+      },
+    },
+    "text": "Done — I created a short link for you.
+
+Short URL: https://zip1.io/oMAchr
+Original URL: https://ai-sdk.dev/
+Max clicks: 100
+Stats page: https://zip1.io/stats/oMAchr
+
+Would you like a custom alias, password protection, or a description added to this short link?",
     "type": "text",
   },
 ]
@@ -4625,13 +4767,6 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "response-metadata",
   },
   {
-    "input": "{}",
-    "providerExecuted": true,
-    "toolCallId": "mcpl_0c72b1033351981300690ccf79e488819386bcc68bc55afd27",
-    "toolName": "MCP",
-    "type": "tool-call",
-  },
-  {
     "id": "rs_0c72b1033351981300690ccf7c6ea4819383a27ac8faae82a2:0",
     "providerMetadata": {
       "openai": {
@@ -4652,13 +4787,19 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "reasoning-end",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"2025 New York City mayoral election results Nov 2025 latest results", "numResults": 5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
+      },
+    },
     "result": {
       "arguments": "{"query":"2025 New York City mayoral election results Nov 2025 latest results", "numResults": 5}",
       "name": "web_search_exa",
@@ -4667,7 +4808,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf7fa1f0819392a313d0805746c8",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {
@@ -4691,13 +4832,19 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
     "type": "reasoning-end",
   },
   {
-    "input": "{}",
+    "dynamic": true,
+    "input": "{"query":"NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "numResults":5}",
     "providerExecuted": true,
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-call",
   },
   {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
+      },
+    },
     "result": {
       "arguments": "{"query":"NYC Board of Elections 2025 mayoral results Zohran Mamdani NYC Board of Elections results 2025 mayor", "numResults":5}",
       "name": "web_search_exa",
@@ -4706,7 +4853,7 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
       "type": "call",
     },
     "toolCallId": "mcp_0c72b1033351981300690ccf8bdcd8819383bd64316c8519a2",
-    "toolName": "MCP",
+    "toolName": "mcp.web_search_exa",
     "type": "tool-result",
   },
   {
@@ -6510,6 +6657,1249 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool > should stream mcp 
         "output_tokens": 963,
         "output_tokens_details": {
           "reasoning_tokens": 512,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should stream new tool-approval-request when retrying (turn 3) 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_04a97b4fce127879006949a864795c8195a77efd798149326b",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-22T20:21:56.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a8660eec81959dfbe2481a912faf:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a8660eec81959dfbe2481a912faf",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a8660eec81959dfbe2481a912faf:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a8660eec81959dfbe2481a912faf",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"Shortened link for ai-sdk.dev","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "id-0",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "approvalId": "mcpr_04a97b4fce127879006949a8672ac081959f95aa8ceedb7cd9",
+    "toolCallId": "id-0",
+    "type": "tool-approval-request",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_04a97b4fce127879006949a864795c8195a77efd798149326b",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 609,
+        "total": 609,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 48,
+        "total": 48,
+      },
+      "raw": {
+        "input_tokens": 609,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 48,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should stream text response after denial (turn 2) 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_04a97b4fce127879006949a855fa68819598a2a379fd5b6c38",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-22T20:21:42.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a857b7c88195818dab6d25ff091d:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a857b7c88195818dab6d25ff091d",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a857b7c88195818dab6d25ff091d:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a857b7c88195818dab6d25ff091d",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "I",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wasn",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " able",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " create",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " link",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " because",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " URL",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ening",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " call",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " was",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " approved",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " won",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " retry",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " it",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " permission",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Options",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Appro",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ve",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " call",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’ll",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " create",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " URL",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " max",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " clicks",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " =",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "100",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " now",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " suggest",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " alias",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sdk",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ai",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sdk",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-dev",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " use",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " creating",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " link",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " yourself",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " I",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " give",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " step",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-by",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-step",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " instructions",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " create",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shortened",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " link",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " manually",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " zip",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".io",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " another",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " short",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ener",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".
+
+",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Which",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " would",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?",
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04a97b4fce127879006949a85c36b08195b7527e9fb2f8569e",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_04a97b4fce127879006949a855fa68819598a2a379fd5b6c38",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 553,
+        "total": 553,
+      },
+      "outputTokens": {
+        "reasoning": 256,
+        "text": 115,
+        "total": 371,
+      },
+      "raw": {
+        "input_tokens": 553,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 371,
+        "output_tokens_details": {
+          "reasoning_tokens": 256,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should stream tool-call and tool-approval-request when model requests approval (turn 1) 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_04a97b4fce127879006949a837a3a48195b37f26ae73f550c0",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-22T20:21:11.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a83904c88195977de6cc3f06064a:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a83904c88195977de6cc3f06064a",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_04a97b4fce127879006949a83904c88195977de6cc3f06064a:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_04a97b4fce127879006949a83904c88195977de6cc3f06064a",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"Shortened link for ai-sdk.dev","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "id-0",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "approvalId": "mcpr_04a97b4fce127879006949a83ac9308195a7f7b69ea82e91fe",
+    "toolCallId": "id-0",
+    "type": "tool-approval-request",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_04a97b4fce127879006949a837a3a48195b37f26ae73f550c0",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 422,
+        "total": 422,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 48,
+        "total": 48,
+      },
+      "raw": {
+        "input_tokens": 422,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 48,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should stream tool-call with result after approval (turn 4) 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_04a97b4fce127879006949a87ab0cc8195b3175edc260d6a88",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-12-22T20:22:18.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "dynamic": true,
+    "input": "{"alias":"","description":"Shortened link for ai-sdk.dev","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+    "providerExecuted": true,
+    "toolCallId": "mcp_04a97b4fce127879006949a87c14248195ac23dfe0854c03d3",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-call",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "mcp_04a97b4fce127879006949a87c14248195ac23dfe0854c03d3",
+      },
+    },
+    "result": {
+      "arguments": "{"alias":"","description":"Shortened link for ai-sdk.dev","max_clicks":100,"password":"","url":"https://ai-sdk.dev/"}",
+      "name": "create_short_url",
+      "output": "✅ Short URL created: https://zip1.io/UDKvlw
+🔤 Generated code: UDKvlw
+🔢 Max clicks: 100
+📄 Description: Shortened link for ai-sdk.dev
+🔗 Original URL: https://ai-sdk.dev/
+
+📊 View stats: https://zip1.io/stats/UDKvlw",
+      "serverLabel": "zip1",
+      "type": "call",
+    },
+    "toolCallId": "mcp_04a97b4fce127879006949a87c14248195ac23dfe0854c03d3",
+    "toolName": "mcp.create_short_url",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Done",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " here",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’s",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shortened",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " link",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "https",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "zip",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".io",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "UD",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "K",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "vl",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "w",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Details",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Original",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " URL",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ai",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-sdk",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".dev",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Max",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " clicks",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "100",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Stats",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " https",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "://",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "zip",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "1",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".io",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/st",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ats",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "UD",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "K",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "vl",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "w",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Would",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " custom",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " alias",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " password",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " protection",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": " added",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "delta": "?",
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_04a97b4fce127879006949a87d97e081959020140d5b07b7b5",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_04a97b4fce127879006949a87ab0cc8195b3175edc260d6a88",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 779,
+        "total": 779,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 69,
+        "total": 69,
+      },
+      "raw": {
+        "input_tokens": 779,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 69,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
         },
       },
     },

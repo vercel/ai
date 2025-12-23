@@ -175,6 +175,26 @@ export async function prepareResponsesTools({
               schema: mcpArgsSchema,
             });
 
+            const mapApprovalFilter = (filter: { toolNames?: string[] }) => ({
+              tool_names: filter.toolNames,
+            });
+
+            const requireApproval = args.requireApproval;
+            const requireApprovalParam:
+              | 'always'
+              | 'never'
+              | {
+                  never?: { tool_names?: string[] };
+                }
+              | undefined =
+              requireApproval == null
+                ? undefined
+                : typeof requireApproval === 'string'
+                  ? requireApproval
+                  : requireApproval.never != null
+                    ? { never: mapApprovalFilter(requireApproval.never) }
+                    : undefined;
+
             openaiTools.push({
               type: 'mcp',
               server_label: args.serverLabel,
@@ -189,7 +209,7 @@ export async function prepareResponsesTools({
               authorization: args.authorization,
               connector_id: args.connectorId,
               headers: args.headers,
-              require_approval: 'never',
+              require_approval: requireApprovalParam ?? 'never',
               server_description: args.serverDescription,
               server_url: args.serverUrl,
             });
