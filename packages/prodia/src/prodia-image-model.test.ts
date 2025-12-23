@@ -50,7 +50,6 @@ describe("ProdiaImageModel", () => {
 				providerOptions: {
 					prodia: {
 						steps: 30,
-						guidance: 7.5,
 					},
 				},
 			});
@@ -61,7 +60,6 @@ describe("ProdiaImageModel", () => {
 					prompt,
 					seed: 12345,
 					steps: 30,
-					guidance: 7.5,
 				},
 			});
 		});

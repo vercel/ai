@@ -79,9 +79,6 @@ export class ProdiaImageModel implements ImageModelV3 {
 		if (prodiaOptions?.steps !== undefined) {
 			jobConfig.steps = prodiaOptions.steps;
 		}
-		if (prodiaOptions?.guidance !== undefined) {
-			jobConfig.guidance = prodiaOptions.guidance;
-		}
 		if (prodiaOptions?.safetyTolerance !== undefined) {
 			jobConfig.safety_tolerance = prodiaOptions.safetyTolerance;
 		}
@@ -141,10 +138,6 @@ export const prodiaImageProviderOptionsSchema = lazySchema(() =>
 			 * Number of inference steps. Higher values may produce better quality but take longer.
 			 */
 			steps: z.number().int().min(1).max(50).optional(),
-			/**
-			 * Guidance scale. Higher values follow the prompt more closely.
-			 */
-			guidance: z.number().min(1.5).max(10).optional(),
 			/**
 			 * Output width in pixels. Must be a multiple of 16.
 			 */
