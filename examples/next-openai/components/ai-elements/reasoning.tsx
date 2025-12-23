@@ -9,7 +9,14 @@ import {
 import { cn } from '@/lib/utils';
 import { BrainIcon, ChevronDownIcon } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { createContext, memo, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Response } from './response';
 
 type ReasoningContextValue = {
@@ -95,7 +102,15 @@ export const Reasoning = memo(
 
     return (
       <ReasoningContext.Provider
-        value={{ isStreaming, isOpen, setIsOpen, duration }}
+        value={useMemo(
+          () => ({
+            isStreaming,
+            isOpen,
+            setIsOpen,
+            duration,
+          }),
+          [isStreaming, isOpen, setIsOpen, duration],
+        )}
       >
         <Collapsible
           className={cn('mb-4 not-prose', className)}
