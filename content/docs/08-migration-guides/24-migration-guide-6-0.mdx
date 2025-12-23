@@ -1,17 +1,9 @@
 ---
-title: Migrate AI SDK 5.x to 6.0 Beta
-description: Learn how to upgrade AI SDK 5 to 6.0 Beta.
+title: Migrate AI SDK 5.x to 6.0
+description: Learn how to upgrade AI SDK 5.x to 6.0.
 ---
 
-# Migrate AI SDK 5.x to 6.0 Beta
-
-<Note type="warning">
-  AI SDK 6 is currently in beta and introduces new capabilities like agents and
-  tool approval. This guide will help you migrate from AI SDK 5.0 to 6.0 Beta.
-  Note that you may want to wait until the stable release for production
-  projects. See the [AI SDK 6 Beta announcement](/docs/announcing-ai-sdk-6-beta)
-  for more details on what's new.
-</Note>
+# Migrate AI SDK 5.x to 6.0
 
 ## Recommended Migration Process
 
@@ -45,18 +37,17 @@ Codemods are transformations that run on your codebase automatically. They
 allow you to easily apply many changes without having to manually go through
 every file.
 
-You can run all codemods provided as part of the 6.0 upgrade process by running
-the following command from the root of your project:
-
-```sh
-npx @ai-sdk/codemod upgrade
-```
-
-To run only the v6 codemods (v5 → v6 migration):
+You can run all v6 codemods (v5 → v6 migration) by running the following command
+from the root of your project:
 
 ```sh
 npx @ai-sdk/codemod v6
 ```
+
+<Note>
+  There is also an `npx @ai-sdk/codemod upgrade` command, but it runs all
+  codemods from all versions (v4, v5, and v6). Use `v6` when upgrading from v5.
+</Note>
 
 Individual codemods can be run by specifying the name of the codemod:
 

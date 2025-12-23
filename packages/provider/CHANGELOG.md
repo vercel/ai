@@ -1,5 +1,65 @@
 # @ai-sdk/provider
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 0adc679: feat(provider): shared spec v3
+- d1bdadb: Added reranking model
+- 046aa3b: feat(provider): speech model v3 spec
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- dce03c4: feat: tool input examples
+- 2625a04: feat(openai); update spec for mcp approval
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- 2b0caef: feat(provider): add preliminary provider executed tool results to language model specification
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 0c4822d: feat: `EmbeddingModelV3`
+- 4c44a5b: fix(spec): allow `undefined` values in `JSONObject` type
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 53f3368: feat(provider): support embedding model call warnings in specification
+- 3bd2689: feat: extended token usage
+- bb36798: fix(spec): `LanguageModelV3ToolResult["result"]` change from `unknown` to `NonNullable<JSONValue>`
+- 8dac895: feat: `LanguageModelV3`
+- a755db5: feat(provider): Add SharedV3Warning type
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- 9061dc0: feat: image editing
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 81d4308: feat: provider-executed dynamic tools
+- 9549c9e: chore(specification): extract types
+- af3780b: chore(provider): remove providerExecuted from LanguageModelV3ToolResult
+- 522f6b8: feat: `ImageModelV3`
+- 10d819b: fix(packages/provider): fix CallWarning and allow strings as type
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 1bd7d32: feat: tool-specific strict mode
+
 ## 3.0.0-beta.32
 
 ### Patch Changes

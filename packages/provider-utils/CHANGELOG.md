@@ -1,5 +1,57 @@
 # @ai-sdk/provider-utils
 
+## 4.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- dce03c4: feat: tool input examples
+- 3b1d015: feat(ai): Effect schema support
+- 95f65c2: chore: use import \* from zod/v4
+- 016b111: fix(provider-utils): make ReadableStream.cancel() properly finalize async iterators
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- e8109d3: feat: tool execution approval
+- 03849b0: move DelayedPromise into provider utils
+- e06565c: feat(provider-utils): add needsApproval support to provider-defined tools
+- 32d8dbb: fix(provider-utils): compatibility with V8 readonly execution environment
+- d116b4b: feat(ai): arktype support
+- 293a6b7: Added a title to the tools
+- 703459a: feat: tool execution approval for dynamic tools
+- 83e5744: feat: support async Tool.toModelOutput
+- 7e32fea: feat(ai): valibot support
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- 8dac895: feat: `LanguageModelV3`
+- cbb1d35: Update for provider-util changeset after change in PR #8588
+- 9061dc0: feat: image editing
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- c1efac4: feat: add input arg to toModelOutput
+- 4616b86: chore: update zod peer depenedency version
+- 4f16c37: chore(provider-utils): upgrade eventsource-parser to 3.0.6
+- 81e29ab: chore: update docs
+- 6306603: chore: replace Validator with Schema
+- fca786b: feat(provider-utils): add MaybePromiseLike type
+- 763d04a: feat: Standard JSON Schema support
+- 3794514: feat: flexible tool output content support
+- e9e157f: fix: generate zod4 json schema from input schema
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- 1bd7d32: feat: tool-specific strict mode
+- f0b2157: fix: revert zod import change
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+
 ## 4.0.0-beta.59
 
 ### Patch Changes
@@ -355,8 +407,7 @@
 ### Patch Changes
 
 - e8109d3: feat: tool execution approval
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
 
 ## 3.1.0-beta.6
@@ -364,8 +415,7 @@
 ### Patch Changes
 
 - 0adc679: feat(provider): shared spec v3
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.4
 
 ## 3.1.0-beta.5
@@ -386,8 +436,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
 
 ## 3.1.0-beta.2
@@ -519,76 +568,7 @@
 - 28a5ed5: refactoring: move tools helper into provider-utils
 - dd5fd43: feat (ai): support dynamic tools in Chat onToolCall
 - 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [d5f588f]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [48d257a]
-- Updated dependencies [0d2c085]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [7979f7f]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [7ea4132]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [3795467]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0
 
 ## 3.0.0-beta.10
@@ -661,18 +641,7 @@
 - 45c1ea2: refactoring: introduce FlexibleSchema
 - bfdca8d: feat (ai): add InferToolInput and InferToolOutput helpers
 - 28a5ed5: refactoring: move tools helper into provider-utils
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
 
 ## 3.0.0-alpha.15
@@ -687,9 +656,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
 
 ## 3.0.0-alpha.13
@@ -819,8 +786,7 @@
 ### Patch Changes
 
 - a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.14
 
 ## 3.0.0-canary.14
@@ -846,9 +812,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
 
 ## 3.0.0-canary.11
@@ -856,8 +820,7 @@
 ### Patch Changes
 
 - 66962ed: fix(packages): export node10 compatible types
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.10
 
 ## 3.0.0-canary.10
@@ -871,8 +834,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
 
 ## 3.0.0-canary.8
@@ -883,38 +845,21 @@
 
 ### Patch Changes
 
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.7
 
 ## 3.0.0-canary.7
 
 ### Patch Changes
 
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
 
 ## 3.0.0-canary.6
 
 ### Patch Changes
 
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
 
 ## 3.0.0-canary.5
@@ -937,18 +882,14 @@
 
 - a166433: feat: add transcription with experimental_transcribe
 - 9f95b35: refactor (provider-utils): copy relevant code from `secure-json-parse` into codebase
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.2
 
 ## 3.0.0-canary.2
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
 
 ## 3.0.0-canary.1
@@ -1125,8 +1066,7 @@
 
 - 19a2ce7: feat (provider/fireworks): Add image model support.
 - 6337688: feat: change image generation errors to warnings
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
 
 ## 2.0.5
@@ -1176,8 +1116,7 @@
 
 - dce4158: chore (dependencies): update eventsource-parser to 3.0.0
 - dce4158: chore (dependencies): update nanoid to 5.0.8
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
+- Updated dependencies
   - @ai-sdk/provider@1.0.0
 
 ## 2.0.0-canary.3
@@ -1208,8 +1147,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
+- Updated dependencies
   - @ai-sdk/provider@1.0.0-canary.0
 
 ## 1.0.22
@@ -1219,11 +1157,7 @@
 - aa98cdb: chore: more flexible dependency versioning
 - 7b937c5: feat (provider-utils): improve id generator robustness
 - 811a317: feat (ai/core): multi-part tool results (incl. images)
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider@0.0.26
 
 ## 1.0.21
@@ -1251,8 +1185,7 @@
 ### Patch Changes
 
 - 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
-- Updated dependencies [03313cd]
-- Updated dependencies [3be7c1c]
+- Updated dependencies
   - @ai-sdk/provider@0.0.23
 
 ## 1.0.17
@@ -1356,10 +1289,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [2b9da0f0]
-- Updated dependencies [a5b58845]
-- Updated dependencies [4aa8deb3]
-- Updated dependencies [13b27ec6]
+- Updated dependencies
   - @ai-sdk/provider@0.0.13
 
 ## 1.0.2
@@ -1482,8 +1412,7 @@
 ### Patch Changes
 
 - 25f3350: ai/core: add support for getting raw response headers.
-- Updated dependencies [d6431ae]
-- Updated dependencies [25f3350]
+- Updated dependencies
   - @ai-sdk/provider@0.0.2
 
 ## 0.0.2
