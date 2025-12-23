@@ -1,5 +1,38 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.0
+
+### Major Changes
+
+- 8a9f0d4: feat(black-forest-labs): initial version
+
+### Patch Changes
+
+- 3922a5f: feat(provider/black-forest-labs): make polling timeout configurable
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- cd3b71c: feat (provider/black-forest-labs): include cost and megapixels in metadata
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 9061dc0: feat: image editing
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- b8e77ef: feat(provider/black-forest-labs): Add new provider options
+- 666bd16: fix (provider/black-forest-labs): allow null for cost and megapixel in provider response
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 1.0.0-beta.30
 
 ### Patch Changes

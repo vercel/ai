@@ -1,5 +1,43 @@
 # @ai-sdk/baseten
 
+## 1.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+- 6cc9cd0: Added Baseten as a Provider for AI SDK
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- ab9af9c: add moonshotai/Kimi-K2-Thinking model ID for Baseten provider
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 95f65c2: chore: use import \* from zod/v4
+- 0c4822d: feat: `EmbeddingModelV3`
+- ed329cb: feat: `Provider-V3`
+- 1cad0ab: feat: add provider version to user-agent header
+- 916bc46: bumped performance client to 0.0.10
+- 8dac895: feat: `LanguageModelV3`
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 4616b86: chore: update zod peer depenedency version
+- Updated dependencies
+  - @ai-sdk/openai-compatible@2.0.0
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 1.0.0-beta.62
 
 ### Patch Changes
@@ -444,8 +482,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/openai-compatible@2.0.0-beta.11
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
@@ -482,8 +519,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/openai-compatible@1.1.0-beta.7
   - @ai-sdk/provider-utils@3.1.0-beta.7
@@ -492,8 +528,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.6
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
@@ -509,8 +544,7 @@
 ### Patch Changes
 
 - 8dac895: feat: `LanguageModelV3`
-- Updated dependencies [8dac895]
-- Updated dependencies [10c1322]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.5
   - @ai-sdk/provider@2.1.0-beta.3
@@ -529,8 +563,7 @@
 ### Patch Changes
 
 - ed329cb: feat: `Provider-V3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.3
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3

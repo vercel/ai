@@ -1,5 +1,50 @@
 # @ai-sdk/togetherai
 
+## 2.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 95f65c2: chore: use import \* from zod/v4
+- 9524761: feat: shorthand names for reranking models
+- 0c4822d: feat: `EmbeddingModelV3`
+- ed329cb: feat: `Provider-V3`
+- 1cad0ab: feat: add provider version to user-agent header
+- 8dac895: feat: `LanguageModelV3`
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 9061dc0: feat: image editing
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 4616b86: chore: update zod peer depenedency version
+- d1bdadb: Added reranking feature
+- 522f6b8: feat: `ImageModelV3`
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- Updated dependencies
+  - @ai-sdk/openai-compatible@2.0.0
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 2.0.0-beta.61
 
 ### Patch Changes
@@ -447,8 +492,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/openai-compatible@2.0.0-beta.11
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
@@ -485,8 +529,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/openai-compatible@1.1.0-beta.7
   - @ai-sdk/provider-utils@3.1.0-beta.7
@@ -495,8 +538,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.6
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
@@ -507,8 +549,7 @@
 
 - 8dac895: feat: `LanguageModelV3`
 - 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
-- Updated dependencies [8dac895]
-- Updated dependencies [10c1322]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.5
   - @ai-sdk/provider@2.1.0-beta.3
@@ -528,8 +569,7 @@
 
 - ed329cb: feat: `Provider-V3`
 - 522f6b8: feat: `ImageModelV3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.1.0-beta.3
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
@@ -549,8 +589,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
   - @ai-sdk/openai-compatible@1.1.0-beta.1
@@ -655,8 +694,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
   - @ai-sdk/openai-compatible@1.0.7
 
@@ -672,16 +710,14 @@
 
 ### Patch Changes
 
-- Updated dependencies [8f8a521]
-- Updated dependencies [e92b78b]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.5
 
 ## 1.0.4
 
 ### Patch Changes
 
-- Updated dependencies [5f4c71f]
-- Updated dependencies [da314cd]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.4
 
 ## 1.0.3
@@ -695,8 +731,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b499112]
-- Updated dependencies [90d212f]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.2
   - @ai-sdk/provider-utils@3.0.1
 
@@ -755,120 +790,7 @@
 - 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
 - d1a034f: feature: using Zod 4 for internal stuff
 - 205077b: fix: improve Zod compatibility
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [6db02c9]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [fa49207]
-- Updated dependencies [40acf9b]
-- Updated dependencies [cf8280e]
-- Updated dependencies [9222aeb]
-- Updated dependencies [b9a6121]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [db72adc]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [42e32b0]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [7b069ed]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9209ca]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [737f1e2]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [516be5b]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [1b101e1]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
-- Updated dependencies [281bb1c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
   - @ai-sdk/openai-compatible@1.0.0
@@ -911,8 +833,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [737f1e2]
-- Updated dependencies [ac34802]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-beta.9
   - @ai-sdk/provider-utils@3.0.0-beta.6
 
@@ -920,8 +841,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
   - @ai-sdk/openai-compatible@1.0.0-beta.8
 
@@ -968,9 +888,7 @@
 ### Patch Changes
 
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
   - @ai-sdk/openai-compatible@1.0.0-beta.2
 
@@ -978,23 +896,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
   - @ai-sdk/openai-compatible@1.0.0-beta.1
@@ -1003,8 +905,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
   - @ai-sdk/openai-compatible@1.0.0-alpha.15
@@ -1013,9 +914,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/openai-compatible@1.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
@@ -1070,8 +969,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
   - @ai-sdk/openai-compatible@1.0.0-alpha.8
@@ -1185,8 +1083,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [516be5b]
-- Updated dependencies [ea7a7c9]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-canary.17
   - @ai-sdk/provider-utils@3.0.0-canary.17
 
@@ -1202,10 +1099,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
   - @ai-sdk/openai-compatible@1.0.0-canary.15
@@ -1214,8 +1108,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
   - @ai-sdk/openai-compatible@1.0.0-canary.14
@@ -1225,9 +1118,7 @@
 ### Patch Changes
 
 - d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [d9209ca]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/openai-compatible@1.0.0-canary.13
   - @ai-sdk/provider-utils@3.0.0-canary.13
@@ -1236,9 +1127,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/openai-compatible@1.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.12
@@ -1248,11 +1137,7 @@
 ### Patch Changes
 
 - 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
-- Updated dependencies [db72adc]
-- Updated dependencies [42e32b0]
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
@@ -1261,8 +1146,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [cf8280e]
-- Updated dependencies [e86be6f]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-canary.10
   - @ai-sdk/provider@2.0.0-canary.9
   - @ai-sdk/provider-utils@3.0.0-canary.10
@@ -1271,8 +1155,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/openai-compatible@1.0.0-canary.9
   - @ai-sdk/provider-utils@3.0.0-canary.9
@@ -1281,11 +1164,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [b9a6121]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
   - @ai-sdk/openai-compatible@1.0.0-canary.8
@@ -1296,19 +1175,7 @@
 
 - fa49207: feat(providers/openai-compatible): convert to providerOptions
 - 26735b5: chore(embedding-model): add v2 interface
-- Updated dependencies [fa49207]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-canary.7
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
@@ -1317,12 +1184,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [6db02c9]
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/openai-compatible@1.0.0-canary.6
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
@@ -1349,11 +1211,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
   - @ai-sdk/openai-compatible@1.0.0-canary.3
@@ -1362,8 +1220,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/openai-compatible@1.0.0-canary.2
   - @ai-sdk/provider-utils@3.0.0-canary.2
@@ -1372,9 +1229,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
   - @ai-sdk/openai-compatible@1.0.0-canary.1
 
@@ -1577,8 +1432,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [ed012d2]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/openai-compatible@0.1.2
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/provider@1.0.6
@@ -1587,8 +1441,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/openai-compatible@0.1.1
   - @ai-sdk/provider@1.0.5
@@ -1631,9 +1484,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
   - @ai-sdk/openai-compatible@0.0.15
 
@@ -1641,10 +1492,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [43b37f7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
   - @ai-sdk/openai-compatible@0.0.14
@@ -1681,8 +1529,7 @@
 
 - 5ed5e45: chore (config): Use ts-library.json tsconfig for no-UI libs.
 - 8974d6d: chore (provider/togetherai): Incorporate the latest model ids.
-- Updated dependencies [5ed5e45]
-- Updated dependencies [307c247]
+- Updated dependencies
   - @ai-sdk/openai-compatible@0.0.11
   - @ai-sdk/provider-utils@2.0.5
   - @ai-sdk/provider@1.0.3

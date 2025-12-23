@@ -2812,6 +2812,80 @@ describe('doGenerate', () => {
     `);
   });
 
+  // https://github.com/vercel/ai/issues/11371
+  it('should handle stop_sequence: null when stopReason is tool_use', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { text: "I'll query your Salesforce..." },
+              {
+                toolUse: {
+                  toolUseId: 'tool-use-id',
+                  name: 'querySalesforce',
+                  input: { query: 'SELECT Id FROM Account' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        additionalModelResponseFields: { stop_sequence: null },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'querySalesforce',
+          description: 'Query Salesforce',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    expect(result.finishReason).toEqual({
+      unified: 'tool-calls',
+      raw: 'tool_use',
+    });
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I'll query your Salesforce...",
+          "type": "text",
+        },
+        {
+          "input": "{"query":"SELECT Id FROM Account"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "querySalesforce",
+          "type": "tool-call",
+        },
+      ]
+    `);
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
   it('should include response headers in rawResponse', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',
