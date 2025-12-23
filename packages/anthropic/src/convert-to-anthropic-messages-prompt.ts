@@ -260,6 +260,10 @@ export async function convertToAnthropicMessagesPrompt({
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
 
+                if (part.type === 'tool-approval-response') {
+                  continue;
+                }
+
                 // cache control: first add cache control from part.
                 // for the last part of a message,
                 // check also if the message has cache control.
@@ -783,6 +787,22 @@ export async function convertToAnthropicMessagesPrompt({
                 if (providerToolName === 'web_fetch') {
                   const output = part.output;
 
+                  if (output.type === 'error-json') {
+                    const errorValue = JSON.parse(output.value as string);
+
+                    anthropicContent.push({
+                      type: 'web_fetch_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_fetch_tool_result_error',
+                        error_code: errorValue.errorCode,
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
                   if (output.type !== 'json') {
                     warnings.push({
                       type: 'other',
@@ -812,7 +832,10 @@ export async function convertToAnthropicMessagesPrompt({
                           type: webFetchOutput.content.source.type,
                           media_type: webFetchOutput.content.source.mediaType,
                           data: webFetchOutput.content.source.data,
-                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                        } as Extract<
+                          AnthropicWebFetchToolResultContent['content'],
+                          { type: 'web_fetch_result' }
+                        >['content']['source'],
                       },
                     },
                     cache_control: cacheControl,

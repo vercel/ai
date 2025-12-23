@@ -114,7 +114,7 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v1/ai';
+    'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);

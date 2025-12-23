@@ -82,6 +82,7 @@ describe('OpenAIResponsesLanguageModel', () => {
     const chunks = fs
       .readFileSync(`src/responses/__fixtures__/${filename}.chunks.txt`, 'utf8')
       .split('\n')
+      .filter(line => line.trim().length > 0)
       .map(line => `data: ${line}\n\n`);
     chunks.push('data: [DONE]\n\n');
 
@@ -5398,6 +5399,24 @@ describe('OpenAIResponsesLanguageModel', () => {
     describe('apply_patch tool streaming', () => {
       it('should handle apply_patch tool calls in streaming mode', async () => {
         prepareChunksFixtureResponse('openai-apply-patch-tool.1');
+
+        const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.apply_patch',
+              name: 'apply_patch',
+              args: {},
+            },
+          ],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should stream apply_patch delete_file calls', async () => {
+        prepareChunksFixtureResponse('openai-apply-patch-tool-delete.1');
 
         const { stream } = await createModel('gpt-5.1-2025-11-13').doStream({
           prompt: TEST_PROMPT,
