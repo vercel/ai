@@ -470,15 +470,17 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       // citations
       if (part.citationsContent) {
         // Push the generated content as text
-        for (const generatedContent of part.citationsContent.content) {
-          content.push({
-            type: 'text',
-            text: generatedContent.text,
-          });
+        for (const generatedContent of part.citationsContent?.content || []) {
+          if (generatedContent?.text) {
+            content.push({
+              type: 'text',
+              text: generatedContent.text,
+            });
+          }
         }
 
         // Convert citations to source chunks
-        for (const citation of part.citationsContent.citations) {
+        for (const citation of part.citationsContent?.citations || []) {
           const source = createCitationSource(
             citation,
             citationDocuments,
@@ -1026,11 +1028,13 @@ const BedrockCitationSchema = z.object({
 });
 
 const BedrockCitationsContentSchema = z.object({
-  content: z.array(
-    z.object({
-      text: z.string().nullish(),
-    }),
-  ).nullish(),
+  content: z
+    .array(
+      z.object({
+        text: z.string().nullish(),
+      }),
+    )
+    .nullish(),
   citations: z.array(BedrockCitationSchema).nullish(),
 });
 
