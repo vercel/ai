@@ -849,7 +849,7 @@ const BedrockStopReasonSchema = z.union([
 
 const BedrockAdditionalModelResponseFieldsSchema = z
   .object({
-    stop_sequence: z.string().optional(),
+    stop_sequence: z.string().nullish(),
   })
   .catchall(z.unknown());
 
