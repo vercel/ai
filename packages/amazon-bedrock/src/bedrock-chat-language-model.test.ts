@@ -2566,8 +2566,6 @@ describe('doGenerate', () => {
     `);
   });
 
-<<<<<<< HEAD
-=======
   // https://github.com/vercel/ai/issues/11371
   it('should handle stop_sequence: null when stopReason is tool_use', async () => {
     server.urls[generateUrl].response = {
@@ -2680,7 +2678,6 @@ describe('doGenerate', () => {
     });
   });
 
->>>>>>> afe9730ab (Fix bedrock ConverseStream undocumented `/delta/stop_sequence` (#11410))
   it('should include response headers in rawResponse', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',

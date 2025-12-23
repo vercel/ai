@@ -858,15 +858,11 @@ const BedrockStopReasonSchema = z.union([
 
 const BedrockAdditionalModelResponseFieldsSchema = z
   .object({
-<<<<<<< HEAD
-    stop_sequence: z.string().optional(),
-=======
     delta: z
       .object({
         stop_sequence: z.string().nullish(),
       })
       .nullish(),
->>>>>>> afe9730ab (Fix bedrock ConverseStream undocumented `/delta/stop_sequence` (#11410))
   })
   .catchall(z.unknown());
 
