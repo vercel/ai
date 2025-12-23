@@ -8,6 +8,7 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -23,6 +24,7 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -357,12 +359,16 @@ A function that attempts to repair a tool call that failed to parse.
         const { approvedToolApprovals, deniedToolApprovals } =
           collectToolApprovals<TOOLS>({ messages: initialMessages });
 
+        const localApprovedToolApprovals = approvedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+
         if (
           deniedToolApprovals.length > 0 ||
-          approvedToolApprovals.length > 0
+          localApprovedToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
+            toolCalls: localApprovedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
             ),
             tools: tools as TOOLS,
@@ -394,7 +400,7 @@ A function that attempts to repair a tool call that failed to parse.
             });
           }
 
-          // add execution denied tool results for denied tool approvals:
+          // add execution denied tool results for all denied tool approvals:
           for (const toolApproval of deniedToolApprovals) {
             toolContent.push({
               type: 'tool-result' as const,
@@ -403,6 +409,14 @@ A function that attempts to repair a tool call that failed to parse.
               output: {
                 type: 'execution-denied' as const,
                 reason: toolApproval.approvalResponse.reason,
+                // For provider-executed tools, include approvalId so provider can correlate
+                ...(toolApproval.toolCall.providerExecuted && {
+                  providerOptions: {
+                    openai: {
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                    },
+                  },
+                }),
               },
             });
           }
@@ -410,6 +424,28 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push({
             role: 'tool',
             content: toolContent,
+          });
+        }
+
+        // Forward provider-executed approval responses to the provider
+        const providerExecutedToolApprovals = [
+          ...approvedToolApprovals,
+          ...deniedToolApprovals,
+        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+        if (providerExecutedToolApprovals.length > 0) {
+          responseMessages.push({
+            role: 'tool',
+            content: providerExecutedToolApprovals.map(
+              toolApproval =>
+                ({
+                  type: 'tool-approval-response',
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: toolApproval.approvalResponse.approved,
+                  reason: toolApproval.approvalResponse.reason,
+                  providerExecuted: true,
+                }) satisfies ToolApprovalResponse,
+            ),
           });
         }
 
@@ -1135,7 +1171,22 @@ function asContent<TOOLS extends ToolSet>({
       }
 
       case 'tool-approval-request': {
-        // Skip tool-approval-request in content conversion
+        const toolCall = toolCalls.find(
+          toolCall => toolCall.toolCallId === part.toolCallId,
+        );
+
+        if (toolCall == null) {
+          throw new ToolCallNotFoundForApprovalError({
+            toolCallId: part.toolCallId,
+            approvalId: part.approvalId,
+          });
+        }
+
+        contentParts.push({
+          type: 'tool-approval-request' as const,
+          approvalId: part.approvalId,
+          toolCall,
+        });
         break;
       }
     }
