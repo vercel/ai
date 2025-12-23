@@ -1,5 +1,136 @@
 # @ai-sdk/openai
 
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 4920119: fix the "incomplete_details" key from nullable to nullish for openai compatibility
+- 0adc679: feat(provider): shared spec v3
+- 92c6241: feat(openai): additional settings for file search tool
+- 88fc415: feat(openai): add the new provider 'apply_patch' tool
+- 817e601: fix(openai); fix url_citation schema in chat api
+- dae2185: fix(openai): extract meta data from first chunk that contains any
+- 046aa3b: feat(provider): speech model v3 spec
+- f1277fe: feat(provider/openai): send assistant text and tool call parts as reference ids when store: true
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
+- 9a51b92: support OPENAI_BASE_URL env
+- d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
+- 2625a04: feat(openai); update spec for mcp approval
+- 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
+
+  ```ts
+  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
+  import { generateText } from 'ai';
+
+  await generateText({
+    model: openai.chat('gpt-4o'),
+    prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        user: 'user-123',
+      } satisfies OpenAIChatLanguageModelOptions,
+    },
+  });
+  ```
+
+- 0877683: feat(provider/openai): support conversations api
+- d0f1baf: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+- 831b6cc: feat(openai): adding provider mcp tool for openai
+- 95f65c2: chore: use import \* from zod/v4
+- edc5548: feat(provider/openai): automatically add reasoning.encrypted_content include when store = false
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 77f2b20: enables code_interpreter and file_search capabilities in the Azure provider through the Responses API
+- 0c4822d: feat: `EmbeddingModelV3`
+- 73d9883: chore(openai): enable strict json by default
+- d2039d7: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+- 88edc28: feat (provider/openai): include more image generation response metadata
+- e8109d3: feat: tool execution approval
+- ed329cb: feat: `Provider-V3`
+- 3bd2689: feat: extended token usage
+- 1cad0ab: feat: add provider version to user-agent header
+- e85fa2f: feat(openai): add sources in web-search actions
+- 423ba08: Set the annotations from the Responses API to doStream
+- 401f561: fix(provider/openai): fix web search tool input types
+- 4122d2a: feat(provider/openai): add gpt-5-codex model id
+- 0153bfa: fix(openai): fix parameter exclusion logic
+- 8dac895: feat: `LanguageModelV3`
+- 304222e: Add streaming support for apply_patch partial diffs.
+- 23f132b: fix: error schema for Responses API
+- 1d0de66: refactoring(provider/openai): simplify code
+- 000e87b: fix(provider/openai): add providerExecuted flag to tool start chunks
+- 2c0a758: chore(openai): add JSDoc to responses options
+- 1b982e6: feat(openai): preserve file_id when converting file citations
+- b82987c: feat(openai): support openai code-interpreter annotations
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- 79b4e46: feat(openai): add 'gpt-5.1' modelID
+- 3997a42: feat(provider/openai): local shell tool
+- 348fd10: fix(openai): treat unknown models as reasoning
+- 9061dc0: feat: image editing
+- fe49278: feat(provider/openai): only send item references for reasoning when store: true
+- cb4d238: The built in Code Interpreter tool input code is streamed in `tool-input-<start/delta/end>` chunks.
+- 357cfd7: feat(provider/openai): add new model IDs `gpt-image-1-mini`, `gpt-5-pro`, `gpt-5-pro-2025-10-06`
+- 38a4035: added support for external_web_access parameter on web_search tool
+- 40d5419: feat(openai): add `o3-deep-research` and `o4-mini-deep-research` models
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- 2b0caef: feat(provider/openai): preview image generation results
+- b60d2e2: fix(openai): allow open_page action type url to be nullish
+- fd47df5: fix(openai): revised_prompt sometimes returns null, causing errors
+- 4616b86: chore: update zod peer depenedency version
+- 7756857: fix(provider/openai): add truncation parameter support for Responses API
+- cad6445: feat(openai); adding OpenAI's new shell tool
+- 64aa48f: Azure OpenAI enabled web-search-preview
+- 0b9fdd5: fix(provider/openai): end reasoning parts earlier
+- 61c52dc: feat (provider/openai): add gpt-image-1.5 model support
+- ef739fa: fix(openai): refactor apply-patch tool
+- 3220329: fix openai responses input: process all provider tool outputs (shell/apply_patch) so parallel tool results aren’t dropped and apply_patch outputs are forwarded.
+- d270a5d: chore(openai): update tests for apply-patch tool to use snapshots
+- f18ef7f: feat(openai): add gpt-5.2 models
+- 21e20c0: feat(provider): transcription model v3 spec
+- 522f6b8: feat: `ImageModelV3`
+- 484aa93: Add 'default' as service tier
+- 88574c1: Change `isReasoningModel` detection from blocklist to allowlist and add override option
+- 68c6187: feat(provider/openai): support file and image tool results
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- 5648ec0: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+- 78f813e: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+- 40dc7fa: fix(openai): change find action type to find_in_page action type
+- 0273b74: fix(openai): add support for sources type 'api'
+- 5bf101a: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+- 1bd7d32: feat: tool-specific strict mode
+- d86b52f: distinguish between OpenAI and Azure in Responses API providerMetadata
+- 95f65c2: chore: load zod schemas lazily
+- 59561f8: fix(openai); fix url_citation schema in chat api
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
 ## 3.0.0-beta.112
 
 ### Patch Changes
@@ -672,8 +803,7 @@
 
 - 95f65c2: chore: use import \* from zod/v4
 - 95f65c2: chore: load zod schemas lazily
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 3.0.0-beta.17
@@ -721,8 +851,7 @@
 - 046aa3b: feat(provider): speech model v3 spec
 - e8109d3: feat: tool execution approval
 - 21e20c0: feat(provider): transcription model v3 spec
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -732,8 +861,7 @@
 
 - 0adc679: feat(provider): shared spec v3
 - 2b0caef: feat(provider/openai): preview image generation results
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -788,8 +916,7 @@
 
 - ed329cb: feat: `Provider-V3`
 - 522f6b8: feat: `ImageModelV3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -829,8 +956,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
 
@@ -1002,8 +1128,7 @@
 
 - ec336a1: feat(provider/openai): add response_format to be supported by default
 - 2935ec7: fix(provider/openai): exclude gpt-5-chat from reasoning model
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 2.0.11
@@ -1211,108 +1336,7 @@
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
 - 4af5233: Fix PDF file parts when passed as a string url or Uint8Array
 - 7df7a25: feat (providers/openai): support gpt-image-1 image generation
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -1361,8 +1385,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 2.0.0-beta.10
@@ -1427,9 +1450,7 @@
 ### Patch Changes
 
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 2.0.0-beta.1
@@ -1441,23 +1462,7 @@
 ### Patch Changes
 
 - 5d959e7: refactor: updated openai + anthropic tool use server side
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -1465,8 +1470,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -1474,9 +1478,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -1528,8 +1530,7 @@
 ### Patch Changes
 
 - 4af5233: Fix PDF file parts when passed as a string url or Uint8Array
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 
@@ -1651,10 +1652,7 @@
 
 - 928fadf: fix(providers/openai): logprobs for stream alongside completion model
 - 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -1684,8 +1682,7 @@
   ```
 
 - 284353f: fix(providers/openai): zod parse error with function
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -1694,8 +1691,7 @@
 ### Patch Changes
 
 - fa758ea: feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -1707,9 +1703,7 @@
 - c15dfbf: feat (providers/openai): add gpt-image-1 model id to image settings
 - 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
 - 4617fab: chore(embedding-models): remove remaining settings
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -1721,9 +1715,7 @@
 - 66962ed: fix(packages): export node10 compatible types
 - 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
 - 7df7a25: feat (providers/openai): support gpt-image-1 image generation
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -1741,8 +1733,7 @@
 ### Patch Changes
 
 - 3bd3c0b: chore(providers/openai): update embedding model to use providerOptions
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
@@ -1760,10 +1751,7 @@
 ### Patch Changes
 
 - 8aa9e20: feat: add speech with experimental_generateSpeech
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
 
@@ -1774,18 +1762,7 @@
 - 26735b5: chore(embedding-model): add v2 interface
 - 443d8ec: feat(embedding-model-v2): add response body field
 - fd65bc6: chore(embedding-model-v2): rename rawResponse to response
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
 
@@ -1799,11 +1776,7 @@
 - 5147e6e: chore(openai): remove simulateStreaming
 - c2b92cc: chore(openai): remove legacy function calling
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
 
@@ -1830,11 +1803,7 @@
 - a166433: feat: add transcription with experimental_transcribe
 - 0a87932: core (ai): change transcription model mimeType to mediaType
 - 0a87932: fix (provider/openai): increase transcription model resilience
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
 
@@ -1842,8 +1811,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/provider-utils@3.0.0-canary.2
 
@@ -1851,9 +1819,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
 
 ## 2.0.0-canary.0
@@ -2079,8 +2045,7 @@
 ### Patch Changes
 
 - 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
-- Updated dependencies [ed012d2]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/provider@1.0.6
 
@@ -2089,8 +2054,7 @@
 ### Patch Changes
 
 - e7a9ec9: feat (provider-utils): include raw value in json parse results
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/provider@1.0.5
 
@@ -2135,9 +2099,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
 
 ## 1.0.15
@@ -2154,9 +2116,7 @@
 
 - 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
 - 6337688: feat: change image generation errors to warnings
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
 
@@ -2260,13 +2220,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [dce4158]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [b1da952]
-- Updated dependencies [dce4158]
-- Updated dependencies [8426f55]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0
   - @ai-sdk/provider@1.0.0
 
@@ -2281,8 +2235,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [dce4158]
-- Updated dependencies [dce4158]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.2
 
 ## 1.0.0-canary.1
@@ -2305,9 +2258,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b469a7e]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.0
   - @ai-sdk/provider@1.0.0-canary.0
 
@@ -2328,11 +2279,7 @@
 ### Patch Changes
 
 - 3b1b69a: feat: provider-defined tools
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.22
   - @ai-sdk/provider@0.0.26
 
@@ -2425,8 +2372,7 @@
 ### Patch Changes
 
 - 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
-- Updated dependencies [03313cd]
-- Updated dependencies [3be7c1c]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.18
   - @ai-sdk/provider@0.0.23
 
@@ -2509,8 +2455,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [4bd27a9]
-- Updated dependencies [845754b]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.10
   - @ai-sdk/provider@0.0.18
 
@@ -2546,8 +2491,7 @@
 ### Patch Changes
 
 - 7a2eb27: feat (provider/openai): make role nullish to enhance provider support
-- Updated dependencies [9614584]
-- Updated dependencies [0762a22]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.6
 
 ## 0.0.40
@@ -2574,10 +2518,7 @@
 - a5b58845: feat (core): support topK setting
 - 4aa8deb3: feat (provider): support responseFormat setting in provider api
 - 13b27ec6: chore (ai/core): remove grammar mode
-- Updated dependencies [2b9da0f0]
-- Updated dependencies [a5b58845]
-- Updated dependencies [4aa8deb3]
-- Updated dependencies [13b27ec6]
+- Updated dependencies
   - @ai-sdk/provider@0.0.13
   - @ai-sdk/provider-utils@1.0.3
 
@@ -2608,9 +2549,7 @@
 ### Patch Changes
 
 - 5edc6110: feat (ai/core): add custom request header support
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
+- Updated dependencies
   - @ai-sdk/provider@0.0.11
   - @ai-sdk/provider-utils@1.0.0
 
@@ -2638,8 +2577,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [85712895]
-- Updated dependencies [85712895]
+- Updated dependencies
   - @ai-sdk/provider-utils@0.0.15
 
 ## 0.0.29
@@ -2700,9 +2638,7 @@
 ### Patch Changes
 
 - fca7d026: feat (provider/openai): support streaming tool calls that are sent in one chunk
-- Updated dependencies [09295e2e]
-- Updated dependencies [09295e2e]
-- Updated dependencies [043a5de2]
+- Updated dependencies
   - @ai-sdk/provider@0.0.9
   - @ai-sdk/provider-utils@0.0.12
 
@@ -2752,8 +2688,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [6a50ac4]
-- Updated dependencies [6a50ac4]
+- Updated dependencies
   - @ai-sdk/provider@0.0.6
   - @ai-sdk/provider-utils@0.0.9
 
@@ -2816,8 +2751,7 @@
 
 - d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
 - 25f3350: ai/core: add support for getting raw response headers.
-- Updated dependencies [d6431ae]
-- Updated dependencies [25f3350]
+- Updated dependencies
   - @ai-sdk/provider@0.0.2
   - @ai-sdk/provider-utils@0.0.3
 
