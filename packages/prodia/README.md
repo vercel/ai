@@ -1,4 +1,4 @@
-# AI SDK - Black Forest Labs Provider
+# AI SDK - Prodia Provider
 
 The **[Prodia provider](https://ai-sdk.dev/providers/ai-sdk-providers/prodia)** for the [AI SDK](https://ai-sdk.dev/docs) adds image model support for the [Prodia API](https://docs.prodia.com/).
 
@@ -26,7 +26,7 @@ import { prodia } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: blackForestLabs.image('flux-pro-1.1'),
+  model: prodia.image('inference.flux-fast.schnell.txt2img.v2'),
   prompt: 'A cat wearing a intricate robe',
 });
 
@@ -37,73 +37,41 @@ console.log(`Image saved to ${filename}`);
 
 ## Additional Options
 
-If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.blackForestLabs` property:
+If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.prodia` property:
 
 ```ts
 import {
-  blackForestLabs,
-  type BlackForestLabsImageProviderOptions,
-} from '@ai-sdk/black-forest-labs';
+  prodia,
+  type ProdiaImageProviderOptions,
+} from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: blackForestLabs.image('flux-pro-1.1'),
+  model: prodia.image('inference.flux-fast.schnell.txt2img.v2'),
   prompt: 'A cat wearing an intricate robe',
-  aspectRatio: '16:9',
   providerOptions: {
-    blackForestLabs: {
-      outputFormat: 'png',
-    } satisfies BlackForestLabsImageProviderOptions,
+    prodia: {
+      width: 1024,
+      height: 1024,
+      steps: 4,
+    } satisfies ProdiaImageProviderOptions,
   },
 });
 ```
 
 ## Configuring Base URL
 
-By default, the provider uses `https://api.bfl.ai/v1`. You can override this to use regional or legacy endpoints:
+By default, the provider uses `https://inference.prodia.com/v2`. You can override this if needed:
 
 ```ts
-import { createBlackForestLabs } from '@ai-sdk/black-forest-labs';
+import { createProdia } from '@ai-sdk/prodia';
 
-const blackForestLabs = createBlackForestLabs({
-  baseURL: 'https://api.eu.bfl.ai/v1',
-  apiKey: process.env.BFL_API_KEY,
-});
-```
-
-## Configuring Polling
-
-You can customize how often the client polls for image completion and how long it waits before timing out:
-
-```ts
-import { createBlackForestLabs } from '@ai-sdk/black-forest-labs';
-
-const blackForestLabs = createBlackForestLabs({
-  apiKey: process.env.BFL_API_KEY,
-  // Poll every 500ms, timeout after 5 minutes
-  pollIntervalMillis: 500,
-  pollTimeoutMillis: 5 * 60_000,
-});
-```
-
-You can also override these polling settings per request via `providerOptions.blackForestLabs`:
-
-```ts
-import { blackForestLabs } from '@ai-sdk/black-forest-labs';
-import { generateImage } from 'ai';
-
-const { image } = await generateImage({
-  model: blackForestLabs.image('flux-pro-1.1'),
-  prompt: 'A cat wearing an intricate robe',
-  providerOptions: {
-    blackForestLabs: {
-      pollIntervalMillis: 250,
-      pollTimeoutMillis: 30_000,
-    },
-  },
+const prodia = createProdia({
+  baseURL: 'https://inference.prodia.com/v2',
+  apiKey: process.env.PRODIA_TOKEN,
 });
 ```
 
 ## Documentation
 
-See the [Black Forest Labs provider](https://ai-sdk.dev/providers/ai-sdk-providers/black-forest-labs) for more information.
+See the [Prodia provider](https://ai-sdk.dev/providers/ai-sdk-providers/prodia) for more information.
