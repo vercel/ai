@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.72
+
+### Patch Changes
+
+- 4f0e5af: Fix bedrock ConverseStream using /delta/stop_sequence
+
 ## 3.0.71
 
 ### Patch Changes
