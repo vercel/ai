@@ -1021,10 +1021,7 @@ describe('doStream', () => {
     expect(finishChunk?.providerMetadata?.bedrock?.stopSequence).toBe(
       'CUSTOM_END',
     );
-    expect(finishChunk?.finishReason).toEqual({
-      unified: 'stop',
-      raw: 'stop_sequence',
-    });
+    expect(finishChunk?.finishReason).toBe('stop');
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -2613,10 +2610,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(result.finishReason).toEqual({
-      unified: 'tool-calls',
-      raw: 'tool_use',
-    });
+    expect(result.finishReason).toBe('tool-calls');
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
@@ -2672,10 +2666,7 @@ describe('doGenerate', () => {
     });
 
     expect(result.providerMetadata?.bedrock.stopSequence).toBe('CUSTOM_STOP');
-    expect(result.finishReason).toEqual({
-      unified: 'stop',
-      raw: 'stop_sequence',
-    });
+    expect(result.finishReason).toBe('stop');
   });
 
   it('should include response headers in rawResponse', async () => {
