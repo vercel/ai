@@ -12906,6 +12906,23 @@ describe('streamText', () => {
           `);
         });
 
+        it('should stream individual elements in elementStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.elementStream))
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "content": "element 1",
+              },
+              {
+                "content": "element 2",
+              },
+              {
+                "content": "element 3",
+              },
+            ]
+          `);
+        });
+
         it('should resolve output promise with the correct content', async () => {
           expect(await result!.output).toStrictEqual([
             { content: 'element 1' },
@@ -12969,6 +12986,20 @@ describe('streamText', () => {
                   "content": "element 2",
                 },
               ],
+            ]
+          `);
+        });
+
+        it('should stream individual elements in elementStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.elementStream))
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "content": "element 1",
+              },
+              {
+                "content": "element 2",
+              },
             ]
           `);
         });
