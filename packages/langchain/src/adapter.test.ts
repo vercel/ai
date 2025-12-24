@@ -1328,9 +1328,7 @@ describe('toUIMessageStream', () => {
           id: 'ai-2',
           type: 'ai',
           content: '',
-          tool_calls: [
-            { id: currentToolCall, name: 'tool_c', args: { c: 3 } },
-          ],
+          tool_calls: [{ id: currentToolCall, name: 'tool_c', args: { c: 3 } }],
         },
       ],
     };
