@@ -1,6 +1,7 @@
 import {
   APICallError,
   JSONObject,
+<<<<<<< HEAD
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
@@ -12,6 +13,19 @@ import {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
+=======
+  LanguageModelV3,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3Prompt,
+  LanguageModelV3Source,
+  LanguageModelV3StreamPart,
+  LanguageModelV3ToolCall,
+  LanguageModelV3Usage,
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+>>>>>>> 9e1e7589e (fix(anthropic): use default thinking budget when unspecified (#10992))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -33,6 +47,10 @@ import {
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
+<<<<<<< HEAD
+=======
+  AnthropicResponseContextManagement,
+>>>>>>> 9e1e7589e (fix(anthropic): use default thinking budget when unspecified (#10992))
   Citation,
 } from './anthropic-messages-api';
 import {
@@ -246,7 +264,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -298,9 +316,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     if (isThinking) {
       if (thinkingBudget == null) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'thinking requires a budget',
+        warnings.push({
+          type: 'compatibility',
+          feature: 'extended thinking',
+          details:
+            'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
+
+        baseArgs.thinking = {
+          type: 'enabled',
+          budget_tokens: 1024,
+        };
+
+        thinkingBudget = 1024;
       }
 
       if (baseArgs.temperature != null) {
@@ -331,7 +359,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
