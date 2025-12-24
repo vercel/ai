@@ -98,12 +98,12 @@ const openrouter = createOpenRouter({
   apiKey: 'YOUR_OPENROUTER_API_KEY',
 });
 
-const { textStream } = streamText({
+const result = streamText({
   model: openrouter.chat('meta-llama/llama-3.1-405b-instruct'),
   prompt: 'Write a short story about AI.',
 });
 
-for await (const chunk of textStream) {
+for await (const chunk of result.textStream) {
   console.log(chunk);
 }
 ```
