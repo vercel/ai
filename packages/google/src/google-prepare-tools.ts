@@ -53,7 +53,8 @@ export function prepareTools({
     modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
   const supportsDynamicRetrieval =
     modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
-  const supportsFileSearch = modelId.includes('gemini-2.5');
+  const supportsFileSearch =
+    modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -141,7 +142,7 @@ export function prepareTools({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
               details:
-                'The file search tool is only supported with Gemini 2.5 models.',
+                'The file search tool is only supported with Gemini 2.5 models and Gemini 3 models.',
             });
           }
           break;
