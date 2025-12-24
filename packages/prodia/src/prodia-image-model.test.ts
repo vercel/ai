@@ -95,7 +95,7 @@ describe('ProdiaImageModel', () => {
         seed: 12345,
         providerOptions: {
           prodia: {
-            steps: 30,
+            steps: 4,
           },
         },
       });
@@ -105,7 +105,7 @@ describe('ProdiaImageModel', () => {
         config: {
           prompt,
           seed: 12345,
-          steps: 30,
+          steps: 4,
         },
       });
     });
@@ -163,7 +163,7 @@ describe('ProdiaImageModel', () => {
       });
     });
 
-    it('includes safety_tolerance when safetyTolerance is provided', async () => {
+    it('includes style_preset when stylePreset is provided', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
@@ -176,7 +176,7 @@ describe('ProdiaImageModel', () => {
         seed: undefined,
         providerOptions: {
           prodia: {
-            safetyTolerance: 3,
+            stylePreset: 'anime',
           },
         },
       });
@@ -185,7 +185,61 @@ describe('ProdiaImageModel', () => {
         type: 'inference.flux-fast.schnell.txt2img.v2',
         config: {
           prompt,
-          safety_tolerance: 3,
+          style_preset: 'anime',
+        },
+      });
+    });
+
+    it('includes loras when provided', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          prodia: {
+            loras: ['prodia/lora/flux/anime@v1', 'prodia/lora/flux/realism@v1'],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        type: 'inference.flux-fast.schnell.txt2img.v2',
+        config: {
+          prompt,
+          loras: ['prodia/lora/flux/anime@v1', 'prodia/lora/flux/realism@v1'],
+        },
+      });
+    });
+
+    it('includes progressive when provided', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          prodia: {
+            progressive: true,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        type: 'inference.flux-fast.schnell.txt2img.v2',
+        config: {
+          prompt,
+          progressive: true,
         },
       });
     });

@@ -79,8 +79,14 @@ export class ProdiaImageModel implements ImageModelV3 {
     if (prodiaOptions?.steps !== undefined) {
       jobConfig.steps = prodiaOptions.steps;
     }
-    if (prodiaOptions?.safetyTolerance !== undefined) {
-      jobConfig.safety_tolerance = prodiaOptions.safetyTolerance;
+    if (prodiaOptions?.stylePreset !== undefined) {
+      jobConfig.style_preset = prodiaOptions.stylePreset;
+    }
+    if (prodiaOptions?.loras !== undefined && prodiaOptions.loras.length > 0) {
+      jobConfig.loras = prodiaOptions.loras;
+    }
+    if (prodiaOptions?.progressive !== undefined) {
+      jobConfig.progressive = prodiaOptions.progressive;
     }
 
     const body = {
@@ -157,25 +163,53 @@ export class ProdiaImageModel implements ImageModelV3 {
   }
 }
 
+const stylePresets = [
+  '3d-model',
+  'analog-film',
+  'anime',
+  'cinematic',
+  'comic-book',
+  'digital-art',
+  'enhance',
+  'fantasy-art',
+  'isometric',
+  'line-art',
+  'low-poly',
+  'neon-punk',
+  'origami',
+  'photographic',
+  'pixel-art',
+  'texture',
+  'craft-clay',
+] as const;
+
 export const prodiaImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
-       * Number of inference steps. Higher values may produce better quality but take longer.
+       * Amount of computational iterations to run. More is typically higher quality.
        */
-      steps: z.number().int().min(1).max(50).optional(),
+      steps: z.number().int().min(1).max(4).optional(),
       /**
-       * Output width in pixels. Must be a multiple of 16.
+       * Width of the output image in pixels.
        */
-      width: z.number().int().min(64).max(4096).optional(),
+      width: z.number().int().min(256).max(1920).optional(),
       /**
-       * Output height in pixels. Must be a multiple of 16.
+       * Height of the output image in pixels.
        */
-      height: z.number().int().min(64).max(4096).optional(),
+      height: z.number().int().min(256).max(1920).optional(),
       /**
-       * Safety filter tolerance level. 0 is strict, 5 is permissive.
+       * Apply a visual theme to your output image.
        */
-      safetyTolerance: z.number().int().min(0).max(5).optional(),
+      stylePreset: z.enum(stylePresets).optional(),
+      /**
+       * Augment the output with a LoRa model.
+       */
+      loras: z.array(z.string()).max(3).optional(),
+      /**
+       * When using JPEG output, return a progressive JPEG.
+       */
+      progressive: z.boolean().optional(),
     }),
   ),
 );
