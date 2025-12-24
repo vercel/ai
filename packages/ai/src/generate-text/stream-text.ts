@@ -78,7 +78,11 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
+import {
+  InferCompleteOutput,
+  InferElementOutput,
+  InferPartialOutput,
+} from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -1987,6 +1991,32 @@ However, the LLM results are expected to be small enough to not cause issues.
           transform({ partialOutput }, controller) {
             if (partialOutput != null) {
               controller.enqueue(partialOutput);
+            }
+          },
+        }),
+      ),
+    );
+  }
+
+  get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
+    let publishedElements = 0;
+
+    return createAsyncIterableStream(
+      this.teeStream().pipeThrough(
+        new TransformStream<
+          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
+          InferElementOutput<OUTPUT>
+        >({
+          transform({ partialOutput }, controller) {
+            if (partialOutput != null && Array.isArray(partialOutput)) {
+              // Only enqueue new elements that haven't been published yet
+              for (
+                ;
+                publishedElements < partialOutput.length;
+                publishedElements++
+              ) {
+                controller.enqueue(partialOutput[publishedElements]);
+              }
             }
           },
         }),
