@@ -6146,6 +6146,461 @@ describe('generateText', () => {
         `);
       });
     });
+
+    describe('provider-executed tool (MCP) approval', () => {
+      describe('when a provider-executed tool emits tool-approval-request', () => {
+        let result: GenerateTextResult<any, any>;
+
+        beforeEach(async () => {
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    input: `{ "query": "test" }`,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'tool-approval-request',
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              }),
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            prompt: 'test-input',
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+          });
+        });
+
+        it('should only execute 1 step when waiting for approval', async () => {
+          expect(result.steps.length).toBe(1);
+        });
+
+        it('should have tool-calls finish reason', async () => {
+          expect(result.finishReason).toBe('tool-calls');
+        });
+
+        it('should add tool approval request with providerExecuted tool call to content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcp-approval-1",
+                "toolCall": {
+                  "input": {
+                    "query": "test",
+                  },
+                  "providerExecuted": true,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "mcp-call-1",
+                  "toolName": "mcp_tool",
+                  "type": "tool-call",
+                },
+                "type": "tool-approval-request",
+              },
+            ]
+          `);
+        });
+
+        it('should include tool approval request in response messages', async () => {
+          expect(result.response.messages).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "toolCallId": "mcp-call-1",
+                    "type": "tool-approval-request",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('when a provider-executed tool approval is approved', () => {
+        let result: GenerateTextResult<any, any>;
+        let prompts: LanguageModelV3Prompt[];
+
+        beforeEach(async () => {
+          prompts = [];
+          let callCount = 0;
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async ({ prompt }) => {
+                prompts.push(prompt);
+                callCount++;
+
+                if (callCount === 1) {
+                  // Model returns tool call with result after approval
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'mcp-call-1',
+                        toolName: 'mcp_tool',
+                        input: `{ "query": "test" }`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'mcp-call-1',
+                        toolName: 'mcp_tool',
+                        result: { shortened_url: 'https://short.url/abc' },
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'text',
+                        text: 'Here is your shortened URL: https://short.url/abc',
+                      },
+                    ],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                  };
+                }
+
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+            messages: [
+              {
+                role: 'user',
+                content: 'Shorten this URL: https://example.com',
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { query: 'test' },
+                    providerExecuted: true,
+                    providerOptions: undefined,
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                    type: 'tool-approval-request',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'mcp-approval-1',
+                    type: 'tool-approval-response',
+                    approved: true,
+                    providerExecuted: true,
+                  },
+                ],
+              },
+            ],
+          });
+        });
+
+        it('should send tool-approval-response to the model', async () => {
+          expect(prompts[0]).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Shorten this URL: https://example.com",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include provider-executed tool result in content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": undefined,
+                "input": {
+                  "query": "test",
+                },
+                "output": {
+                  "shortened_url": "https://short.url/abc",
+                },
+                "providerExecuted": true,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-result",
+              },
+              {
+                "text": "Here is your shortened URL: https://short.url/abc",
+                "type": "text",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('when a provider-executed tool approval is denied', () => {
+        let result: GenerateTextResult<any, any>;
+        let prompts: LanguageModelV3Prompt[];
+
+        beforeEach(async () => {
+          prompts = [];
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async ({ prompt }) => {
+                prompts.push(prompt);
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'I understand. The tool execution was not approved.',
+                    },
+                  ],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+            messages: [
+              {
+                role: 'user',
+                content: 'Shorten this URL: https://example.com',
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { query: 'test' },
+                    providerExecuted: true,
+                    providerOptions: undefined,
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                    type: 'tool-approval-request',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'mcp-approval-1',
+                    type: 'tool-approval-response',
+                    approved: false,
+                    reason: 'User denied the request',
+                    providerExecuted: true,
+                  },
+                ],
+              },
+            ],
+          });
+        });
+
+        it('should send denied tool-approval-response to the model', async () => {
+          expect(prompts[0]).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Shorten this URL: https://example.com",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": false,
+                    "reason": "User denied the request",
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "output": {
+                      "providerOptions": {
+                        "openai": {
+                          "approvalId": "mcp-approval-1",
+                        },
+                      },
+                      "reason": "User denied the request",
+                      "type": "execution-denied",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-result",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": false,
+                    "reason": "User denied the request",
+                    "type": "tool-approval-response",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include text response from model in content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "text": "I understand. The tool execution was not approved.",
+                "type": "text",
+              },
+            ]
+          `);
+        });
+
+        it('should have stop finish reason', async () => {
+          expect(result.finishReason).toBe('stop');
+        });
+      });
+    });
   });
 
   describe('prepareStep with model switch and image URLs', () => {

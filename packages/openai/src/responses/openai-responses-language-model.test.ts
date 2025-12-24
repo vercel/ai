@@ -2683,6 +2683,210 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    describe('mcp tool approval', () => {
+      const MCP_TOOL = {
+        type: 'provider' as const,
+        id: 'openai.mcp' as const,
+        name: 'MCP',
+        args: {
+          serverLabel: 'zip1',
+          serverUrl: 'https://zip1.io/mcp',
+          serverDescription: 'Link shortener',
+          requireApproval: 'always' as const,
+        },
+      };
+
+      it('should emit tool-call and tool-approval-request when model requests approval (turn 1)', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool-approval.1');
+
+        const result = await createModel('gpt-5-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5-mini",
+            "tools": [
+              {
+                "require_approval": "always",
+                "server_description": "Link shortener",
+                "server_label": "zip1",
+                "server_url": "https://zip1.io/mcp",
+                "type": "mcp",
+              },
+            ],
+          }
+        `);
+
+        // Should have tool-call and tool-approval-request in content
+        expect(result.content).toMatchSnapshot();
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "stop",
+          }
+        `);
+      });
+
+      it('should emit text response after denial (turn 2)', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool-approval.2');
+
+        const result = await createModel('gpt-5-mini').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04f6b17429cf2b02006949a6712b1081968b3c7a72dec695d8',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04f6b17429cf2b02006949a6712b1081968b3c7a72dec695d8',
+                  approved: false,
+                },
+              ],
+            },
+          ],
+          tools: [MCP_TOOL],
+        });
+
+        // Should have text response after denial
+        expect(result.content).toMatchSnapshot();
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "stop",
+          }
+        `);
+      });
+
+      it('should emit new tool-approval-request when retrying (turn 3)', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool-approval.3');
+
+        const result = await createModel('gpt-5-mini').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04f6b17429cf2b02006949a6712b1081968b3c7a72dec695d8',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04f6b17429cf2b02006949a6712b1081968b3c7a72dec695d8',
+                  approved: false,
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The tool was not approved.' }],
+            },
+            { role: 'user', content: [{ type: 'text', text: 'try again' }] },
+          ],
+          tools: [MCP_TOOL],
+        });
+
+        // Should have new tool-call and tool-approval-request
+        expect(result.content).toMatchSnapshot();
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "stop",
+          }
+        `);
+      });
+
+      it('should emit tool-call with result after approval (turn 4)', async () => {
+        prepareJsonFixtureResponse('openai-mcp-tool-approval.4');
+
+        const result = await createModel('gpt-5-mini').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04f6b17429cf2b02006949a68bf5808196b6f2008a315c9aa4',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04f6b17429cf2b02006949a68bf5808196b6f2008a315c9aa4',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          tools: [MCP_TOOL],
+        });
+
+        // Should have tool-call with result and text response
+        expect(result.content).toMatchSnapshot();
+        expect(result.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": undefined,
+            "unified": "stop",
+          }
+        `);
+      });
+    });
+
     describe('file search tool', () => {
       let result: LanguageModelV3GenerateResult;
 
@@ -4350,6 +4554,156 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           ],
           prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+    });
+
+    describe('mcp tool approval', () => {
+      const MCP_TOOL = {
+        type: 'provider' as const,
+        id: 'openai.mcp' as const,
+        name: 'MCP',
+        args: {
+          serverLabel: 'zip1',
+          serverUrl: 'https://zip1.io/mcp',
+          serverDescription: 'Link shortener',
+          requireApproval: 'always' as const,
+        },
+      };
+
+      it('should stream tool-call and tool-approval-request when model requests approval (turn 1)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool-approval.1');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          prompt: TEST_PROMPT,
+          tools: [MCP_TOOL],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should stream text response after denial (turn 2)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool-approval.2');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04a97b4fce127879006949a83ac9308195a7f7b69ea82e91fe',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04a97b4fce127879006949a83ac9308195a7f7b69ea82e91fe',
+                  approved: false,
+                },
+              ],
+            },
+          ],
+          tools: [MCP_TOOL],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should stream new tool-approval-request when retrying (turn 3)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool-approval.3');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04a97b4fce127879006949a83ac9308195a7f7b69ea82e91fe',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04a97b4fce127879006949a83ac9308195a7f7b69ea82e91fe',
+                  approved: false,
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'The tool was not approved.' }],
+            },
+            { role: 'user', content: [{ type: 'text', text: 'try again' }] },
+          ],
+          tools: [MCP_TOOL],
+        });
+
+        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+      });
+
+      it('should stream tool-call with result after approval (turn 4)', async () => {
+        prepareChunksFixtureResponse('openai-mcp-tool-approval.4');
+
+        const { stream } = await createModel('gpt-5-mini').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'shorten ai-sdk.dev' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId:
+                    'mcpr_04a97b4fce127879006949a8672ac081959f95aa8ceedb7cd9',
+                  toolName: 'mcp.create_short_url',
+                  input: { url: 'https://ai-sdk.dev/' },
+                  providerExecuted: true,
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId:
+                    'mcpr_04a97b4fce127879006949a8672ac081959f95aa8ceedb7cd9',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+          tools: [MCP_TOOL],
         });
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();

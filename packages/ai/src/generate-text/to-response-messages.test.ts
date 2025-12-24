@@ -770,6 +770,124 @@ describe('toResponseMessages', () => {
     });
   });
 
+  describe('tool approval request', () => {
+    it('should include tool approval request in the assistant message', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'text',
+            text: 'Let me check the weather',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: '123',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: '123',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+        ],
+        tools: {
+          weather: tool({
+            description: 'Get weather information',
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "Let me check the weather",
+                "type": "text",
+              },
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "123",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "123",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should include tool approval request for provider-executed tools', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp_tool',
+              input: { query: 'test' },
+              providerExecuted: true,
+              dynamic: true,
+            },
+          },
+        ],
+        tools: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcp-approval-1",
+                "toolCallId": "mcp-call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
+
   it('should include provider metadata in the text parts', async () => {
     const result = await toResponseMessages({
       content: [

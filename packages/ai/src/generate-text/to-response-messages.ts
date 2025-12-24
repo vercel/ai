@@ -22,12 +22,21 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 
   const content: AssistantContent = [];
   for (const part of inputContent) {
+    // Skip sources - they are response-only content that no provider expects back
+    if (part.type === 'source') {
+      continue;
+    }
+
+    // Skip non-provider-executed tool results/errors (they go in the tool message)
     if (
-      part.type === 'source' ||
-      ((part.type === 'tool-result' || part.type === 'tool-error') &&
-        !part.providerExecuted) ||
-      (part.type === 'text' && part.text.length === 0)
+      (part.type === 'tool-result' || part.type === 'tool-error') &&
+      !part.providerExecuted
     ) {
+      continue;
+    }
+
+    // Skip empty text
+    if (part.type === 'text' && part.text.length === 0) {
       continue;
     }
 

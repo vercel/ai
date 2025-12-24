@@ -16,7 +16,9 @@ export {
 
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
+export { InvalidToolApprovalError } from './invalid-tool-approval-error';
 export { InvalidToolInputError } from './invalid-tool-input-error';
+export { ToolCallNotFoundForApprovalError } from './tool-call-not-found-for-approval-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
