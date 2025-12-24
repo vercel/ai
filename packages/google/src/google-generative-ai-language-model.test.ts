@@ -2484,6 +2484,145 @@ describe('doGenerate', () => {
         thoughtSignature: 'tool_sig',
       });
     });
+
+    it('should use "vertex" as providerOptionsName when reading thoughtSignature from prompt messages', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      await model.doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: { vertex: { thoughtSignature: 'vertex_sig' } },
+              },
+              {
+                type: 'text',
+                text: 'Here is my answer',
+                providerOptions: { vertex: { thoughtSignature: 'vertex_sig2' } },
+              },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        contents: [
+          { role: 'user', parts: [{ text: 'Hello' }] },
+          {
+            role: 'model',
+            parts: [
+              {
+                text: 'Let me think...',
+                thought: true,
+                thoughtSignature: 'vertex_sig',
+              },
+              {
+                text: 'Here is my answer',
+                thoughtSignature: 'vertex_sig2',
+              },
+            ],
+          },
+          { role: 'user', parts: [{ text: 'Continue' }] },
+        ],
+      });
+    });
+
+    it('should not read thoughtSignature from google provider options when using vertex provider', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      await model.doGenerate({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Answer',
+                // thoughtSignature under 'google' should be ignored when provider is vertex
+                providerOptions: { google: { thoughtSignature: 'google_sig' } },
+              },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue' }] },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        contents: [
+          { role: 'user', parts: [{ text: 'Hello' }] },
+          {
+            role: 'model',
+            parts: [{ text: 'Answer' }],
+          },
+          { role: 'user', parts: [{ text: 'Continue' }] },
+        ],
+      });
+      // Verify thoughtSignature is not present when provider options key doesn't match
+      expect(requestBody.contents[1].parts[0]).not.toHaveProperty(
+        'thoughtSignature',
+      );
+    });
   });
 });
 
