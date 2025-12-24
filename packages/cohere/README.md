@@ -25,7 +25,7 @@ import { cohere } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cohere('command-r-plus'),
+  model: cohere('command-nightly'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
