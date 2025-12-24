@@ -1023,6 +1023,336 @@ describe('toBaseMessages', () => {
   });
 });
 
+describe('toUIMessageStream', () => {
+  it('should NOT emit tool events for historical tool calls that have ToolMessage responses', async () => {
+    // Simulate a values event containing message history with a completed tool call
+    // This is what happens in multi-turn conversations with tool usage
+    const historicalToolCallId = 'call_HISTORICAL_123';
+
+    const valuesData = {
+      messages: [
+        // Historical: user message
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'HumanMessage'],
+          kwargs: { id: 'human-1', content: 'do maths with 123' },
+        },
+        // Historical: AI message with tool call (ALREADY COMPLETED in previous turn)
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: {
+            id: 'ai-1',
+            content: '',
+            tool_calls: [
+              { id: historicalToolCallId, name: 'maths', args: { input: 123 } },
+            ],
+          },
+        },
+        // Historical: tool result - this indicates the tool call is complete
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'ToolMessage'],
+          kwargs: {
+            id: 'tool-1',
+            tool_call_id: historicalToolCallId,
+            content: '{"result": "15.5"}',
+          },
+        },
+        // Historical: AI response
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: { id: 'ai-2', content: 'The result is 15.5' },
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // The historical tool call should NOT be emitted since it has a ToolMessage response
+    const toolInputStartEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-start',
+    );
+    const toolInputAvailableEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-available',
+    );
+
+    expect(toolInputStartEvents).toHaveLength(0);
+    expect(toolInputAvailableEvents).toHaveLength(0);
+  });
+
+  it('should emit tool events for new tool calls that do NOT have ToolMessage responses', async () => {
+    // Simulate a values event with a new tool call that hasn't been responded to yet
+    const newToolCallId = 'call_NEW_456';
+
+    const valuesData = {
+      messages: [
+        // User message
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'HumanMessage'],
+          kwargs: { id: 'human-1', content: 'do maths with 456' },
+        },
+        // NEW: AI message with tool call (NOT YET COMPLETED)
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: {
+            id: 'ai-1',
+            content: '',
+            tool_calls: [
+              { id: newToolCallId, name: 'maths', args: { input: 456 } },
+            ],
+          },
+        },
+        // No ToolMessage for this tool call - it's new and pending
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // The new tool call SHOULD be emitted since it has no ToolMessage response
+    const toolInputStartEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-start',
+    );
+    const toolInputAvailableEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-available',
+    );
+
+    expect(toolInputStartEvents).toHaveLength(1);
+    expect(toolInputStartEvents[0]).toMatchObject({
+      type: 'tool-input-start',
+      toolCallId: newToolCallId,
+      toolName: 'maths',
+    });
+
+    expect(toolInputAvailableEvents).toHaveLength(1);
+    expect(toolInputAvailableEvents[0]).toMatchObject({
+      type: 'tool-input-available',
+      toolCallId: newToolCallId,
+      toolName: 'maths',
+      input: { input: 456 },
+    });
+  });
+
+  it('should correctly handle mixed historical and new tool calls in same values event', async () => {
+    // This is the critical multi-turn scenario that caused the bug
+    const historicalToolCallId = 'call_HISTORICAL_789';
+    const currentToolCallId = 'call_CURRENT_999';
+
+    const valuesData = {
+      messages: [
+        // === TURN 1 (historical, completed) ===
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'HumanMessage'],
+          kwargs: { id: 'human-1', content: 'do maths with 123' },
+        },
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: {
+            id: 'ai-1',
+            content: '',
+            tool_calls: [
+              {
+                id: historicalToolCallId,
+                name: 'maths',
+                args: { input: 123 },
+              },
+            ],
+          },
+        },
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'ToolMessage'],
+          kwargs: {
+            id: 'tool-1',
+            tool_call_id: historicalToolCallId,
+            content: '{"result": "15.5"}',
+          },
+        },
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: { id: 'ai-2', content: 'The result is 15.5' },
+        },
+        // === TURN 2 (current, new tool call) ===
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'HumanMessage'],
+          kwargs: { id: 'human-2', content: 'do it again with 999' },
+        },
+        {
+          type: 'constructor',
+          id: ['langchain_core', 'messages', 'AIMessage'],
+          kwargs: {
+            id: 'ai-3',
+            content: '',
+            tool_calls: [
+              { id: currentToolCallId, name: 'maths', args: { input: 999 } },
+            ],
+          },
+        },
+        // No ToolMessage for currentToolCallId - it's the current pending tool call
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Only the CURRENT tool call should be emitted
+    const toolInputStartEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-start',
+    );
+    const toolInputAvailableEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-available',
+    );
+
+    // Should have exactly 1 tool call (the current one), not 2
+    expect(toolInputStartEvents).toHaveLength(1);
+    expect(toolInputStartEvents[0]).toMatchObject({
+      toolCallId: currentToolCallId,
+      toolName: 'maths',
+    });
+
+    expect(toolInputAvailableEvents).toHaveLength(1);
+    expect(toolInputAvailableEvents[0]).toMatchObject({
+      toolCallId: currentToolCallId,
+      input: { input: 999 },
+    });
+
+    // Verify historical tool call was NOT emitted
+    const historicalEvents = result.filter(
+      e => 'toolCallId' in e && e.toolCallId === historicalToolCallId,
+    );
+    expect(historicalEvents).toHaveLength(0);
+  });
+
+  it('should handle plain object format (RemoteGraph API) for historical tool calls', async () => {
+    // Test with plain object format instead of serialized LangChain format
+    const historicalToolCallId = 'call_PLAIN_HISTORICAL';
+    const currentToolCallId = 'call_PLAIN_CURRENT';
+
+    const valuesData = {
+      messages: [
+        // Historical tool call with response (plain object format)
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: '',
+          tool_calls: [
+            { id: historicalToolCallId, name: 'search', args: { q: 'test' } },
+          ],
+        },
+        {
+          id: 'tool-1',
+          type: 'tool',
+          tool_call_id: historicalToolCallId,
+          content: 'Search results...',
+        },
+        // Current tool call without response
+        {
+          id: 'ai-2',
+          type: 'ai',
+          content: '',
+          tool_calls: [
+            { id: currentToolCallId, name: 'search', args: { q: 'new' } },
+          ],
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const toolInputStartEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-start',
+    );
+
+    // Only current tool call should be emitted
+    expect(toolInputStartEvents).toHaveLength(1);
+    expect(toolInputStartEvents[0]).toMatchObject({
+      toolCallId: currentToolCallId,
+    });
+  });
+
+  it('should handle multiple historical tool calls in same message', async () => {
+    // Test when a single AI message has multiple tool calls, all completed
+    const toolCall1 = 'call_MULTI_1';
+    const toolCall2 = 'call_MULTI_2';
+    const currentToolCall = 'call_MULTI_CURRENT';
+
+    const valuesData = {
+      messages: [
+        // AI message with 2 tool calls
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: '',
+          tool_calls: [
+            { id: toolCall1, name: 'tool_a', args: { a: 1 } },
+            { id: toolCall2, name: 'tool_b', args: { b: 2 } },
+          ],
+        },
+        // Both tool responses
+        {
+          id: 'tool-1',
+          type: 'tool',
+          tool_call_id: toolCall1,
+          content: 'Result A',
+        },
+        {
+          id: 'tool-2',
+          type: 'tool',
+          tool_call_id: toolCall2,
+          content: 'Result B',
+        },
+        // New tool call
+        {
+          id: 'ai-2',
+          type: 'ai',
+          content: '',
+          tool_calls: [
+            { id: currentToolCall, name: 'tool_c', args: { c: 3 } },
+          ],
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const toolInputStartEvents = result.filter(
+      (e: { type: string }) => e.type === 'tool-input-start',
+    );
+
+    // Only the current tool call should be emitted
+    expect(toolInputStartEvents).toHaveLength(1);
+    expect(toolInputStartEvents[0]).toMatchObject({
+      toolCallId: currentToolCall,
+    });
+  });
+});
+
 describe('toUIMessageStream with LangGraph HITL fixture', () => {
   beforeEach(() => {
     // Mock Date.now() to make generated HITL IDs deterministic for snapshots
