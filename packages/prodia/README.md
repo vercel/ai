@@ -40,10 +40,7 @@ console.log(`Image saved to ${filename}`);
 If you want to pass additional inputs to the model besides the prompt, use the `providerOptions.prodia` property:
 
 ```ts
-import {
-  prodia,
-  type ProdiaImageProviderOptions,
-} from '@ai-sdk/prodia';
+import { prodia, type ProdiaImageProviderOptions } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
