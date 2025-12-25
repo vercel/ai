@@ -896,7 +896,7 @@ describe('doStream', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -1058,7 +1058,7 @@ describe('doStream', () => {
         JSON.stringify({
           messageStop: {
             stopReason: 'stop_sequence',
-            additionalModelResponseFields: { stop_sequence: 'STOP' },
+            additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
           },
         }) + '\n',
       ],
@@ -1106,6 +1106,54 @@ describe('doStream', () => {
           },
         ]
       `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure in streaming with additional fields', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Response' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 5, outputTokens: 10, totalTokens: 15 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+            additionalModelResponseFields: {
+              delta: {
+                stop_sequence: 'CUSTOM_END',
+              },
+              // Additional fields that might be present
+              otherField: 'value',
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_END'],
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finishChunk?.providerMetadata?.bedrock?.stopSequence).toBe(
+      'CUSTOM_END',
+    );
+    expect(finishChunk?.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -2718,7 +2766,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -2789,7 +2837,7 @@ describe('doGenerate', () => {
           },
         },
         stopReason: 'stop_sequence',
-        additionalModelResponseFields: { stop_sequence: 'STOP' },
+        additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
         usage: {
           inputTokens: 4,
           outputTokens: 30,
@@ -2833,7 +2881,7 @@ describe('doGenerate', () => {
           },
         },
         stopReason: 'tool_use',
-        additionalModelResponseFields: { stop_sequence: null },
+        additionalModelResponseFields: { delta: { stop_sequence: null } },
         usage: {
           inputTokens: 10,
           outputTokens: 20,
@@ -2884,6 +2932,44 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure from additionalModelResponseFields', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Response text' }],
+          },
+        },
+        stopReason: 'stop_sequence',
+        additionalModelResponseFields: {
+          delta: {
+            stop_sequence: 'CUSTOM_STOP',
+          },
+          // Additional fields that might be present
+          otherField: 'value',
+        },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_STOP'],
+    });
+
+    expect(result.providerMetadata?.bedrock.stopSequence).toBe('CUSTOM_STOP');
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {

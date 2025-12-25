@@ -569,10 +569,26 @@ The MCP tool can be configured with:
 
   Optional HTTP headers to include in requests to the MCP server.
 
+- **requireApproval** _'always' | 'never' | object_ (optional)
+
+  Controls which MCP tool calls require user approval before execution. Can be:
+
+  - `'always'`: All MCP tool calls require approval
+  - `'never'`: No MCP tool calls require approval (default)
+  - An object with filters:
+    ```ts
+    {
+      never: {
+        toolNames: ['safe_tool', 'another_safe_tool']; // Skip approval for these tools
+      }
+    }
+    ```
+
+  When approval is required, the model will return a `tool-approval-request` content part that you can use to prompt the user for approval. See [Human in the Loop](/cookbook/next/human-in-the-loop) for more details on implementing approval workflows.
+
 <Note>
-  The tool calls made by the model when using the OpenAI MCP tool are approved
-  by default. Be sure to connect to only trusted MCP servers, who you trust to
-  share your data with.
+  When `requireApproval` is not set, tool calls are approved by default. Be sure
+  to connect to only trusted MCP servers, who you trust to share your data with.
 </Note>
 
 <Note>

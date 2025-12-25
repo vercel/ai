@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.1
+
+### Patch Changes
+
+- 29264a3: feat: add MCP tool approval
+
 ## 4.0.0
 
 ### Major Changes
