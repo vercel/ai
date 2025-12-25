@@ -176,9 +176,13 @@ export async function convertToOpenAIResponsesInput({
               const id = (part.providerOptions?.[providerOptionsName]?.itemId ??
                 (
                   part as {
-                    providerMetadata?: { [providerOptionsName]?: { itemId?: string } };
+                    providerMetadata?: {
+                      [providerOptionsName]?: { itemId?: string };
+                    };
                   }
-                ).providerMetadata?.[providerOptionsName]?.itemId) as string | undefined;
+                ).providerMetadata?.[providerOptionsName]?.itemId) as
+                | string
+                | undefined;
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -267,9 +271,12 @@ export async function convertToOpenAIResponsesInput({
                 const itemId =
                   (
                     part as {
-                      providerMetadata?: { [providerOptionsName]?: { itemId?: string } };
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
                     }
-                  ).providerMetadata?.[providerOptionsName]?.itemId ?? part.toolCallId;
+                  ).providerMetadata?.[providerOptionsName]?.itemId ??
+                  part.toolCallId;
                 input.push({ type: 'item_reference', id: itemId });
               } else {
                 warnings.push({
