@@ -1,5 +1,19 @@
 # @ai-sdk/baseten
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+  - @ai-sdk/openai-compatible@2.0.1
+
+## 1.0.1
+
+### Patch Changes
+
+- c0c8a0e: Add zai/glm-4.7 model support
+
 ## 1.0.0
 
 ### Major Changes

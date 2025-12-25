@@ -1,5 +1,25 @@
 # ai
 
+## 6.0.3
+
+### Patch Changes
+
+- 29264a3: feat: add MCP tool approval
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+  - @ai-sdk/gateway@3.0.2
+
+## 6.0.2
+
+### Patch Changes
+
+- 129ff26: fix(ai): skip tool input validation in `safeValidateUIMessages` when `output-error` state has undefined input
+
+  Fixes #11392
+
+- Updated dependencies [c0c8a0e]
+  - @ai-sdk/gateway@3.0.1
+
 ## 6.0.1
 
 ### Patch Changes

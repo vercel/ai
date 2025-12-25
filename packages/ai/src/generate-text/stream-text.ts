@@ -10,6 +10,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -1112,6 +1113,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
+          const providerExecutedToolApprovals = [
+            ...approvedToolApprovals,
+            ...deniedToolApprovals,
+          ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+          const localApprovedToolApprovals = approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+          const localDeniedToolApprovals = deniedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+
+          const deniedProviderExecutedToolApprovals =
+            deniedToolApprovals.filter(
+              toolApproval => toolApproval.toolCall.providerExecuted,
+            );
+
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1126,7 +1144,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           self.addStream(toolExecutionStepStream);
 
           try {
-            for (const toolApproval of deniedToolApprovals) {
+            for (const toolApproval of [
+              ...localDeniedToolApprovals,
+              ...deniedProviderExecutedToolApprovals,
+            ]) {
               toolExecutionStepStreamController?.enqueue({
                 type: 'tool-output-denied',
                 toolCallId: toolApproval.toolCall.toolCallId,
@@ -1137,7 +1158,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
-              approvedToolApprovals.map(async toolApproval => {
+              localApprovedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
                   toolCall: toolApproval.toolCall,
                   tools,
@@ -1158,42 +1179,64 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
-            const content: ToolContent = [];
+            // forward provider-executed approval responses to the provider (do not execute locally):
+            if (providerExecutedToolApprovals.length > 0) {
+              initialResponseMessages.push({
+                role: 'tool',
+                content: providerExecutedToolApprovals.map(
+                  toolApproval =>
+                    ({
+                      type: 'tool-approval-response',
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                      approved: toolApproval.approvalResponse.approved,
+                      reason: toolApproval.approvalResponse.reason,
+                      providerExecuted: true,
+                    }) satisfies ToolApprovalResponse,
+                ),
+              });
+            }
 
-            for (const output of toolOutputs) {
-              content.push({
-                type: 'tool-result' as const,
-                toolCallId: output.toolCallId,
-                toolName: output.toolName,
-                output: await createToolModelOutput({
+            // Local tool results (approved + denied) are sent as tool results:
+            if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+              const localToolContent: ToolContent = [];
+
+              // add regular tool results for approved tool calls:
+              for (const output of toolOutputs) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
-                  input: output.input,
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                }),
+                  toolName: output.toolName,
+                  output: await createToolModelOutput({
+                    toolCallId: output.toolCallId,
+                    input: output.input,
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                });
+              }
+
+              // add execution denied tool results for denied local tool approvals:
+              for (const toolApproval of localDeniedToolApprovals) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'execution-denied' as const,
+                    reason: toolApproval.approvalResponse.reason,
+                  },
+                });
+              }
+
+              initialResponseMessages.push({
+                role: 'tool',
+                content: localToolContent,
               });
             }
-
-            for (const toolApproval of deniedToolApprovals) {
-              content.push({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: {
-                  type: 'execution-denied' as const,
-                  reason: toolApproval.approvalResponse.reason,
-                },
-              });
-            }
-
-            initialResponseMessages.push({
-              role: 'tool',
-              content,
-            });
           } finally {
             toolExecutionStepStreamController?.close();
           }
