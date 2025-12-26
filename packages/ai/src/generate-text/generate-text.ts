@@ -11,7 +11,7 @@ import {
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Tracer, context as otelContext } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -302,6 +302,8 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const capturedContext = otelContext.active();
+
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
   const { maxRetries, retry } = prepareRetries({
@@ -352,7 +354,8 @@ A function that attempts to repair a tool call that failed to parse.
         },
       }),
       tracer,
-      fn: async span => {
+      parentContext: capturedContext,
+      fn: async (span, currentContext) => {
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
@@ -543,7 +546,8 @@ A function that attempts to repair a tool call that failed to parse.
                 },
               }),
               tracer,
-              fn: async span => {
+              parentContext: currentContext,
+              fn: async (span, _doGenerateContext) => {
                 const stepProviderOptions = mergeObjects(
                   providerOptions,
                   prepareStepResult?.providerOptions,
