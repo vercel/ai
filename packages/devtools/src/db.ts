@@ -1,8 +1,37 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
-const DB_DIR = path.join(process.cwd(), '.devtools');
-const DB_PATH = path.join(DB_DIR, 'generations.json');
+/**
+ * Get the data directory path, respecting environment variable override.
+ * This allows running the viewer from a different directory than the app
+ * (common in monorepo setups).
+ */
+const getDataDir = (): string => {
+  if (process.env.AI_SDK_DEVTOOLS_DATA_DIR) {
+    return path.resolve(process.env.AI_SDK_DEVTOOLS_DATA_DIR);
+  }
+  return path.join(process.cwd(), '.devtools');
+};
+
+let DB_DIR = getDataDir();
+let DB_PATH = path.join(DB_DIR, 'generations.json');
+
+/**
+ * Set the data directory programmatically.
+ * Used by the CLI when --data-dir is specified.
+ */
+export const setDataDir = (dir: string): void => {
+  DB_DIR = path.resolve(dir);
+  DB_PATH = path.join(DB_DIR, 'generations.json');
+  // Reset cache to force re-read from new location
+  dbCache = null;
+};
+
+/**
+ * Get the current data directory path.
+ */
+export const getDataDirPath = (): string => DB_DIR;
+
 const DEVTOOLS_PORT = process.env.AI_SDK_DEVTOOLS_PORT
   ? parseInt(process.env.AI_SDK_DEVTOOLS_PORT)
   : 4983;
@@ -77,7 +106,9 @@ interface Database {
  * Only writes if .gitignore exists and doesn't already contain .devtools.
  */
 const ensureGitignore = (): void => {
-  const gitignorePath = path.join(process.cwd(), '.gitignore');
+  // Look for .gitignore in the parent of the data directory
+  const dataParent = path.dirname(DB_DIR);
+  const gitignorePath = path.join(dataParent, '.gitignore');
 
   if (!fs.existsSync(gitignorePath)) {
     return;
