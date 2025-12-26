@@ -1,0 +1,70 @@
+{
+  "name": "@ai-sdk/typedriver",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test:node": "vitest run --config vitest.node.config.js",
+    "test:edge": "vitest run --config vitest.edge.config.js",
+    "test": "pnpm test:node & pnpm test:edge",
+    "type-check": "tsc --build",
+    "prettier-check": "prettier --check \"./**/*.ts*\""
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/provider-utils": "workspace:*"
+  },
+  "peerDependencies": {
+    "typedriver": "^0.8.10"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@valibot/to-json-schema": "^1.5.0",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "arktype": "^2.0.0",
+    "tsup": "^8",
+    "typebox": "^1.0.65",
+    "typescript": "5.8.3",
+    "valibot": "^1.1.0",
+    "vitest": "2.1.4",
+    "zod": "^4.2.1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "jsonschema",
+    "typescript"
+  ]
+}
