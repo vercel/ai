@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "@ai-sdk/devtools": "./bin/cli.js"
+    "devtools": "./bin/cli.js"
   },
   "files": [
     "dist",

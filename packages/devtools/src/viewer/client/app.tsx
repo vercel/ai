@@ -254,7 +254,13 @@ function getStepSummary(output: any, error: string | null): StepSummary {
     return { type: 'error', icon: 'alert', label: 'Error' };
   }
 
-  if (output?.finishReason === 'tool-calls') {
+  // finishReason can be a string or an object with {unified, raw} properties
+  const finishReason =
+    typeof output?.finishReason === 'string'
+      ? output.finishReason
+      : output?.finishReason?.unified;
+
+  if (finishReason === 'tool-calls') {
     const toolCalls =
       output?.toolCalls ||
       output?.content?.filter((p: any) => p.type === 'tool-call') ||
