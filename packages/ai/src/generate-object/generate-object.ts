@@ -32,7 +32,7 @@ import {
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
@@ -108,6 +108,8 @@ functionality that can be fully encapsulated in the provider.
 
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
+
+@deprecated Use `generateText` with an `output` setting instead.
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
@@ -128,7 +130,6 @@ export async function generateObject<
 The enum values that the model should use.
         */
           enum: Array<RESULT>;
-          mode?: 'json';
           output: 'enum';
         }
       : OUTPUT extends 'no-schema'
@@ -152,21 +153,6 @@ Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
         */
             schemaDescription?: string;
-
-            /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-        */
-            mode?: 'auto' | 'json' | 'tool';
           }) & {
       output?: OUTPUT;
 
@@ -380,8 +366,8 @@ Default and recommended: 'auto' (best mode for the model).
                   message:
                     'No object generated: the model did not return a response.',
                   response: responseData,
-                  usage: result.usage,
-                  finishReason: result.finishReason,
+                  usage: asLanguageModelUsage(result.usage),
+                  finishReason: result.finishReason.unified,
                 });
               }
 
@@ -390,7 +376,7 @@ Default and recommended: 'auto' (best mode for the model).
                 await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.response.finishReason': result.finishReason,
+                    'ai.response.finishReason': result.finishReason.unified,
                     'ai.response.object': { output: () => text },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -401,15 +387,19 @@ Default and recommended: 'auto' (best mode for the model).
                     ),
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens,
-                    'ai.usage.completionTokens': result.usage.outputTokens,
+                    'ai.usage.promptTokens': result.usage.inputTokens.total,
+                    'ai.usage.completionTokens':
+                      result.usage.outputTokens.total,
 
                     // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [result.finishReason],
+                    'gen_ai.response.finish_reasons': [
+                      result.finishReason.unified,
+                    ],
                     'gen_ai.response.id': responseData.id,
                     'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                    'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                    'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
+                    'gen_ai.usage.output_tokens':
+                      result.usage.outputTokens.total,
                   },
                 }),
               );
@@ -425,8 +415,8 @@ Default and recommended: 'auto' (best mode for the model).
         );
 
         result = generateResult.objectText;
-        finishReason = generateResult.finishReason;
-        usage = generateResult.usage;
+        finishReason = generateResult.finishReason.unified;
+        usage = asLanguageModelUsage(generateResult.usage);
         warnings = generateResult.warnings;
         resultProviderMetadata = generateResult.providerMetadata;
         request = generateResult.request ?? {};

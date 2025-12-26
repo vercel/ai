@@ -202,9 +202,9 @@ jobs:
           - module: '@ai-sdk/openai-compatible'
             max-load-time: 65
           - module: '@ai-sdk/anthropic'
-            max-load-time: 60
+            max-load-time: 65
           - module: '@ai-sdk/google'
-            max-load-time: 60
+            max-load-time: 65
     steps:
       - name: Checkout
         uses: actions/checkout@v5

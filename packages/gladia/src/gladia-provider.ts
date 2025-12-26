@@ -20,6 +20,11 @@ export interface GladiaProvider extends ProviderV3 {
 Creates a model for transcription.
    */
   transcription(): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface GladiaProviderSettings {
@@ -78,25 +83,26 @@ export function createGladia(
   provider.transcriptionModel = createTranscriptionModel;
 
   // Required ProviderV3 methods that are not supported
-  provider.languageModel = () => {
+  provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'languageModel',
       message: 'Gladia does not provide language models',
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'Gladia does not provide text embedding models',
+      modelId,
+      modelType: 'embeddingModel',
+      message: 'Gladia does not provide embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
+  provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
-      modelId: 'unknown',
+      modelId,
       modelType: 'imageModel',
       message: 'Gladia does not provide image models',
     });

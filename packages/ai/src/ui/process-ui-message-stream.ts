@@ -1,5 +1,6 @@
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
+import { FinishReason } from '../types/language-model';
 import {
   DataUIMessageChunk,
   InferUIMessageChunk,
@@ -13,12 +14,12 @@ import { UIDataTypesToSchemas } from './chat';
 import {
   DataUIPart,
   DynamicToolUIPart,
-  getToolName,
+  getStaticToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
-  isToolOrDynamicToolUIPart,
+  isStaticToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
   TextUIPart,
@@ -41,6 +42,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
       title?: string;
     }
   >;
+  finishReason?: FinishReason;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -99,9 +101,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
       async transform(chunk, controller) {
         await runUpdateMessageJob(async ({ state, write }) => {
           function getToolInvocation(toolCallId: string) {
-            const toolInvocations = state.message.parts.filter(
-              isToolOrDynamicToolUIPart,
-            );
+            const toolInvocations = state.message.parts.filter(isToolUIPart);
 
             const toolInvocation = toolInvocations.find(
               invocation => invocation.toolCallId === toolCallId,
@@ -153,7 +153,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
           ) {
             const part = state.message.parts.find(
               part =>
-                isToolUIPart(part) && part.toolCallId === options.toolCallId,
+                isStaticToolUIPart(part) &&
+                part.toolCallId === options.toolCallId,
             ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | undefined;
 
             const anyOptions = options as any;
@@ -401,7 +402,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-start': {
-              const toolInvocations = state.message.parts.filter(isToolUIPart);
+              const toolInvocations =
+                state.message.parts.filter(isStaticToolUIPart);
 
               // add the partial tool call to the map
               state.partialToolCalls[chunk.toolCallId] = {
@@ -564,7 +566,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
+                  toolName: getStaticToolName(toolInvocation),
                   state: 'output-available',
                   input: (toolInvocation as any).input,
                   output: chunk.output,
@@ -594,7 +596,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               } else {
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
-                  toolName: getToolName(toolInvocation),
+                  toolName: getStaticToolName(toolInvocation),
                   state: 'output-error',
                   input: (toolInvocation as any).input,
                   rawInput: (toolInvocation as any).rawInput,
@@ -635,6 +637,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish': {
+              if (chunk.finishReason != null) {
+                state.finishReason = chunk.finishReason;
+              }
               await updateMessageMetadata(chunk.messageMetadata);
               if (chunk.messageMetadata != null) {
                 write();

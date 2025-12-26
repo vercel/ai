@@ -34,7 +34,7 @@ createFeatureTestSuite({
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
-        provider.textEmbeddingModel('text-embedding-3-small'),
+        provider.embeddingModel('text-embedding-3-small'),
       ),
     ],
   },

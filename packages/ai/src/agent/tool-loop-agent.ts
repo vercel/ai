@@ -6,7 +6,7 @@ import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
-import { Agent, AgentCallParameters } from './agent';
+import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
@@ -79,18 +79,32 @@ export class ToolLoopAgent<
   /**
    * Generates an output from the agent (non-streaming).
    */
-  async generate(
-    options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
-    return generateText(await this.prepareCall(options));
+  async generate({
+    abortSignal,
+    ...options
+  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+    GenerateTextResult<TOOLS, OUTPUT>
+  > {
+    return generateText({
+      ...(await this.prepareCall(options)),
+      abortSignal,
+    });
   }
 
   /**
    * Streams an output from the agent (streaming).
    */
-  async stream(
-    options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<StreamTextResult<TOOLS, OUTPUT>> {
-    return streamText(await this.prepareCall(options));
+  async stream({
+    abortSignal,
+    experimental_transform,
+    ...options
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
+    StreamTextResult<TOOLS, OUTPUT>
+  > {
+    return streamText({
+      ...(await this.prepareCall(options)),
+      abortSignal,
+      experimental_transform,
+    });
   }
 }

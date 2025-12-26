@@ -1,16 +1,13 @@
-import { SharedV3Headers, SharedV3ProviderMetadata } from '../../shared';
-import { EmbeddingModelCallOptions } from './embedding-model-v3-call-options';
-import { EmbeddingModelV3Embedding } from './embedding-model-v3-embedding';
+import { EmbeddingModelV3CallOptions } from './embedding-model-v3-call-options';
+import { EmbeddingModelV3Result } from './embedding-model-v3-result';
 
 /**
 Specification for an embedding model that implements the embedding model
-interface version 1.
+interface version 3.
 
-VALUE is the type of the values that the model can embed.
-This will allow us to go beyond text embeddings in the future,
-e.g. to support image embeddings
+It is specific to text embeddings.
  */
-export type EmbeddingModelV3<VALUE> = {
+export type EmbeddingModelV3 = {
   /**
 The embedding model must specify which embedding model interface
 version it implements. This will allow us to evolve the embedding
@@ -51,37 +48,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: EmbeddingModelCallOptions<VALUE>): PromiseLike<{
-    /**
-Generated embeddings. They are in the same order as the input values.
-     */
-    embeddings: Array<EmbeddingModelV3Embedding>;
-
-    /**
-Token usage. We only have input tokens for embeddings.
-    */
-    usage?: { tokens: number };
-
-    /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-     */
-    providerMetadata?: SharedV3ProviderMetadata;
-
-    /**
-Optional response information for debugging purposes.
-     */
-    response?: {
-      /**
-Response headers.
-       */
-      headers?: SharedV3Headers;
-
-      /**
-      The response body.
-      */
-      body?: unknown;
-    };
-  }>;
+  doEmbed(
+    options: EmbeddingModelV3CallOptions,
+  ): PromiseLike<EmbeddingModelV3Result>;
 };

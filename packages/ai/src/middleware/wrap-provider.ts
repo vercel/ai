@@ -29,7 +29,7 @@ export function wrapProvider({
         model: providerV3.languageModel(modelId),
         middleware: languageModelMiddleware,
       }),
-    textEmbeddingModel: providerV3.textEmbeddingModel,
+    embeddingModel: providerV3.embeddingModel,
     imageModel: providerV3.imageModel,
     transcriptionModel: providerV3.transcriptionModel,
     speechModel: providerV3.speechModel,

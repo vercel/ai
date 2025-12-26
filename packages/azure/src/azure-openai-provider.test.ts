@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -107,34 +108,43 @@ const server = createTestServer({
     {},
 });
 
-describe('chat', () => {
+describe('responses (default language model)', () => {
   describe('doGenerate', () => {
-    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+    function prepareJsonResponse({
+      content = '',
+      usage = {
+        input_tokens: 4,
+        output_tokens: 30,
+        total_tokens: 34,
+      },
+    } = {}) {
       server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+        'https://test-resource.openai.azure.com/openai/v1/responses'
       ].response = {
         type: 'json-value',
         body: {
-          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-          object: 'chat.completion',
-          created: 1711115037,
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
           model: 'test-deployment',
-          choices: [
+          output: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content,
-              },
-              finish_reason: 'stop',
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: content,
+                  annotations: [],
+                },
+              ],
             },
           ],
-          usage: {
-            prompt_tokens: 4,
-            total_tokens: 34,
-            completion_tokens: 30,
-          },
-          system_fingerprint: 'fp_3bc1b5746c',
+          usage,
+          incomplete_details: null,
         },
       };
     }
@@ -201,6 +211,109 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      expect(server.calls[0].requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1',
+      );
+    });
+  });
+});
+
+describe('chat', () => {
+  describe('doGenerate', () => {
+    function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
+          },
+          system_fingerprint: 'fp_3bc1b5746c',
+        },
+      };
+    }
+
+    it('should set the correct default api version', async () => {
+      prepareJsonResponse();
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('v1');
+    });
+
+    it('should set the correct modified api version', async () => {
+      prepareJsonResponse();
+
+      await providerApiVersionChanged.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-04-01-preview');
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      expect(server.calls[0].requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+      expect(server.calls[0].requestUserAgent).toContain(
+        `ai-sdk/azure/0.0.0-test`,
+      );
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.chat('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
@@ -473,6 +586,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -492,6 +607,8 @@ describe('image', () => {
         .imageModel('dalle-deployment')
         .doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: undefined,
@@ -517,6 +634,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -548,6 +667,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -565,6 +686,8 @@ describe('image', () => {
 
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -580,6 +703,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -819,7 +944,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'file_search',
               args: {
@@ -892,7 +1017,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -901,7 +1026,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'code_interpreter',
               args: {},
@@ -946,7 +1071,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -956,7 +1081,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1027,7 +1152,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1098,19 +1223,42 @@ describe('responses', () => {
         });
       });
     });
+
+    describe('web search preview tool', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+      });
+      it('should stream web search preview results include', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
-      prepareJsonFixtureResponse('openai-image-generation-tool.1');
+      prepareJsonFixtureResponse('azure-image-generation-tool.1');
 
       result = await createModel('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.image_generation',
             name: 'image_generation',
             args: {
@@ -1197,7 +1345,7 @@ describe('responses', () => {
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
@@ -1215,22 +1363,46 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 234,
-              "inputTokens": 543,
-              "outputTokens": 478,
-              "reasoningTokens": 123,
-              "totalTokens": 1021,
+              "inputTokens": {
+                "cacheRead": 234,
+                "cacheWrite": undefined,
+                "noCache": 309,
+                "total": 543,
+              },
+              "outputTokens": {
+                "reasoning": 123,
+                "text": 355,
+                "total": 478,
+              },
+              "raw": {
+                "input_tokens": 543,
+                "input_tokens_details": {
+                  "cached_tokens": 234,
+                },
+                "output_tokens": 478,
+                "output_tokens_details": {
+                  "reasoning_tokens": 123,
+                },
+              },
             },
           },
         ]
@@ -1296,7 +1468,7 @@ describe('responses', () => {
           {
             "input": "{}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a838088190be08eb3927c87501",
               },
             },
@@ -1341,7 +1513,7 @@ describe('responses', () => {
           {
             "input": "{"location":"Rome"}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a858f081908a600343fa040f47",
               },
             },
@@ -1350,19 +1522,38 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1401,7 +1592,7 @@ describe('responses', () => {
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1414,7 +1605,7 @@ describe('responses', () => {
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
               },
             },
@@ -1424,22 +1615,60 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": null,
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 50,
+                "total": 50,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 50,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 25,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1453,7 +1682,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.code_interpreter',
             name: 'code_interpreter',
             args: {},
@@ -1474,7 +1703,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1496,7 +1725,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1509,6 +1738,45 @@ describe('responses', () => {
             include: ['file_search_call.results'],
           },
         },
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('web search preview tool', () => {
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('image generation tool', () => {
+    it('should stream image generation tool results include', async () => {
+      prepareChunksFixtureResponse('azure-image-generation-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
       });
 
       expect(

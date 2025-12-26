@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactory,
+  createProviderToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -43,7 +43,7 @@ const memory_20250818InputSchema = lazySchema(() =>
   ),
 );
 
-export const memory_20250818 = createProviderDefinedToolFactory<
+export const memory_20250818 = createProviderToolFactory<
   | { command: 'view'; path: string; view_range?: [number, number] }
   | { command: 'create'; path: string; file_text: string }
   | { command: 'str_replace'; path: string; old_str: string; new_str: string }
@@ -58,6 +58,5 @@ export const memory_20250818 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.memory_20250818',
-  name: 'memory',
   inputSchema: memory_20250818InputSchema,
 });

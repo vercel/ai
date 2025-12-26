@@ -118,13 +118,17 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **parallel_function_calling** _boolean_
+- **reasoningEffort** _'low' | 'medium' | 'high'_
 
-  Whether to enable parallel function calling during tool use. When `true`, the model can call multiple functions in parallel. When `false`, the model will call functions sequentially. Defaults to `true`.
+  Reasoning effort for reasoning models.
 
-- **reasoningEffort** _'low' | 'high'_
+- **store** _boolean_
 
-  Reasoning effort for reasoning models. Only supported by `grok-3-mini` and `grok-3-mini-fast` models.
+  Whether to store the generation. Defaults to `true`.
+
+- **previousResponseId** _string_
+
+  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
 ## Responses API (Agentic Tools)
 
@@ -237,6 +241,37 @@ const { text } = await generateText({
   },
 });
 ```
+
+### File Search Tool
+
+xAI supports file search through OpenAI compatibility. You can use the OpenAI provider with xAI's base URL to search vector stores:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const openai = createOpenAI({
+  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY,
+});
+
+const result = streamText({
+  model: openai('grok-4'),
+  prompt: 'What documents do you have access to?',
+  tools: {
+    file_search: openai.tools.fileSearch({
+      vectorStoreIds: ['your-vector-store-id'],
+      maxNumResults: 5,
+    }),
+  },
+});
+```
+
+<Note>
+  File search requires grok-4 family models. See the [OpenAI
+  provider](/providers/ai-sdk-providers/openai) documentation for additional
+  file search options like filters and ranking.
+</Note>
 
 ### Multiple Tools
 
@@ -605,7 +640,7 @@ You can create xAI image models using the `.image()` factory method. For more on
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: xai.image('grok-2-image'),
@@ -624,7 +659,7 @@ You can customize the image generation behavior with model-specific settings:
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: xai.image('grok-2-image'),

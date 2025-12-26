@@ -33,7 +33,21 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  textEmbeddingModel(modelId: string): EmbeddingModelV3<string>;
+  embeddingModel(modelId: string): EmbeddingModelV3;
+
+  /**
+Returns the text embedding model with the given id.
+The model id is then passed to the provider function to get the model.
+
+@param {string} modelId - The id of the model to return.
+
+@returns {EmbeddingModel} The embedding model associated with the id
+
+@throws {NoSuchModelError} If no such model exists.
+
+@deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel?(modelId: string): EmbeddingModelV3;
 
   /**
 Returns the image model with the given id.

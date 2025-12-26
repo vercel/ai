@@ -1,7 +1,11 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, getToolName, isToolUIPart } from 'ai';
+import {
+  DefaultChatTransport,
+  getStaticToolName,
+  isStaticToolUIPart,
+} from 'ai';
 import { tools } from '../api/use-chat-human-in-the-loop/tools';
 import {
   APPROVAL,
@@ -15,7 +19,7 @@ import {
 
 export default function Chat() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, addToolResult } =
+  const { messages, sendMessage, addToolOutput } =
     useChat<HumanInTheLoopUIMessage>({
       transport: new DefaultChatTransport({
         api: '/api/use-chat-human-in-the-loop',
@@ -27,14 +31,14 @@ export default function Chat() {
   const pendingToolCallConfirmation = messages.some(m =>
     m.parts?.some(
       part =>
-        isToolUIPart(part) &&
+        isStaticToolUIPart(part) &&
         part.state === 'input-available' &&
-        toolsRequiringConfirmation.includes(getToolName(part)),
+        toolsRequiringConfirmation.includes(getStaticToolName(part)),
     ),
   );
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+    <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
       {messages?.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
@@ -42,9 +46,9 @@ export default function Chat() {
             if (part.type === 'text') {
               return <div key={i}>{part.text}</div>;
             }
-            if (isToolUIPart<MyTools>(part)) {
+            if (isStaticToolUIPart<MyTools>(part)) {
               const toolInvocation = part;
-              const toolName = getToolName(toolInvocation);
+              const toolName = getStaticToolName(toolInvocation);
               const toolCallId = toolInvocation.toolCallId;
               const dynamicInfoStyles = 'font-mono bg-zinc-100 p-1 text-sm';
 
@@ -64,7 +68,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.YES,
@@ -79,7 +83,7 @@ export default function Chat() {
                       <button
                         className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                         onClick={async () => {
-                          await addToolResult({
+                          await addToolOutput({
                             toolCallId,
                             tool: toolName,
                             output: APPROVAL.NO,
@@ -124,7 +128,7 @@ export default function Chat() {
       >
         <input
           disabled={pendingToolCallConfirmation}
-          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-zinc-300 rounded shadow-xl"
+          className="fixed bottom-0 p-2 mb-8 w-full max-w-md rounded border shadow-xl border-zinc-300"
           value={input}
           placeholder="Say something..."
           onChange={e => setInput(e.target.value)}

@@ -29,7 +29,7 @@ export type Provider = {
 
   @throws {NoSuchModelError} If no such model exists.
      */
-  textEmbeddingModel(modelId: string): EmbeddingModel<string>;
+  embeddingModel(modelId: string): EmbeddingModel;
 
   /**
   Returns the image model with the given id.

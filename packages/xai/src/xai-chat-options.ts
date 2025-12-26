@@ -2,6 +2,9 @@ import { z } from 'zod/v4';
 
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
+  | 'grok-4-1'
+  | 'grok-4-1-fast-reasoning'
+  | 'grok-4-1-fast-non-reasoning'
   | 'grok-4-fast-non-reasoning'
   | 'grok-4-fast-reasoning'
   | 'grok-code-fast-1'
@@ -114,8 +117,11 @@ export const xaiProviderOptions = z.object({
       maxSearchResults: z.number().min(1).max(50).optional(),
 
       /**
-       * data sources to search from
-       * defaults to ["web", "x"] if not specified
+       * data sources to search from.
+       * defaults to [{ type: 'web' }, { type: 'x' }] if not specified.
+       *
+       * @example
+       * sources: [{ type: 'web', country: 'US' }, { type: 'x' }]
        */
       sources: z.array(searchSourceSchema).optional(),
     })

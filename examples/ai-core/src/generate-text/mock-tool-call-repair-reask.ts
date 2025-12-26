@@ -10,11 +10,19 @@ async function main() {
       doGenerate: async () => ({
         warnings: [],
         usage: {
-          inputTokens: 10,
-          outputTokens: 20,
-          totalTokens: 30,
+          inputTokens: {
+            total: 10,
+            noCache: 10,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 20,
+            text: 20,
+            reasoning: undefined,
+          },
         },
-        finishReason: 'tool-calls',
+        finishReason: { raw: undefined, unified: 'tool-calls' },
         content: [
           {
             type: 'tool-call',

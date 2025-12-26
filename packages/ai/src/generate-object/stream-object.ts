@@ -1,13 +1,14 @@
 import {
   JSONValue,
-  LanguageModelV3CallWarning,
   LanguageModelV3FinishReason,
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  DelayedPromise,
   FlexibleSchema,
   ProviderOptions,
   type InferSchema,
@@ -38,14 +39,17 @@ import {
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import {
+  asLanguageModelUsage,
+  createNullLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/usage';
 import { DeepPartial, isDeepEqualData, parsePartialJson } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { DelayedPromise } from '../util/delayed-promise';
 import { DownloadFunction } from '../util/download/download-function';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -165,6 +169,8 @@ functionality that can be fully encapsulated in the provider.
 
 @returns
 A result object for accessing the partial object stream and additional information.
+
+@deprecated Use `streamText` with an `output` setting instead.
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
@@ -185,7 +191,6 @@ export function streamObject<
 The enum values that the model should use.
         */
           enum: Array<RESULT>;
-          mode?: 'json';
           output: 'enum';
         }
       : OUTPUT extends 'no-schema'
@@ -209,21 +214,6 @@ Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
       */
             schemaDescription?: string;
-
-            /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-      */
-            mode?: 'auto' | 'json' | 'tool';
           }) & {
       output?: OUTPUT;
 
@@ -581,13 +571,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
-        let warnings: LanguageModelV3CallWarning[] | undefined;
-        let usage: LanguageModelUsage = {
-          inputTokens: undefined,
-          outputTokens: undefined,
-          totalTokens: undefined,
-        };
-        let finishReason: LanguageModelV3FinishReason | undefined;
+        let warnings: SharedV3Warning[] | undefined;
+        let usage: LanguageModelUsage = createNullLanguageModelUsage();
+        let finishReason: FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
@@ -710,14 +696,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     }
 
                     // store finish reason for telemetry:
-                    finishReason = chunk.finishReason;
+                    finishReason = chunk.finishReason.unified;
 
                     // store usage and metadata for promises and onFinish callback:
-                    usage = chunk.usage;
+                    usage = asLanguageModelUsage(chunk.usage);
                     providerMetadata = chunk.providerMetadata;
 
                     controller.enqueue({
                       ...chunk,
+                      finishReason: chunk.finishReason.unified,
                       usage,
                       response: fullResponse,
                     });
@@ -737,7 +724,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       ...fullResponse,
                       headers: response?.headers,
                     });
-                    self._finishReason.resolve(finishReason ?? 'unknown');
+                    self._finishReason.resolve(finishReason ?? 'other');
 
                     try {
                       object = await parseAndValidateObjectResultWithRepair(
@@ -979,7 +966,7 @@ export type ObjectStreamInputPart =
   | string
   | {
       type: 'stream-start';
-      warnings: LanguageModelV3CallWarning[];
+      warnings: SharedV3Warning[];
     }
   | {
       type: 'error';

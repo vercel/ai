@@ -1,21 +1,31 @@
-import {
-  ImageModelV3CallWarning,
-  LanguageModelV3CallWarning,
-  SharedV3Warning,
-  SpeechModelV3CallWarning,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { Warning } from '../types';
 
-export type Warning =
-  | LanguageModelV3CallWarning
-  | ImageModelV3CallWarning
-  | SpeechModelV3CallWarning
-  | TranscriptionModelV3CallWarning
-  | SharedV3Warning;
-
+/**
+ * A function for logging warnings.
+ *
+ * You can assign it to the `AI_SDK_LOG_WARNINGS` global variable to use it as the default warning logger.
+ *
+ * @example
+ * ```ts
+ * globalThis.AI_SDK_LOG_WARNINGS = (options) => {
+ *   console.log('WARNINGS:', options.warnings, options.provider, options.model);
+ * };
+ * ```
+ */
 export type LogWarningsFunction = (options: {
+  /**
+   * The warnings returned by the model provider.
+   */
   warnings: Warning[];
+
+  /**
+   * The provider id used for the call.
+   */
   provider: string;
+
+  /**
+   * The model id used for the call.
+   */
   model: string;
 }) => void;
 
@@ -34,8 +44,8 @@ function formatWarning({
   const prefix = `AI SDK Warning (${provider} / ${model}):`;
 
   switch (warning.type) {
-    case 'unsupported-setting': {
-      let message = `${prefix} The "${warning.setting}" setting is not supported.`;
+    case 'unsupported': {
+      let message = `${prefix} The feature "${warning.feature}" is not supported.`;
       if (warning.details) {
         message += ` ${warning.details}`;
       }
@@ -43,17 +53,7 @@ function formatWarning({
     }
 
     case 'compatibility': {
-      let message = `${prefix} The "${warning.feature}" feature is not fully supported.`;
-      if (warning.details) {
-        message += ` ${warning.details}`;
-      }
-      return message;
-    }
-
-    case 'unsupported-tool': {
-      const toolName =
-        'name' in warning.tool ? warning.tool.name : 'unknown tool';
-      let message = `${prefix} The tool "${toolName}" is not supported.`;
+      let message = `${prefix} The feature "${warning.feature}" is used in a compatibility mode.`;
       if (warning.details) {
         message += ` ${warning.details}`;
       }

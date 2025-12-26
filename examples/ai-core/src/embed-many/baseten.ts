@@ -12,8 +12,8 @@ async function main() {
     modelURL: EMBEDDING_MODEL_URL,
   });
 
-  const { embeddings, usage } = await embedMany({
-    model: baseten.textEmbeddingModel(),
+  const { embeddings, usage, warnings } = await embedMany({
+    model: baseten.embeddingModel(),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
@@ -26,6 +26,7 @@ async function main() {
   console.log('Embedding dimension:', embeddings[0].length);
   console.log('First embedding (first 5 values):', embeddings[0].slice(0, 5));
   console.log('Usage:', usage);
+  console.log('Warnings:', warnings);
 }
 
 main().catch(console.error);

@@ -9,7 +9,7 @@ import {
 import { UseChatToolsMessage } from '../api/use-chat-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolResult, status } =
+  const { messages, sendMessage, addToolOutput, status } =
     useChat<UseChatToolsMessage>({
       transport: new DefaultChatTransport({ api: '/api/use-chat-tools' }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
@@ -27,7 +27,7 @@ export default function Chat() {
             'San Francisco',
           ];
 
-          addToolResult({
+          addToolOutput({
             tool: 'getLocation',
             toolCallId: toolCall.toolCallId,
             output: cities[Math.floor(Math.random() * cities.length)],
@@ -63,7 +63,7 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                             onClick={async () => {
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'Yes, confirmed.',
@@ -75,7 +75,7 @@ export default function Chat() {
                           <button
                             className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                             onClick={async () => {
-                              addToolResult({
+                              addToolOutput({
                                 tool: 'askForConfirmation',
                                 toolCallId: part.toolCallId,
                                 output: 'No, denied',

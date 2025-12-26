@@ -10,8 +10,8 @@ async function main() {
       Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
     },
   });
-  const model = togetherai.textEmbeddingModel('BAAI/bge-large-en-v1.5');
-  const { embeddings, usage } = await embedMany({
+  const model = togetherai.embeddingModel('BAAI/bge-large-en-v1.5');
+  const { embeddings, usage, warnings } = await embedMany({
     model,
     values: [
       'sunny day at the beach',
@@ -22,6 +22,7 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
+  console.log(warnings);
 }
 
 main().catch(console.error);

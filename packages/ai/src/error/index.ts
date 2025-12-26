@@ -16,7 +16,9 @@ export {
 
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidStreamPartError } from './invalid-stream-part-error';
+export { InvalidToolApprovalError } from './invalid-tool-approval-error';
 export { InvalidToolInputError } from './invalid-tool-input-error';
+export { ToolCallNotFoundForApprovalError } from './tool-call-not-found-for-approval-error';
 export { NoImageGeneratedError } from './no-image-generated-error';
 export { NoObjectGeneratedError } from './no-object-generated-error';
 export { NoOutputGeneratedError } from './no-output-generated-error';
@@ -28,5 +30,5 @@ export { UnsupportedModelVersionError } from './unsupported-model-version-error'
 export { InvalidDataContentError } from '../prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';
 export { MessageConversionError } from '../prompt/message-conversion-error';
-export { DownloadError } from '../util/download/download-error';
+export { DownloadError } from '@ai-sdk/provider-utils';
 export { RetryError } from '../util/retry-error';

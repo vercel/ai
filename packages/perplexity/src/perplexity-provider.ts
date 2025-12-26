@@ -24,6 +24,11 @@ Creates an Perplexity chat model for text generation.
 Creates an Perplexity language model for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface PerplexityProviderSettings {
@@ -82,9 +87,10 @@ export function createPerplexity(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
 
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

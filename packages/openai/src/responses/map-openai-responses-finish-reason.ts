@@ -7,7 +7,7 @@ export function mapOpenAIResponseFinishReason({
   finishReason: string | null | undefined;
   // flag that checks if there have been client-side tool calls (not executed by openai)
   hasFunctionCall: boolean;
-}): LanguageModelV3FinishReason {
+}): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case undefined:
     case null:
@@ -17,6 +17,6 @@ export function mapOpenAIResponseFinishReason({
     case 'content_filter':
       return 'content-filter';
     default:
-      return hasFunctionCall ? 'tool-calls' : 'unknown';
+      return hasFunctionCall ? 'tool-calls' : 'other';
   }
 }

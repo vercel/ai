@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV3CallWarning } from '@ai-sdk/provider';
+import { SharedV3Warning } from '@ai-sdk/provider';
+import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
+
+// Create a default identity tool name mapping for tests (no tools = no mapping)
+const defaultToolNameMapping = createToolNameMapping({
+  tools: [],
+  providerToolNames: {},
+});
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
@@ -9,6 +16,7 @@ describe('system messages', () => {
       prompt: [{ role: 'system', content: 'This is a system message' }],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -28,6 +36,7 @@ describe('system messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -60,6 +69,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -101,6 +111,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -141,6 +152,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -182,6 +194,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -225,6 +238,7 @@ describe('user messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -269,6 +283,7 @@ describe('user messages', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       }),
     ).rejects.toThrow('media type: video/mp4');
   });
@@ -295,6 +310,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -344,6 +360,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -397,6 +414,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -451,6 +469,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -520,6 +539,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -585,6 +605,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -644,6 +665,7 @@ describe('tool messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -694,6 +716,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -730,6 +753,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -770,6 +794,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -803,6 +828,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -824,7 +850,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -848,6 +874,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -876,7 +903,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -895,6 +922,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: true,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -928,7 +956,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -952,6 +980,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -979,7 +1008,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -998,6 +1027,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toEqual({
@@ -1025,7 +1055,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1062,6 +1092,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -1106,7 +1137,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1149,6 +1180,7 @@ describe('assistant messages', () => {
       ],
       sendReasoning: false,
       warnings,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -1200,9 +1232,81 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_fetch tool call with error result', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://httpbin.org/status/500',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: JSON.stringify({
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                }),
+              },
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "input": {
+                    "url": "https://httpbin.org/status/500",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "url_not_accessible",
+                    "type": "web_fetch_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1236,50 +1340,52 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
-      {
-        "betas": Set {},
-        "prompt": {
-          "messages": [
-            {
-              "content": [
-                {
-                  "cache_control": undefined,
-                  "id": "srvtoolu_01XyZ1234567890",
-                  "input": {
-                    "code": "print(\"Hello, world!\")",
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01XyZ1234567890",
+                    "input": {
+                      "code": "print("Hello, world!")",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
                   },
-                  "name": "code_execution",
-                  "type": "server_tool_use",
-                },
-                {
-                  "cache_control": undefined,
-                  "content": {
-                    "return_code": 0,
-                    "stderr": "",
-                    "stdout": "Hello, world!\",
-                    "type": "code_execution_result",
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "Hello, world!",
+                      "type": "code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_01XyZ1234567890",
+                    "type": "code_execution_tool_result",
                   },
-                  "tool_use_id": "srvtoolu_01XyZ1234567890",
-                  "type": "code_execution_tool_result",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          "system": undefined,
-        },
-      }
-    `);
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });
 
   describe('code_execution 20250825', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1339,6 +1445,7 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1406,7 +1513,7 @@ describe('assistant messages', () => {
 
   describe('mcp tool use', () => {
     it('should convert anthropic mcp tool use parts', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1443,6 +1550,7 @@ describe('assistant messages', () => {
         ],
         sendReasoning: false,
         warnings,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1512,6 +1620,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1551,6 +1660,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1590,6 +1700,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1639,6 +1750,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1684,6 +1796,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1727,6 +1840,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1778,6 +1892,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1829,6 +1944,7 @@ describe('cache control', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1862,7 +1978,7 @@ describe('cache control', () => {
 
   describe('cache control validation', () => {
     it('should reject cache_control on thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1885,6 +2001,7 @@ describe('cache control', () => {
         sendReasoning: true,
         warnings,
         cacheControlValidator,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result).toEqual({
@@ -1905,16 +2022,19 @@ describe('cache control', () => {
         betas: new Set(),
       });
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
-      const warnings: LanguageModelV3CallWarning[] = [];
+      const warnings: SharedV3Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -1937,23 +2057,27 @@ describe('cache control', () => {
         sendReasoning: true,
         warnings,
         cacheControlValidator,
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result.prompt.messages[0].content[0]).not.toHaveProperty(
         'cache_control',
       );
 
-      expect(cacheControlValidator.getWarnings()).toContainEqual({
-        type: 'unsupported-setting',
-        setting: 'cacheControl',
-        details:
-          'cache_control cannot be set on redacted thinking block. It will be ignored.',
-      });
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control cannot be set on redacted thinking block. It will be ignored.",
+            "feature": "cache_control on non-cacheable context",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 
   it('should limit cache breakpoints to 4', async () => {
-    const warnings: LanguageModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
     const cacheControlValidator = new CacheControlValidator();
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -2011,6 +2135,7 @@ describe('cache control', () => {
       sendReasoning: true,
       warnings,
       cacheControlValidator,
+      toolNameMapping: defaultToolNameMapping,
     });
 
     // First 4 should have cache_control
@@ -2031,11 +2156,15 @@ describe('cache control', () => {
     expect(result.prompt.messages[2].content[0].cache_control).toBeUndefined();
 
     // Should have warning about exceeding limit
-    expect(cacheControlValidator.getWarnings()).toContainEqual({
-      type: 'unsupported-setting',
-      setting: 'cacheControl',
-      details: expect.stringContaining('Maximum 4 cache breakpoints exceeded'),
-    });
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "Maximum 4 cache breakpoints exceeded (found 5). This breakpoint will be ignored.",
+          "feature": "cacheControl breakpoint limit",
+          "type": "unsupported",
+        },
+      ]
+    `);
   });
 });
 
@@ -2056,6 +2185,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2108,6 +2238,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2166,6 +2297,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2241,6 +2373,7 @@ describe('citations', () => {
       ],
       sendReasoning: true,
       warnings: [],
+      toolNameMapping: defaultToolNameMapping,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -2379,6 +2512,7 @@ describe('citations', () => {
         ],
         sendReasoning: true,
         warnings: [],
+        toolNameMapping: defaultToolNameMapping,
       });
 
       expect(result.prompt).toMatchInlineSnapshot(`

@@ -1,24 +1,22 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
 
 async function main() {
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = 'A blue cream Persian cat in Kyoto in the style of ukiyo-e';
   const result = await generateImage({
-    model: openai.image('gpt-image-1-mini'),
+    model: openai.image('gpt-image-1.5'),
     prompt,
+    n: 3,
   });
 
-  // @ts-expect-error
-  const revisedPrompt = result.providerMetadata.openai.images[0]?.revisedPrompt;
+  await presentImages(result.images);
 
-  console.log({
-    prompt,
-    revisedPrompt,
-  });
-
-  await presentImages([result.image]);
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
 }
 
 main().catch(console.error);

@@ -57,6 +57,8 @@ describe('FalImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -73,11 +75,92 @@ describe('FalImageModel', () => {
       });
     });
 
+    it('should convert camelCase provider options to snake_case for API', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            imageUrl: 'https://example.com/image.png',
+            guidanceScale: 7.5,
+            numInferenceSteps: 50,
+            enableSafetyChecker: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+        enable_safety_checker: false,
+      });
+
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should accept deprecated snake_case provider options with warning', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        prompt,
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            image_url: 'https://example.com/image.png',
+            guidance_scale: 7.5,
+            num_inference_steps: 50,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        num_images: 1,
+        image_url: 'https://example.com/image.png',
+        guidance_scale: 7.5,
+        num_inference_steps: 50,
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({
+        type: 'other',
+        message: expect.stringContaining('deprecated snake_case'),
+      });
+
+      const warning = result.warnings[0];
+      if (warning.type === 'other') {
+        expect(warning.message).toContain("'image_url' (use 'imageUrl')");
+        expect(warning.message).toContain(
+          "'guidance_scale' (use 'guidanceScale')",
+        );
+        expect(warning.message).toContain(
+          "'num_inference_steps' (use 'numInferenceSteps')",
+        );
+      }
+    });
+
     it('should convert aspect ratio to size', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -101,6 +184,8 @@ describe('FalImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -137,6 +222,8 @@ describe('FalImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -159,6 +246,8 @@ describe('FalImageModel', () => {
 
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -216,6 +305,8 @@ describe('FalImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -276,6 +367,8 @@ describe('FalImageModel', () => {
         const model = createBasicModel();
         const result = await model.doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
@@ -310,6 +403,215 @@ describe('FalImageModel', () => {
     });
   });
 
+  describe('Image Editing', () => {
+    it('should send edit request with files as data URI', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
+
+      await createBasicModel().doGenerate({
+        prompt: 'Turn the cat into a dog',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "data:image/png;base64,iVBORw==",
+          "num_images": 1,
+          "prompt": "Turn the cat into a dog",
+        }
+      `);
+    });
+
+    it('should send edit request with files and mask', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+      const maskData = new Uint8Array([255, 255, 255, 0]);
+
+      await createBasicModel().doGenerate({
+        prompt: 'Add a flamingo to the pool',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'file',
+          data: maskData,
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "data:image/png;base64,iVBORw==",
+          "mask_url": "data:image/png;base64,////AA==",
+          "num_images": 1,
+          "prompt": "Add a flamingo to the pool",
+        }
+      `);
+    });
+
+    it('should send edit request with URL-based file', async () => {
+      await createBasicModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "https://example.com/input.png",
+          "num_images": 1,
+          "prompt": "Edit this image",
+        }
+      `);
+    });
+
+    it('should send edit request with base64 string data', async () => {
+      await createBasicModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: 'iVBORw0KGgoAAAANSUhEUgAAAAE=',
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE=",
+          "num_images": 1,
+          "prompt": "Edit this image",
+        }
+      `);
+    });
+
+    it('should warn when multiple files are provided', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await createBasicModel().doGenerate({
+        prompt: 'Edit images',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatchObject({
+        type: 'other',
+        message: expect.stringContaining('only supports a single input image'),
+      });
+    });
+
+    it('should allow imageUrl via provider options', async () => {
+      await createBasicModel().doGenerate({
+        prompt: 'Edit via provider options',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            imageUrl: 'https://example.com/provider-image.png',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "https://example.com/provider-image.png",
+          "num_images": 1,
+          "prompt": "Edit via provider options",
+        }
+      `);
+    });
+
+    it('should allow maskUrl via provider options', async () => {
+      await createBasicModel().doGenerate({
+        prompt: 'Inpaint this',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            imageUrl: 'https://example.com/image.png',
+            maskUrl: 'https://example.com/mask.png',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchInlineSnapshot(`
+        {
+          "image_url": "https://example.com/image.png",
+          "mask_url": "https://example.com/mask.png",
+          "num_images": 1,
+          "prompt": "Inpaint this",
+        }
+      `);
+    });
+  });
+
   describe('response schema validation', () => {
     it('should parse single image response', async () => {
       server.urls['https://api.example.com/fal-ai/qwen-image'].response = {
@@ -327,6 +629,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -362,6 +666,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         providerOptions: {},
         size: undefined,
@@ -399,6 +705,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -448,6 +756,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -494,6 +804,8 @@ describe('FalImageModel', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,

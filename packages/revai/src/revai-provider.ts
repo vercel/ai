@@ -24,6 +24,11 @@ export interface RevaiProvider extends ProviderV3 {
 Creates a model for transcription.
    */
   transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface RevaiProviderSettings {
@@ -89,13 +94,14 @@ export function createRevai(
     });
   };
 
-  provider.textEmbeddingModel = () => {
+  provider.embeddingModel = () => {
     throw new NoSuchModelError({
       modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
+      modelType: 'embeddingModel',
       message: 'Rev.ai does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = () => {
     throw new NoSuchModelError({

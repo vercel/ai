@@ -18,4 +18,10 @@ export type ToolApprovalResponse = {
    * Optional reason for the approval or denial.
    */
   reason?: string;
+
+  /**
+   * Flag indicating whether the tool call is provider-executed.
+   * Only provider-executed tool approval responses should be sent to the model.
+   */
+  providerExecuted?: boolean;
 };

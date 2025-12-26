@@ -12,9 +12,9 @@ import 'dotenv/config';
 async function main() {
   // Basic text generation
   const basicResult = await generateText({
-    model: azure.responses('gpt-5-mini'),
+    model: azure.responses('gpt-4.1-mini'),
     prompt:
-      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
+      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
       code_interpreter: azure.tools.codeInterpreter(),
     },
@@ -25,6 +25,15 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.dir(basicResult.toolCalls, { depth: Infinity });
   console.dir(basicResult.toolResults, { depth: Infinity });
+  console.log('\n=== Code Interpreter Annotations ===');
+  for (const part of basicResult.content) {
+    if (part.type === 'text') {
+      const annotations = part.providerMetadata?.azure?.annotations;
+      if (annotations) {
+        console.dir(annotations);
+      }
+    }
+  }
 }
 
 main().catch(console.error);

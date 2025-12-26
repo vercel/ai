@@ -3,7 +3,8 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3FunctionTool,
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -40,16 +41,22 @@ vi.mock('../version', () => {
   };
 });
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
 
 const dummyResponseValues = {
-  finishReason: 'stop' as const,
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
   usage: testUsage,
   warnings: [],
 };
@@ -671,7 +678,7 @@ describe('generateText', () => {
                 input: `{ "value": "value" }`,
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             response: {
               id: 'id-0',
@@ -728,9 +735,11 @@ describe('generateText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
+          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "reasoning": [],
           "reasoningText": undefined,
           "request": {},
@@ -836,6 +845,7 @@ describe('generateText', () => {
               ],
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "request": {},
               "response": {
                 "body": undefined,
@@ -884,8 +894,18 @@ describe('generateText', () => {
               },
               "usage": {
                 "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
                 "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
                 "outputTokens": 10,
+                "raw": undefined,
                 "reasoningTokens": undefined,
                 "totalTokens": 13,
               },
@@ -920,15 +940,34 @@ describe('generateText', () => {
           ],
           "totalUsage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
           "usage": {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           },
@@ -994,13 +1033,19 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1070,26 +1115,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1112,9 +1176,11 @@ describe('generateText', () => {
       let onStepFinishResults: StepResult<any>[];
       let doGenerateCalls: Array<LanguageModelV3CallOptions>;
       let prepareStepCalls: Array<{
+        modelId: string;
         stepNumber: number;
         steps: Array<StepResult<any>>;
         messages: Array<ModelMessage>;
+        experimental_context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -1141,13 +1207,19 @@ describe('generateText', () => {
                       input: `{ "value": "value" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   usage: {
-                    inputTokens: 10,
-                    outputTokens: 5,
-                    totalTokens: 15,
-                    reasoningTokens: undefined,
-                    cachedInputTokens: undefined,
+                    inputTokens: {
+                      total: 10,
+                      noCache: 10,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
                   },
                   response: {
                     id: 'test-id-1-from-model',
@@ -1188,16 +1260,30 @@ describe('generateText', () => {
               },
             }),
           },
+          experimental_context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          prepareStep: async ({ model, stepNumber, steps, messages }) => {
-            prepareStepCalls.push({ stepNumber, steps, messages });
+          prepareStep: async ({
+            model,
+            stepNumber,
+            steps,
+            messages,
+            experimental_context,
+          }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps,
+              messages,
+              experimental_context,
+            });
 
             if (stepNumber === 0) {
               expect(steps).toStrictEqual([]);
+
               return {
                 model: trueModel,
                 toolChoice: {
@@ -1211,6 +1297,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
+                experimental_context: { context: 'state2' },
               };
             }
 
@@ -1220,6 +1307,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
+                experimental_context: { context: 'state3' },
               };
             }
           },
@@ -1230,12 +1318,16 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
+              "experimental_context": {
+                "context": "state1",
+              },
               "messages": [
                 {
                   "content": "test-input",
                   "role": "user",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -1264,6 +1356,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1305,8 +1398,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1321,6 +1424,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1374,8 +1478,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1384,6 +1498,9 @@ describe('generateText', () => {
               ],
             },
             {
+              "experimental_context": {
+                "context": "state2",
+              },
               "messages": [
                 {
                   "content": "test-input",
@@ -1419,6 +1536,7 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
+              "modelId": "mock-model-id",
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -1447,6 +1565,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1488,8 +1607,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1504,6 +1633,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "stop",
                   "providerMetadata": undefined,
+                  "rawFinishReason": "stop",
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1557,8 +1687,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 3,
+                    },
                     "inputTokens": 3,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 10,
+                    },
                     "outputTokens": 10,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 13,
                   },
@@ -1692,26 +1832,45 @@ describe('generateText', () => {
 
       it('result.totalUsage should sum token usage', () => {
         expect(result.totalUsage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 13,
-          "outputTokens": 15,
-          "reasoningTokens": undefined,
-          "totalTokens": 28,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 13,
+            },
+            "inputTokens": 13,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 15,
+            },
+            "outputTokens": 15,
+            "reasoningTokens": undefined,
+            "totalTokens": 28,
+          }
+        `);
       });
 
       it('result.usage should contain token usage from final step', async () => {
         expect(result.usage).toMatchInlineSnapshot(`
-        {
-          "cachedInputTokens": undefined,
-          "inputTokens": 3,
-          "outputTokens": 10,
-          "reasoningTokens": undefined,
-          "totalTokens": 13,
-        }
-      `);
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
 
       it('result.steps should contain all steps', () => {
@@ -1761,13 +1920,19 @@ describe('generateText', () => {
                         input: `{ "value": "value" }`,
                       },
                     ],
-                    finishReason: 'tool-calls',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
                     usage: {
-                      inputTokens: 10,
-                      outputTokens: 5,
-                      totalTokens: 15,
-                      reasoningTokens: undefined,
-                      cachedInputTokens: undefined,
+                      inputTokens: {
+                        total: 10,
+                        noCache: 10,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 5,
+                        text: 5,
+                        reasoning: undefined,
+                      },
                     },
                     response: {
                       id: 'test-id-1-from-model',
@@ -1844,6 +2009,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1885,8 +2051,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -1923,6 +2099,7 @@ describe('generateText', () => {
                   ],
                   "finishReason": "tool-calls",
                   "providerMetadata": undefined,
+                  "rawFinishReason": undefined,
                   "request": {},
                   "response": {
                     "body": undefined,
@@ -1964,8 +2141,18 @@ describe('generateText', () => {
                   },
                   "usage": {
                     "cachedInputTokens": undefined,
+                    "inputTokenDetails": {
+                      "cacheReadTokens": undefined,
+                      "cacheWriteTokens": undefined,
+                      "noCacheTokens": 10,
+                    },
                     "inputTokens": 10,
+                    "outputTokenDetails": {
+                      "reasoningTokens": undefined,
+                      "textTokens": 5,
+                    },
                     "outputTokens": 5,
+                    "raw": undefined,
                     "reasoningTokens": undefined,
                     "totalTokens": 15,
                   },
@@ -2077,7 +2264,7 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool)[]
+        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
         | undefined;
 
       await generateText({
@@ -2619,9 +2806,8 @@ describe('generateText', () => {
           }),
           tools: {
             web_search: {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'test.web_search',
-              name: 'web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
               args: {},
@@ -3109,7 +3295,7 @@ describe('generateText', () => {
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
             content: [
               {
                 type: 'tool-call',
@@ -3265,7 +3451,7 @@ describe('generateText', () => {
                 result: { example: 'example' },
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
         tools: {
@@ -3334,6 +3520,1189 @@ describe('generateText', () => {
     });
   });
 
+  describe('programmatic tool calling', () => {
+    describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
+      let result: GenerateTextResult<any, any>;
+      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
+      let onStepFinishResults: StepResult<any>[];
+      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
+      let prepareStepCalls: Array<{
+        modelId: string;
+        stepNumber: number;
+        steps: Array<StepResult<any>>;
+        messages: Array<ModelMessage>;
+      }>;
+      let rollDieExecutions: Array<{ player: string }>;
+
+      // Fixture-based tool call IDs (from anthropic-programmatic-tool-calling.1.json)
+      const CODE_EXEC_ID = 'srvtoolu_01CberhXc9TgYXrCZU8bQoks';
+      const CONTAINER_ID = 'container_011CWHQB57xVregfCMPrKgew';
+
+      beforeEach(async () => {
+        onFinishResult = undefined as any;
+        onStepFinishResults = [];
+        doGenerateCalls = [];
+        prepareStepCalls = [];
+        rollDieExecutions = [];
+
+        let responseCount = 0;
+
+        result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async options => {
+              doGenerateCalls.push(options);
+
+              switch (responseCount++) {
+                case 0:
+                  // Step 1: text + server_tool_use (code_execution) + 2 rollDie calls
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'text',
+                        text: "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: CODE_EXEC_ID,
+                        toolName: 'code_execution',
+                        input: `{"type":"programmatic-tool-call","code":"game_loop()"}`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01PMcE1JBKCeLjn83cgUCvR5',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01MZf5QJ1EQyd2yGyeLzBxAS',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: {
+                      inputTokens: {
+                        total: 3369,
+                        noCache: 3369,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 577,
+                        text: 577,
+                        reasoning: undefined,
+                      },
+                    },
+                    response: {
+                      id: 'msg_01V3gktwqnMAsXxpJ6sG9KDR',
+                      timestamp: new Date(0),
+                      modelId: 'claude-sonnet-4-5-20250929',
+                    },
+                    providerMetadata: {
+                      anthropic: {
+                        container: { id: CONTAINER_ID },
+                      },
+                    },
+                  };
+
+                case 1:
+                  // Step 2: 2 rollDie calls (round 2)
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01UvVQ2xwA6preZppeajCkYK',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01BghspNownQFtRgv8jVicr3',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: {
+                      inputTokens: {
+                        total: 0,
+                        noCache: 0,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 0,
+                        text: 0,
+                        reasoning: undefined,
+                      },
+                    },
+                    response: {
+                      id: 'msg_01DmEmveJkWRUR1y41DfGfEQ',
+                      timestamp: new Date(1000),
+                      modelId: 'claude-sonnet-4-5-20250929',
+                    },
+                    providerMetadata: {
+                      anthropic: {
+                        container: { id: CONTAINER_ID },
+                      },
+                    },
+                  };
+
+                case 2:
+                  // Step 3: 2 rollDie calls (round 3)
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01T7Upuuv8C71nq7DZ9ZPNQW',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_016Da1tDet9Bf7dAdYTkF5Ar',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: {
+                      inputTokens: {
+                        total: 0,
+                        noCache: 0,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 0,
+                        text: 0,
+                        reasoning: undefined,
+                      },
+                    },
+                    response: {
+                      id: 'msg_01AxicwpZwTqKCtty95VTAoL',
+                      timestamp: new Date(2000),
+                      modelId: 'claude-sonnet-4-5-20250929',
+                    },
+                    providerMetadata: {
+                      anthropic: {
+                        container: { id: CONTAINER_ID },
+                      },
+                    },
+                  };
+
+                case 3:
+                  // Step 4: 2 rollDie calls (round 4 - final round)
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01DiUBRds64sNajVPTZRrDSM',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player1" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'toolu_01XQa3r3y1Fe8rnkGSncq626',
+                        toolName: 'rollDie',
+                        input: `{ "player": "player2" }`,
+                      },
+                    ],
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: {
+                      inputTokens: {
+                        total: 0,
+                        noCache: 0,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 0,
+                        text: 0,
+                        reasoning: undefined,
+                      },
+                    },
+                    response: {
+                      id: 'msg_01TjXmSMrfqKVMpHHM3wMaBy',
+                      timestamp: new Date(3000),
+                      modelId: 'claude-sonnet-4-5-20250929',
+                    },
+                    providerMetadata: {
+                      anthropic: {
+                        container: { id: CONTAINER_ID },
+                      },
+                    },
+                  };
+
+                case 4:
+                  // Step 5: code_execution_tool_result + final text
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-result',
+                        toolCallId: CODE_EXEC_ID,
+                        toolName: 'code_execution',
+                        providerExecuted: true,
+                        result: {
+                          type: 'code_execution_result',
+                          stdout:
+                            '============================================================\nDICE GAME: First to 3 Round Wins\n============================================================\n\nRound 1:\n  Player 1 rolls: 6\n  Player 2 rolls: 6\n  → Draw! No points awarded.\n  Score: Player 1: 0 | Player 2: 0\n\nRound 2:\n  Player 1 rolls: 5\n  Player 2 rolls: 4\n  → Player 1 wins this round!\n  Score: Player 1: 1 | Player 2: 0\n\nRound 3:\n  Player 1 rolls: 6\n  Player 2 rolls: 4\n  → Player 1 wins this round!\n  Score: Player 1: 2 | Player 2: 0\n\nRound 4:\n  Player 1 rolls: 6\n  Player 2 rolls: 3\n  → Player 1 wins this round!\n  Score: Player 1: 3 | Player 2: 0\n\n============================================================\n🏆 PLAYER 1 WINS THE GAME!\nFinal Score: Player 1: 3 | Player 2: 0\nTotal Rounds: 4\n============================================================\n',
+                          stderr: '',
+                          return_code: 0,
+                          content: [],
+                        },
+                      },
+                      {
+                        type: 'text',
+                        text: "**Game Over!** \n\nPlayer 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:\n- **Round 1**: Both rolled 6 (Draw)\n- **Round 2**: Player 1 (5) beat Player 2 (4)\n- **Round 3**: Player 1 (6) beat Player 2 (4)\n- **Round 4**: Player 1 (6) beat Player 2 (3)\n\nBased on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.\n\nThe loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
+                      },
+                    ],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: {
+                      inputTokens: {
+                        total: 4243,
+                        noCache: 4243,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 229,
+                        text: 229,
+                        reasoning: undefined,
+                      },
+                    },
+                    response: {
+                      id: 'msg_01LPPbjvqcSgBPfApMEiJ4qv',
+                      timestamp: new Date(4000),
+                      modelId: 'claude-sonnet-4-5-20250929',
+                    },
+                  };
+
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            code_execution: {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              inputSchema: z.object({ code: z.string() }),
+              outputSchema: z.object({
+                stdout: z.string(),
+                stderr: z.string(),
+              }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+            rollDie: tool({
+              description: 'Roll a die and return the result.',
+              inputSchema: z.object({
+                player: z.enum(['player1', 'player2']),
+              }),
+              execute: async ({ player }) => {
+                rollDieExecutions.push({ player });
+                return player === 'player1' ? 6 : 3;
+              },
+              providerOptions: {
+                anthropic: {
+                  allowedCallers: ['code_execution_20250825'],
+                },
+              },
+            }),
+          },
+          prompt: 'Play a dice game between two players.',
+          stopWhen: stepCountIs(10),
+          onFinish: async event => {
+            onFinishResult = event as unknown as typeof onFinishResult;
+          },
+          onStepFinish: async event => {
+            onStepFinishResults.push(event);
+          },
+          prepareStep: async ({ model, stepNumber, steps, messages }) => {
+            prepareStepCalls.push({
+              modelId: typeof model === 'string' ? model : model.modelId,
+              stepNumber,
+              steps: [...steps],
+              messages: [...messages],
+            });
+
+            // Forward container ID from previous step (simulating forwardAnthropicContainerIdFromLastStep)
+            if (stepNumber > 0 && steps.length > 0) {
+              const lastStep = steps[steps.length - 1];
+              const containerId = (
+                lastStep.providerMetadata?.anthropic as
+                  | { container?: { id?: string } }
+                  | undefined
+              )?.container?.id;
+
+              if (containerId) {
+                return {
+                  providerOptions: {
+                    anthropic: {
+                      container: { id: containerId },
+                    },
+                  },
+                };
+              }
+            }
+            return undefined;
+          },
+        });
+      });
+
+      describe('step inputs', () => {
+        it('should send correct prompt in step 1', () => {
+          expect(doGenerateCalls[0].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ]
+          `);
+        });
+
+        it('should send correct tools in step 1', () => {
+          expect(doGenerateCalls[0].tools).toMatchInlineSnapshot(`
+            [
+              {
+                "args": {},
+                "id": "anthropic.code_execution_20250825",
+                "name": "code_execution",
+                "type": "provider",
+              },
+              {
+                "description": "Roll a die and return the result.",
+                "inputSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "player": {
+                      "enum": [
+                        "player1",
+                        "player2",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "player",
+                  ],
+                  "type": "object",
+                },
+                "name": "rollDie",
+                "providerOptions": {
+                  "anthropic": {
+                    "allowedCallers": [
+                      "code_execution_20250825",
+                    ],
+                  },
+                },
+                "type": "function",
+              },
+            ]
+          `);
+        });
+
+        it('should include assistant messages and tool results in step 2 prompt', () => {
+          expect(doGenerateCalls[1].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include all previous messages in step 3 prompt (round 3)', () => {
+          expect(doGenerateCalls[2].prompt).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Play a dice game between two players.",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should forward container ID via providerOptions in step 2', () => {
+          expect(doGenerateCalls[1].providerOptions).toMatchInlineSnapshot(`
+            {
+              "anthropic": {
+                "container": {
+                  "id": "container_011CWHQB57xVregfCMPrKgew",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should include all previous messages in step 5 prompt (final step)', () => {
+          expect(doGenerateCalls[4].prompt).toMatchSnapshot();
+        });
+      });
+
+      describe('result.response.messages', () => {
+        it('should contain all response messages from all steps', () => {
+          expect(result.response.messages).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "providerOptions": undefined,
+                    "text": "I'll help you simulate this dice game between two players! Let me run the game where both players roll dice each round until one player wins 3 rounds.",
+                    "type": "text",
+                  },
+                  {
+                    "input": {
+                      "code": "game_loop()",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                    "toolName": "code_execution",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_01PMcE1JBKCeLjn83cgUCvR5",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_01MZf5QJ1EQyd2yGyeLzBxAS",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_01UvVQ2xwA6preZppeajCkYK",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_01BghspNownQFtRgv8jVicr3",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_01T7Upuuv8C71nq7DZ9ZPNQW",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_016Da1tDet9Bf7dAdYTkF5Ar",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "player": "player1",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01DiUBRds64sNajVPTZRrDSM",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                  {
+                    "input": {
+                      "player": "player2",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "toolu_01XQa3r3y1Fe8rnkGSncq626",
+                    "toolName": "rollDie",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 6,
+                    },
+                    "toolCallId": "toolu_01DiUBRds64sNajVPTZRrDSM",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": 3,
+                    },
+                    "toolCallId": "toolu_01XQa3r3y1Fe8rnkGSncq626",
+                    "toolName": "rollDie",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "json",
+                      "value": {
+                        "content": [],
+                        "return_code": 0,
+                        "stderr": "",
+                        "stdout": "============================================================
+            DICE GAME: First to 3 Round Wins
+            ============================================================
+
+            Round 1:
+              Player 1 rolls: 6
+              Player 2 rolls: 6
+              → Draw! No points awarded.
+              Score: Player 1: 0 | Player 2: 0
+
+            Round 2:
+              Player 1 rolls: 5
+              Player 2 rolls: 4
+              → Player 1 wins this round!
+              Score: Player 1: 1 | Player 2: 0
+
+            Round 3:
+              Player 1 rolls: 6
+              Player 2 rolls: 4
+              → Player 1 wins this round!
+              Score: Player 1: 2 | Player 2: 0
+
+            Round 4:
+              Player 1 rolls: 6
+              Player 2 rolls: 3
+              → Player 1 wins this round!
+              Score: Player 1: 3 | Player 2: 0
+
+            ============================================================
+            🏆 PLAYER 1 WINS THE GAME!
+            Final Score: Player 1: 3 | Player 2: 0
+            Total Rounds: 4
+            ============================================================
+            ",
+                        "type": "code_execution_result",
+                      },
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                    "toolName": "code_execution",
+                    "type": "tool-result",
+                  },
+                  {
+                    "providerOptions": undefined,
+                    "text": "**Game Over!** 
+
+            Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
+            - **Round 1**: Both rolled 6 (Draw)
+            - **Round 2**: Player 1 (5) beat Player 2 (4)
+            - **Round 3**: Player 1 (6) beat Player 2 (4)
+            - **Round 4**: Player 1 (6) beat Player 2 (3)
+
+            Based on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.
+
+            The loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
+                    "type": "text",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('result.toolCalls and result.toolResults', () => {
+        it('should return empty toolCalls from final step (no tool calls in step 5)', () => {
+          expect(result.toolCalls).toMatchInlineSnapshot(`[]`);
+        });
+
+        it('should return empty toolResults from final step (deferred result only)', () => {
+          // The final step has a deferred tool result but no client-executed tool results
+          expect(result.toolResults).toMatchInlineSnapshot(`
+            [
+              {
+                "dynamic": undefined,
+                "input": undefined,
+                "output": {
+                  "content": [],
+                  "return_code": 0,
+                  "stderr": "",
+                  "stdout": "============================================================
+            DICE GAME: First to 3 Round Wins
+            ============================================================
+
+            Round 1:
+              Player 1 rolls: 6
+              Player 2 rolls: 6
+              → Draw! No points awarded.
+              Score: Player 1: 0 | Player 2: 0
+
+            Round 2:
+              Player 1 rolls: 5
+              Player 2 rolls: 4
+              → Player 1 wins this round!
+              Score: Player 1: 1 | Player 2: 0
+
+            Round 3:
+              Player 1 rolls: 6
+              Player 2 rolls: 4
+              → Player 1 wins this round!
+              Score: Player 1: 2 | Player 2: 0
+
+            Round 4:
+              Player 1 rolls: 6
+              Player 2 rolls: 3
+              → Player 1 wins this round!
+              Score: Player 1: 3 | Player 2: 0
+
+            ============================================================
+            🏆 PLAYER 1 WINS THE GAME!
+            Final Score: Player 1: 3 | Player 2: 0
+            Total Rounds: 4
+            ============================================================
+            ",
+                  "type": "code_execution_result",
+                },
+                "providerExecuted": true,
+                "toolCallId": "srvtoolu_01CberhXc9TgYXrCZU8bQoks",
+                "toolName": "code_execution",
+                "type": "tool-result",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('tool execution', () => {
+        it('should execute rollDie tool 4 times (twice per step for steps 1 and 2)', () => {
+          expect(rollDieExecutions).toMatchInlineSnapshot(`
+            [
+              {
+                "player": "player2",
+              },
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player2",
+              },
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player2",
+              },
+              {
+                "player": "player1",
+              },
+              {
+                "player": "player2",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('result.steps', () => {
+        it('should contain 5 steps', () => {
+          expect(result.steps.length).toBe(5);
+        });
+
+        it('should have correct finishReason for each step', () => {
+          expect(result.steps[0].finishReason).toBe('tool-calls');
+          expect(result.steps[1].finishReason).toBe('tool-calls');
+          expect(result.steps[2].finishReason).toBe('tool-calls');
+          expect(result.steps[3].finishReason).toBe('tool-calls');
+          expect(result.steps[4].finishReason).toBe('stop');
+        });
+      });
+
+      describe('result.text', () => {
+        it('should return final text from last step', () => {
+          expect(result.text).toContain('**Game Over!**');
+        });
+      });
+
+      describe('result.finishReason', () => {
+        it('should return stop from final step', () => {
+          expect(result.finishReason).toBe('stop');
+        });
+      });
+
+      describe('result.totalUsage', () => {
+        it('should sum token usage across all steps', () => {
+          expect(result.totalUsage).toMatchInlineSnapshot(`
+            {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 7612,
+              },
+              "inputTokens": 7612,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 806,
+              },
+              "outputTokens": 806,
+              "reasoningTokens": undefined,
+              "totalTokens": 8418,
+            }
+          `);
+        });
+      });
+
+      describe('prepareStep calls', () => {
+        it('should call prepareStep for each step with correct stepNumber', () => {
+          expect(prepareStepCalls.length).toBe(5);
+          expect(prepareStepCalls[0].stepNumber).toBe(0);
+          expect(prepareStepCalls[1].stepNumber).toBe(1);
+          expect(prepareStepCalls[2].stepNumber).toBe(2);
+          expect(prepareStepCalls[3].stepNumber).toBe(3);
+          expect(prepareStepCalls[4].stepNumber).toBe(4);
+        });
+
+        it('should pass empty steps array for first prepareStep call', () => {
+          expect(prepareStepCalls[0].steps.length).toBe(0);
+        });
+
+        it('should pass accumulated steps to subsequent prepareStep calls', () => {
+          expect(prepareStepCalls[1].steps.length).toBe(1);
+          expect(prepareStepCalls[2].steps.length).toBe(2);
+          expect(prepareStepCalls[3].steps.length).toBe(3);
+          expect(prepareStepCalls[4].steps.length).toBe(4);
+        });
+
+        it('should pass accumulated messages to prepareStep', () => {
+          // Step 0: just the initial user message
+          expect(prepareStepCalls[0].messages.length).toBe(1);
+
+          // Step 1: user message + assistant message + tool message
+          expect(prepareStepCalls[1].messages.length).toBe(3);
+
+          // Step 2: user message + assistant + tool + assistant + tool
+          expect(prepareStepCalls[2].messages.length).toBe(5);
+
+          // Step 3: continued accumulation
+          expect(prepareStepCalls[3].messages.length).toBe(7);
+
+          // Step 4: continued accumulation
+          expect(prepareStepCalls[4].messages.length).toBe(9);
+        });
+      });
+
+      describe('onStepFinish callback', () => {
+        it('should be called for each step', () => {
+          expect(onStepFinishResults.length).toBe(5);
+        });
+
+        it('should contain correct finishReason for each step', () => {
+          expect(onStepFinishResults[0].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[1].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[2].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[3].finishReason).toBe('tool-calls');
+          expect(onStepFinishResults[4].finishReason).toBe('stop');
+        });
+
+        it('should contain provider metadata with container ID for steps 1 and 2', () => {
+          expect(onStepFinishResults[0].providerMetadata)
+            .toMatchInlineSnapshot(`
+              {
+                "anthropic": {
+                  "container": {
+                    "id": "container_011CWHQB57xVregfCMPrKgew",
+                  },
+                },
+              }
+            `);
+          expect(onStepFinishResults[1].providerMetadata)
+            .toMatchInlineSnapshot(`
+              {
+                "anthropic": {
+                  "container": {
+                    "id": "container_011CWHQB57xVregfCMPrKgew",
+                  },
+                },
+              }
+            `);
+        });
+      });
+
+      describe('onFinish callback', () => {
+        it('should be called with correct text', () => {
+          expect(onFinishResult.text).toContain('**Game Over!**');
+        });
+
+        it('should be called with correct finishReason', () => {
+          expect(onFinishResult.finishReason).toBe('stop');
+        });
+
+        it('should contain all steps', () => {
+          expect(onFinishResult.steps.length).toBe(5);
+        });
+
+        it('should contain correct totalUsage', () => {
+          expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
+            {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 7612,
+              },
+              "inputTokens": 7612,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 806,
+              },
+              "outputTokens": 806,
+              "reasoningTokens": undefined,
+              "totalTokens": 8418,
+            }
+          `);
+        });
+
+        it('should contain all response messages', () => {
+          expect(onFinishResult.response.messages.length).toBe(9);
+        });
+      });
+    });
+  });
+
   describe('dynamic tools', () => {
     it('should execute dynamic tools', async () => {
       let toolExecuted = false;
@@ -3351,7 +4720,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -3401,11 +4770,11 @@ describe('generateText', () => {
     });
   });
 
-  describe('tool execution context', () => {
+  describe('context', () => {
     it('should send context to tool execution', async () => {
       let recordedContext: unknown | undefined;
 
-      const result = await generateText({
+      await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -3418,7 +4787,7 @@ describe('generateText', () => {
                 input: `{ "value": "test" }`,
               },
             ],
-            finishReason: 'tool-calls',
+            finishReason: { unified: 'tool-calls', raw: undefined },
           }),
         }),
         tools: {
@@ -3441,6 +4810,52 @@ describe('generateText', () => {
         context: 'test',
       });
     });
+
+    it('should pass experimental_context to prepareStep', async () => {
+      let capturedContext: unknown;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+          }),
+        }),
+        experimental_context: { myData: 'test-value' },
+        prepareStep: async ({ experimental_context }) => {
+          capturedContext = experimental_context;
+          return undefined;
+        },
+        prompt: 'test',
+      });
+
+      expect(capturedContext).toEqual({ myData: 'test-value' });
+    });
+
+    it('should send context in onFinish callback', async () => {
+      let recordedContext: unknown | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+          }),
+        }),
+        experimental_context: {
+          context: 'test',
+        },
+        prompt: 'test-input',
+        onFinish: ({ experimental_context }) => {
+          recordedContext = experimental_context;
+        },
+      });
+
+      expect(recordedContext).toStrictEqual({
+        context: 'test',
+      });
+    });
   });
 
   describe('invalid tool calls', () => {
@@ -3453,11 +4868,19 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -3499,6 +4922,8 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
@@ -3586,11 +5011,19 @@ describe('generateText', () => {
             doGenerate: async () => ({
               warnings: [],
               usage: {
-                inputTokens: 10,
-                outputTokens: 20,
-                totalTokens: 30,
+                inputTokens: {
+                  total: 10,
+                  noCache: 10,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 20,
+                  text: 20,
+                  reasoning: undefined,
+                },
               },
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
               content: [
                 {
                   type: 'tool-call',
@@ -3692,6 +5125,7 @@ describe('generateText', () => {
               ],
               "finishReason": "tool-calls",
               "providerMetadata": undefined,
+              "rawFinishReason": undefined,
               "request": {},
               "response": {
                 "body": undefined,
@@ -3736,8 +5170,20 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 10,
+                },
                 "inputTokens": 10,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 20,
+                },
                 "outputTokens": 20,
+                "raw": undefined,
+                "reasoningTokens": undefined,
                 "totalTokens": 30,
               },
               "warnings": [],
@@ -3756,8 +5202,8 @@ describe('generateText', () => {
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting' as const,
-          setting: 'temperature',
+          type: 'unsupported' as const,
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];
@@ -3809,7 +5255,7 @@ describe('generateText', () => {
                       input: `{ "value": "test" }`,
                     },
                   ],
-                  finishReason: 'tool-calls',
+                  finishReason: { unified: 'tool-calls', raw: undefined },
                   warnings: [warning1],
                 };
               case 1:
@@ -3885,7 +5331,7 @@ describe('generateText', () => {
                   input: `{ "value": "value" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -3999,7 +5445,7 @@ describe('generateText', () => {
                   input: `{ "value": "value-no-approval" }`,
                 },
               ],
-              finishReason: 'tool-calls',
+              finishReason: { unified: 'tool-calls', raw: undefined },
             }),
           }),
           tools: {
@@ -4192,7 +5638,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
               };
             },
           }),
@@ -4358,7 +5804,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),
@@ -4517,7 +5963,7 @@ describe('generateText', () => {
                     text: 'Hello, world!',
                   },
                 ],
-                finishReason: 'tool-calls',
+                finishReason: { unified: 'tool-calls', raw: undefined },
               };
             },
           }),
@@ -4700,15 +6146,468 @@ describe('generateText', () => {
         `);
       });
     });
+
+    describe('provider-executed tool (MCP) approval', () => {
+      describe('when a provider-executed tool emits tool-approval-request', () => {
+        let result: GenerateTextResult<any, any>;
+
+        beforeEach(async () => {
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    input: `{ "query": "test" }`,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'tool-approval-request',
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: undefined },
+              }),
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            prompt: 'test-input',
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+          });
+        });
+
+        it('should only execute 1 step when waiting for approval', async () => {
+          expect(result.steps.length).toBe(1);
+        });
+
+        it('should have tool-calls finish reason', async () => {
+          expect(result.finishReason).toBe('tool-calls');
+        });
+
+        it('should add tool approval request with providerExecuted tool call to content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "mcp-approval-1",
+                "toolCall": {
+                  "input": {
+                    "query": "test",
+                  },
+                  "providerExecuted": true,
+                  "providerMetadata": undefined,
+                  "title": undefined,
+                  "toolCallId": "mcp-call-1",
+                  "toolName": "mcp_tool",
+                  "type": "tool-call",
+                },
+                "type": "tool-approval-request",
+              },
+            ]
+          `);
+        });
+
+        it('should include tool approval request in response messages', async () => {
+          expect(result.response.messages).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "toolCallId": "mcp-call-1",
+                    "type": "tool-approval-request",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('when a provider-executed tool approval is approved', () => {
+        let result: GenerateTextResult<any, any>;
+        let prompts: LanguageModelV3Prompt[];
+
+        beforeEach(async () => {
+          prompts = [];
+          let callCount = 0;
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async ({ prompt }) => {
+                prompts.push(prompt);
+                callCount++;
+
+                if (callCount === 1) {
+                  // Model returns tool call with result after approval
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'mcp-call-1',
+                        toolName: 'mcp_tool',
+                        input: `{ "query": "test" }`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'mcp-call-1',
+                        toolName: 'mcp_tool',
+                        result: { shortened_url: 'https://short.url/abc' },
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'text',
+                        text: 'Here is your shortened URL: https://short.url/abc',
+                      },
+                    ],
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                  };
+                }
+
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done' }],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+            messages: [
+              {
+                role: 'user',
+                content: 'Shorten this URL: https://example.com',
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { query: 'test' },
+                    providerExecuted: true,
+                    providerOptions: undefined,
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                    type: 'tool-approval-request',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'mcp-approval-1',
+                    type: 'tool-approval-response',
+                    approved: true,
+                    providerExecuted: true,
+                  },
+                ],
+              },
+            ],
+          });
+        });
+
+        it('should send tool-approval-response to the model', async () => {
+          expect(prompts[0]).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Shorten this URL: https://example.com",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": true,
+                    "reason": undefined,
+                    "type": "tool-approval-response",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include provider-executed tool result in content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "dynamic": undefined,
+                "input": {
+                  "query": "test",
+                },
+                "output": {
+                  "shortened_url": "https://short.url/abc",
+                },
+                "providerExecuted": true,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-result",
+              },
+              {
+                "text": "Here is your shortened URL: https://short.url/abc",
+                "type": "text",
+              },
+            ]
+          `);
+        });
+      });
+
+      describe('when a provider-executed tool approval is denied', () => {
+        let result: GenerateTextResult<any, any>;
+        let prompts: LanguageModelV3Prompt[];
+
+        beforeEach(async () => {
+          prompts = [];
+          result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async ({ prompt }) => {
+                prompts.push(prompt);
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'I understand. The tool execution was not approved.',
+                    },
+                  ],
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                };
+              },
+            }),
+            tools: {
+              mcp_tool: {
+                type: 'provider',
+                id: 'test.mcp_tool',
+                inputSchema: z.object({ query: z.string() }),
+                args: {},
+              },
+            },
+            stopWhen: stepCountIs(3),
+            _internal: {
+              generateId: mockId({ prefix: 'id' }),
+              currentDate: () => new Date(0),
+            },
+            messages: [
+              {
+                role: 'user',
+                content: 'Shorten this URL: https://example.com',
+              },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    input: { query: 'test' },
+                    providerExecuted: true,
+                    providerOptions: undefined,
+                    toolCallId: 'mcp-call-1',
+                    toolName: 'mcp_tool',
+                    type: 'tool-call',
+                  },
+                  {
+                    approvalId: 'mcp-approval-1',
+                    toolCallId: 'mcp-call-1',
+                    type: 'tool-approval-request',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    approvalId: 'mcp-approval-1',
+                    type: 'tool-approval-response',
+                    approved: false,
+                    reason: 'User denied the request',
+                    providerExecuted: true,
+                  },
+                ],
+              },
+            ],
+          });
+        });
+
+        it('should send denied tool-approval-response to the model', async () => {
+          expect(prompts[0]).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "Shorten this URL: https://example.com",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "query": "test",
+                    },
+                    "providerExecuted": true,
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-call",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": false,
+                    "reason": "User denied the request",
+                    "type": "tool-approval-response",
+                  },
+                  {
+                    "output": {
+                      "providerOptions": {
+                        "openai": {
+                          "approvalId": "mcp-approval-1",
+                        },
+                      },
+                      "reason": "User denied the request",
+                      "type": "execution-denied",
+                    },
+                    "providerOptions": undefined,
+                    "toolCallId": "mcp-call-1",
+                    "toolName": "mcp_tool",
+                    "type": "tool-result",
+                  },
+                  {
+                    "approvalId": "mcp-approval-1",
+                    "approved": false,
+                    "reason": "User denied the request",
+                    "type": "tool-approval-response",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "tool",
+              },
+            ]
+          `);
+        });
+
+        it('should include text response from model in content', async () => {
+          expect(result.content).toMatchInlineSnapshot(`
+            [
+              {
+                "text": "I understand. The tool execution was not approved.",
+                "type": "text",
+              },
+            ]
+          `);
+        });
+
+        it('should have stop finish reason', async () => {
+          expect(result.finishReason).toBe('stop');
+        });
+      });
+    });
   });
 
   describe('prepareStep with model switch and image URLs', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<
-        Parameters<LanguageModelV3['doGenerate']>[0]
-      > = [];
+      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
 
       const modelWithImageUrlSupport = new MockLanguageModelV3({
         provider: 'with-image-url-support',

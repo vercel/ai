@@ -1,7 +1,4 @@
-import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3Message,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, LanguageModelV3Message } from '@ai-sdk/provider';
 import { XaiResponsesInput } from './xai-responses-api';
 
 export async function convertToXaiResponsesInput({
@@ -11,10 +8,10 @@ export async function convertToXaiResponsesInput({
   store?: boolean;
 }): Promise<{
   input: XaiResponsesInput;
-  inputWarnings: LanguageModelV3CallWarning[];
+  inputWarnings: SharedV3Warning[];
 }> {
   const input: XaiResponsesInput = [];
-  const inputWarnings: LanguageModelV3CallWarning[] = [];
+  const inputWarnings: SharedV3Warning[] = [];
 
   for (const message of prompt) {
     switch (message.role) {
@@ -130,6 +127,9 @@ export async function convertToXaiResponsesInput({
 
       case 'tool': {
         for (const part of message.content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           let outputValue: string;

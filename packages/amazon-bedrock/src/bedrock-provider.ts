@@ -112,7 +112,25 @@ export interface AmazonBedrockProvider extends ProviderV3 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
 
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for image generation.
@@ -315,6 +333,7 @@ export function createAmazonBedrock(
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;

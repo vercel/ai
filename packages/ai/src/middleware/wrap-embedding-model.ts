@@ -1,4 +1,7 @@
-import { EmbeddingModelV3, EmbeddingModelCallOptions } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV3,
+  EmbeddingModelV3CallOptions,
+} from '@ai-sdk/provider';
 import { EmbeddingModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
@@ -20,11 +23,11 @@ export const wrapEmbeddingModel = ({
   modelId,
   providerId,
 }: {
-  model: EmbeddingModelV3<string>;
+  model: EmbeddingModelV3;
   middleware: EmbeddingModelMiddleware | EmbeddingModelMiddleware[];
   modelId?: string;
   providerId?: string;
-}): EmbeddingModelV3<string> => {
+}): EmbeddingModelV3 => {
   return [...asArray(middlewareArg)]
     .reverse()
     .reduce((wrappedModel, middleware) => {
@@ -45,15 +48,15 @@ const doWrap = ({
   modelId,
   providerId,
 }: {
-  model: EmbeddingModelV3<string>;
+  model: EmbeddingModelV3;
   middleware: EmbeddingModelMiddleware;
   modelId?: string;
   providerId?: string;
-}): EmbeddingModelV3<string> => {
+}): EmbeddingModelV3 => {
   async function doTransform({
     params,
   }: {
-    params: EmbeddingModelCallOptions<string>;
+    params: EmbeddingModelV3CallOptions;
   }) {
     return transformParams ? await transformParams({ params, model }) : params;
   }
@@ -67,8 +70,8 @@ const doWrap = ({
     supportsParallelCalls:
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(
-      params: EmbeddingModelCallOptions<string>,
-    ): Promise<Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>> {
+      params: EmbeddingModelV3CallOptions,
+    ): Promise<Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>> {
       const transformedParams = await doTransform({ params });
       const doEmbed = async () => model.doEmbed(transformedParams);
       return wrapEmbed

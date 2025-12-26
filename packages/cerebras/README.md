@@ -21,57 +21,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 ## Available Models
 
 Cerebras offers a variety of high-performance language models:
-
-### Llama 3.3 70B
-
-- Model ID: `llama-3.3-70b`
-- 70 billion parameters
-- Knowledge cutoff: December 2023
-- Context Length: 8192
-- Training Tokens: 15 trillion+
-
-### Llama 3.1 8B
-
-- Model ID: `llama3.1-8b`
-- 8 billion parameters
-- Knowledge cutoff: March 2023
-- Context Length: 8192
-- Training Tokens: 15 trillion+
-
-### GPT-OSS 120B
-
-- Model ID: `gpt-oss-120b`
-- 120 billion parameters
-- High-performance open-source model
-- Optimized for inference speed
-
-### Qwen 3 235B A22B Instruct 2507
-
-- Model ID: `qwen-3-235b-a22b-instruct-2507`
-- 235 billion parameters
-- Instruction-tuned model
-- Released July 2025
-
-### Qwen 3 235B A22B Thinking 2507
-
-- Model ID: `qwen-3-235b-a22b-thinking-2507`
-- 235 billion parameters
-- Enhanced reasoning capabilities
-- Released July 2025
-
-### Qwen 3 32B
-
-- Model ID: `qwen-3-32b`
-- 32 billion parameters
-- Balanced performance and efficiency
-- Multilingual capabilities
-
-### Qwen 3 Coder 480B
-
-- Model ID: `qwen-3-coder-480b`
-- 480 billion parameters
-- Specialized for code generation and understanding
-- Advanced programming capabilities
+https://inference-docs.cerebras.ai/models/overview
 
 ## Example
 
