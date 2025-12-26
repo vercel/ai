@@ -13,7 +13,7 @@ import {
   ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
-import { Span } from '@opentelemetry/api';
+import { Span, context as otelContext } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
@@ -660,6 +660,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
+    const capturedContext = otelContext.active();
+
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
@@ -1093,7 +1095,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       }),
       tracer,
       endWhenDone: false,
-      fn: async rootSpanArg => {
+      parentContext: capturedContext,
+      fn: async (rootSpanArg, rootSpanContext) => {
         rootSpan = rootSpanArg;
 
         const initialPrompt = await standardizePrompt({
@@ -1343,6 +1346,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
               tracer,
               endWhenDone: false,
+              parentContext: rootSpanContext,
               fn: async doStreamSpan => ({
                 startTimestampMs: now(), // get before the call
                 doStreamSpan,
