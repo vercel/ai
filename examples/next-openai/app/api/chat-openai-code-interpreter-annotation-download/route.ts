@@ -1,4 +1,8 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
+import type {
+  OpenAIResponsesProviderOptions,
+  OpenaiResponsesSourceDocumentProviderMetadata,
+} from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   InferUITools,
@@ -8,6 +12,10 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
+import { z } from 'zod/v4';
+
+const openaiResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: openai.tools.codeInterpreter(),
@@ -26,7 +34,9 @@ export type OpenAICodeInterpreterMessage = UIMessage<
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
+  const uiMessages = await validateUIMessages<OpenAICodeInterpreterMessage>({
+    messages,
+  });
 
   // Collect sources with container file citations as they're generated
   const containerFileSources: Array<{
@@ -44,23 +54,24 @@ export async function POST(req: Request) {
 
       // Collect container file citations from sources
       for (const source of sources) {
-        if (
-          source.sourceType === 'document' &&
-          source.providerMetadata?.openai?.containerId &&
-          source.providerMetadata?.openai?.fileId
-        ) {
-          const containerId = String(
-            source.providerMetadata.openai.containerId || '',
-          );
-          const fileId = String(source.providerMetadata.openai.fileId || '');
-          const filename = source.filename || source.title || 'file';
-
-          // Avoid duplicates
-          const exists = containerFileSources.some(
-            s => s.containerId === containerId && s.fileId === fileId,
-          );
-          if (!exists) {
-            containerFileSources.push({ containerId, fileId, filename });
+        if (source.sourceType === 'document') {
+          const providerMetadataParsed =
+            openaiResponsesSourceDocumentProviderMetadataSchema.safeParse(
+              source.providerMetadata,
+            );
+          const filename = source.filename || source.title;
+          if (providerMetadataParsed.success) {
+            const { openai } = providerMetadataParsed.data;
+            if (openai.type === 'container_file_citation') {
+              const { containerId, fileId } = openai;
+              // Avoid duplicates
+              const exists = containerFileSources.some(
+                s => s.containerId === containerId && s.fileId === fileId,
+              );
+              if (!exists) {
+                containerFileSources.push({ containerId, fileId, filename });
+              }
+            }
           }
         }
       }
@@ -79,7 +90,7 @@ export async function POST(req: Request) {
       if (part.type === 'finish' && containerFileSources.length > 0) {
         const downloadLinks = containerFileSources.map(source => ({
           filename: source.filename,
-          url: `/api/download-container-file?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
+          url: `/api/download-container-file/openai?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
         }));
 
         return {
