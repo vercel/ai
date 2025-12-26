@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.2
+
+### Patch Changes
+
+- 4c527d5: fix (devtools): step output text and bin name
+
 ## 0.0.1
 
 ### Patch Changes
