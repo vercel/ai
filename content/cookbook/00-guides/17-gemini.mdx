@@ -70,6 +70,28 @@ The `thinkingLevel` parameter accepts different values to control the depth of r
 - Gemini 3 Pro supports: `'low'` and `'high'`
 - Gemini 3 Flash supports: `'minimal'`, `'low'`, `'medium'`, and `'high'`
 
+<Note>
+  When using Gemini 3 Flash, the correct model id includes the preview suffix:
+  use <InlineCode>gemini-3-flash-preview</InlineCode>.
+  Here's a route example with AI SDK UI:
+</Note>
+
+```tsx filename="app/api/chat/route.ts"
+import { google } from '@ai-sdk/google';
+import { streamText, UIMessage, convertToModelMessages } from 'ai';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    model: google('gemini-3-flash-preview'),
+    messages: await convertToModelMessages(messages),
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
 ### Using Tools with the AI SDK
 
 Gemini 3 excels at tool calling with improved reliability and consistency for multi-step workflows. Here's an example of using tool calling with the AI SDK:
