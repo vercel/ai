@@ -285,22 +285,26 @@ export interface AnthropicBashCodeExecutionToolResultContent {
 export interface AnthropicWebFetchToolResultContent {
   type: 'web_fetch_tool_result';
   tool_use_id: string;
-  content: {
-    type: 'web_fetch_result';
-    url: string;
-    retrieved_at: string | null;
-    content: {
-      type: 'document';
-      title: string | null;
-      citations?: { enabled: boolean };
-      source:
-        | { type: 'base64'; media_type: 'application/pdf'; data: string }
-        | { type: 'text'; media_type: 'text/plain'; data: string };
-    };
-  };
+  content:
+    | {
+        type: 'web_fetch_result';
+        url: string;
+        retrieved_at: string | null;
+        content: {
+          type: 'document';
+          title: string | null;
+          citations?: { enabled: boolean };
+          source:
+            | { type: 'base64'; media_type: 'application/pdf'; data: string }
+            | { type: 'text'; media_type: 'text/plain'; data: string };
+        };
+      }
+    | {
+        type: 'web_fetch_tool_result_error';
+        error_code: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
-
 export interface AnthropicMcpToolUseContent {
   type: 'mcp_tool_use';
   id: string;

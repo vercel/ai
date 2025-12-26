@@ -402,7 +402,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
           if (
             toolPart.state === 'input-available' ||
             toolPart.state === 'output-available' ||
-            toolPart.state === 'output-error'
+            (toolPart.state === 'output-error' && toolPart.input !== undefined)
           ) {
             await validateTypes({
               value: toolPart.input,
