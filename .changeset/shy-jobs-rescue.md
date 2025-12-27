@@ -2,4 +2,4 @@
 '@ai-sdk/anthropic': patch
 ---
 
-Fix: tool_search_tool_result parsing
+Fix: Use provider tool name in Tool Search Tool results
