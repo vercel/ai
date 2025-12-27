@@ -17,6 +17,7 @@ import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embed
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 import { googleTools } from './google-tools';
+import { GoogleFilesClient, createGoogleFilesClient } from './google-files';
 
 import {
   GoogleGenerativeAIImageSettings,
@@ -67,6 +68,44 @@ Creates a model for image generation.
   ): EmbeddingModelV3;
 
   tools: typeof googleTools;
+
+  /**
+   * Client for interacting with the Gemini File API.
+   *
+   * The File API allows you to upload files up to 2GB in size for use with
+   * Gemini models. This is essential for processing large media files like
+   * videos, audio, and large documents that exceed the 20MB inline request limit.
+   *
+   * Files are automatically deleted after 48 hours.
+   *
+   * @example
+   * ```typescript
+   * import { google } from '@ai-sdk/google';
+   *
+   * // Upload a video file
+   * const file = await google.files.upload({
+   *   file: videoBuffer,
+   *   mimeType: 'video/mp4',
+   *   displayName: 'my-video.mp4',
+   * });
+   *
+   * // Wait for processing (required for videos)
+   * const readyFile = await google.files.waitForProcessing(file.name);
+   *
+   * // Use in generation
+   * const result = await generateText({
+   *   model: google('gemini-2.5-flash'),
+   *   messages: [{
+   *     role: 'user',
+   *     content: [
+   *       { type: 'text', text: 'Summarize this video' },
+   *       { type: 'file', data: new URL(readyFile.uri), mimeType: readyFile.mimeType },
+   *     ],
+   *   }],
+   * });
+   * ```
+   */
+  files: GoogleFilesClient;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -180,6 +219,12 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId);
   };
 
+  const filesClient = createGoogleFilesClient({
+    baseURL,
+    headers: getHeaders,
+    fetch: options.fetch,
+  });
+
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
@@ -191,6 +236,7 @@ export function createGoogleGenerativeAI(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleTools;
+  provider.files = filesClient;
 
   return provider as GoogleGenerativeAIProvider;
 }
