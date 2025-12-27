@@ -16,25 +16,25 @@ export function prepareTools({
   modelId: GoogleGenerativeAIModelId;
 }): {
   tools:
-    | Array<
-        | {
-            functionDeclarations: Array<{
-              name: string;
-              description: string;
-              parameters: unknown;
-            }>;
-          }
-        | Record<string, any>
-      >
-    | undefined;
-  toolConfig:
-    | undefined
+  | Array<
     | {
-        functionCallingConfig: {
-          mode: 'AUTO' | 'NONE' | 'ANY';
-          allowedFunctionNames?: string[];
-        };
-      };
+      functionDeclarations: Array<{
+        name: string;
+        description: string;
+        parameters: unknown;
+      }>;
+    }
+    | Record<string, any>
+  >
+  | undefined;
+  toolConfig:
+  | undefined
+  | {
+    functionCallingConfig: {
+      mode: 'AUTO' | 'NONE' | 'ANY';
+      allowedFunctionNames?: string[];
+    };
+  };
   toolWarnings: SharedV3Warning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -198,6 +198,12 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
+        if (!/^[a-zA-Z_][a-zA-Z0-9_.:-]*$/.test(tool.name)) {
+          throw new Error(
+            `Invalid tool name: ${tool.name}. Tool names must start with a letter or underscore and contain only alphanumeric characters, underscores, dots, colons, or dashes.`,
+          );
+        }
+
         functionDeclarations.push({
           name: tool.name,
           description: tool.description ?? '',
