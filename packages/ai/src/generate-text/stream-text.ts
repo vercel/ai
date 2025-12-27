@@ -1011,7 +1011,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         // abort handling:
         function abort() {
           onAbort?.({ steps: recordedSteps });
-          controller.enqueue({ type: 'abort' });
+          controller.enqueue({
+            type: 'abort',
+            ...(abortSignal?.reason !== undefined
+              ? { reason: abortSignal.reason }
+              : {}),
+          });
           controller.close();
         }
 
