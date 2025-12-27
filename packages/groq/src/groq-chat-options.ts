@@ -27,10 +27,22 @@ export type GroqChatModelId =
   | (string & {});
 
 export const groqProviderOptions = z.object({
+  /**
+   * Controls reasoning output format for models that support reasoning.
+   * Available only on models that support reasoning.
+   *
+   * - `parsed`: structured reasoning output (available when the selected model supports reasoning)
+   * - `raw`: unprocessed reasoning text
+   * - `hidden`: no reasoning returned
+   *
+   * @see https://console.groq.com/docs/reasoning
+   */
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
 
   /**
    * Specifies the reasoning effort level for model inference.
+   * Available only on models that support reasoning.
+   *
    * @see https://console.groq.com/docs/reasoning#reasoning-effort
    */
   reasoningEffort: z
