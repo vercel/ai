@@ -38,6 +38,8 @@ export class GatewayImageModel implements ImageModelV3 {
     size,
     aspectRatio,
     seed,
+    files,
+    mask,
     providerOptions,
     headers,
     abortSignal,
@@ -64,6 +66,8 @@ export class GatewayImageModel implements ImageModelV3 {
           ...(size && { size }),
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
+          ...(files && { files }),
+          ...(mask && { mask }),
           ...(providerOptions && { providerOptions }),
         },
         successfulResponseHandler: createJsonResponseHandler(

@@ -157,6 +157,86 @@ describe('GatewayImageModel', () => {
       expect(requestBody).not.toHaveProperty('size');
       expect(requestBody).not.toHaveProperty('aspectRatio');
       expect(requestBody).not.toHaveProperty('seed');
+      expect(requestBody).not.toHaveProperty('files');
+      expect(requestBody).not.toHaveProperty('mask');
+    });
+
+    it('should include files when provided', async () => {
+      prepareJsonResponse();
+
+      const files = [
+        { type: 'base64' as const, data: 'base64-encoded-image-data' },
+      ];
+      await createTestModel().doGenerate({
+        prompt: 'Edit this image',
+        files,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toEqual({
+        prompt: 'Edit this image',
+        n: 1,
+        files,
+        providerOptions: {},
+      });
+    });
+
+    it('should include mask when provided', async () => {
+      prepareJsonResponse();
+
+      const mask = { type: 'base64' as const, data: 'base64-encoded-mask-data' };
+      await createTestModel().doGenerate({
+        prompt: 'Inpaint this area',
+        files: undefined,
+        mask,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toEqual({
+        prompt: 'Inpaint this area',
+        n: 1,
+        mask,
+        providerOptions: {},
+      });
+    });
+
+    it('should include both files and mask when provided', async () => {
+      prepareJsonResponse();
+
+      const files = [
+        { type: 'base64' as const, data: 'base64-encoded-image-data' },
+      ];
+      const mask = { type: 'base64' as const, data: 'base64-encoded-mask-data' };
+      await createTestModel().doGenerate({
+        prompt: 'Inpaint this image',
+        files,
+        mask,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toEqual({
+        prompt: 'Inpaint this image',
+        n: 1,
+        files,
+        mask,
+        providerOptions: {},
+      });
     });
 
     it('should return images array correctly', async () => {
