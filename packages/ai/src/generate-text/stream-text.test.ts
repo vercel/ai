@@ -14016,7 +14016,9 @@ describe('streamText', () => {
           `);
 
         expect(
-          await convertAsyncIterableToArray(resultWithReason.toUIMessageStream()),
+          await convertAsyncIterableToArray(
+            resultWithReason.toUIMessageStream(),
+          ),
         ).toMatchInlineSnapshot(`
           [
             {
