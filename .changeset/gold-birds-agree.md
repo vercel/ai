@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-Add reason field for abort chunk
+Include abort reason in stream chunks and document the new field
