@@ -104,20 +104,26 @@ describe('telemetry with BasicContextManager', () => {
         model: new MockLanguageModelV3({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello, world!' },
-              { type: 'text-end', id: '1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
               {
                 type: 'finish',
                 finishReason: { unified: 'stop', raw: 'stop' },
-                usage: {
-                  inputTokens: { total: 10 },
-                  outputTokens: { total: 20 },
-                },
+                usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
               },
             ]),
           }),
         }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
         prompt: 'test prompt',
         experimental_telemetry: { isEnabled: true },
       });
@@ -133,6 +139,13 @@ describe('telemetry with BasicContextManager', () => {
     const aiStreamTextSpan = spans.find(s => s.name === 'ai.streamText');
     expect(aiStreamTextSpan).toBeDefined();
     expect(aiStreamTextSpan!.parentSpanId).toBe(parentSpanId);
+
+    // Verify tool execution span is under streamText span
+    const aiToolCallSpan = spans.find(s => s.name === 'ai.toolCall');
+    expect(aiToolCallSpan).toBeDefined();
+    expect(aiToolCallSpan!.parentSpanId).toBe(
+      aiStreamTextSpan!.spanContext().spanId,
+    );
   });
 
   it('should place generateObject spans under parent span when using BasicContextManager', async () => {
