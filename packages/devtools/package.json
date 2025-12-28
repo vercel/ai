@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "@ai-sdk/devtools": "./bin/cli.js"
+    "devtools": "./bin/cli.js"
   },
   "files": [
     "dist",
