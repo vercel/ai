@@ -22,6 +22,7 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { context as otelContext } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -420,6 +421,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     currentDate: () => Date;
     now: () => number;
   }) {
+    const capturedContext = otelContext.active();
+
     const model = resolveLanguageModel(modelArg);
 
     const { maxRetries, retry } = prepareRetries({
@@ -482,7 +485,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       }),
       tracer,
       endWhenDone: false,
-      fn: async rootSpan => {
+      parentContext: capturedContext,
+      fn: async (rootSpan, rootSpanContext) => {
         const standardizedPrompt = await standardizePrompt({
           system,
           prompt,
@@ -560,6 +564,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             }),
             tracer,
             endWhenDone: false,
+            parentContext: rootSpanContext,
             fn: async doStreamSpan => ({
               startTimestampMs: now(),
               doStreamSpan,
