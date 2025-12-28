@@ -1,3 +1,37 @@
+/**
+ * Tests for OpenTelemetry span hierarchy with context managers that don't
+ * propagate context across async boundaries.
+ *
+ * CHALLENGE:
+ * OpenTelemetry's default context manager (and BasicContextManager) does not
+ * propagate context across async boundaries. This means that when you call
+ * `context.active()` inside an async callback, it returns the root context
+ * instead of the context that was active when the async operation started.
+ *
+ * For example:
+ *   const parentSpan = tracer.startSpan('parent');
+ *   const ctx = trace.setSpan(context.active(), parentSpan);
+ *   await context.with(ctx, async () => {
+ *     // context.active() here returns the root context, not ctx!
+ *     await someAsyncOperation();
+ *     // context.active() here also returns root context
+ *   });
+ *
+ * This breaks span hierarchy because child spans created inside async
+ * callbacks won't have the correct parent span ID.
+ *
+ * SOLUTION:
+ * Instead of relying on `context.active()` inside async callbacks, we:
+ * 1. Capture the context synchronously at function entry (before any await)
+ * 2. Pass this captured context explicitly through the call chain
+ * 3. Use `tracer.startSpan(name, options, parentContext)` instead of
+ *    `tracer.startActiveSpan()` to create spans with explicit parent context
+ * 4. Construct child context using `trace.setSpan(parentCtx, span)` and pass
+ *    it to nested operations
+ *
+ * This ensures correct span hierarchy regardless of which context manager
+ * is being used.
+ */
 import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
