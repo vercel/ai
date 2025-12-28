@@ -1173,6 +1173,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },
+                  parentContext: rootSpanContext,
                 });
 
                 if (result != null) {
@@ -1376,6 +1377,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             abortSignal,
             experimental_context,
             generateId,
+            parentContext: rootSpanContext,
           });
 
           const stepRequest = request ?? {};
