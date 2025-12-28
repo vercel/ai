@@ -41,7 +41,7 @@ describe('telemetry with BasicContextManager', () => {
     api.context.disable();
   });
 
-  it('should place AI SDK spans under parent span when using BasicContextManager', async () => {
+  it('should place generateText spans under parent span when using BasicContextManager', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
