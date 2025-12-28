@@ -1,8 +1,7 @@
 /**
- * Tests that AI SDK spans are correctly placed under parent spans even when
- * using context managers that don't propagate context across async boundaries.
- * The fix captures context synchronously at function entry and passes it
- * explicitly through the call chain.
+ * Tests span hierarchy with context managers that don't propagate context
+ * across async boundaries. The challenge is that `context.active()` inside
+ * async callbacks returns root context instead of the parent context.
  */
 import {
   InMemorySpanExporter,
