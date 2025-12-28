@@ -51,15 +51,25 @@ describe('telemetry with BasicContextManager', () => {
       await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async () => ({
-            content: [{ type: 'text', text: 'Hello, world!' }],
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
+            ],
             finishReason: { unified: 'stop', raw: 'stop' },
-            usage: {
-              inputTokens: { total: 10 },
-              outputTokens: { total: 20 },
-            },
+            usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
             warnings: [],
           }),
         }),
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
         prompt: 'test prompt',
         experimental_telemetry: { isEnabled: true },
       });
@@ -74,6 +84,13 @@ describe('telemetry with BasicContextManager', () => {
     const aiGenerateTextSpan = spans.find(s => s.name === 'ai.generateText');
     expect(aiGenerateTextSpan).toBeDefined();
     expect(aiGenerateTextSpan!.parentSpanId).toBe(parentSpanId);
+
+    // Verify tool execution span is under generateText span
+    const aiToolCallSpan = spans.find(s => s.name === 'ai.toolCall');
+    expect(aiToolCallSpan).toBeDefined();
+    expect(aiToolCallSpan!.parentSpanId).toBe(
+      aiGenerateTextSpan!.spanContext().spanId,
+    );
   });
 
   it('should place streamText spans under parent span when using BasicContextManager', async () => {
