@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.2
+
+### Patch Changes
+
+- 2761f04: feat (provider/xai): fix chat usage output token computation
+
 ## 3.0.1
 
 ### Patch Changes
