@@ -433,6 +433,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
+    } else {
+      // Only check temperature/topP mutual exclusivity when thinking is not enabled
+      if (topP != null && temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported when temperature is set. topP is ignored.`,
+        });
+        baseArgs.top_p = undefined;
+      }
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
