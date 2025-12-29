@@ -23,7 +23,7 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 
-describe('telemetry with BasicContextManager', () => {
+describe('telemetry span hierarchy', () => {
   let provider: NodeTracerProvider;
   let exporter: InMemorySpanExporter;
 
@@ -41,11 +41,14 @@ describe('telemetry with BasicContextManager', () => {
     api.context.disable();
   });
 
-  it('should place generateText spans under parent span when using BasicContextManager', async () => {
+  it('should place generateText spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       await generateText({
@@ -60,7 +63,15 @@ describe('telemetry with BasicContextManager', () => {
               },
             ],
             finishReason: { unified: 'stop', raw: 'stop' },
-            usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 20, text: 20, reasoning: undefined },
+            },
             warnings: [],
           }),
         }),
@@ -93,11 +104,14 @@ describe('telemetry with BasicContextManager', () => {
     );
   });
 
-  it('should place streamText spans under parent span when using BasicContextManager', async () => {
+  it('should place streamText spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       const result = streamText({
@@ -113,7 +127,15 @@ describe('telemetry with BasicContextManager', () => {
               {
                 type: 'finish',
                 finishReason: { unified: 'stop', raw: 'stop' },
-                usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+                usage: {
+                  inputTokens: {
+                    total: 10,
+                    noCache: 10,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: { total: 20, text: 20, reasoning: undefined },
+                },
               },
             ]),
           }),
@@ -148,11 +170,14 @@ describe('telemetry with BasicContextManager', () => {
     );
   });
 
-  it('should place generateObject spans under parent span when using BasicContextManager', async () => {
+  it('should place generateObject spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       await generateObject({
@@ -160,7 +185,15 @@ describe('telemetry with BasicContextManager', () => {
           doGenerate: async () => ({
             content: [{ type: 'text', text: '{ "content": "Hello" }' }],
             finishReason: { unified: 'stop', raw: 'stop' },
-            usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+            usage: {
+              inputTokens: {
+                total: 10,
+                noCache: 10,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: { total: 20, text: 20, reasoning: undefined },
+            },
             warnings: [],
           }),
         }),
@@ -176,16 +209,21 @@ describe('telemetry with BasicContextManager', () => {
     const spans = exporter.getFinishedSpans();
     const parentSpanId = parentSpan.spanContext().spanId;
 
-    const aiGenerateObjectSpan = spans.find(s => s.name === 'ai.generateObject');
+    const aiGenerateObjectSpan = spans.find(
+      s => s.name === 'ai.generateObject',
+    );
     expect(aiGenerateObjectSpan).toBeDefined();
     expect(aiGenerateObjectSpan!.parentSpanId).toBe(parentSpanId);
   });
 
-  it('should place streamObject spans under parent span when using BasicContextManager', async () => {
+  it('should place streamObject spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       const result = streamObject({
@@ -198,7 +236,15 @@ describe('telemetry with BasicContextManager', () => {
               {
                 type: 'finish',
                 finishReason: { unified: 'stop', raw: 'stop' },
-                usage: { inputTokens: { total: 10 }, outputTokens: { total: 20 } },
+                usage: {
+                  inputTokens: {
+                    total: 10,
+                    noCache: 10,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: { total: 20, text: 20, reasoning: undefined },
+                },
               },
             ]),
           }),
@@ -223,16 +269,22 @@ describe('telemetry with BasicContextManager', () => {
     expect(aiStreamObjectSpan!.parentSpanId).toBe(parentSpanId);
   });
 
-  it('should place embed spans under parent span when using BasicContextManager', async () => {
+  it('should place embed spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       await embed({
         model: new MockEmbeddingModelV3({
-          doEmbed: async () => ({ embeddings: [[0.1, 0.2, 0.3]], warnings: [] }),
+          doEmbed: async () => ({
+            embeddings: [[0.1, 0.2, 0.3]],
+            warnings: [],
+          }),
         }),
         value: 'test value',
         experimental_telemetry: { isEnabled: true },
@@ -250,17 +302,23 @@ describe('telemetry with BasicContextManager', () => {
     expect(aiEmbedSpan!.parentSpanId).toBe(parentSpanId);
   });
 
-  it('should place embedMany spans under parent span when using BasicContextManager', async () => {
+  it('should place embedMany spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       await embedMany({
         model: new MockEmbeddingModelV3({
           doEmbed: async () => ({
-            embeddings: [[0.1, 0.2], [0.3, 0.4]],
+            embeddings: [
+              [0.1, 0.2],
+              [0.3, 0.4],
+            ],
             warnings: [],
           }),
         }),
@@ -280,11 +338,14 @@ describe('telemetry with BasicContextManager', () => {
     expect(aiEmbedManySpan!.parentSpanId).toBe(parentSpanId);
   });
 
-  it('should place rerank spans under parent span when using BasicContextManager', async () => {
+  it('should place rerank spans under parent span', async () => {
     const tracer = provider.getTracer('test');
 
     const parentSpan = tracer.startSpan('parent-operation');
-    const parentSpanContext = api.trace.setSpan(api.context.active(), parentSpan);
+    const parentSpanContext = api.trace.setSpan(
+      api.context.active(),
+      parentSpan,
+    );
 
     await api.context.with(parentSpanContext, async () => {
       await rerank({
