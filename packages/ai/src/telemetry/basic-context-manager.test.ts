@@ -1,15 +1,15 @@
 /**
- * Tests span hierarchy with context managers that don't propagate context
- * across async boundaries. The challenge is that `context.active()` inside
- * async callbacks returns root context instead of the parent context.
+ * Tests span hierarchy with StackContextManager (browser's default context
+ * manager). Context is lost after async boundaries because StackContextManager
+ * only propagates context synchronously within the call stack.
  */
 import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { StackContextManager } from '@opentelemetry/sdk-trace-web';
 import * as api from '@opentelemetry/api';
-import { Context, ContextManager, ROOT_CONTEXT } from '@opentelemetry/api';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { z } from 'zod/v4';
@@ -24,63 +24,14 @@ import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 
-/**
- * A context manager that only propagates context synchronously.
- * Context is lost after any async boundary (when a Promise is awaited).
- * This simulates the behavior of context managers that don't use
- * AsyncLocalStorage or similar mechanisms.
- */
-class SyncOnlyContextManager implements ContextManager {
-  private _currentContext: Context = ROOT_CONTEXT;
-
-  active(): Context {
-    return this._currentContext;
-  }
-
-  with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
-    context: Context,
-    fn: F,
-    thisArg?: ThisParameterType<F>,
-    ...args: A
-  ): ReturnType<F> {
-    const previousContext = this._currentContext;
-    this._currentContext = context;
-    try {
-      return fn.call(thisArg, ...args);
-    } finally {
-      // Restore previous context immediately after fn returns.
-      // If fn returns a Promise, context is already restored before
-      // the Promise resolves, simulating context loss across async boundaries.
-      this._currentContext = previousContext;
-    }
-  }
-
-  bind<T extends (...args: unknown[]) => unknown>(
-    context: Context,
-    target: T,
-  ): T {
-    // For simplicity, just return the target without binding context
-    return target;
-  }
-
-  enable(): this {
-    return this;
-  }
-
-  disable(): this {
-    this._currentContext = ROOT_CONTEXT;
-    return this;
-  }
-}
-
 describe('telemetry span hierarchy', () => {
   let provider: NodeTracerProvider;
   let exporter: InMemorySpanExporter;
-  let contextManager: SyncOnlyContextManager;
+  let contextManager: StackContextManager;
 
   beforeEach(() => {
     exporter = new InMemorySpanExporter();
-    contextManager = new SyncOnlyContextManager();
+    contextManager = new StackContextManager();
     provider = new NodeTracerProvider({
       spanProcessors: [new SimpleSpanProcessor(exporter)],
     });
