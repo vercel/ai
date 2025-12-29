@@ -153,12 +153,12 @@ Only applicable for HTTP-based providers.
                     input: () => values.map(value => JSON.stringify(value)),
                   },
                 },
-                }),
-                tracer,
-                parentContext: currentContext,
-                fn: async doEmbedSpan => {
-                  const modelResponse = await model.doEmbed({
-                    values,
+              }),
+              tracer,
+              parentContext: currentContext,
+              fn: async doEmbedSpan => {
+                const modelResponse = await model.doEmbed({
+                  values,
                   abortSignal,
                   headers: headersWithUserAgent,
                   providerOptions,
