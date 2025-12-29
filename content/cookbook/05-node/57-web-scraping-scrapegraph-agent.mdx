@@ -1,0 +1,447 @@
+---
+title: Web Scraping Agent with ScrapeGraph AI
+description: Learn how to build intelligent web scraping agents using ScrapeGraph AI tools with the AI SDK
+tags: ['node', 'tool use', 'agent', 'web', 'scraping']
+---
+
+# Web Scraping Agent with ScrapeGraph AI
+
+This guide shows how to build intelligent web scraping agents using [ScrapeGraph AI](https://scrapegraphai.com/) tools with the AI SDK. ScrapeGraph AI provides AI-powered web scraping capabilities that enable your agents to extract, analyze, and act on web data automatically.
+
+## Installation
+
+First, install the required packages:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-scrapegraphai-tools ai @ai-sdk/openai zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-scrapegraphai-tools ai @ai-sdk/openai zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-scrapegraphai-tools ai @ai-sdk/openai zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-scrapegraphai-tools ai @ai-sdk/openai zod" dark />
+  </Tab>
+</Tabs>
+
+## Setup
+
+<Note>
+  Get your API key from the [ScrapeGraph AI Dashboard](https://dashboard.scrapegraphai.com/).
+</Note>
+
+Set your environment variables:
+
+```bash
+export SGAI_APIKEY=your_scrapegraph_api_key
+export OPENAI_API_KEY=your_openai_api_key
+```
+
+## Basic Web Scraping Agent
+
+Let's build a simple agent that can scrape web content:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { smartScraperTool } from 'ai-sdk-scrapegraphai-tools';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Extract product information from https://example.com/product',
+  tools: {
+    smartScraper: smartScraperTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+## Product Research Agent
+
+Build an agent that can research products across multiple websites:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  searchScraperTool,
+  smartScraperTool,
+} from 'ai-sdk-scrapegraphai-tools';
+
+async function researchProduct(productQuery: string) {
+  const { text, toolResults } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Research ${productQuery} and provide:
+      1. Product specifications
+      2. Price comparison across different retailers
+      3. Customer reviews summary
+      4. Pros and cons`,
+    tools: {
+      searchScraper: searchScraperTool,
+      smartScraper: smartScraperTool,
+    },
+    stopWhen: stepCountIs(10),
+  });
+
+  return {
+    analysis: text,
+    sources: toolResults.map(r => r.result),
+  };
+}
+
+// Example usage
+const result = await researchProduct('mechanical keyboards under $100');
+console.log('Product Analysis:', result.analysis);
+console.log('Sources:', result.sources);
+```
+
+## Competitive Analysis Agent
+
+Create an agent that monitors competitor websites:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { smartScraperTool, markdownifyTool } from 'ai-sdk-scrapegraphai-tools';
+
+async function analyzeCompetitors(competitorUrls: string[]) {
+  const urlList = competitorUrls.join(', ');
+
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Analyze these competitor websites: ${urlList}
+      
+      Extract and compare:
+      1. Pricing strategies
+      2. Key features
+      3. Value propositions
+      4. Target audience
+      5. Unique selling points
+      
+      Provide a competitive analysis report.`,
+    tools: {
+      smartScraper: smartScraperTool,
+      markdownify: markdownifyTool,
+    },
+    stopWhen: stepCountIs(15),
+  });
+
+  return text;
+}
+
+// Example usage
+const analysis = await analyzeCompetitors([
+  'https://competitor1.com',
+  'https://competitor2.com',
+  'https://competitor3.com',
+]);
+
+console.log('Competitive Analysis:', analysis);
+```
+
+## Documentation Crawler Agent
+
+Build an agent that crawls and organizes documentation:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  crawlTool,
+  getCrawlRequestTool,
+  sitemapTool,
+} from 'ai-sdk-scrapegraphai-tools';
+
+async function crawlDocumentation(baseUrl: string) {
+  const { text, toolResults } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Crawl the documentation at ${baseUrl} and:
+      1. Extract the sitemap structure
+      2. Start a crawl job for all documentation pages
+      3. Monitor the crawl status
+      4. Organize the content into a structured format`,
+    tools: {
+      sitemap: sitemapTool,
+      crawl: crawlTool,
+      getCrawlRequest: getCrawlRequestTool,
+    },
+    stopWhen: stepCountIs(10),
+  });
+
+  return {
+    summary: text,
+    crawledPages: toolResults,
+  };
+}
+
+// Example usage
+const docs = await crawlDocumentation('https://docs.example.com');
+console.log('Documentation Summary:', docs.summary);
+```
+
+## News Aggregation Agent
+
+Create an agent that aggregates and summarizes news:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  searchScraperTool,
+  smartScraperTool,
+  markdownifyTool,
+} from 'ai-sdk-scrapegraphai-tools';
+
+async function aggregateNews(topic: string, count: number = 5) {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Find and summarize the top ${count} latest news articles about "${topic}".
+      
+      For each article, provide:
+      1. Title and source
+      2. Publication date
+      3. Key points (3-5 bullet points)
+      4. Sentiment analysis (positive/neutral/negative)
+      5. Link to original article
+      
+      Then provide an overall summary of the topic trends.`,
+    tools: {
+      searchScraper: searchScraperTool,
+      smartScraper: smartScraperTool,
+      markdownify: markdownifyTool,
+    },
+    stopWhen: stepCountIs(15),
+  });
+
+  return text;
+}
+
+// Example usage
+const newsDigest = await aggregateNews('artificial intelligence breakthroughs', 5);
+console.log('News Digest:', newsDigest);
+```
+
+## E-commerce Price Monitoring Agent
+
+Build an agent that monitors product prices:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import {
+  searchScraperTool,
+  smartScraperTool,
+} from 'ai-sdk-scrapegraphai-tools';
+
+async function monitorPrices(productName: string) {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Find and compare prices for "${productName}" across multiple online stores.
+      
+      Extract:
+      1. Product name and specifications
+      2. Current price at each store
+      3. Availability status
+      4. Shipping costs (if available)
+      5. Store reputation/rating
+      
+      Recommend the best deal based on total cost.`,
+    tools: {
+      searchScraper: searchScraperTool,
+      smartScraper: smartScraperTool,
+    },
+    stopWhen: stepCountIs(10),
+  });
+
+  return text;
+}
+
+// Example usage
+const priceComparison = await monitorPrices('Sony WH-1000XM5 headphones');
+console.log('Price Comparison:', priceComparison);
+```
+
+## Advanced: Multi-Step Agentic Scraping
+
+For complex workflows that require interaction (form submissions, navigation), use the agentic scraper:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { agenticScraperTool } from 'ai-sdk-scrapegraphai-tools';
+
+async function searchAndExtract(
+  searchUrl: string,
+  searchQuery: string,
+  dataToExtract: string,
+) {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    prompt: `Go to ${searchUrl}, search for "${searchQuery}", and extract ${dataToExtract} from the results.`,
+    tools: {
+      agenticScraper: agenticScraperTool,
+    },
+    stopWhen: stepCountIs(5),
+  });
+
+  return text;
+}
+
+// Example usage
+const results = await searchAndExtract(
+  'https://example.com/search',
+  'gaming laptops',
+  'top 5 results with prices and specifications',
+);
+
+console.log('Search Results:', results);
+```
+
+## Credit Management
+
+Monitor your API usage with the credits tool:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { getCreditsTool } from 'ai-sdk-scrapegraphai-tools';
+
+async function checkCreditsBalance() {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Check my ScrapeGraph AI credits balance',
+    tools: {
+      getCredits: getCreditsTool,
+    },
+  });
+
+  return text;
+}
+
+// Check credits before expensive operations
+const balance = await checkCreditsBalance();
+console.log('Credits Balance:', balance);
+```
+
+## Best Practices
+
+### 1. Rate Limiting
+
+Use `stepCountIs()` to limit the number of tool calls and control costs:
+
+```ts
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Scrape multiple pages',
+  tools: {
+    smartScraper: smartScraperTool,
+  },
+  stopWhen: stepCountIs(5), // Limit to 5 steps
+});
+```
+
+### 2. Error Handling
+
+Always implement proper error handling:
+
+```ts
+try {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Scrape https://example.com',
+    tools: {
+      smartScraper: smartScraperTool,
+    },
+    stopWhen: stepCountIs(3),
+  });
+  console.log(text);
+} catch (error) {
+  if (error instanceof Error) {
+    console.error('Scraping failed:', error.message);
+  }
+  // Handle specific error types
+  // - API rate limits
+  // - Invalid URLs
+  // - Timeout errors
+}
+```
+
+### 3. Caching Results
+
+For frequently accessed content, consider caching:
+
+```ts
+const cache = new Map<string, { data: string; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+async function cachedScrape(url: string) {
+  const cached = cache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: `Scrape ${url}`,
+    tools: {
+      smartScraper: smartScraperTool,
+    },
+  });
+
+  cache.set(url, { data: text, timestamp: Date.now() });
+  return text;
+}
+```
+
+### 4. Structured Output
+
+For consistent data extraction, guide the AI with structured prompts:
+
+```ts
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  prompt: `Extract product data from https://example.com/product
+    
+    Return the data in this JSON format:
+    {
+      "name": "product name",
+      "price": "price with currency",
+      "description": "product description",
+      "specifications": ["spec1", "spec2"],
+      "availability": "in stock / out of stock",
+      "rating": "rating out of 5"
+    }`,
+  tools: {
+    smartScraper: smartScraperTool,
+  },
+});
+
+const productData = JSON.parse(text);
+```
+
+## Cost Estimation
+
+Understanding credit costs for different operations:
+
+| Tool               | Cost per Operation | Best For                            |
+| ------------------ | ------------------ | ----------------------------------- |
+| `scrapeTool`       | 1 credit           | Getting raw HTML                    |
+| `markdownifyTool`  | 2 credits          | Converting pages to markdown        |
+| `smartScraperTool` | 10 credits         | AI-powered data extraction          |
+| `searchScraperTool`| 10 credits/site    | Multi-source web searches           |
+| `crawlTool`        | 2-10 credits/page  | Multi-page crawling                 |
+| `sitemapTool`      | 1 credit           | Site structure discovery            |
+| `agenticScraperTool`| Variable          | Complex workflows with interactions |
+
+## Additional Resources
+
+- [ScrapeGraph AI Provider Documentation](/docs/providers/community-providers/scrapegraph)
+- [ScrapeGraph AI Documentation](https://docs.scrapegraphai.com)
+- [ScrapeGraph AI Dashboard](https://dashboard.scrapegraphai.com/)
+- [npm Package](https://www.npmjs.com/package/ai-sdk-scrapegraphai-tools)
+
