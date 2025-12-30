@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 1.0.20
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [4953414]
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 1.0.19
 
 ### Patch Changes

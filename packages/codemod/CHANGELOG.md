@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 2.0.13
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+
 ## 2.0.12
 
 ### Patch Changes
