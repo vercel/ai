@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 3.0.4
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.3
+
+### Patch Changes
+
+- 1dad057: fix(gateway): add error handling for oidc refresh
+
 ## 3.0.2
 
 ### Patch Changes
