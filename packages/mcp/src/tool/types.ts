@@ -14,7 +14,13 @@ const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
 
 export type ToolSchemas =
-  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
+  | Record<
+      string,
+      {
+        inputSchema: FlexibleSchema<JSONObject | unknown>;
+        outputSchema?: FlexibleSchema<JSONObject | unknown>;
+      }
+    >
   | 'automatic'
   | undefined;
 
@@ -128,6 +134,10 @@ const ToolSchema = z
         properties: z.optional(z.object({}).loose()),
       })
       .loose(),
+    outputSchema: z.optional(z.object({
+      type: z.literal('object'),
+      properties: z.optional(z.object({}).loose()),
+    }).loose()),
     annotations: z.optional(
       z
         .object({
