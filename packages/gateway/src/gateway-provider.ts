@@ -118,7 +118,7 @@ export function createGatewayProvider(
 
   const getHeaders = async () => {
     const auth = await getGatewayAuthToken(options);
-    if (auth) {
+    if (auth && 'token' in auth) {
       return withUserAgentSuffix(
         {
           Authorization: `Bearer ${auth.token}`,
@@ -130,10 +130,14 @@ export function createGatewayProvider(
       );
     }
 
+    // Check if OIDC was attempted but failed
+    const oidcError = auth && 'oidcError' in auth ? auth.oidcError : undefined;
+
     throw GatewayAuthenticationError.createContextualError({
       apiKeyProvided: false,
       oidcTokenProvided: false,
       statusCode: 401,
+      cause: oidcError,
     });
   };
 
@@ -255,10 +259,11 @@ export const gateway = createGatewayProvider();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
-): Promise<{
-  token: string;
-  authMethod: 'api-key' | 'oidc';
-} | null> {
+): Promise<
+  | { token: string; authMethod: 'api-key' | 'oidc' }
+  | { oidcError: unknown }
+  | null
+> {
   const apiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
@@ -277,7 +282,7 @@ export async function getGatewayAuthToken(
       token: oidcToken,
       authMethod: 'oidc',
     };
-  } catch {
-    return null;
+  } catch (error) {
+    return { oidcError: error };
   }
 }
