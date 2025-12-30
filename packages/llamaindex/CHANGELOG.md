@@ -1,5 +1,13 @@
 # @ai-sdk/llamaindex
 
+## 1.0.117
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+
 ## 1.0.116
 
 ### Patch Changes
