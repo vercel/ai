@@ -18,7 +18,7 @@
     "publint": "turbo publint",
     "test": "turbo test --concurrency 16 --filter=!@example/*",
     "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
-    "ci:release": "turbo clean && turbo build && changeset publish",
+    "ci:release": "turbo clean && turbo build && changeset publish --tag ai-v5",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"
   },
