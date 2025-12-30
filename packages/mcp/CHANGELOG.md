@@ -1,5 +1,14 @@
 # @ai-sdk/mcp
 
+## 1.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
 ## 1.0.1
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/angular
 
+## 2.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+  - @ai-sdk/provider-utils@4.0.2
+
 ## 2.0.4
 
 ### Patch Changes
