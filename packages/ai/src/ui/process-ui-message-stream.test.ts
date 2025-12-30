@@ -224,6 +224,105 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('malformed stream errors', () => {
+    it('should throw descriptive error when text-delta is received without text-start', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Received text-delta for missing text part with ID "text-1". ' +
+        'Ensure a "text-start" chunk is sent before any "text-delta" chunks.',
+      );
+    });
+
+    it('should throw descriptive error when reasoning-delta is received without reasoning-start', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking...' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Received reasoning-delta for missing reasoning part with ID "reasoning-1". ' +
+        'Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.',
+      );
+    });
+
+    it('should throw descriptive error when tool-input-delta is received without tool-input-start', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-1',
+          inputTextDelta: '{"key":',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await expect(
+        consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        }),
+      ).rejects.toThrow(
+        'Received tool-input-delta for missing tool call with ID "tool-1". ' +
+        'Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.',
+      );
+    });
+  });
+
   describe('server-side tool roundtrip', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
