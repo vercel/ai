@@ -92,7 +92,7 @@ export function createProdia(
       modelId,
       modelType: 'languageModel',
     });
-  }
+  };
 
   return {
     specificationVersion: 'v3',
