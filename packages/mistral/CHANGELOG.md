@@ -1,5 +1,14 @@
 # @ai-sdk/mistral
 
+## 2.0.27
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 2.0.26
 
 ### Patch Changes
