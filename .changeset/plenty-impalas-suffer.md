@@ -1,0 +1,51 @@
+---
+'ai': patch
+'@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/angular': patch
+'@ai-sdk/anthropic': patch
+'@ai-sdk/assemblyai': patch
+'@ai-sdk/azure': patch
+'@ai-sdk/baseten': patch
+'@ai-sdk/black-forest-labs': patch
+'@ai-sdk/cerebras': patch
+'@ai-sdk/codemod': patch
+'@ai-sdk/cohere': patch
+'@ai-sdk/deepgram': patch
+'@ai-sdk/deepinfra': patch
+'@ai-sdk/deepseek': patch
+'@ai-sdk/devtools': patch
+'@ai-sdk/elevenlabs': patch
+'@ai-sdk/fal': patch
+'@ai-sdk/fireworks': patch
+'@ai-sdk/gateway': patch
+'@ai-sdk/gladia': patch
+'@ai-sdk/google': patch
+'@ai-sdk/google-vertex': patch
+'@ai-sdk/groq': patch
+'@ai-sdk/huggingface': patch
+'@ai-sdk/hume': patch
+'@ai-sdk/langchain': patch
+'@ai-sdk/llamaindex': patch
+'@ai-sdk/lmnt': patch
+'@ai-sdk/luma': patch
+'@ai-sdk/mcp': patch
+'@ai-sdk/mistral': patch
+'@ai-sdk/openai': patch
+'@ai-sdk/openai-compatible': patch
+'@ai-sdk/perplexity': patch
+'@ai-sdk/provider': patch
+'@ai-sdk/provider-utils': patch
+'@ai-sdk/react': patch
+'@ai-sdk/replicate': patch
+'@ai-sdk/revai': patch
+'@ai-sdk/rsc': patch
+'@ai-sdk/svelte': patch
+'@ai-sdk/test-server': patch
+'@ai-sdk/togetherai': patch
+'@ai-sdk/valibot': patch
+'@ai-sdk/vercel': patch
+'@ai-sdk/vue': patch
+'@ai-sdk/xai': patch
+---
+
+fix: trigger release to update `@latest`
