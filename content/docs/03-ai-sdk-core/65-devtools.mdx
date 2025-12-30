@@ -39,10 +39,9 @@ Wrap your language model with the DevTools middleware using [`wrapLanguageModel`
 ```ts
 import { wrapLanguageModel, gateway } from 'ai';
 import { devToolsMiddleware } from '@ai-sdk/devtools';
-__PROVIDER_IMPORT__;
 
 const model = wrapLanguageModel({
-  model: gateway(__MODEL__),
+  model: gateway('anthropic/claude-sonnet-4.5'),
   middleware: devToolsMiddleware(),
 });
 ```
