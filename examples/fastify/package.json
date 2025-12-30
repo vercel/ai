@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "3.0.1",
-    "ai": "6.0.3",
+    "ai": "6.0.4",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },

@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.3
+
+### Patch Changes
+
+- 1dad057: fix(gateway): add error handling for oidc refresh
+
 ## 3.0.2
 
 ### Patch Changes
