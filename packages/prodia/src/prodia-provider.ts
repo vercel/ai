@@ -87,16 +87,18 @@ export function createProdia(
     });
   };
 
+  const languageModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'languageModel',
+    });
+  }
+
   return {
     specificationVersion: 'v3',
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
   };
