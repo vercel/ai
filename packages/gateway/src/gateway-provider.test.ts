@@ -656,25 +656,30 @@ describe('GatewayProvider', () => {
             const result = await getGatewayAuthToken(options);
 
             expect(result).not.toBeNull();
-            expect(result?.authMethod).toBe(testCase.expectedAuthMethod);
+            expect(result && 'token' in result).toBe(true);
 
-            if (testCase.expectedAuthMethod === 'api-key') {
-              const expectedToken =
-                testCase.optionsApiKey || testCase.envApiKey;
-              expect(result?.token).toBe(expectedToken);
+            if (result && 'token' in result) {
+              expect(result.authMethod).toBe(testCase.expectedAuthMethod);
 
-              // If we used options API key, OIDC should not be called
-              if (testCase.optionsApiKey) {
-                expect(getVercelOidcToken).not.toHaveBeenCalled();
+              if (testCase.expectedAuthMethod === 'api-key') {
+                const expectedToken =
+                  testCase.optionsApiKey || testCase.envApiKey;
+                expect(result.token).toBe(expectedToken);
+
+                // If we used options API key, OIDC should not be called
+                if (testCase.optionsApiKey) {
+                  expect(getVercelOidcToken).not.toHaveBeenCalled();
+                }
+              } else if (testCase.expectedAuthMethod === 'oidc') {
+                expect(result.token).toBe(testCase.oidcTokenMock);
+                expect(getVercelOidcToken).toHaveBeenCalled();
               }
-            } else if (testCase.expectedAuthMethod === 'oidc') {
-              expect(result?.token).toBe(testCase.oidcTokenMock);
-              expect(getVercelOidcToken).toHaveBeenCalled();
             }
           } else {
-            // Test failure cases
+            // Test failure cases - OIDC error should be returned
             const result = await getGatewayAuthToken(options);
-            expect(result).toBeNull();
+            expect(result).not.toBeNull();
+            expect(result).toHaveProperty('oidcError');
           }
         });
       });
@@ -771,15 +776,18 @@ describe('GatewayProvider', () => {
           AI_GATEWAY_API_KEY: '',
         };
 
-        vi.mocked(getVercelOidcToken).mockRejectedValue(
-          new GatewayAuthenticationError({
-            message: 'OIDC token not available',
-            statusCode: 401,
-          }),
-        );
+        const oidcError = new GatewayAuthenticationError({
+          message: 'OIDC token not available',
+          statusCode: 401,
+        });
+        vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
 
         const result = await getGatewayAuthToken({});
-        expect(result).toBeNull();
+        expect(result).not.toBeNull();
+        expect(result).toHaveProperty('oidcError');
+        if (result && 'oidcError' in result) {
+          expect(result.oidcError).toBe(oidcError);
+        }
       });
 
       it('should handle whitespace-only environment variables', async () => {
@@ -792,8 +800,11 @@ describe('GatewayProvider', () => {
         // The whitespace API key should still be used (it's treated as a valid value)
         const result = await getGatewayAuthToken({});
         expect(result).not.toBeNull();
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe('\t\n ');
+        expect(result && 'token' in result).toBe(true);
+        if (result && 'token' in result) {
+          expect(result.authMethod).toBe('api-key');
+          expect(result.token).toBe('\t\n ');
+        }
       });
 
       it('should prioritize options.apiKey over all environment variables', async () => {
@@ -807,9 +818,58 @@ describe('GatewayProvider', () => {
         const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
 
         expect(result).not.toBeNull();
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe(optionsApiKey);
+        expect(result && 'token' in result).toBe(true);
+        if (result && 'token' in result) {
+          expect(result.authMethod).toBe('api-key');
+          expect(result.token).toBe(optionsApiKey);
+        }
         expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
+
+      it('should surface OIDC error as cause when authentication fails', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: '',
+          AI_GATEWAY_API_KEY: '',
+        };
+
+        delete process.env.AI_GATEWAY_API_KEY;
+
+        const oidcError = new Error(
+          'OIDC token generation failed: project not linked',
+        );
+        vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
+
+        vi.mocked(GatewayFetchMetadata).mockImplementation(
+          (config: any) =>
+            ({
+              getAvailableModels: async () => {
+                if (config.headers && typeof config.headers === 'function') {
+                  await config.headers();
+                }
+                return mockGetAvailableModels();
+              },
+              getCredits: async () => {
+                if (config.headers && typeof config.headers === 'function') {
+                  await config.headers();
+                }
+                return mockGetCredits();
+              },
+            }) as any,
+        );
+
+        const provider = createGatewayProvider();
+
+        try {
+          await provider.getAvailableModels();
+          fail('Expected an error to be thrown');
+        } catch (error) {
+          expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+          if (GatewayAuthenticationError.isInstance(error)) {
+            expect(error.cause).toBe(oidcError);
+            expect(error.message).toContain('No authentication provided');
+          }
+        }
       });
     });
 
@@ -823,8 +883,11 @@ describe('GatewayProvider', () => {
         const optionsApiKey = 'options-api-key';
         const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
 
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe(optionsApiKey);
+        expect(result && 'token' in result).toBe(true);
+        if (result && 'token' in result) {
+          expect(result.authMethod).toBe('api-key');
+          expect(result.token).toBe(optionsApiKey);
+        }
         expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
 
@@ -837,8 +900,11 @@ describe('GatewayProvider', () => {
 
         const result = await getGatewayAuthToken({});
 
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe('env-api-key');
+        expect(result && 'token' in result).toBe(true);
+        if (result && 'token' in result) {
+          expect(result.authMethod).toBe('api-key');
+          expect(result.token).toBe('env-api-key');
+        }
         expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
 
@@ -852,8 +918,11 @@ describe('GatewayProvider', () => {
 
         const result = await getGatewayAuthToken({});
 
-        expect(result?.authMethod).toBe('oidc');
-        expect(result?.token).toBe('oidc-token');
+        expect(result && 'token' in result).toBe(true);
+        if (result && 'token' in result) {
+          expect(result.authMethod).toBe('oidc');
+          expect(result.token).toBe('oidc-token');
+        }
         expect(getVercelOidcToken).toHaveBeenCalled();
       });
     });
