@@ -391,6 +391,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 3.0.1
         version: link:../../packages/openai
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../../packages/provider-utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.0
         version: 1.24.0(@cfworker/json-schema@4.1.1)(zod@3.25.76)
