@@ -117,8 +117,8 @@ export function createGatewayProvider(
     'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
-    const auth = await getGatewayAuthToken(options);
-    if (auth && 'token' in auth) {
+    try {
+      const auth = await getGatewayAuthToken(options);
       return withUserAgentSuffix(
         {
           Authorization: `Bearer ${auth.token}`,
@@ -128,17 +128,14 @@ export function createGatewayProvider(
         },
         `ai-sdk/gateway/${VERSION}`,
       );
+    } catch (error) {
+      throw GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+        statusCode: 401,
+        cause: error,
+      });
     }
-
-    // Check if OIDC was attempted but failed
-    const oidcError = auth && 'oidcError' in auth ? auth.oidcError : undefined;
-
-    throw GatewayAuthenticationError.createContextualError({
-      apiKeyProvided: false,
-      oidcTokenProvided: false,
-      statusCode: 401,
-      cause: oidcError,
-    });
   };
 
   const createO11yHeaders = () => {
@@ -259,11 +256,7 @@ export const gateway = createGatewayProvider();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
-): Promise<
-  | { token: string; authMethod: 'api-key' | 'oidc' }
-  | { oidcError: unknown }
-  | null
-> {
+): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
   const apiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
@@ -276,13 +269,9 @@ export async function getGatewayAuthToken(
     };
   }
 
-  try {
-    const oidcToken = await getVercelOidcToken();
-    return {
-      token: oidcToken,
-      authMethod: 'oidc',
-    };
-  } catch (error) {
-    return { oidcError: error };
-  }
+  const oidcToken = await getVercelOidcToken();
+  return {
+    token: oidcToken,
+    authMethod: 'oidc',
+  };
 }
