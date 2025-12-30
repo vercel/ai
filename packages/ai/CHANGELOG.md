@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.117
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [4953414]
+  - @ai-sdk/gateway@2.0.24
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 5.0.116
 
 ### Patch Changes

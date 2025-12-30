@@ -1,5 +1,15 @@
 # @ai-sdk/cerebras
 
+## 1.0.34
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [4953414]
+  - @ai-sdk/openai-compatible@1.0.30
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 1.0.33
 
 ### Patch Changes

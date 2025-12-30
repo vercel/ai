@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 3.0.97
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [4953414]
+  - @ai-sdk/anthropic@2.0.57
+  - @ai-sdk/google@2.0.52
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 3.0.96
 
 ### Patch Changes

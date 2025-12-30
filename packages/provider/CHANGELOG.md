@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.1
+
+### Patch Changes
+
+- 4953414: fix: trigger new release for `@ai-v5` dist-tag
+
 ## 2.0.0
 
 ### Major Changes
