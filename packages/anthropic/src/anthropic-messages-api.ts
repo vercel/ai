@@ -510,11 +510,29 @@ export const textCitationSchema = z.discriminatedUnion('type', [
     end_page_number: z.number(),
   }),
   z.object({
+    type: z.literal('content_block_location'),
+    cited_text: z.string(),
+    document_index: z.number(),
+    document_title: z.string().nullable(),
+    end_block_index: z.number(),
+    file_id: z.string().nullable(),
+    start_block_index: z.number(),
+  }),
+  z.object({
     type: z.literal('web_search_result_location'),
     cited_text: z.string(),
     url: z.string(),
     title: z.string(),
     encrypted_index: z.string(),
+  }),
+  z.object({
+    type: z.literal('search_result_location'),
+    cited_text: z.string(),
+    end_block_index: z.number(),
+    search_result_index: z.number(),
+    source: z.string(),
+    start_block_index: z.number(),
+    title: z.string().nullable(),
   }),
 ]);
 
