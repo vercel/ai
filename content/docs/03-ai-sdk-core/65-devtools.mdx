@@ -37,13 +37,12 @@ pnpm add @ai-sdk/devtools
 Wrap your language model with the DevTools middleware using [`wrapLanguageModel`](/docs/ai-sdk-core/middleware):
 
 ```ts
-import { wrapLanguageModel } from 'ai';
+import { wrapLanguageModel, gateway } from 'ai';
 import { devToolsMiddleware } from '@ai-sdk/devtools';
-__PROVIDER_IMPORT__;
 
 const model = wrapLanguageModel({
-  model: __MODEL__,
-  middleware: devToolsMiddleware,
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  middleware: devToolsMiddleware(),
 });
 ```
 
