@@ -2,14 +2,14 @@ import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
 
 export function mapGoogleGenerativeAIFinishReason({
   finishReason,
-  hasToolCalls,
+  hasClientToolCalls,
 }: {
   finishReason: string | null | undefined;
-  hasToolCalls: boolean;
+  hasClientToolCalls: boolean;
 }): LanguageModelV3FinishReason['unified'] {
   switch (finishReason) {
     case 'STOP':
-      return hasToolCalls ? 'tool-calls' : 'stop';
+      return hasClientToolCalls ? 'tool-calls' : 'stop';
     case 'MAX_TOKENS':
       return 'length';
     case 'IMAGE_SAFETY':
