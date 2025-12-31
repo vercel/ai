@@ -1,5 +1,26 @@
 # @ai-sdk/google
 
+## 2.0.52
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.51
+
+### Patch Changes
+
+- cbc2dba: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+
+## 2.0.50
+
+### Patch Changes
+
+- 7c30c1d: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+
 ## 2.0.49
 
 ### Patch Changes

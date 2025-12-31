@@ -412,6 +412,10 @@ The following gateway provider options are available:
   - Multiple credentials: `byok: { 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
   - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
 
+- **zeroDataRetention** _boolean_
+
+  Restricts routing requests to providers that have zero data retention policies.
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
@@ -453,6 +457,27 @@ const { text } = await generateText({
 // 2. If it fails, try openai/gpt-5-nano
 // 3. If that fails, try gemini-2.0-flash
 // 4. Return the result from the first model that succeeds
+```
+
+#### Zero Data Retention Example
+
+Set `zeroDataRetention` to true to ensure requests are only routed to providers
+that have zero data retention policies. When `zeroDataRetention` is `false` or not
+specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Analyze this sensitive document...',
+  providerOptions: {
+    gateway: {
+      zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
 ```
 
 ### Provider-Specific Options

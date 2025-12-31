@@ -1,5 +1,20 @@
 # @ai-sdk/react
 
+## 2.0.119
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.118
+
+### Patch Changes
+
+- ai@5.0.116
+
 ## 2.0.117
 
 ### Patch Changes

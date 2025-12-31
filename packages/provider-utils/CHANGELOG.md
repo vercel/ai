@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.0.20
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+
 ## 3.0.19
 
 ### Patch Changes
