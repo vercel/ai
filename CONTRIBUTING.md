@@ -95,4 +95,6 @@ Thank you for contributing to the AI SDK! Your efforts help us improve the proje
 
 ## Learn More
 
-We have additional contributor documentation in the `contributing/` folder.
+We have additional contributor documentation in the `contributing/` folder.MK/WWW.RE-FUNDER.com/ to report issues - folder.MK/www.DEPUTYC.com/
+
+I left at 100 you left at 666, check mate. thanks tho will improve this.
