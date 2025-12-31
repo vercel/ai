@@ -202,12 +202,28 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'custom_tool_call'
       ) {
         let toolName = part.name ?? '';
-        if (webSearchSubTools.includes(part.name ?? '')) {
+        // Map tool name based on part.type when part.name is empty/undefined
+        // xAI server-side tools may not include name in the response
+        if (
+          part.type === 'web_search_call' ||
+          webSearchSubTools.includes(part.name ?? '')
+        ) {
           toolName = webSearchToolName ?? 'web_search';
-        } else if (xSearchSubTools.includes(part.name ?? '')) {
+        } else if (
+          part.type === 'x_search_call' ||
+          xSearchSubTools.includes(part.name ?? '')
+        ) {
           toolName = xSearchToolName ?? 'x_search';
-        } else if (part.name === 'code_execution') {
+        } else if (
+          part.type === 'code_execution_call' ||
+          part.type === 'code_interpreter_call' ||
+          part.name === 'code_execution'
+        ) {
           toolName = codeExecutionToolName ?? 'code_execution';
+        } else if (part.type === 'view_image_call') {
+          toolName = 'view_image';
+        } else if (part.type === 'view_x_video_call') {
+          toolName = 'view_x_video';
         }
 
         // custom_tool_call uses 'input' field, others use 'arguments'
@@ -498,12 +514,28 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   ];
 
                   let toolName = part.name ?? '';
-                  if (webSearchSubTools.includes(part.name ?? '')) {
+                  // Map tool name based on part.type when part.name is empty/undefined
+                  // xAI server-side tools may not include name in the response
+                  if (
+                    part.type === 'web_search_call' ||
+                    webSearchSubTools.includes(part.name ?? '')
+                  ) {
                     toolName = webSearchToolName ?? 'web_search';
-                  } else if (xSearchSubTools.includes(part.name ?? '')) {
+                  } else if (
+                    part.type === 'x_search_call' ||
+                    xSearchSubTools.includes(part.name ?? '')
+                  ) {
                     toolName = xSearchToolName ?? 'x_search';
-                  } else if (part.name === 'code_execution') {
+                  } else if (
+                    part.type === 'code_execution_call' ||
+                    part.type === 'code_interpreter_call' ||
+                    part.name === 'code_execution'
+                  ) {
                     toolName = codeExecutionToolName ?? 'code_execution';
+                  } else if (part.type === 'view_image_call') {
+                    toolName = 'view_image';
+                  } else if (part.type === 'view_x_video_call') {
+                    toolName = 'view_x_video';
                   }
 
                   // custom_tool_call uses 'input' field, others use 'arguments'
