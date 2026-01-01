@@ -1,5 +1,11 @@
 # @ai-sdk/test-server
 
+## 1.0.1
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+
 ## 1.0.0
 
 ### Major Changes
