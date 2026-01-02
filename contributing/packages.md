@@ -46,6 +46,7 @@ When adding new packages under `packages`, please ensure they are added to `/tsc
 | `lmnt`              | `@ai-sdk/lmnt`              | LMNT (Speech)               |
 | `langchain`         | `@ai-sdk/langchain`         | LangChain integration       |
 | `llamaindex`        | `@ai-sdk/llamaindex`        | LlamaIndex integration      |
+| `typedriver`        | `@ai-sdk/typedriver`        | TypeDriver validation       |
 | `valibot`           | `@ai-sdk/valibot`           | Valibot schema validation   |
 
 ## UI Framework Integrations
