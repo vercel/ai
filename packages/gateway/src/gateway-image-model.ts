@@ -1,5 +1,6 @@
 import type {
   ImageModelV3,
+  ImageModelV3File,
   ImageModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
@@ -26,7 +27,7 @@ export class GatewayImageModel implements ImageModelV3 {
       provider: string;
       o11yHeaders: Resolvable<Record<string, string>>;
     },
-  ) {}
+  ) { }
 
   get provider(): string {
     return this.config.provider;
@@ -38,6 +39,8 @@ export class GatewayImageModel implements ImageModelV3 {
     size,
     aspectRatio,
     seed,
+    files,
+    mask,
     providerOptions,
     headers,
     abortSignal,
@@ -65,6 +68,8 @@ export class GatewayImageModel implements ImageModelV3 {
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
           ...(providerOptions && { providerOptions }),
+          ...(files && { files: files.map(file => maybeEncodeImageFile(file)) }),
+          ...(mask && { mask: maybeEncodeImageFile(mask) }),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayImageResponseSchema,
@@ -103,6 +108,24 @@ export class GatewayImageModel implements ImageModelV3 {
       'ai-model-id': this.modelId,
     };
   }
+}
+
+function isFileWithBinaryData(
+  file: ImageModelV3File,
+): file is Extract<ImageModelV3File, { type: 'file' }> & {
+  data: Uint8Array;
+} {
+  return file.type === 'file' && file.data instanceof Uint8Array;
+}
+
+function maybeEncodeImageFile(file: ImageModelV3File): ImageModelV3File {
+  if (isFileWithBinaryData(file)) {
+    return {
+      ...file,
+      data: Buffer.from(Uint8Array.from(file.data)).toString('base64'),
+    };
+  }
+  return file;
 }
 
 const providerMetadataEntrySchema = z
