@@ -5,6 +5,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonResponseHandler,
   createJsonErrorResponseHandler,
   postJsonToApi,
@@ -110,19 +111,11 @@ export class GatewayImageModel implements ImageModelV3 {
   }
 }
 
-function isFileWithBinaryData(
-  file: ImageModelV3File,
-): file is Extract<ImageModelV3File, { type: 'file' }> & {
-  data: Uint8Array;
-} {
-  return file.type === 'file' && file.data instanceof Uint8Array;
-}
-
-function maybeEncodeImageFile(file: ImageModelV3File): ImageModelV3File {
-  if (isFileWithBinaryData(file)) {
+function maybeEncodeImageFile(file: ImageModelV3File) {
+  if (file.type === 'file' && file.data instanceof Uint8Array) {
     return {
       ...file,
-      data: Buffer.from(Uint8Array.from(file.data)).toString('base64'),
+      data: convertUint8ArrayToBase64(file.data),
     };
   }
   return file;
