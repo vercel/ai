@@ -5,7 +5,7 @@ import {
   ModelMessage,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Context, Tracer } from '@opentelemetry/api';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
@@ -116,6 +116,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall,
   experimental_context,
   generateId,
+  parentContext,
 }: {
   tools: TOOLS | undefined;
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
@@ -127,6 +128,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
   generateId: IdGenerator;
+  parentContext?: Context;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
   let toolResultsStreamController: ReadableStreamDefaultController<
@@ -326,6 +328,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
+                parentContext,
               }).then(result => {
                 toolResultsStreamController!.enqueue(result);
                 outstandingToolResults.delete(toolExecutionId);

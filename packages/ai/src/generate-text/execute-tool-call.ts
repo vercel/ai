@@ -1,5 +1,5 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Context, Tracer } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -19,6 +19,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
   onPreliminaryToolResult,
+  parentContext,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -28,6 +29,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  parentContext?: Context;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -53,6 +55,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       },
     }),
     tracer,
+    parentContext,
     fn: async span => {
       let output: unknown;
 

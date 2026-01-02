@@ -1,4 +1,12 @@
-import { Attributes, Span, Tracer, SpanStatusCode } from '@opentelemetry/api';
+import {
+  Attributes,
+  Context,
+  Span,
+  Tracer,
+  SpanStatusCode,
+  context as otelContext,
+  trace,
+} from '@opentelemetry/api';
 
 export async function recordSpan<T>({
   name,
@@ -6,37 +14,39 @@ export async function recordSpan<T>({
   attributes,
   fn,
   endWhenDone = true,
+  parentContext,
 }: {
   name: string;
   tracer: Tracer;
   attributes: Attributes | PromiseLike<Attributes>;
-  fn: (span: Span) => Promise<T>;
+  fn: (span: Span, currentContext: Context) => Promise<T>;
   endWhenDone?: boolean;
+  parentContext?: Context;
 }) {
-  return tracer.startActiveSpan(
-    name,
-    { attributes: await attributes },
-    async span => {
-      try {
-        const result = await fn(span);
+  const resolvedAttributes = await attributes;
+  const ctx = parentContext ?? otelContext.active();
 
-        if (endWhenDone) {
-          span.end();
-        }
+  const span = tracer.startSpan(name, { attributes: resolvedAttributes }, ctx);
+  const spanContext = trace.setSpan(ctx, span);
 
-        return result;
-      } catch (error) {
-        try {
-          recordErrorOnSpan(span, error);
-        } finally {
-          // always stop the span when there is an error:
-          span.end();
-        }
+  try {
+    const result = await fn(span, spanContext);
 
-        throw error;
-      }
-    },
-  );
+    if (endWhenDone) {
+      span.end();
+    }
+
+    return result;
+  } catch (error) {
+    try {
+      recordErrorOnSpan(span, error);
+    } finally {
+      // always stop the span when there is an error:
+      span.end();
+    }
+
+    throw error;
+  }
 }
 
 /**

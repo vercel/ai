@@ -17,6 +17,7 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { context as otelContext } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -215,6 +216,8 @@ via tool or schema description.
     ...settings
   } = options;
 
+  const capturedContext = otelContext.active();
+
   const model = resolveLanguageModel(modelArg);
 
   const enumValues = 'enum' in options ? options.enum : undefined;
@@ -285,7 +288,8 @@ via tool or schema description.
         },
       }),
       tracer,
-      fn: async span => {
+      parentContext: capturedContext,
+      fn: async (span, currentContext) => {
         let result: string;
         let finishReason: FinishReason;
         let usage: LanguageModelUsage;
@@ -335,6 +339,7 @@ via tool or schema description.
               },
             }),
             tracer,
+            parentContext: currentContext,
             fn: async span => {
               const result = await model.doGenerate({
                 responseFormat: {

@@ -1,6 +1,7 @@
 import { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
+import { context as otelContext } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -86,6 +87,8 @@ Only applicable for HTTP-based providers.
     */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
+  const capturedContext = otelContext.active();
+
   if (documents.length === 0) {
     return new DefaultRerankResult({
       originalDocuments: [],
@@ -131,7 +134,8 @@ Only applicable for HTTP-based providers.
       },
     }),
     tracer,
-    fn: async () => {
+    parentContext: capturedContext,
+    fn: async (span, currentContext) => {
       const { ranking, response, providerMetadata, warnings } = await retry(
         () =>
           recordSpan({
@@ -152,6 +156,7 @@ Only applicable for HTTP-based providers.
               },
             }),
             tracer,
+            parentContext: currentContext,
             fn: async doRerankSpan => {
               const modelResponse = await model.doRerank({
                 documents: documentsToSend,

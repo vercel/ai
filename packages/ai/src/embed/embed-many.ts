@@ -1,6 +1,7 @@
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
+import { context as otelContext } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -87,6 +88,8 @@ Only applicable for HTTP-based providers.
    */
   maxParallelCalls?: number;
 }): Promise<EmbedManyResult> {
+  const capturedContext = otelContext.active();
+
   const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
@@ -122,7 +125,8 @@ Only applicable for HTTP-based providers.
       },
     }),
     tracer,
-    fn: async span => {
+    parentContext: capturedContext,
+    fn: async (span, currentContext) => {
       const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
         model.maxEmbeddingsPerCall,
         model.supportsParallelCalls,
@@ -151,6 +155,7 @@ Only applicable for HTTP-based providers.
                 },
               }),
               tracer,
+              parentContext: currentContext,
               fn: async doEmbedSpan => {
                 const modelResponse = await model.doEmbed({
                   values,
@@ -260,6 +265,7 @@ Only applicable for HTTP-based providers.
                   },
                 }),
                 tracer,
+                parentContext: currentContext,
                 fn: async doEmbedSpan => {
                   const modelResponse = await model.doEmbed({
                     values: chunk,

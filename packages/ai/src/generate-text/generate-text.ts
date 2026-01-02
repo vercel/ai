@@ -11,7 +11,7 @@ import {
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
+import { Context, Tracer, context as otelContext } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -302,6 +302,8 @@ A function that attempts to repair a tool call that failed to parse.
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const capturedContext = otelContext.active();
+
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
   const { maxRetries, retry } = prepareRetries({
@@ -352,7 +354,8 @@ A function that attempts to repair a tool call that failed to parse.
         },
       }),
       tracer,
-      fn: async span => {
+      parentContext: capturedContext,
+      fn: async (span, currentContext) => {
         const initialMessages = initialPrompt.messages;
         const responseMessages: Array<ResponseMessage> = [];
 
@@ -377,6 +380,7 @@ A function that attempts to repair a tool call that failed to parse.
             messages: initialMessages,
             abortSignal,
             experimental_context,
+            parentContext: currentContext,
           });
 
           const toolContent: Array<any> = [];
@@ -543,7 +547,8 @@ A function that attempts to repair a tool call that failed to parse.
                 },
               }),
               tracer,
-              fn: async span => {
+              parentContext: currentContext,
+              fn: async (span, _doGenerateContext) => {
                 const stepProviderOptions = mergeObjects(
                   providerOptions,
                   prepareStepResult?.providerOptions,
@@ -718,6 +723,7 @@ A function that attempts to repair a tool call that failed to parse.
                 messages: stepInputMessages,
                 abortSignal,
                 experimental_context,
+                parentContext: currentContext,
               })),
             );
           }
@@ -908,6 +914,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  parentContext,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -916,6 +923,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  parentContext?: Context;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -927,6 +935,7 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        parentContext,
       }),
     ),
   );
