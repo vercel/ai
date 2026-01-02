@@ -90,7 +90,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-embedding-model-specification-version': '2',
+      'ai-embedding-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }
