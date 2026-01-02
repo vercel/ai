@@ -28,7 +28,7 @@ export class GatewayImageModel implements ImageModelV3 {
       provider: string;
       o11yHeaders: Resolvable<Record<string, string>>;
     },
-  ) { }
+  ) {}
 
   get provider(): string {
     return this.config.provider;
@@ -69,7 +69,9 @@ export class GatewayImageModel implements ImageModelV3 {
           ...(aspectRatio && { aspectRatio }),
           ...(seed && { seed }),
           ...(providerOptions && { providerOptions }),
-          ...(files && { files: files.map(file => maybeEncodeImageFile(file)) }),
+          ...(files && {
+            files: files.map(file => maybeEncodeImageFile(file)),
+          }),
           ...(mask && { mask: maybeEncodeImageFile(mask) }),
         },
         successfulResponseHandler: createJsonResponseHandler(
