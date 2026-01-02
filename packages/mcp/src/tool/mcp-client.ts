@@ -1,8 +1,8 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import {
-  dynamicTool,
   jsonSchema,
   Tool,
+  ToolResultOutput,
   tool,
   ToolExecutionOptions,
 } from '@ai-sdk/provider-utils';
@@ -55,6 +55,45 @@ import {
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+
+function toModelOutputFromMcpCallToolResult({
+  output,
+}: {
+  output: CallToolResult;
+}): ToolResultOutput {
+  // Support the repo's union type: { content, isError? } OR { toolResult }.
+  if (output && typeof output === 'object' && 'toolResult' in output) {
+    return {
+      type: 'json',
+      value: output.toolResult,
+    };
+  }
+
+  
+  if (output?.isError) {
+    const textContent = Array.isArray(output.content)
+      ? output.content
+          .map((c) => (c?.type === 'text' ? c.text : null))
+          .filter(Boolean)
+          .join('\n')
+      : '';
+
+    return {
+      type: 'error-text',
+      value: textContent || 'Unknown error',
+    };
+  }
+
+  // Some MCP servers return structuredContent; our Zod schema is loose so it passes through.
+  if (output && typeof output === 'object' && 'structuredContent' in output) {
+    return {
+      type: 'json',
+      value: output.structuredContent,
+    };
+  }
+
+  return { type: 'content', value: output?.content };
+}
 
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
@@ -489,23 +528,25 @@ class DefaultMCPClient implements MCPClient {
    * @returns A record of tool names to their implementations
    */
   async tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>({
-    schemas = 'automatic',
+    schemas,
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
     const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
 
     try {
+      const schemaConfig: ToolSchemas = schemas ?? 'automatic';
       const listToolsResult = await this.listTools();
       for (const {
         name,
         description,
         inputSchema,
+        outputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
         const title = annotations?.title;
-        if (schemas !== 'automatic' && !(name in schemas)) {
+        if (schemaConfig !== 'automatic' && !(name in schemaConfig)) {
           continue;
         }
 
@@ -520,22 +561,26 @@ class DefaultMCPClient implements MCPClient {
         };
 
         const toolWithExecute =
-          schemas === 'automatic'
-            ? dynamicTool({
+          schemaConfig === 'automatic'
+            ? tool({
                 description,
                 title,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
+                inputSchema: jsonSchema(inputSchema as JSONSchema7),
+                outputSchema: outputSchema
+                  ? jsonSchema(outputSchema as JSONSchema7)
+                  : undefined,
                 execute,
+                toModelOutput: ({ output }) =>
+                  toModelOutputFromMcpCallToolResult({ output }),
               })
             : tool({
                 description,
                 title,
-                inputSchema: schemas[name].inputSchema,
+                inputSchema: schemaConfig[name].inputSchema,
+                outputSchema: schemaConfig[name].outputSchema,
                 execute,
+                toModelOutput: ({ output }) =>
+                  toModelOutputFromMcpCallToolResult({ output }),
               });
 
         tools[name] = { ...toolWithExecute, _meta };
