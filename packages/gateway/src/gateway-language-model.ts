@@ -35,7 +35,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   constructor(
     readonly modelId: GatewayModelId,
     private readonly config: GatewayChatConfig,
-  ) {}
+  ) { }
 
   get provider(): string {
     return this.config.provider;
@@ -44,10 +44,33 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   private async getArgs(options: LanguageModelV3CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
+    optionsWithoutSignal.prompt = this.filterToolApprovalResponses(
+      optionsWithoutSignal.prompt,
+    );
+
     return {
       args: this.maybeEncodeFileParts(optionsWithoutSignal),
       warnings: [],
     };
+  }
+
+  private filterToolApprovalResponses(
+    prompt: LanguageModelV3Prompt,
+  ): LanguageModelV3Prompt {
+    const newPrompt: LanguageModelV3Prompt = [];
+    for (const message of prompt) {
+      if (message.role === 'tool') {
+        const newContent = message.content.filter(
+          part => part.type !== 'tool-approval-response',
+        );
+        if (newContent.length > 0) {
+          newPrompt.push({ ...message, content: newContent });
+        }
+      } else {
+        newPrompt.push(message);
+      }
+    }
+    return newPrompt;
   }
 
   async doGenerate(
