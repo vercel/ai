@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.5
+
+### Patch Changes
+
+- 7ee2d12: chore (provider/gateway): bump specification version header to reflect v3
+
 ## 3.0.4
 
 ### Patch Changes
