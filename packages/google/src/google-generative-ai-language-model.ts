@@ -324,7 +324,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       finishReason: {
         unified: mapGoogleGenerativeAIFinishReason({
           finishReason: candidate.finishReason,
-          hasToolCalls: content.some(part => part.type === 'tool-call'),
+          hasClientToolCalls: content.some(
+            part => part.type === 'tool-call' && !part.providerExecuted,
+          ),
         }),
         raw: candidate.finishReason ?? undefined,
       },
@@ -378,7 +380,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     const generateId = this.config.generateId;
-    let hasToolCalls = false;
+    let hasClientToolCalls = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -459,8 +461,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
-
-                  hasToolCalls = true;
                 } else if (
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
@@ -609,7 +609,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     providerMetadata: toolCall.providerMetadata,
                   });
 
-                  hasToolCalls = true;
+                  hasClientToolCalls = true;
                 }
               }
             }
@@ -618,7 +618,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               finishReason = {
                 unified: mapGoogleGenerativeAIFinishReason({
                   finishReason: candidate.finishReason,
-                  hasToolCalls,
+                  hasClientToolCalls,
                 }),
                 raw: candidate.finishReason,
               };
