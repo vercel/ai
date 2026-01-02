@@ -35,7 +35,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   constructor(
     readonly modelId: GatewayModelId,
     private readonly config: GatewayChatConfig,
-  ) { }
+  ) {}
 
   get provider(): string {
     return this.config.provider;
