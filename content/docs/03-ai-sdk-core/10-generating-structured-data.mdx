@@ -201,37 +201,6 @@ const { output } = await generateText({
 // ]
 ```
 
-With `streamText`, you can also iterate over the generated array elements using `elementStream`:
-
-```ts highlight="7,18"
-import { streamText, Output } from 'ai';
-__PROVIDER_IMPORT__;
-import { z } from 'zod';
-
-const { elementStream } = streamText({
-  model: __MODEL__,
-  output: Output.array({
-    element: z.object({
-      name: z.string(),
-      class: z
-        .string()
-        .describe('Character class, e.g. warrior, mage, or thief.'),
-      description: z.string(),
-    }),
-  }),
-  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
-});
-
-for await (const hero of elementStream) {
-  console.log(hero);
-}
-```
-
-<Note>
-  Each element emitted by `elementStream` is complete and validated against your
-  element schema, ensuring type safety for each item as it is generated.
-</Note>
-
 ### `Output.choice()`
 
 Use `Output.choice({ options })` when you expect the model to choose from a specific set of string options, such as for classification or fixed-enum answers.

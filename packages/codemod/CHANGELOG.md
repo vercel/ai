@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.1
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+
 ## 3.0.0
 
 ### Major Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/xai
 
+## 3.0.3
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/openai-compatible@2.0.2
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
 ## 3.0.2
 
 ### Patch Changes
