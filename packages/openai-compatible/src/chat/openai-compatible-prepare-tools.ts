@@ -1,8 +1,13 @@
 import {
   LanguageModelV3CallOptions,
+  SharedV3ProviderMetadata,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+
+function getToolMetadata(tool: { providerOptions?: SharedV3ProviderMetadata }) {
+  return tool?.providerOptions?.openaiCompatible ?? {};
+}
 
 export function prepareTools({
   tools,
@@ -13,15 +18,17 @@ export function prepareTools({
 }): {
   tools:
     | undefined
-    | Array<{
-        type: 'function';
-        function: {
-          name: string;
-          description: string | undefined;
-          parameters: unknown;
-          strict?: boolean;
-        };
-      }>;
+    | Array<
+        {
+          type: 'function';
+          function: {
+            name: string;
+            description: string | undefined;
+            parameters: unknown;
+            strict?: boolean;
+          };
+        } & Record<string, unknown>
+      >;
   toolChoice:
     | { type: 'function'; function: { name: string } }
     | 'auto'
@@ -39,15 +46,17 @@ export function prepareTools({
     return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
 
-  const openaiCompatTools: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description: string | undefined;
-      parameters: unknown;
-      strict?: boolean;
-    };
-  }> = [];
+  const openaiCompatTools: Array<
+    {
+      type: 'function';
+      function: {
+        name: string;
+        description: string | undefined;
+        parameters: unknown;
+        strict?: boolean;
+      };
+    } & Record<string, unknown>
+  > = [];
 
   for (const tool of tools) {
     if (tool.type === 'provider') {
@@ -56,6 +65,7 @@ export function prepareTools({
         feature: `provider-defined tool ${tool.id}`,
       });
     } else {
+      const metadata = getToolMetadata(tool);
       openaiCompatTools.push({
         type: 'function',
         function: {
@@ -64,6 +74,7 @@ export function prepareTools({
           parameters: tool.inputSchema,
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         },
+        ...metadata,
       });
     }
   }
