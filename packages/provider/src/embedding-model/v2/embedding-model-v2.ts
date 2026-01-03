@@ -7,7 +7,7 @@ import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
 
 /**
 Specification for an embedding model that implements the embedding model
-interface version 1.
+interface version 2.
 
 VALUE is the type of the values that the model can embed.
 This will allow us to go beyond text embeddings in the future,
