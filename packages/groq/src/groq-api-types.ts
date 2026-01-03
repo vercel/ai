@@ -31,6 +31,12 @@ export interface GroqContentPartText {
 export interface GroqAssistantMessage {
   role: 'assistant';
   content?: string | null;
+  /**
+   * Reasoning output produced by models that support reasoning.
+   * Present only when the selected model supports reasoning and `reasoning_format` is not `hidden`.
+   *
+   * @see https://console.groq.com/docs/reasoning
+   */
   reasoning?: string;
   tool_calls?: Array<GroqMessageToolCall>;
 }
