@@ -1664,11 +1664,56 @@ describe('doGenerate', () => {
           {
             retrieval: {
               vertex_rag_store: {
-                rag_resources: {
-                  rag_corpus:
-                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
-                },
+                rag_resources: [
+                  {
+                    rag_corpus:
+                      'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                  },
+                ],
                 similarity_top_k: 5,
+              },
+            },
+          },
+        ],
+      });
+    });
+
+    it('should use vertexRagStore with ragFileIds for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.vertex_rag_store',
+            name: 'vertex_rag_store',
+            args: {
+              ragCorpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+              ragFileIds: ['file-1', 'file-2'],
+              topK: 10,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: [
+                  {
+                    rag_corpus:
+                      'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                    rag_file_ids: ['file-1', 'file-2'],
+                  },
+                ],
+                similarity_top_k: 10,
               },
             },
           },
