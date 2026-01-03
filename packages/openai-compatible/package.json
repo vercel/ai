@@ -13,13 +13,16 @@
     "internal.d.ts"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
+    "prebuild": "pnpm clean",
+    "prebuild:watch": "pnpm clean",
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
-    "test": "pnpm test:node && pnpm test:edge",
+    "test": "pnpm test:node",
+    "posttest": "pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -47,6 +50,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
+    "del-cli": "^5.1.0",
     "tsup": "^8",
     "typescript": "5.8.3",
     "zod": "3.25.76"
