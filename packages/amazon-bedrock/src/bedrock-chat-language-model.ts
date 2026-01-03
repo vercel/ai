@@ -218,11 +218,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     if (maxReasoningEffort != null && !isAnthropicModel) {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
+        reasoning_effort: {
           ...(bedrockOptions.reasoningConfig?.type != null && {
             type: bedrockOptions.reasoningConfig.type,
           }),
-          maxReasoningEffort,
+          max_reasoning_effort: maxReasoningEffort,
         },
       };
     } else if (maxReasoningEffort != null && isAnthropicModel) {
