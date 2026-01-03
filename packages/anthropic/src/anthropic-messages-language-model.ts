@@ -661,6 +661,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
 
     // map response content to content array
@@ -788,6 +789,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             part.name === 'tool_search_tool_regex' ||
             part.name === 'tool_search_tool_bm25'
           ) {
+            serverToolCalls[part.id] = part.name;
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
@@ -953,11 +955,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
         // tool search tool results:
         case 'tool_search_tool_result': {
+          const providerToolName =
+            serverToolCalls[part.tool_use_id] ?? 'tool_search_tool_regex';
           if (part.content.type === 'tool_search_tool_search_result') {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              toolName: toolNameMapping.toCustomToolName(providerToolName),
               result: part.content.tool_references.map(ref => ({
                 type: ref.type,
                 toolName: ref.tool_name,
@@ -967,7 +971,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              toolName: toolNameMapping.toCustomToolName(providerToolName),
               isError: true,
               result: {
                 type: 'tool_search_tool_result_error',
@@ -1085,6 +1089,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | { type: 'text' | 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
 
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
@@ -1277,6 +1282,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     part.name === 'tool_search_tool_regex' ||
                     part.name === 'tool_search_tool_bm25'
                   ) {
+                    serverToolCalls[part.id] = part.name;
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.name,
                     );
@@ -1436,11 +1442,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 // tool search tool results:
                 case 'tool_search_tool_result': {
+                  const providerToolName =
+                    serverToolCalls[part.tool_use_id] ??
+                    'tool_search_tool_regex';
                   if (part.content.type === 'tool_search_tool_search_result') {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      toolName:
+                        toolNameMapping.toCustomToolName(providerToolName),
                       result: part.content.tool_references.map(ref => ({
                         type: ref.type,
                         toolName: ref.tool_name,
@@ -1450,7 +1460,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      toolName:
+                        toolNameMapping.toCustomToolName(providerToolName),
                       isError: true,
                       result: {
                         type: 'tool_search_tool_result_error',
