@@ -7,7 +7,7 @@ async function main() {
     model: azure('gpt-4.1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
-      openai: {
+      azure: {
         logprobs: 2,
       },
     },

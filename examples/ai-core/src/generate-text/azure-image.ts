@@ -20,7 +20,7 @@ async function main() {
             image: imageBase64_string,
             providerOptions: {
               // When using the Azure OpenAI provider, the imageDetail option can be configured under the `openai` key:
-              openai: {
+              azure: {
                 imageDetail: 'low',
               },
             },
