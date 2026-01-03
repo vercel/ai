@@ -276,7 +276,9 @@ const { images } = await generateImage({
 
 ## Provider-specific options
 
-The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
+The OpenAI Compatible provider supports adding provider-specific options to the request, message, and tool levels. These are specified with the `providerOptions` field.
+
+### Request-level options
 
 For example, if you create a provider instance with the name `provider-name`, you can add a `custom-option` field to the request body like this:
 
@@ -297,6 +299,61 @@ const { text } = await generateText({
 ```
 
 The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
+
+### Message and content-level options
+
+You can also add provider-specific options to individual messages and message content by using the `openaiCompatible` key:
+
+```ts
+const { text } = await generateText({
+  model: provider('model-id'),
+  system: 'You are a helpful assistant.',
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Hello!',
+          providerOptions: {
+            openaiCompatible: {
+              cacheControl: { type: 'ephemeral' },
+            },
+          },
+        },
+      ],
+    },
+  ],
+});
+```
+
+These options are merged into the message in the request sent to the provider.
+
+### Tool-level options
+
+Tools can include provider-specific options by using the `openaiCompatible` key in the `providerOptions` field:
+
+```ts
+const { text } = await generateText({
+  model: provider('model-id'),
+  tools: [
+    {
+      type: 'function',
+      name: 'getCacheableData',
+      description: 'Fetch data that can be cached',
+      inputSchema: { type: 'object', properties: {} },
+      providerOptions: {
+        openaiCompatible: {
+          cacheControl: { type: 'ephemeral' },
+        },
+      },
+    },
+  ],
+  prompt: 'Use the tool to fetch data',
+});
+```
+
+Tool-level options are merged into the tool definition in the request sent to the provider. This is particularly useful when using provider features like prompt caching.
 
 ## Custom Metadata Extraction
 
