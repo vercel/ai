@@ -2656,11 +2656,11 @@ describe('doGenerate', () => {
     stopReason?: string;
     trace?: typeof mockTrace;
     reasoningContent?:
-      | BedrockReasoningContentBlock
-      | BedrockRedactedReasoningContentBlock
-      | Array<
-          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
-        >;
+    | BedrockReasoningContentBlock
+    | BedrockRedactedReasoningContentBlock
+    | Array<
+      BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
+    >;
   }) {
     server.urls[generateUrl].response = {
       type: 'json-value',
@@ -3584,14 +3584,19 @@ describe('doGenerate', () => {
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
+    // Verify snake_case keys are used in the request (reasoning_effort, max_reasoning_effort)
     expect(requestBody).toMatchObject({
       additionalModelRequestFields: {
-        reasoningConfig: {
+        reasoning_effort: {
           type: 'enabled',
-          maxReasoningEffort: 'medium',
+          max_reasoning_effort: 'medium',
         },
       },
     });
+    // Verify camelCase key (reasoningConfig) is NOT present in final request
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
