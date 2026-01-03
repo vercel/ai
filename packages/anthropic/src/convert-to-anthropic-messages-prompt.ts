@@ -788,7 +788,10 @@ export async function convertToAnthropicMessagesPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    const errorValue = JSON.parse(output.value as string);
+                    const errorValue =
+                      typeof output.value === 'string'
+                        ? JSON.parse(output.value)
+                        : output.value;
 
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
