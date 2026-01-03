@@ -330,6 +330,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 toolResultsStreamController!.enqueue(result);
                 outstandingToolResults.delete(toolExecutionId);
                 attemptClose();
+              }).catch(error => {
+                toolResultsStreamController!.enqueue({ type: 'error', error });
+                outstandingToolResults.delete(toolExecutionId);
+                attemptClose();
               });
             }
           } catch (error) {
