@@ -4365,3 +4365,127 @@ describe('GEMMA Model System Instruction Fix', () => {
     `);
   });
 });
+
+describe('per-part mediaResolution warning', () => {
+  const TEST_URL_GEMINI_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+  const TEST_URL_GEMINI_3 =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
+
+  const server = createTestServer({
+    [TEST_URL_GEMINI_PRO]: {},
+    [TEST_URL_GEMINI_3]: {},
+  });
+
+  it('should generate warning when per-part mediaResolution is used with non-Gemini 3 model', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const { warnings } = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mediaType: 'image/png',
+              providerOptions: {
+                google: {
+                  mediaResolution: 'MEDIA_RESOLUTION_HIGH',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatchObject({
+      type: 'other',
+      message: expect.stringContaining('Per-part mediaResolution'),
+    });
+    expect(warnings[0].message).toContain('Gemini 3');
+    expect(warnings[0].message).toContain('gemini-pro');
+  });
+
+  it('should NOT generate warning when per-part mediaResolution is used with Gemini 3 model', async () => {
+    server.urls[TEST_URL_GEMINI_3].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const gemini3Model = provider.languageModel('gemini-3-pro-preview');
+
+    const { warnings } = await gemini3Model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mediaType: 'image/png',
+              providerOptions: {
+                google: {
+                  mediaResolution: 'MEDIA_RESOLUTION_ULTRA_HIGH',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('should NOT generate warning when no per-part mediaResolution is used', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Hello!' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const { warnings } = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(warnings).toHaveLength(0);
+  });
+});
