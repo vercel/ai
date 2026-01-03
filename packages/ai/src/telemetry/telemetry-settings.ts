@@ -1,4 +1,4 @@
-import { AttributeValue, Tracer } from '@opentelemetry/api';
+import { AttributeValue, Meter, Tracer } from '@opentelemetry/api';
 
 /**
  * Telemetry configuration.
@@ -41,4 +41,20 @@ export type TelemetrySettings = {
    * A custom tracer to use for the telemetry data.
    */
   tracer?: Tracer;
+
+  /**
+   * Enable or disable metrics recording. Enabled by default when telemetry is enabled.
+   *
+   * Metrics provide aggregated statistics like request counts, token usage,
+   * and latency distributions that are useful for monitoring and alerting.
+   */
+  recordMetrics?: boolean;
+
+  /**
+   * A custom meter to use for recording metrics.
+   *
+   * If not provided and metrics are enabled, uses the global meter provider
+   * with the meter name 'ai'.
+   */
+  meter?: Meter;
 };
