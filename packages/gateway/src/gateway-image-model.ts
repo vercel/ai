@@ -99,7 +99,7 @@ export class GatewayImageModel implements ImageModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-image-model-specification-version': '2',
+      'ai-image-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }
