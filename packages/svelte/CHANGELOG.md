@@ -1,5 +1,26 @@
 # @ai-sdk/svelte
 
+## 4.0.6
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 4.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+  - @ai-sdk/provider-utils@4.0.2
+
+## 4.0.4
+
+### Patch Changes
+
+- ai@6.0.4
+
 ## 4.0.3
 
 ### Patch Changes
