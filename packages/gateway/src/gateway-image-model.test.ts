@@ -100,7 +100,7 @@ describe('GatewayImageModel', () => {
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
-        'ai-image-model-specification-version': '2',
+        'ai-image-model-specification-version': '3',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
@@ -364,7 +364,7 @@ describe('GatewayImageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'x-custom-header': 'custom-value',
-        'ai-image-model-specification-version': '2',
+        'ai-image-model-specification-version': '3',
         'ai-model-id': TEST_MODEL_ID,
       });
     });
