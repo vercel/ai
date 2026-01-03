@@ -443,3 +443,19 @@ it('should add warnings for google maps on unsupported models', () => {
     ]
   `);
 });
+
+it('should throw error for invalid tool name', () => {
+  expect(() =>
+    prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: '123invalid',
+          description: 'Invalid name',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      modelId: 'gemini-2.5-flash',
+    }),
+  ).toThrowError(/Invalid tool name/);
+});
