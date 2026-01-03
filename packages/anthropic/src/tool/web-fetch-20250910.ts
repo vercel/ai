@@ -135,6 +135,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.web_fetch_20250910',
   inputSchema: webFetch_20250910InputSchema,
   outputSchema: webFetch_20250910OutputSchema,
+  supportsDeferredResults: true,
 });
 
 export const webFetch_20250910 = (
