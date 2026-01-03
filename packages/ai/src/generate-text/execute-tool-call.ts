@@ -32,10 +32,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
-    return undefined;
-  }
-
   return recordSpan({
     name: 'ai.toolCall',
     attributes: selectTelemetryAttributes({
@@ -54,11 +50,15 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     }),
     tracer,
     fn: async span => {
+      if (tool?.execute == null) {
+        return undefined;
+      }
+
       let output: unknown;
 
       try {
         const stream = executeTool({
-          execute: tool.execute!.bind(tool),
+          execute: tool.execute.bind(tool),
           input,
           options: {
             toolCallId,
