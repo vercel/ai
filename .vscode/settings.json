@@ -1,4 +1,3 @@
 {
 	"typescript.tsdk": "node_modules/typescript/lib",
-	"editor.defaultFormatter": "prettier.prettier-vscode"
 }
