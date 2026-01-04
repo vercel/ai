@@ -91,7 +91,7 @@ describe('GatewayLanguageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-language-model-specification-version': '2',
+        'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'false',
       });
@@ -635,7 +635,7 @@ describe('GatewayLanguageModel', () => {
 
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
-        'ai-language-model-specification-version': '2',
+        'ai-language-model-specification-version': '3',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'true',
       });
