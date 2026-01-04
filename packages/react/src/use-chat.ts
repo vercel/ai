@@ -110,8 +110,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     [chatRef],
   );
 
+  const hasResumedRef = useRef(false);
+
   useEffect(() => {
-    if (resume) {
+    if (resume && !hasResumedRef.current) {
+      hasResumedRef.current = true;
       chatRef.current.resumeStream();
     }
   }, [resume, chatRef]);
