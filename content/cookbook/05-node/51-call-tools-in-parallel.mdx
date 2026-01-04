@@ -11,6 +11,7 @@ Some language models support calling tools in parallel. This is particularly use
 ```ts
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
   model:  __MODEL__,
