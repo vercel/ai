@@ -91,6 +91,9 @@ const ServerCapabilitiesSchema = z.looseObject({
 });
 
 export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
+export type ClientOrServerImplementation = z.infer<
+  typeof ClientOrServerImplementationSchema
+>;
 export const ClientCapabilitiesSchema = z
   .object({
     elicitation: z.optional(ElicitationCapabilitySchema),
