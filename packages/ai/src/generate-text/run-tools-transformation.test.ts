@@ -294,7 +294,7 @@ describe('runToolsTransformation', () => {
           title: 'Delayed Tool',
           inputSchema: z.object({ value: z.string() }),
           execute: async ({ value }) => {
-            await delay(0); // Simulate delayed execution
+            await delay(0); 
             return `${value}-delayed-result`;
           },
         },
@@ -854,7 +854,7 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      // consume each chunk to maintain order
+      
       const reader = transformedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
@@ -946,7 +946,7 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      // consume each chunk to maintain order
+      
       const reader = transformedStream.getReader();
       while (true) {
         const { done, value } = await reader.read();
@@ -1013,6 +1013,309 @@ describe('runToolsTransformation', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('writeSource', () => {
+    it('should allow tools to write URL sources to the stream', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'searchTool',
+            input: `{ "query": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          searchTool: tool({
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }, { writeSource }) => {
+              
+              writeSource?.({
+                sourceType: 'url',
+                url: 'https://example.com/doc1',
+                title: 'Example Document',
+              });
+
+              return `Results for: ${query}`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      
+      expect(result).toHaveLength(4);
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'searchTool',
+      });
+      expect(result[1]).toMatchObject({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://example.com/doc1',
+        title: 'Example Document',
+        id: 'id-1', 
+      });
+      expect(result[2]).toMatchObject({
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        output: 'Results for: test',
+      });
+      expect(result[3]).toMatchObject({
+        type: 'finish',
+        finishReason: 'stop',
+      });
+    });
+
+    it('should allow tools to write document sources to the stream', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'searchTool',
+            input: `{ "query": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          searchTool: tool({
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }, { writeSource }) => {
+              
+              writeSource?.({
+                sourceType: 'document',
+                mediaType: 'application/pdf',
+                title: 'Research Paper',
+                filename: 'paper.pdf',
+              });
+
+              return `Results for: ${query}`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      
+      expect(result).toHaveLength(4);
+      expect(result[1]).toMatchObject({
+        type: 'source',
+        sourceType: 'document',
+        mediaType: 'application/pdf',
+        title: 'Research Paper',
+        filename: 'paper.pdf',
+        id: 'id-1', 
+      });
+    });
+
+    it('should allow tools to write multiple sources to the stream', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'searchTool',
+            input: `{ "query": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          searchTool: tool({
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }, { writeSource }) => {
+              
+              writeSource?.({
+                sourceType: 'url',
+                url: 'https://example.com/doc1',
+                title: 'Document 1',
+              });
+
+              writeSource?.({
+                sourceType: 'url',
+                url: 'https://example.com/doc2',
+                title: 'Document 2',
+              });
+
+              return `Results for: ${query}`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      
+      expect(result).toHaveLength(5);
+      expect(result[1]).toMatchObject({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://example.com/doc1',
+        title: 'Document 1',
+        id: 'id-1', 
+      });
+      expect(result[2]).toMatchObject({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://example.com/doc2',  
+        title: 'Document 2',
+        id: 'id-2',
+      });
+    });
+
+    it('should use provided ID when specified', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'searchTool',
+            input: `{ "query": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          searchTool: tool({
+            inputSchema: z.object({ query: z.string() }),
+            execute: async ({ query }, { writeSource }) => {
+              
+              writeSource?.({
+                sourceType: 'url',
+                url: 'https://example.com/doc',
+                title: 'Example Document',
+                id: 'custom-source-id',
+              });
+
+              return `Results for: ${query}`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result[1]).toMatchObject({
+        type: 'source',
+        id: 'custom-source-id', 
+      });
+    });
+
+    it('should work when writeSource is not called', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'simpleTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          simpleTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              
+              return `Result: ${value}`;
+            },
+          }),
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+      
+      expect(result).toHaveLength(3);
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+      });
+      expect(result[1]).toMatchObject({
+        type: 'tool-result',
+        output: 'Result: test',
+      });
+      expect(result[2]).toMatchObject({
+        type: 'finish',
+      });
     });
   });
 });

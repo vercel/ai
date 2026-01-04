@@ -326,6 +326,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
+                writeSource: source => {
+                  const sourceId = source.id ?? generateId();
+                  toolResultsStreamController!.enqueue({
+                    type: 'source',
+                    ...source,
+                    id: sourceId,
+                  } as SingleRequestTextStreamPart<TOOLS>);
+                },
               }).then(result => {
                 toolResultsStreamController!.enqueue(result);
                 outstandingToolResults.delete(toolExecutionId);

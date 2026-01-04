@@ -10007,6 +10007,8 @@ describe('streamText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          experimental_context: undefined,
+          writeSource: expect.any(Function),
         },
       );
     });
