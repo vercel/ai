@@ -19,9 +19,9 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
+          node-version: lts/*
           cache: 'npm'
           cache-dependency-path: .github/workflows/actions/verify-changesets/package.json
       - name: get all changed files from .changeset/*.md
