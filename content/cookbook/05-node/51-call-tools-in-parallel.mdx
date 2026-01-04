@@ -14,7 +14,7 @@ import { z } from 'zod';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model:  __MODEL__,
+  model: __MODEL__,
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
