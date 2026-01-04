@@ -3586,13 +3586,13 @@ describe('doGenerate', () => {
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody).toMatchObject({
       additionalModelRequestFields: {
-        reasoningConfig: {
-          type: 'enabled',
-          maxReasoningEffort: 'medium',
-        },
+        reasoning_effort: 'medium',
       },
     });
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
   });
 
   it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
