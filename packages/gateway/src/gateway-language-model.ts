@@ -204,7 +204,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
 
   private getModelConfigHeaders(modelId: string, streaming: boolean) {
     return {
-      'ai-language-model-specification-version': '2',
+      'ai-language-model-specification-version': '3',
       'ai-language-model-id': modelId,
       'ai-language-model-streaming': String(streaming),
     };

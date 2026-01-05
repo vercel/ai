@@ -326,11 +326,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
-              }).then(result => {
-                toolResultsStreamController!.enqueue(result);
-                outstandingToolResults.delete(toolExecutionId);
-                attemptClose();
-              });
+              })
+                .then(result => {
+                  toolResultsStreamController!.enqueue(result);
+                })
+                .catch(error => {
+                  toolResultsStreamController!.enqueue({
+                    type: 'error',
+                    error,
+                  });
+                })
+                .finally(() => {
+                  outstandingToolResults.delete(toolExecutionId);
+                  attemptClose();
+                });
             }
           } catch (error) {
             toolResultsStreamController!.enqueue({ type: 'error', error });
