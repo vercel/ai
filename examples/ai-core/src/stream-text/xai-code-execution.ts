@@ -1,8 +1,9 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const response = streamText({
     model: xai.responses('grok-4'),
     prompt:
@@ -17,5 +18,4 @@ async function main() {
   for await (const chunk of response.fullStream) {
     console.dir(chunk, { depth: null });
   }
-}
-main();
+});

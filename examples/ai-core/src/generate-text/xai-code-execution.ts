@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: xai.responses('grok-4'),
     prompt:
@@ -24,6 +25,4 @@ async function main() {
       );
     }
   }
-}
-
-main().catch(console.error);
+});
