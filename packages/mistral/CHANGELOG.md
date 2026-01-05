@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 3.0.4
+
+### Patch Changes
+
+- 45631ab: Update refrence_ids type to be union of number and string
+
 ## 3.0.3
 
 ### Patch Changes

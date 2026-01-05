@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.5
+
+### Patch Changes
+
+- e7f0a6f: fix(xai): add missing stream response schema and provider tool name parsing
+
 ## 3.0.4
 
 ### Patch Changes
