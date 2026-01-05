@@ -1,5 +1,33 @@
 # @ai-sdk/anthropic
 
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 3.0.4
+
+### Patch Changes
+
+- bf39dac: Fix: Use provider tool name in Tool Search Tool results
+
+## 3.0.3
+
+### Patch Changes
+
+- 77b760d: fix(anthropic): support deferred results for web search/fetch tool
+
+## 3.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
 ## 3.0.1
 
 ### Patch Changes
