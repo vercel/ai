@@ -2341,6 +2341,10 @@ describe('generateText', () => {
         tools: {
           serverTool: {
             type: 'provider',
+            id: 'test.server_tool',
+            inputSchema: z.object({}),
+            outputSchema: z.object({ result: z.string() }),
+            args: {},
             supportsDeferredResults: true,
           },
         },

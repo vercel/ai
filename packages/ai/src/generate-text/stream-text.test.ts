@@ -9989,7 +9989,10 @@ describe('streamText', () => {
                     },
                     {
                       type: 'finish',
-                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
                       usage: testUsage,
                     },
                   ]),
@@ -10083,7 +10086,10 @@ describe('streamText', () => {
                     },
                     {
                       type: 'finish',
-                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
                       usage: testUsage,
                     },
                   ]),
@@ -10117,6 +10123,10 @@ describe('streamText', () => {
         tools: {
           serverTool: {
             type: 'provider',
+            id: 'test.server_tool',
+            inputSchema: z.object({}),
+            outputSchema: z.object({ result: z.string() }),
+            args: {},
             supportsDeferredResults: true,
           },
         },
@@ -10189,7 +10199,10 @@ describe('streamText', () => {
                     },
                     {
                       type: 'finish',
-                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool_calls',
+                      },
                       usage: testUsage,
                     },
                   ]),

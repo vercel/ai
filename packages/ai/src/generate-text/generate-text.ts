@@ -75,11 +75,6 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
-/**
- * Extracts the OpenAI conversation ID from provider options if present.
- * When conversation mode is active, the SDK sends incremental messages
- * during tool loops instead of the full message history.
- */
 function getOpenAIConversationId(providerOptions: unknown): string | undefined {
   const convo = (providerOptions as any)?.openai?.conversation;
   return typeof convo === 'string' && convo.length > 0 ? convo : undefined;
@@ -461,15 +456,11 @@ A function that attempts to repair a tool call that failed to parse.
 
         const callSettings = prepareCallSettings(settings);
 
-        // OpenAI conversation mode: track incremental messages for tool loops.
-        // When conversation is enabled, OpenAI persists the conversation server-side,
-        // so we only send new client-originated items (tool results) on subsequent
+        // OpenAI conversation mode: send only new tool results on subsequent
         // loop iterations instead of the full message history.
-        const openAIConversationId = getOpenAIConversationId(providerOptions);
-        const useOpenAIConversationDeltaPrompt = openAIConversationId != null;
-        // Start as undefined to indicate first call should send full messages
-        let deltaStepInputMessages: Array<ResponseMessage> | undefined =
-          undefined;
+        const useOpenAIConversationDeltaPrompt =
+          getOpenAIConversationId(providerOptions) != null;
+        let deltaStepInputMessages: Array<ResponseMessage> | undefined;
 
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV3['doGenerate']>
@@ -501,21 +492,14 @@ A function that attempts to repair a tool call that failed to parse.
             prepareStepResult?.model ?? model,
           );
 
-          // In OpenAI conversation mode, on the first call we send the full prompt.
-          // On subsequent calls (tool loop iterations), we send only new
-          // client-originated messages (tool results) since OpenAI persists
-          // the conversation server-side.
-          // Note: We also check length > 0 because if there are pending deferred
-          // tool calls but no new client tool results, we need to fall back to
-          // full messages rather than sending an empty array.
+          // In conversation mode, send only delta (tool results) on subsequent calls:
           const messagesForPrompt =
             useOpenAIConversationDeltaPrompt &&
             deltaStepInputMessages != null &&
             deltaStepInputMessages.length > 0
-              ? deltaStepInputMessages // Subsequent calls: send only delta (tool results)
-              : (prepareStepResult?.messages ?? stepInputMessages); // First call, empty delta, or non-conversation: send full
+              ? deltaStepInputMessages
+              : (prepareStepResult?.messages ?? stepInputMessages);
 
-          // Clear delta after determining what to send (will be populated with tool results)
           if (useOpenAIConversationDeltaPrompt) {
             deltaStepInputMessages = [];
           }
@@ -806,8 +790,6 @@ A function that attempts to repair a tool call that failed to parse.
           });
           responseMessages.push(...stepResponseMessages);
 
-          // In OpenAI conversation mode, only send tool result messages on subsequent
-          // iterations (not assistant messages, which OpenAI already has server-side)
           if (useOpenAIConversationDeltaPrompt) {
             deltaStepInputMessages ??= [];
             deltaStepInputMessages.push(
