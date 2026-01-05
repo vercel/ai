@@ -146,6 +146,9 @@ importers:
       '@ai-sdk/perplexity':
         specifier: workspace:*
         version: link:../../packages/perplexity
+      '@ai-sdk/prodia':
+        specifier: workspace:*
+        version: link:../../packages/prodia
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../../packages/provider
@@ -2371,6 +2374,34 @@ importers:
       tsup:
         specifier: ^8
         version: 8.3.0(jiti@2.4.0)(postcss@8.5.6)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/prodia:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
       typescript:
         specifier: 5.8.3
         version: 5.8.3
@@ -29503,6 +29534,13 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
+<<<<<<< HEAD
+=======
+  copy-anything@4.0.5:
+    dependencies:
+      is-what: 5.5.0
+
+>>>>>>> bb3d30e19 (feat(provider/prodia): Create Prodia provider package (#11412))
   copy-webpack-plugin@13.0.1(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       glob-parent: 6.0.2
@@ -36023,6 +36061,18 @@ snapshots:
       tsx: 4.19.2
       yaml: 2.7.0
 
+<<<<<<< HEAD
+=======
+  postcss-load-config@6.0.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(yaml@2.7.0):
+    dependencies:
+      lilconfig: 3.1.3
+    optionalDependencies:
+      jiti: 2.6.1
+      postcss: 8.5.6
+      tsx: 4.21.0
+      yaml: 2.7.0
+
+>>>>>>> bb3d30e19 (feat(provider/prodia): Create Prodia provider package (#11412))
   postcss-loader@8.1.1(postcss@8.5.6)(typescript@5.8.3)(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       cosmiconfig: 9.0.0(typescript@5.8.3)
