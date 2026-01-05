@@ -1016,6 +1016,35 @@ export function processLangGraphEvent(
       if (data != null && typeof data === 'object' && 'messages' in data) {
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
+          /**
+           * First pass: Collect all tool call IDs that have been responded to by ToolMessages.
+           * These are historical tool calls that are already complete.
+           */
+          const completedToolCallIds = new Set<string>();
+          for (const msg of messages) {
+            if (!msg || typeof msg !== 'object') continue;
+
+            if (isToolMessageType(msg)) {
+              // Handle both direct properties and serialized messages (kwargs)
+              const msgObj = msg as unknown as Record<string, unknown>;
+              const dataSource =
+                msgObj.type === 'constructor' &&
+                msgObj.kwargs &&
+                typeof msgObj.kwargs === 'object'
+                  ? (msgObj.kwargs as Record<string, unknown>)
+                  : msgObj;
+
+              const toolCallId = dataSource.tool_call_id as string | undefined;
+              if (toolCallId) {
+                completedToolCallIds.add(toolCallId);
+              }
+            }
+          }
+
+          /**
+           * Second pass: Process messages and emit tool events only for NEW tool calls
+           * (those not already completed by a ToolMessage in the history)
+           */
           for (const msg of messages) {
             if (!msg || typeof msg !== 'object') continue;
 
@@ -1100,8 +1129,15 @@ export function processLangGraphEvent(
               for (const toolCall of toolCalls) {
                 /**
                  * Only emit if we haven't already processed this tool call
+                 * AND if it's not a historical tool call that already has a ToolMessage response.
+                 * Historical completed tool calls should not be re-emitted as this would create
+                 * orphaned tool parts in the UI without corresponding outputs.
                  */
-                if (toolCall.id && !emittedToolCalls.has(toolCall.id)) {
+                if (
+                  toolCall.id &&
+                  !emittedToolCalls.has(toolCall.id) &&
+                  !completedToolCallIds.has(toolCall.id)
+                ) {
                   emittedToolCalls.add(toolCall.id);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
