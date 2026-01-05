@@ -315,7 +315,7 @@ export class MockMCPTransport implements MCPTransport {
           });
           return;
         }
-  
+
         const customResult = this.toolCallResults[toolName as string];
         if (customResult) {
           this.onmessage?.({
