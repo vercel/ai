@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
@@ -8,10 +7,13 @@ run(async () => {
     model: xai.responses('grok-4'),
     prompt:
       'Calculate the compound interest for $10,000 at 5% annually for 10 years',
-    // 'What is the latest in US news?',
     tools: {
-      web_search: xai.tools.webSearch(),
       code_execution: xai.tools.codeExecution(),
+    },
+    onStepFinish: async ({ request, response }) => {
+      console.log('Request:', JSON.stringify(request, null, 2));
+      console.log('Response:', JSON.stringify(response, null, 2)); // an error message will be observer here in the 'tool' role message part; won't stop execution though
+      console.log();
     },
   });
 
