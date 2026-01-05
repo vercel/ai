@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.118
+
+### Patch Changes
+
+- 42bad72: `https://ai-sdk.dev` -> `https://v5.ai-sdk.dev`
+
 ## 5.0.117
 
 ### Patch Changes
