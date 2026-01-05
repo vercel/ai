@@ -1,5 +1,31 @@
 # @ai-sdk/llamaindex
 
+## 2.0.7
+
+### Patch Changes
+
+- ai@6.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@6.0.4
+
 ## 2.0.3
 
 ### Patch Changes

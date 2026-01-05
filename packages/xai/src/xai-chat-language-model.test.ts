@@ -1390,8 +1390,8 @@ describe('XaiChatLanguageModel', () => {
           },
           "outputTokens": {
             "reasoning": 10,
-            "text": 10,
-            "total": 20,
+            "text": 20,
+            "total": 30,
           },
           "raw": {
             "completion_tokens": 20,
@@ -1490,8 +1490,8 @@ describe('XaiChatLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": 10,
-                "text": 10,
-                "total": 20,
+                "text": 20,
+                "total": 30,
               },
               "raw": {
                 "completion_tokens": 20,
@@ -1598,8 +1598,8 @@ describe('XaiChatLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": 10,
-                "text": 10,
-                "total": 20,
+                "text": 20,
+                "total": 30,
               },
               "raw": {
                 "completion_tokens": 20,
