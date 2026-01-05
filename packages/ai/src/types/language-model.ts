@@ -12,7 +12,7 @@ declare global {
    *
    * You can register model IDs in two ways:
    *
-   * 1. Register based on Model IDs from a provider package:
+   * 1. Register baesd on Model IDs from a provider package:
    * @example
    * ```typescript
    * import { openai } from '@ai-sdk/openai';
