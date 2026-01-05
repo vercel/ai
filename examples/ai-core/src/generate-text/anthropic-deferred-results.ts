@@ -2,8 +2,9 @@ import 'dotenv/config';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   let stepNumber = 0;
 
   const response = await generateText({
@@ -38,6 +39,4 @@ async function main() {
   console.log('FINAL RESULT');
   console.log('='.repeat(60));
   console.log(response.text);
-}
-
-main().catch(console.error);
+});
