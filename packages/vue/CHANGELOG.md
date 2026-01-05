@@ -1,5 +1,32 @@
 # @ai-sdk/vue
 
+## 3.0.7
+
+### Patch Changes
+
+- ai@6.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.4
+
+### Patch Changes
+
+- ai@6.0.4
+
 ## 3.0.3
 
 ### Patch Changes
