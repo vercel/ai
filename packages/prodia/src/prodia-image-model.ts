@@ -46,7 +46,7 @@ export class ProdiaImageModel implements ImageModelV3 {
       const [widthStr, heightStr] = size.split('x');
       width = Number(widthStr);
       height = Number(heightStr);
-      if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      if (!widthStr || !heightStr || !Number.isFinite(width) || !Number.isFinite(height)) {
         warnings.push({
           type: 'unsupported',
           feature: 'size',
