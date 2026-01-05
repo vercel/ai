@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.4
+
+### Patch Changes
+
+- bf39dac: Fix: Use provider tool name in Tool Search Tool results
+
 ## 3.0.3
 
 ### Patch Changes
