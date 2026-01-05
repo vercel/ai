@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.3
+
+### Patch Changes
+
+- 77b760d: fix(anthropic): support deferred results for web search/fetch tool
+
 ## 3.0.2
 
 ### Patch Changes
