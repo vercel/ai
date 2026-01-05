@@ -2215,6 +2215,352 @@ describe('generateText', () => {
     });
   });
 
+  describe('OpenAI conversation mode (delta prompt)', () => {
+    it('should send full messages on first call and only tool results on subsequent calls', async () => {
+      const doGenerateCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ prompt }) => {
+            doGenerateCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                // First call: model returns a tool call
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                };
+              case 1:
+                // Second call: model returns text
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          }),
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          openai: { conversation: 'conv-123' },
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      // First call should have full messages (user message)
+      expect(doGenerateCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call should have only tool result message (delta)
+      expect(doGenerateCalls[1]).toStrictEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              output: { type: 'text', value: 'tool result' },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should fall back to full messages when delta is empty (no tool results)', async () => {
+      const doGenerateCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ prompt }) => {
+            doGenerateCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                // First call: model returns a provider-executed tool call with deferred result
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'serverTool',
+                      input: '{}',
+                      providerExecuted: true,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                };
+              case 1:
+                // Second call: model returns deferred result and text
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'call-1',
+                      toolName: 'serverTool',
+                      result: 'deferred result',
+                      isError: false,
+                    },
+                    { type: 'text', text: 'Final response' },
+                  ],
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          serverTool: {
+            type: 'provider',
+            supportsDeferredResults: true,
+          },
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          openai: { conversation: 'conv-123' },
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      // First call should have full messages
+      expect(doGenerateCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call: since there are no client tool results (only provider-executed),
+      // delta is empty and we fall back to full messages
+      expect(doGenerateCalls[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'serverTool',
+              input: {},
+              providerExecuted: true,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should send full messages on every call when conversation mode is not active', async () => {
+      const doGenerateCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ prompt }) => {
+            doGenerateCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          }),
+        },
+        prompt: 'test-input',
+        // No providerOptions.openai.conversation
+        stopWhen: stepCountIs(3),
+      });
+
+      // First call should have full messages
+      expect(doGenerateCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call should ALSO have full messages (including assistant and tool)
+      expect(doGenerateCalls[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              input: { value: 'test' },
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              output: { type: 'text', value: 'tool result' },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should not use delta prompt when conversation is empty string', async () => {
+      const doGenerateCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ prompt }) => {
+            doGenerateCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Final response' }],
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          }),
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          openai: { conversation: '' }, // Empty string should NOT trigger delta mode
+        },
+        stopWhen: stepCountIs(3),
+      });
+
+      // Second call should have full messages (not delta mode)
+      expect(doGenerateCalls[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              input: { value: 'test' },
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              output: { type: 'text', value: 'tool result' },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution', async () => {
       const abortController = new AbortController();

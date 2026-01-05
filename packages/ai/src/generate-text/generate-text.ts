@@ -76,6 +76,16 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
+ * Extracts the OpenAI conversation ID from provider options if present.
+ * When conversation mode is active, the SDK sends incremental messages
+ * during tool loops instead of the full message history.
+ */
+function getOpenAIConversationId(providerOptions: unknown): string | undefined {
+  const convo = (providerOptions as any)?.openai?.conversation;
+  return typeof convo === 'string' && convo.length > 0 ? convo : undefined;
+}
+
+/**
 Callback that is set using the `onStepFinish` option.
 
 @param stepResult - The result of the step.
@@ -451,6 +461,16 @@ A function that attempts to repair a tool call that failed to parse.
 
         const callSettings = prepareCallSettings(settings);
 
+        // OpenAI conversation mode: track incremental messages for tool loops.
+        // When conversation is enabled, OpenAI persists the conversation server-side,
+        // so we only send new client-originated items (tool results) on subsequent
+        // loop iterations instead of the full message history.
+        const openAIConversationId = getOpenAIConversationId(providerOptions);
+        const useOpenAIConversationDeltaPrompt = openAIConversationId != null;
+        // Start as undefined to indicate first call should send full messages
+        let deltaStepInputMessages: Array<ResponseMessage> | undefined =
+          undefined;
+
         let currentModelResponse: Awaited<
           ReturnType<LanguageModelV3['doGenerate']>
         > & { response: { id: string; timestamp: Date; modelId: string } };
@@ -481,10 +501,29 @@ A function that attempts to repair a tool call that failed to parse.
             prepareStepResult?.model ?? model,
           );
 
+          // In OpenAI conversation mode, on the first call we send the full prompt.
+          // On subsequent calls (tool loop iterations), we send only new
+          // client-originated messages (tool results) since OpenAI persists
+          // the conversation server-side.
+          // Note: We also check length > 0 because if there are pending deferred
+          // tool calls but no new client tool results, we need to fall back to
+          // full messages rather than sending an empty array.
+          const messagesForPrompt =
+            useOpenAIConversationDeltaPrompt &&
+            deltaStepInputMessages != null &&
+            deltaStepInputMessages.length > 0
+              ? deltaStepInputMessages // Subsequent calls: send only delta (tool results)
+              : (prepareStepResult?.messages ?? stepInputMessages); // First call, empty delta, or non-conversation: send full
+
+          // Clear delta after determining what to send (will be populated with tool results)
+          if (useOpenAIConversationDeltaPrompt) {
+            deltaStepInputMessages = [];
+          }
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: prepareStepResult?.messages ?? stepInputMessages,
+              messages: messagesForPrompt,
             },
             supportedUrls: await stepModel.supportedUrls,
             download,
@@ -761,12 +800,20 @@ A function that attempts to repair a tool call that failed to parse.
           });
 
           // append to messages for potential next step:
-          responseMessages.push(
-            ...(await toResponseMessages({
-              content: stepContent,
-              tools,
-            })),
-          );
+          const stepResponseMessages = await toResponseMessages({
+            content: stepContent,
+            tools,
+          });
+          responseMessages.push(...stepResponseMessages);
+
+          // In OpenAI conversation mode, only send tool result messages on subsequent
+          // iterations (not assistant messages, which OpenAI already has server-side)
+          if (useOpenAIConversationDeltaPrompt) {
+            deltaStepInputMessages ??= [];
+            deltaStepInputMessages.push(
+              ...stepResponseMessages.filter(msg => msg.role === 'tool'),
+            );
+          }
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({

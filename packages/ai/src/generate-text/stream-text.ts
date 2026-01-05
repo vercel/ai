@@ -106,6 +106,16 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
+ * Extracts the OpenAI conversation ID from provider options if present.
+ * When conversation mode is active, the SDK sends incremental messages
+ * during tool loops instead of the full message history.
+ */
+function getOpenAIConversationId(providerOptions: unknown): string | undefined {
+  const convo = (providerOptions as any)?.openai?.conversation;
+  return typeof convo === 'string' && convo.length > 0 ? convo : undefined;
+}
+
+/**
 A transformation that is applied to the stream.
 
 @param stopStream - A function that stops the source stream.
@@ -682,6 +692,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     // (e.g., code_execution in programmatic tool calling scenarios).
     // These tools may not return their results in the same turn as their call.
     const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
+    // OpenAI conversation mode: track incremental messages for tool loops.
+    // When conversation is enabled, OpenAI persists the conversation server-side,
+    // so we only send new client-originated items (tool results) on subsequent
+    // loop iterations instead of the full message history.
+    const openAIConversationId = getOpenAIConversationId(providerOptions);
+    const useOpenAIConversationDeltaPrompt = openAIConversationId != null;
+    // Start as undefined to indicate first call should send full messages
+    let deltaStepInputMessages: Array<ResponseMessage> | undefined = undefined;
 
     let rootSpan!: Span;
 
@@ -1271,10 +1290,29 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             prepareStepResult?.model ?? model,
           );
 
+          // In OpenAI conversation mode, on the first call we send the full prompt.
+          // On subsequent calls (tool loop iterations), we send only new
+          // client-originated messages (tool results) since OpenAI persists
+          // the conversation server-side.
+          // Note: We also check length > 0 because if there are pending deferred
+          // tool calls but no new client tool results, we need to fall back to
+          // full messages rather than sending an empty array.
+          const messagesForPrompt =
+            useOpenAIConversationDeltaPrompt &&
+            deltaStepInputMessages != null &&
+            deltaStepInputMessages.length > 0
+              ? deltaStepInputMessages // Subsequent calls: send only delta (tool results)
+              : (prepareStepResult?.messages ?? stepInputMessages); // First call, empty delta, or non-conversation: send full
+
+          // Clear delta after determining what to send (will be populated with tool results)
+          if (useOpenAIConversationDeltaPrompt) {
+            deltaStepInputMessages = [];
+          }
+
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
               system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: prepareStepResult?.messages ?? stepInputMessages,
+              messages: messagesForPrompt,
             },
             supportedUrls: await stepModel.supportedUrls,
             download,
@@ -1717,14 +1755,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }))
                   ) {
                     // append to messages for the next step:
-                    responseMessages.push(
-                      ...(await toResponseMessages({
-                        content:
-                          // use transformed content to create the messages for the next step:
-                          recordedSteps[recordedSteps.length - 1].content,
-                        tools,
-                      })),
-                    );
+                    const stepResponseMessages = await toResponseMessages({
+                      content:
+                        // use transformed content to create the messages for the next step:
+                        recordedSteps[recordedSteps.length - 1].content,
+                      tools,
+                    });
+                    responseMessages.push(...stepResponseMessages);
+
+                    // In OpenAI conversation mode, only send tool result messages on subsequent
+                    // iterations (not assistant messages, which OpenAI already has server-side)
+                    if (useOpenAIConversationDeltaPrompt) {
+                      deltaStepInputMessages ??= [];
+                      deltaStepInputMessages.push(
+                        ...stepResponseMessages.filter(msg => msg.role === 'tool'),
+                      );
+                    }
 
                     try {
                       await streamStep({

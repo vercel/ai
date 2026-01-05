@@ -9966,6 +9966,317 @@ describe('streamText', () => {
     });
   });
 
+  describe('OpenAI conversation mode (delta prompt)', () => {
+    it('should send full messages on first call and only tool results on subsequent calls', async () => {
+      const doStreamCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ prompt }) => {
+            doStreamCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                // First call: model returns a tool call
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                // Second call: model returns text
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Final response' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          }),
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          openai: { conversation: 'conv-123' },
+        },
+        stopWhen: stepCountIs(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      // Consume the stream to trigger all calls
+      await convertAsyncIterableToArray(result.fullStream);
+
+      // First call should have full messages (user message)
+      expect(doStreamCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call should have only tool result message (delta)
+      expect(doStreamCalls[1]).toStrictEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              output: { type: 'text', value: 'tool result' },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should fall back to full messages when delta is empty (no tool results)', async () => {
+      const doStreamCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ prompt }) => {
+            doStreamCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                // First call: model returns a provider-executed tool call with deferred result
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'serverTool',
+                      input: '{}',
+                      providerExecuted: true,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                // Second call: model returns deferred result and text
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'call-1',
+                      toolName: 'serverTool',
+                      result: 'deferred result',
+                      isError: false,
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Final response' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          serverTool: {
+            type: 'provider',
+            supportsDeferredResults: true,
+          },
+        },
+        prompt: 'test-input',
+        providerOptions: {
+          openai: { conversation: 'conv-123' },
+        },
+        stopWhen: stepCountIs(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      // Consume the stream to trigger all calls
+      await convertAsyncIterableToArray(result.fullStream);
+
+      // First call should have full messages
+      expect(doStreamCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call: since there are no client tool results (only provider-executed),
+      // delta is empty and we fall back to full messages
+      expect(doStreamCalls[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'serverTool',
+              input: {},
+              providerExecuted: true,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
+    it('should send full messages on every call when conversation mode is not active', async () => {
+      const doStreamCalls: LanguageModelV3Prompt[] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ prompt }) => {
+            doStreamCalls.push(prompt);
+
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Final response' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              default:
+                throw new Error(`Unexpected call: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          }),
+        },
+        prompt: 'test-input',
+        // No providerOptions.openai.conversation
+        stopWhen: stepCountIs(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          currentDate: () => new Date(0),
+        },
+      });
+
+      // Consume the stream to trigger all calls
+      await convertAsyncIterableToArray(result.fullStream);
+
+      // First call should have full messages
+      expect(doStreamCalls[0]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+      ]);
+
+      // Second call should ALSO have full messages (including assistant and tool)
+      expect(doStreamCalls[1]).toStrictEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test-input' }],
+          providerOptions: undefined,
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              input: { value: 'test' },
+              providerExecuted: undefined,
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'testTool',
+              output: { type: 'text', value: 'tool result' },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution during streaming', async () => {
       const abortController = new AbortController();
