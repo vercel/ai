@@ -140,6 +140,76 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
     });
   });
 
+  it('adds additionalProperties: false to objects inside allOf', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          allOf: [
+            { type: 'object', properties: { name: { type: 'string' } } },
+            { type: 'object', properties: { age: { type: 'number' } } },
+          ],
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          allOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { name: { type: 'string' } },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { age: { type: 'number' } },
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to objects inside oneOf', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          oneOf: [
+            { type: 'object', properties: { success: { type: 'boolean' } } },
+            { type: 'object', properties: { error: { type: 'string' } } },
+          ],
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          oneOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { success: { type: 'boolean' } },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { error: { type: 'string' } },
+            },
+          ],
+        },
+      },
+    });
+  });
+
   it('adds additionalProperties: false to object schemas inside definitions (refs)', () => {
     const schema: JSONSchema7 = {
       type: 'object',
