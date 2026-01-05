@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.3
+
+### Patch Changes
+
+- 55cd1a4: fix(azure): allow 'azure' as a key for providerOptions
+
 ## 3.0.2
 
 ### Patch Changes

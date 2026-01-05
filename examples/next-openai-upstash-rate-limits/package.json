@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.2",
+    "@ai-sdk/openai": "3.0.3",
     "@ai-sdk/react": "3.0.7",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
