@@ -1316,11 +1316,33 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+<<<<<<< HEAD
           "cachedInputTokens": undefined,
           "inputTokens": 15,
           "outputTokens": 20,
           "reasoningTokens": 10,
           "totalTokens": 35,
+=======
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 15,
+            "total": 15,
+          },
+          "outputTokens": {
+            "reasoning": 10,
+            "text": 10,
+            "total": 20,
+          },
+          "raw": {
+            "completion_tokens": 20,
+            "completion_tokens_details": {
+              "reasoning_tokens": 10,
+            },
+            "prompt_tokens": 15,
+            "total_tokens": 35,
+          },
+>>>>>>> 77012ef8b (fix(xai): negative text_output_tokens for xAI reasoning models (#11536))
         }
       `);
     });
@@ -1399,11 +1421,33 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+<<<<<<< HEAD
               "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
               "totalTokens": 35,
+=======
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
+>>>>>>> 77012ef8b (fix(xai): negative text_output_tokens for xAI reasoning models (#11536))
             },
           },
         ]
@@ -1490,11 +1534,33 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+<<<<<<< HEAD
               "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
               "totalTokens": 35,
+=======
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 15,
+                "total": 15,
+              },
+              "outputTokens": {
+                "reasoning": 10,
+                "text": 10,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 10,
+                },
+                "prompt_tokens": 15,
+                "total_tokens": 35,
+              },
+>>>>>>> 77012ef8b (fix(xai): negative text_output_tokens for xAI reasoning models (#11536))
             },
           },
         ]
