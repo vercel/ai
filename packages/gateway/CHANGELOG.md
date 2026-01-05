@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 3.0.6
+
+### Patch Changes
+
+- 74c0157: feat (provider/gateway): support image editing
+
+## 3.0.5
+
+### Patch Changes
+
+- 7ee2d12: chore (provider/gateway): bump specification version header to reflect v3
+
 ## 3.0.4
 
 ### Patch Changes
