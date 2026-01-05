@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.6
+
+### Patch Changes
+
+- 77012ef: fix(xai): correct token counting for reasoning models to prevent negative text_output_tokens
+
 ## 3.0.5
 
 ### Patch Changes
