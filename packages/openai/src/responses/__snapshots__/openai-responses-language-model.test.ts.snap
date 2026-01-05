@@ -639,6 +639,36 @@ Would you like a custom alias, password protection, or a description added to th
 ]
 `;
 
+exports[`OpenAIResponsesLanguageModel > doGenerate > reasoning > should generate reasoning encrypted content using real fixture 1`] = `
+[
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_0f35ed53160b395301693cc95817ac8190b978637daea4987e",
+        "reasoningEncryptedContent": "gAAAAABpPMlcH0HHEv5_ozHwP5Gxz5ZLE7A8Aw7GK94sa1KWHqXLrAch29KZrZqCzH6PkWnLWTxIZv4TL70DPoKbS_ryNp6d2rC8vS04U7qWLdsbYnsqmPYVCCQ2Rigd84Yh9mgctGTs_w5x7NY3pm5lOxUv5jGHAW20nAMGfpFAAYRjW1aAA7f1CjfcXgm8CgNOc1Mu3L9a-q64LU8taFhc_9-GNBqRD-Gxul4pVXTQ4BlnYwOGOsfctcM_SNxYgYM2gS0pawkltN5250JlO7LaUcteD8E47fpcHGS9hmzDpMGWvIpuksPjzBnVn_R9JJcJSd_rMO8TTrGlXT-Thw_UOdX3aZZLac2OMD_MIkGN4GuGISC674RZlJWi8_x-C-VqdkRm0qsEwYvFp17ykYReCtPocXWtOI1dyVZogyQYO5b6qEmHjPXIFqyoPHLjes_CrWyR7ChVcR_GTJq55lsHfppBevMU4wGbHga6CgaC_dcbGo4ECXPh0HUqs4U7t58JgJcCQ1DX1AygF4cRjKAs4mqTXOR4ruHutmknG61sOuc19FtOyhIadquNd2EBb9pa7Rix5Rk_0cTb1jkUBVH3QknhjjCDvvlp8MIp5jU55ANgI9ZpL3TTVWziTCJLdeLMUpohKggDJ7axs9qdhl3dfdvdhLnN5GimFNxWglWn8ioQ7KMYil9HxGErd47q0GxfFqnuNMfchsLESwCdmGMqsaavEjZjD_bQ_iXASQgmk2FYXo41tsHtrVBzJCFFLhswr1t47b8qb3_pJeevwLeuBfRR56ZKxQLyp35rLGzizSKknkKRrbimGL8L4hSI2ktPlH0JZlBiH7mhsBPSs8W7GhZjMYFUQ3RMBshUjHGx3Tu_iW5pNKkrI_XWDHaCNurXBNYV9Kj23Xj6GAQaFzGn62GpvKbObXFlW941aRuZLPCAhGHRZptxrNZEg_DcVcUrMEPHubEA5YUMSb4iZtszE0FT7kVmYmFU3SR-heOU2umXykQx5wnCoi0FtzWLDSXUbElcex-5k11pIoQH59HQYhfNzogV9p9MO1O9hGRaJkA_RZbUxRVKqDURRjNWzXJb8SdoCcRZSFdv_2WRv5NCt1XHBFcAL8DSa6Mu2y0DR-SW7kpu-yKRa8_R4g9dtweK6JRWZxG_TLxH_JIAwfmbts97zBwC-9pcmnC1UshE6_Z9RwRe3a2OTBNkS6dTHV8WMgM02fVFPhiFmFLj_jGUzxW4uQlWnTorO2-X2C-EcgzOGkEngM6_fhY-ZWTN4xEA6GRoCTSTYEaHq1MPIASasagN6N-NwALyBzLJ3vmwdo6ub5KS1JB4G_knIapiUKaGjVTGXCVG8iVTCrjc-fhrZnnY4yZyQP8RSc33JTIE3fYgPyJ9qwHRYlsH70TVbv0gXmUKCE-woT2nqyqYJMdIwtPWOpAc2lXEr5xeM0mZ3XzuArSP3rogl-p6TZNhrKfzQbMlL3yC9UK_rkShXOoi4MpOmNbnNgRCO2XZ_qO7MTTFqZwaM6VOnX3SStqEaTskoASEz7no-6OmMC7eJRZj1LtUqh2kCQ==",
+      },
+    },
+    "text": "**Reporting final result**
+
+The tool returned 570, and now I need to report this final result. The user asked for a clear breakdown, so I'll include the steps taken: first, I added 12 and 7 to get 19; then, I multiplied 19 by 3 for 57; finally, I multiplied 57 by 10 to arrive at 570. I want to keep it concise, so I'll simply say, "Final result: 570," without heavy formatting. Let's finalize that!",
+    "type": "reasoning",
+  },
+  {
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_0f35ed53160b395301693cc95c1d288190997018450969162b",
+      },
+    },
+    "text": "12 + 7 = 19
+19 × 3 = 57
+57 × 10 = 570
+
+Final result: 570",
+    "type": "text",
+  },
+]
+`;
+
 exports[`OpenAIResponsesLanguageModel > doGenerate > shell tool > should include shell tool call and result in content 1`] = `
 [
   {
@@ -7898,6 +7928,730 @@ exports[`OpenAIResponsesLanguageModel > doStream > mcp tool approval > should st
           "cached_tokens": 0,
         },
         "output_tokens": 69,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doStream > reasoning > should stream with encrypted content include reasoning-delta part 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_01830d662ab3856501693c321345c88190b0de00f3b9975691",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T15:17:39.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+        "reasoningEncryptedContent": "gAAAAABpPDIUph8czEXzDePCV2lJ27wm7TsbCvazrvHSn0yWitN7RGWq8sjrPtfEYNkSVR8GZzB59nmPMV9haW4HIeHtIFfWz2boJ58r5pqNxfC3bI5TeUSP_O5MmkuIXjU3jHPqpYVyIBGGW7G3ER79DJGZKdBGMiYFNiodJez0fxOuRtRwAJKyIG4ySE3z6an38XFE6ZqHW58_WfI5ASZ_nuNIZtclNTl2qkW9N5X2TaxZj7evx3e24DXjcbMHJvwAnDropoufqTSC5Ec8uBbD_trspO6Ofc44hIOg5osGY8rtEg_Havfv8X6kP5KESMAPjte2aVIK2PdNz6iZFw7F4IWyNJfrREedu1B8q6Xj5XlwIprwZ0EttT9lf1SEIFmjsSzBKUo4vdxYlDLguW1UiX0uCZWQtpMm8BDYYfJnGXgsHuFBkp4wRSpwIEmAboPnHJ7fPm5YKlq-tW9mqMx7jH14aOOhTI6NT-BMWxmHOhSwXRjs6QkC3HPJBPe-GuVdrOeaF6toplDVr3jawhsFiRGX6v25inDLjTvegukgpsBlkpEQUxRtsb1q5OvBQRGaCXdsTPvBFfVPW9fPwz8durYiY4cGCySIt2yyuptC6M4i4dZfF2Fk5Y1LtHCQ-C2BLMo-1nbuae6uFnbEBGztbd8JWDKHX-6z22FhJy9U1GI9qq8n5qUFoVmgp6qIK8v1YSjKG4YTK_sE95ZwJ3X-A_U_MjOZfMyaEgxqX8FCSo_CZMAqT5K9_IRCPPC4fGA1HYgzxPs8P5Ml_-_5q0YnxsbW2SrgzZoKeYMsImgNLPeTk7Wll27KnB3zWeHnpbKZBhhgTybX",
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "**Calcul",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "ating",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " step",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-by",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "-step",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " using",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calculator",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "**
+
+I'll",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " compute",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 12",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " plus",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 7",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " then",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multiply",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " result",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " by",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 3",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " finally",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " multiply",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " that",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " by",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 10",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " reporting",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " final",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " product",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+      },
+    },
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9:0",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "rs_01830d662ab3856501693c321405c88190be3ab04d5782d5f9",
+        "reasoningEncryptedContent": "gAAAAABpPDIVOKrsHNZ0GwsoEKA_IGfuJ5f8Ma_6-EojH4yZFL50qlfUzM7FREdQlpkqlnIHLRx2YJxZfzvbnc0E3J_yvIuoeoGQp2hYUfiV5XWs5d0XfqJps9ZgtUBRR1dqB43ooABehaMjM6BjaSGz-3PeUHZfedawAcRKhdJuLF1Q2YPL0OI4i97zy3O1u_2ypHd9JTE1pWoJMwPqx3myOs1_eeg5_yzgiQ0WsRHLvginFvEUyt-N7uxubO6bHfSN_TVTyXiDhCI6lf1v1r8ElDAkFfpbEKvIhUs4SGhykBWkYauqsB9B79Nfr6gwmaUnRGAct8ZsX394UVAqqokBqLIB8EzDjckb5EkUh0F33Ye_9-Nyjo7zLN_gTGxf3JI5DxsbFsZAylpEsEAX6_UbH0o3-2dfy_p9_rgNUNfQmg4nty8z0ZIKdEC7hihyD-4gj7lRYEKcDhQmDVKJW-6asLIpFVoX65yJRo-xOBPf3lLzXczlXWvvYiooHFAF5h1YFFzfjS8pnXkpnq-cFS4Ot8i63pAKgTcRMQEgOB1AxjXOX-QRnX_ncyJmYDVAl-Q7zJwc2cynXXCiaoYfaFxN0P26An7bV18Dwrz3ed-hd-mKUQM_nS9z59kyvCb8Ug7KxD10Me8jyzOFXgtmb76vTRxa7zjMdQhoGE2wRO348n28yM4flAKqUS7b0TsUljeSSnoBXMJSqpuqKXrpmLWjt8_Ws9dEgP3ql8QcQwnQ5QAePNXoleQGBjiF_C5WI8Qoyd6yxFcYM939msh9gfA94QAQiMB7-KUpmo_8ViQOVAggnt1QlXXHrrHuEDDgL2l42_aAIVL3GlHCuSlIChiET8y2iRZmxhDoEg61zQAuknapDM8-5POFTRcbniqN6eHJjxKOJpD45JkH1HYAOHAX3llk6M1MNx_YkYc7mOXmcPIHUYvHOjTv7dAhntZhxn4iHXHRvFRd22b4pUNxSPHDJQ8_UgJ0OgCZIoy1axBR84rbicty4RCaGkbotBee75SdYcE__rOXQxSo_8XMnObfNxat0wz4uQ==",
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "12",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "7",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "add",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":12,"b":7,"op":"add"}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_01830d662ab3856501693c32151234819091cfca267e98cc5f",
+      },
+    },
+    "toolCallId": "call_AB6AaRZ1FYZB2RwS6A5vbdqn",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_01830d662ab3856501693c3215903881909b710d150ff65014",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T15:17:41.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "19",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "3",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "multiply",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":19,"b":3,"op":"multiply"}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_01830d662ab3856501693c32165be4819098c08f205f8932ef",
+      },
+    },
+    "toolCallId": "call_Q6pW65MUgW9vF59BmItYGos3",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_01830d662ab3856501693c3216bef88190bf0e034cff24137b",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T15:17:42.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "toolName": "calculator",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "a",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "57",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "b",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "10",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ","",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "op",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":"",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "multiply",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"a":57,"b":10,"op":"multiply"}",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "fc_01830d662ab3856501693c32173d5081908f2121e1c3ff2901",
+      },
+    },
+    "toolCallId": "call_Zl5vIMnD7dVAjgU6FkhmiCZh",
+    "toolName": "calculator",
+    "type": "tool-call",
+  },
+  {
+    "id": "resp_01830d662ab3856501693c3217ba4c8190a3ddf6c839d4f12a",
+    "modelId": "gpt-5.1-codex-max",
+    "timestamp": 2025-12-12T15:17:43.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": " final",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": " result",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": "570",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+    "providerMetadata": {
+      "openai": {
+        "itemId": "msg_01830d662ab3856501693c32183a488190a612c410a0a39823",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_01830d662ab3856501693c3217ba4c8190a3ddf6c839d4f12a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 299,
+        "total": 299,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 299,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 12,
         "output_tokens_details": {
           "reasoning_tokens": 0,
         },
