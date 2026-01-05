@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
 ## 6.0.8
 
 ### Patch Changes
