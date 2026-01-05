@@ -599,6 +599,218 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.content[1].type).toBe('tool-call');
       });
     });
+
+    describe('tool name mapping by type', () => {
+      it('should map web_search_call type to web_search tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            input: '{"query":"test"}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map x_search_call type to x_search tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'x_search_call',
+              id: 'xs_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'xs_123',
+            toolName: 'x_search',
+            input: '{"query":"test"}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map code_interpreter_call type to code_execution tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'code_interpreter_call',
+              id: 'ci_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ci_123',
+            toolName: 'code_execution',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map code_execution_call type to code_execution tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'code_execution_call',
+              id: 'ce_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ce_123',
+            toolName: 'code_execution',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should use custom tool name from provider tool when type matches', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'my_custom_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -718,6 +930,303 @@ describe('XaiResponsesLanguageModel', () => {
           toolCallId: 'ws_123',
           toolName: 'web_search',
           input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+      });
+    });
+
+    describe('tool name mapping by type in streaming', () => {
+      it('should map web_search_call type to web_search tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map x_search_call type to x_search tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'x_search_call',
+              id: 'xs_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'xs_123',
+          toolName: 'x_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map code_interpreter_call type to code_execution tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'code_interpreter_call',
+              id: 'ci_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ci_123',
+          toolName: 'code_execution',
+          input: '{}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map code_execution_call type to code_execution tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'code_execution_call',
+              id: 'ce_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ce_123',
+          toolName: 'code_execution',
+          input: '{}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should use custom tool name from provider tool when type matches', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'my_custom_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'my_custom_search',
+          input: '{}',
           providerExecuted: true,
         });
       });
