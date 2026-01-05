@@ -150,7 +150,8 @@ const stream = await transport.sendMessages({
     {
       name: 'messages',
       type: 'UIMessage[]',
-      description: 'Array of UI messages representing the conversation history.',
+      description:
+        'Array of UI messages representing the conversation history.',
     },
     {
       name: 'abortSignal',
@@ -167,7 +168,8 @@ const stream = await transport.sendMessages({
       name: 'body',
       type: 'object',
       isOptional: true,
-      description: 'Additional body properties (ignored by DirectChatTransport).',
+      description:
+        'Additional body properties (ignored by DirectChatTransport).',
     },
     {
       name: 'metadata',
@@ -329,4 +331,3 @@ export default function Chat() {
   );
 }
 ```
-

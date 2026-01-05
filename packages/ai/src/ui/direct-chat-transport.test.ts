@@ -444,4 +444,3 @@ describe('DirectChatTransport', () => {
     });
   });
 });
-

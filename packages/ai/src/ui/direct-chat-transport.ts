@@ -77,9 +77,9 @@ export class DirectChatTransport<
   async sendMessages({
     messages,
     abortSignal,
-  }: Parameters<
-    ChatTransport<UI_MESSAGE>['sendMessages']
-  >[0]): Promise<ReadableStream<UIMessageChunk>> {
+  }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]): Promise<
+    ReadableStream<UIMessageChunk>
+  > {
     // Validate the incoming UI messages
     const validatedMessages = await validateUIMessages<UI_MESSAGE>({
       messages,
@@ -116,4 +116,3 @@ export class DirectChatTransport<
     return null;
   }
 }
-
