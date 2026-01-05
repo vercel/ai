@@ -1032,7 +1032,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
         temperature: 0.5,
         maxOutputTokens: 100,
-        topP: 0.9,
         topK: 0.1,
         stopSequences: ['abc', 'def'],
         frequencyPenalty: 0.15,
@@ -1059,7 +1058,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           ],
           "temperature": 0.5,
           "top_k": 0.1,
-          "top_p": 0.9,
         }
       `);
 
@@ -1071,6 +1069,66 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    describe('temperature and topP mutual exclusivity', () => {
+      it('should only send temperature when both temperature and topP are provided', async () => {
+        prepareJsonResponse({});
+
+        const { warnings } = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBeUndefined();
+        expect(warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'topP',
+          details:
+            'topP is not supported when temperature is set. topP is ignored.',
+        });
+      });
+
+      it('should send temperature when only temperature is provided', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBeUndefined();
+      });
+
+      it('should send topP when only topP is provided', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBe(0.9);
+      });
+
+      it('should not send temperature or topP when neither is provided', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBeUndefined();
+        expect(requestBody.top_p).toBeUndefined();
+      });
     });
 
     it('should limit max output tokens to the model max and warn', async () => {

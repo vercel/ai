@@ -1,5 +1,63 @@
 # ai
 
+## 6.0.11
+
+### Patch Changes
+
+- Updated dependencies [8ec1984]
+  - @ai-sdk/gateway@3.0.8
+
+## 6.0.10
+
+### Patch Changes
+
+- ae26f95: Add missing `.catch()` handler to `executeToolCall` promise in `runToolsTransformation` to prevent potential stream hang when the promise rejects.
+
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/gateway@3.0.7
+
+## 6.0.7
+
+### Patch Changes
+
+- Updated dependencies [74c0157]
+  - @ai-sdk/gateway@3.0.6
+
+## 6.0.6
+
+### Patch Changes
+
+- Updated dependencies [7ee2d12]
+  - @ai-sdk/gateway@3.0.5
+
+## 6.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/gateway@3.0.4
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 6.0.4
+
+### Patch Changes
+
+- Updated dependencies [1dad057]
+  - @ai-sdk/gateway@3.0.3
+
 ## 6.0.3
 
 ### Patch Changes
