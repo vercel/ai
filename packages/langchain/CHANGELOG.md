@@ -1,5 +1,24 @@
 # @ai-sdk/langchain
 
+## 2.0.12
+
+### Patch Changes
+
+- ai@6.0.11
+
+## 2.0.11
+
+### Patch Changes
+
+- 61ff058: fix(langchain): do not re-emit executed tool calls
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [ae26f95]
+  - ai@6.0.10
+
 ## 2.0.9
 
 ### Patch Changes
