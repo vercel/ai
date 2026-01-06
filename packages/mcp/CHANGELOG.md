@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.5
+
+### Patch Changes
+
+- 9cc0f88: feat(mcp): add support for structuredContent / outputSchema for typed tool outputs
+
 ## 1.0.4
 
 ### Patch Changes
