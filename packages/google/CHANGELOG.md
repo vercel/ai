@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.5
+
+### Patch Changes
+
+- 3be4d81: Add file support for Gemini 3 models
+
 ## 3.0.4
 
 ### Patch Changes
