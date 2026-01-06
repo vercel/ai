@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
 ## 6.0.12
 
 ### Patch Changes
