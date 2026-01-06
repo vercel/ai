@@ -16,4 +16,3 @@ run(async () => {
   print('Usage:', await result.usage);
   print('Finish reason:', await result.finishReason);
 });
-
