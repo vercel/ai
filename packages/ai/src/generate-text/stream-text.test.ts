@@ -13029,6 +13029,76 @@ describe('streamText', () => {
             'No object generated: could not parse the response.',
           );
         });
+
+        it('should apply repair function to partialOutputStream with markdown fences', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '```json\n{ "value": "test-value" }\n```',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+            experimental_repairText: async ({ text }) => {
+              return text
+                .replace(/^```(?:json)?\s*/, '')
+                .replace(/\s*```$/, '')
+                .trim();
+            },
+          });
+
+          const partialOutputs = await convertAsyncIterableToArray(
+            result.partialOutputStream,
+          );
+
+          expect(partialOutputs).toEqual([{ value: 'test-value' }]);
+        });
+
+        it('should emit partial objects via partialOutputStream when repair strips invalid prefix', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Here is the JSON: ' },
+                { type: 'text-delta', id: '1', delta: '{ "value": "hello" }' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+            experimental_repairText: async ({ text }) => {
+              // Extract JSON from text that has a prefix
+              const match = text.match(/\{[\s\S]*\}/);
+              return match ? match[0] : null;
+            },
+          });
+
+          const partialOutputs = await convertAsyncIterableToArray(
+            result.partialOutputStream,
+          );
+
+          expect(partialOutputs).toEqual([{ value: 'hello' }]);
+        });
       });
     });
 
