@@ -3,4 +3,4 @@
 '@ai-sdk/langchain': patch
 ---
 
-feat(langchain): add streamEvents support to toUIMessageStream
+fix(langchain): re-enable support for streamEvents in toUIMessageStream
