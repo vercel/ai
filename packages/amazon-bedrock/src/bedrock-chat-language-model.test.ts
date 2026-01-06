@@ -280,7 +280,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -392,7 +395,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -559,7 +565,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -617,7 +626,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -675,7 +687,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -733,7 +748,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -791,7 +809,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -836,7 +857,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -872,7 +896,7 @@ describe('doStream', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -957,7 +981,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "trace": {
@@ -1031,7 +1058,7 @@ describe('doStream', () => {
         JSON.stringify({
           messageStop: {
             stopReason: 'stop_sequence',
-            additionalModelResponseFields: { stop_sequence: 'STOP' },
+            additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
           },
         }) + '\n',
       ],
@@ -1048,7 +1075,10 @@ describe('doStream', () => {
       .toMatchInlineSnapshot(`
         [
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop_sequence",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "bedrock": {
                 "stopSequence": "STOP",
@@ -1076,6 +1106,54 @@ describe('doStream', () => {
           },
         ]
       `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure in streaming with additional fields', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Response' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 5, outputTokens: 10, totalTokens: 15 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+            additionalModelResponseFields: {
+              delta: {
+                stop_sequence: 'CUSTOM_END',
+              },
+              // Additional fields that might be present
+              otherField: 'value',
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_END'],
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finishChunk?.providerMetadata?.bedrock?.stopSequence).toBe(
+      'CUSTOM_END',
+    );
+    expect(finishChunk?.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -1282,7 +1360,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "usage": {
@@ -1441,7 +1522,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1520,7 +1604,10 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1600,7 +1687,10 @@ describe('doStream', () => {
           "type": "raw",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop_sequence",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1745,7 +1835,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -1828,7 +1921,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -1912,7 +2008,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2012,7 +2111,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2128,7 +2230,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2271,7 +2376,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "bedrock": {
               "isJsonResponseFromTool": true,
@@ -2421,7 +2529,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_use",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -2622,7 +2733,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop_sequence",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -2632,7 +2748,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('unknown');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should pass the model and the messages', async () => {
@@ -2645,7 +2766,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -2716,7 +2837,7 @@ describe('doGenerate', () => {
           },
         },
         stopReason: 'stop_sequence',
-        additionalModelResponseFields: { stop_sequence: 'STOP' },
+        additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
         usage: {
           inputTokens: 4,
           outputTokens: 30,
@@ -2737,6 +2858,118 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  // https://github.com/vercel/ai/issues/11371
+  it('should handle stop_sequence: null when stopReason is tool_use', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { text: "I'll query your Salesforce..." },
+              {
+                toolUse: {
+                  toolUseId: 'tool-use-id',
+                  name: 'querySalesforce',
+                  input: { query: 'SELECT Id FROM Account' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        additionalModelResponseFields: { delta: { stop_sequence: null } },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'querySalesforce',
+          description: 'Query Salesforce',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    expect(result.finishReason).toEqual({
+      unified: 'tool-calls',
+      raw: 'tool_use',
+    });
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I'll query your Salesforce...",
+          "type": "text",
+        },
+        {
+          "input": "{"query":"SELECT Id FROM Account"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "querySalesforce",
+          "type": "tool-call",
+        },
+      ]
+    `);
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure from additionalModelResponseFields', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Response text' }],
+          },
+        },
+        stopReason: 'stop_sequence',
+        additionalModelResponseFields: {
+          delta: {
+            stop_sequence: 'CUSTOM_STOP',
+          },
+          // Additional fields that might be present
+          otherField: 'value',
+        },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_STOP'],
+    });
+
+    expect(result.providerMetadata?.bedrock.stopSequence).toBe('CUSTOM_STOP');
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -3683,7 +3916,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.toolConfig.tools).toHaveLength(1);
@@ -3752,7 +3990,12 @@ describe('doGenerate', () => {
     });
 
     it('should send stop finish reason when json tool is used', async () => {
-      expect(result.finishReason).toBe('stop');
+      expect(result.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "tool_use",
+          "unified": "stop",
+        }
+      `);
     });
 
     it('should set isJsonResponseFromTool in provider metadata', async () => {
@@ -3826,7 +4069,12 @@ describe('doGenerate', () => {
     });
 
     it('should send tool-calls finish reason', async () => {
-      expect(result.finishReason).toBe('tool-calls');
+      expect(result.finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "tool_use",
+          "unified": "tool-calls",
+        }
+      `);
     });
   });
 
@@ -4001,7 +4249,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should preserve text response before JSON output (answering question then returning structured data)', async () => {
@@ -4048,7 +4301,12 @@ describe('doGenerate', () => {
       ]
     `);
 
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
@@ -4145,7 +4403,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should handle multiple regular tool calls before JSON tool call in doGenerate', async () => {
@@ -4212,7 +4475,12 @@ describe('doGenerate', () => {
     `);
 
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "tool_use",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support tool calls with empty input (no arguments)', async () => {

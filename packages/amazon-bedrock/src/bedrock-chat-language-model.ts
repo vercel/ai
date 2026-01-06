@@ -1,13 +1,16 @@
 import {
   JSONObject,
   LanguageModelV3,
-  SharedV3Warning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Reasoning,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
-  LanguageModelV3FunctionTool,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -31,9 +34,9 @@ import {
   bedrockProviderOptions,
 } from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
-import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
+import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
 
@@ -67,7 +70,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]): Promise<{
+  }: LanguageModelV3CallOptions): Promise<{
     command: BedrockConverseInput;
     warnings: SharedV3Warning[];
     usesJsonResponseTool: boolean;
@@ -308,13 +311,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
+    const additionalModelResponseFieldPaths = isAnthropicModel
+      ? ['/delta/stop_sequence']
+      : undefined;
+
     return {
       command: {
         system,
         messages,
         additionalModelRequestFields:
           bedrockOptions.additionalModelRequestFields,
-        additionalModelResponseFieldPaths: ['/stop_sequence'],
+        ...(additionalModelResponseFieldPaths && {
+          additionalModelResponseFieldPaths,
+        }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
@@ -342,8 +351,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const {
       command: args,
       warnings,
@@ -432,7 +441,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     // provider metadata:
     const stopSequence =
-      response.additionalModelResponseFields?.stop_sequence ?? null;
+      response.additionalModelResponseFields?.delta?.stop_sequence ?? null;
 
     const providerMetadata =
       response.trace || response.usage || isJsonResponseFromTool || stopSequence
@@ -454,10 +463,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapBedrockFinishReason(
-        response.stopReason as BedrockStopReason,
-        isJsonResponseFromTool,
-      ),
+      finishReason: {
+        unified: mapBedrockFinishReason(
+          response.stopReason as BedrockStopReason,
+          isJsonResponseFromTool,
+        ),
+        raw: response.stopReason ?? undefined,
+      },
       usage: convertBedrockUsage(response.usage),
       response: {
         // TODO add id, timestamp, etc
@@ -469,8 +481,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       command: args,
       warnings,
@@ -492,7 +504,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: BedrockUsage | undefined = undefined;
     let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
@@ -522,7 +537,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
           transform(chunk, controller) {
             function enqueueError(bedrockError: Record<string, any>) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: bedrockError });
             }
 
@@ -558,12 +573,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             }
 
             if (value.messageStop) {
-              finishReason = mapBedrockFinishReason(
-                value.messageStop.stopReason as BedrockStopReason,
-                isJsonResponseFromTool,
-              );
+              finishReason = {
+                unified: mapBedrockFinishReason(
+                  value.messageStop.stopReason as BedrockStopReason,
+                  isJsonResponseFromTool,
+                ),
+                raw: value.messageStop.stopReason ?? undefined,
+              };
               stopSequence =
-                value.messageStop.additionalModelResponseFields
+                value.messageStop.additionalModelResponseFields?.delta
                   ?.stop_sequence ?? null;
             }
 
@@ -837,7 +855,11 @@ const BedrockStopReasonSchema = z.union([
 
 const BedrockAdditionalModelResponseFieldsSchema = z
   .object({
-    stop_sequence: z.string().optional(),
+    delta: z
+      .object({
+        stop_sequence: z.string().nullish(),
+      })
+      .nullish(),
   })
   .catchall(z.unknown());
 

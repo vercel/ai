@@ -12,4 +12,6 @@ run(async () => {
 
   print('Content:', result.content);
   print('Usage:', result.usage);
+  print('Finish reason:', result.finishReason);
+  print('Raw finish reason:', result.rawFinishReason);
 });

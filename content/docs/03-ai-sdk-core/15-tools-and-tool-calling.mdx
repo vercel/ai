@@ -369,6 +369,17 @@ prepareStep: async ({ stepNumber, steps, messages }) => {
 },
 ```
 
+#### Provider Options for Step Configuration
+
+You can use `providerOptions` in `prepareStep` to pass provider-specific configuration for each step. This is useful for features like Anthropic's code execution container persistence:
+
+```tsx
+import { forwardAnthropicContainerIdFromLastStep } from '@ai-sdk/anthropic';
+
+// Propagate container ID from previous step for code execution continuity
+prepareStep: forwardAnthropicContainerIdFromLastStep,
+```
+
 ## Response Messages
 
 Adding the generated assistant and tool messages to your conversation history is a common task,

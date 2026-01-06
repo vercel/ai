@@ -8,9 +8,11 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -22,6 +24,7 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -37,6 +40,7 @@ import {
 } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -65,7 +69,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { NoOutputGeneratedError } from '../error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -356,12 +359,16 @@ A function that attempts to repair a tool call that failed to parse.
         const { approvedToolApprovals, deniedToolApprovals } =
           collectToolApprovals<TOOLS>({ messages: initialMessages });
 
+        const localApprovedToolApprovals = approvedToolApprovals.filter(
+          toolApproval => !toolApproval.toolCall.providerExecuted,
+        );
+
         if (
           deniedToolApprovals.length > 0 ||
-          approvedToolApprovals.length > 0
+          localApprovedToolApprovals.length > 0
         ) {
           const toolOutputs = await executeTools({
-            toolCalls: approvedToolApprovals.map(
+            toolCalls: localApprovedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
             ),
             tools: tools as TOOLS,
@@ -393,7 +400,7 @@ A function that attempts to repair a tool call that failed to parse.
             });
           }
 
-          // add execution denied tool results for denied tool approvals:
+          // add execution denied tool results for all denied tool approvals:
           for (const toolApproval of deniedToolApprovals) {
             toolContent.push({
               type: 'tool-result' as const,
@@ -402,6 +409,14 @@ A function that attempts to repair a tool call that failed to parse.
               output: {
                 type: 'execution-denied' as const,
                 reason: toolApproval.approvalResponse.reason,
+                // For provider-executed tools, include approvalId so provider can correlate
+                ...(toolApproval.toolCall.providerExecuted && {
+                  providerOptions: {
+                    openai: {
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                    },
+                  },
+                }),
               },
             });
           }
@@ -409,6 +424,28 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push({
             role: 'tool',
             content: toolContent,
+          });
+        }
+
+        // Forward provider-executed approval responses to the provider
+        const providerExecutedToolApprovals = [
+          ...approvedToolApprovals,
+          ...deniedToolApprovals,
+        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+        if (providerExecutedToolApprovals.length > 0) {
+          responseMessages.push({
+            role: 'tool',
+            content: providerExecutedToolApprovals.map(
+              toolApproval =>
+                ({
+                  type: 'tool-approval-response',
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: toolApproval.approvalResponse.approved,
+                  reason: toolApproval.approvalResponse.reason,
+                  providerExecuted: true,
+                }) satisfies ToolApprovalResponse,
+            ),
           });
         }
 
@@ -420,6 +457,14 @@ A function that attempts to repair a tool call that failed to parse.
         let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
         let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
+
+        // Track provider-executed tool calls that support deferred results
+        // (e.g., code_execution in programmatic tool calling scenarios).
+        // These tools may not return their results in the same turn as their call.
+        const pendingDeferredToolCalls = new Map<
+          string,
+          { toolName: string }
+        >();
 
         do {
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -499,13 +544,18 @@ A function that attempts to repair a tool call that failed to parse.
               }),
               tracer,
               fn: async span => {
+                const stepProviderOptions = mergeObjects(
+                  providerOptions,
+                  prepareStepResult?.providerOptions,
+                );
+
                 const result = await stepModel.doGenerate({
                   ...callSettings,
                   tools: stepTools,
                   toolChoice: stepToolChoice,
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
-                  providerOptions,
+                  providerOptions: stepProviderOptions,
                   abortSignal,
                   headers: headersWithUserAgent,
                 });
@@ -524,7 +574,7 @@ A function that attempts to repair a tool call that failed to parse.
                   await selectTelemetryAttributes({
                     telemetry,
                     attributes: {
-                      'ai.response.finishReason': result.finishReason,
+                      'ai.response.finishReason': result.finishReason.unified,
                       'ai.response.text': {
                         output: () => extractTextContent(result.content),
                       },
@@ -550,7 +600,9 @@ A function that attempts to repair a tool call that failed to parse.
                         result.usage.outputTokens.total,
 
                       // standardized gen-ai llm span attributes:
-                      'gen_ai.response.finish_reasons': [result.finishReason],
+                      'gen_ai.response.finish_reasons': [
+                        result.finishReason.unified,
+                      ],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
                       'gen_ai.usage.input_tokens':
@@ -670,12 +722,42 @@ A function that attempts to repair a tool call that failed to parse.
             );
           }
 
+          // Track provider-executed tool calls that support deferred results.
+          // In programmatic tool calling, a server tool (e.g., code_execution) may
+          // trigger a client tool, and the server tool's result is deferred until
+          // the client tool's result is sent back.
+          for (const toolCall of stepToolCalls) {
+            if (!toolCall.providerExecuted) continue;
+            const tool = tools?.[toolCall.toolName];
+            if (tool?.type === 'provider' && tool.supportsDeferredResults) {
+              // Check if this tool call already has a result in the current response
+              const hasResultInResponse = currentModelResponse.content.some(
+                part =>
+                  part.type === 'tool-result' &&
+                  part.toolCallId === toolCall.toolCallId,
+              );
+              if (!hasResultInResponse) {
+                pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                  toolName: toolCall.toolName,
+                });
+              }
+            }
+          }
+
+          // Mark deferred tool calls as resolved when we receive their results
+          for (const part of currentModelResponse.content) {
+            if (part.type === 'tool-result') {
+              pendingDeferredToolCalls.delete(part.toolCallId);
+            }
+          }
+
           // content:
           const stepContent = asContent({
             content: currentModelResponse.content,
             toolCalls: stepToolCalls,
             toolOutputs: clientToolOutputs,
             toolApprovalRequests: Object.values(toolApprovalRequests),
+            tools,
           });
 
           // append to messages for potential next step:
@@ -689,7 +771,8 @@ A function that attempts to repair a tool call that failed to parse.
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: stepContent,
-            finishReason: currentModelResponse.finishReason,
+            finishReason: currentModelResponse.finishReason.unified,
+            rawFinishReason: currentModelResponse.finishReason.raw,
             usage: asLanguageModelUsage(currentModelResponse.usage),
             warnings: currentModelResponse.warnings,
             providerMetadata: currentModelResponse.providerMetadata,
@@ -710,10 +793,12 @@ A function that attempts to repair a tool call that failed to parse.
           steps.push(currentStepResult);
           await onStepFinish?.(currentStepResult);
         } while (
-          // there are tool calls:
-          clientToolCalls.length > 0 &&
-          // all current tool calls have outputs (incl. execution errors):
-          clientToolOutputs.length === clientToolCalls.length &&
+          // Continue if:
+          // 1. There are client tool calls that have all been executed, OR
+          // 2. There are pending deferred results from provider-executed tools
+          ((clientToolCalls.length > 0 &&
+            clientToolOutputs.length === clientToolCalls.length) ||
+            pendingDeferredToolCalls.size > 0) &&
           // continue until a stop condition is met:
           !(await isStopConditionMet({ stopConditions, steps }))
         );
@@ -723,7 +808,8 @@ A function that attempts to repair a tool call that failed to parse.
           await selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.response.finishReason': currentModelResponse.finishReason,
+              'ai.response.finishReason':
+                currentModelResponse.finishReason.unified,
               'ai.response.text': {
                 output: () => extractTextContent(currentModelResponse.content),
               },
@@ -765,6 +851,7 @@ A function that attempts to repair a tool call that failed to parse.
 
         await onFinish?.({
           finishReason: lastStep.finishReason,
+          rawFinishReason: lastStep.rawFinishReason,
           usage: lastStep.usage,
           content: lastStep.content,
           text: lastStep.text,
@@ -922,6 +1009,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     return this.finalStep.finishReason;
   }
 
+  get rawFinishReason() {
+    return this.finalStep.rawFinishReason;
+  }
+
   get warnings() {
     return this.finalStep.warnings;
   }
@@ -976,58 +1067,97 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
   toolApprovalRequests,
+  tools,
 }: {
   content: Array<LanguageModelV3Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
+  tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
-  return [
-    ...content.map(part => {
-      switch (part.type) {
-        case 'text':
-        case 'reasoning':
-        case 'source':
-          return part;
+  const contentParts: Array<ContentPart<TOOLS>> = [];
 
-        case 'file': {
-          return {
-            type: 'file' as const,
-            file: new DefaultGeneratedFile(part),
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-          };
-        }
+  for (const part of content) {
+    switch (part.type) {
+      case 'text':
+      case 'reasoning':
+      case 'source':
+        contentParts.push(part);
+        break;
 
-        case 'tool-call': {
-          return toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
-        }
+      case 'file': {
+        contentParts.push({
+          type: 'file' as const,
+          file: new DefaultGeneratedFile(part),
+          ...(part.providerMetadata != null
+            ? { providerMetadata: part.providerMetadata }
+            : {}),
+        });
+        break;
+      }
 
-        case 'tool-result': {
-          const toolCall = toolCalls.find(
-            toolCall => toolCall.toolCallId === part.toolCallId,
-          )!;
+      case 'tool-call': {
+        contentParts.push(
+          toolCalls.find(toolCall => toolCall.toolCallId === part.toolCallId)!,
+        );
+        break;
+      }
 
-          if (toolCall == null) {
+      case 'tool-result': {
+        const toolCall = toolCalls.find(
+          toolCall => toolCall.toolCallId === part.toolCallId,
+        );
+
+        // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
+        // When a server tool (like code_execution) triggers a client tool, the server tool's
+        // result may be deferred to a later turn. In this case, there's no matching tool-call
+        // in the current response.
+        if (toolCall == null) {
+          const tool = tools?.[part.toolName];
+          const supportsDeferredResults =
+            tool?.type === 'provider' && tool.supportsDeferredResults;
+
+          if (!supportsDeferredResults) {
             throw new Error(`Tool call ${part.toolCallId} not found.`);
           }
 
+          // Create tool result without tool call input (deferred result)
           if (part.isError) {
-            return {
+            contentParts.push({
               type: 'tool-error' as const,
               toolCallId: part.toolCallId,
               toolName: part.toolName as keyof TOOLS & string,
-              input: toolCall.input,
+              input: undefined,
               error: part.result,
               providerExecuted: true,
-              dynamic: toolCall.dynamic,
-            } as TypedToolError<TOOLS>;
+              dynamic: part.dynamic,
+            } as TypedToolError<TOOLS>);
+          } else {
+            contentParts.push({
+              type: 'tool-result' as const,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName as keyof TOOLS & string,
+              input: undefined,
+              output: part.result,
+              providerExecuted: true,
+              dynamic: part.dynamic,
+            } as TypedToolResult<TOOLS>);
           }
+          break;
+        }
 
-          return {
+        if (part.isError) {
+          contentParts.push({
+            type: 'tool-error' as const,
+            toolCallId: part.toolCallId,
+            toolName: part.toolName as keyof TOOLS & string,
+            input: toolCall.input,
+            error: part.result,
+            providerExecuted: true,
+            dynamic: toolCall.dynamic,
+          } as TypedToolError<TOOLS>);
+        } else {
+          contentParts.push({
             type: 'tool-result' as const,
             toolCallId: part.toolCallId,
             toolName: part.toolName as keyof TOOLS & string,
@@ -1035,11 +1165,32 @@ function asContent<TOOLS extends ToolSet>({
             output: part.result,
             providerExecuted: true,
             dynamic: toolCall.dynamic,
-          } as TypedToolResult<TOOLS>;
+          } as TypedToolResult<TOOLS>);
         }
+        break;
       }
-    }),
-    ...toolOutputs,
-    ...toolApprovalRequests,
-  ];
+
+      case 'tool-approval-request': {
+        const toolCall = toolCalls.find(
+          toolCall => toolCall.toolCallId === part.toolCallId,
+        );
+
+        if (toolCall == null) {
+          throw new ToolCallNotFoundForApprovalError({
+            toolCallId: part.toolCallId,
+            approvalId: part.approvalId,
+          });
+        }
+
+        contentParts.push({
+          type: 'tool-approval-request' as const,
+          approvalId: part.approvalId,
+          toolCall,
+        });
+        break;
+      }
+    }
+  }
+
+  return [...contentParts, ...toolOutputs, ...toolApprovalRequests];
 }
