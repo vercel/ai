@@ -414,8 +414,6 @@ describe('ProdiaImageModel', () => {
       await expect(
         model.doGenerate({
           prompt,
-          files: undefined,
-          mask: undefined,
           n: 1,
           providerOptions: {},
           size: undefined,
