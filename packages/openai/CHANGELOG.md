@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.7
+
+### Patch Changes
+
+- 89202fb: fix(openai/azure): passing response_format correctly
+
 ## 3.0.6
 
 ### Patch Changes
