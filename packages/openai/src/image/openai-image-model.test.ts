@@ -122,6 +122,67 @@ describe('doGenerate', () => {
     expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
   });
 
+  it('should extract URL images when provided', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            url: 'https://example.com/image1.png',
+          },
+          {
+            b64_json: 'base64-image-2',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual([
+      'https://example.com/image1.png',
+      'base64-image-2',
+    ]);
+  });
+
+  it('should prefer URL over b64_json when both are provided', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            url: 'https://example.com/image1.png',
+            b64_json: 'base64-image-1',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['https://example.com/image1.png']);
+  });
+
   it('should return warnings for unsupported settings', async () => {
     prepareJsonResponse();
 
@@ -573,6 +634,41 @@ describe('doGenerate - image editing', () => {
     });
 
     expect(result.images).toStrictEqual(['edited-base64-image-1']);
+  });
+
+  it('should extract URL images from edit response when provided', async () => {
+    server.urls['https://api.openai.com/v1/images/edits'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            url: 'https://example.com/edited-image.png',
+          },
+        ],
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      files: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: new Uint8Array([137, 80, 78, 71]),
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual([
+      'https://example.com/edited-image.png',
+    ]);
   });
 
   it('should include response metadata for edited images', async () => {

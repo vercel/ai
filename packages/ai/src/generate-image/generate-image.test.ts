@@ -1378,6 +1378,245 @@ describe('data URL handling', () => {
   });
 });
 
+describe('URL image handling', () => {
+  it('should download images from URLs and convert to GeneratedFile', async () => {
+    const imageUrl = 'https://example.com/image.png';
+    const downloadedImageData = convertBase64ToUint8Array(pngBase64);
+
+    const downloadFunction = vi.fn().mockResolvedValue([
+      {
+        data: downloadedImageData,
+        mediaType: 'image/png',
+      },
+    ]);
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [imageUrl],
+          }),
+      }),
+      prompt,
+      experimental_download: downloadFunction,
+    });
+
+    expect(downloadFunction).toHaveBeenCalledOnce();
+    expect(downloadFunction).toHaveBeenCalledWith([
+      {
+        url: new URL(imageUrl),
+        isUrlSupportedByModel: false,
+      },
+    ]);
+
+    expect(result.images).toHaveLength(1);
+    expect(result.images[0].base64).toBe(pngBase64);
+    expect(result.images[0].uint8Array).toEqual(downloadedImageData);
+    expect(result.images[0].mediaType).toBe('image/png');
+  });
+
+  it('should handle mixed base64 and URL images', async () => {
+    const imageUrl = 'https://example.com/image.png';
+    const downloadedImageData = convertBase64ToUint8Array(jpegBase64);
+
+    const downloadFunction = vi.fn().mockResolvedValue([
+      {
+        data: downloadedImageData,
+        mediaType: 'image/jpeg',
+      },
+    ]);
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64, imageUrl],
+          }),
+      }),
+      prompt,
+      experimental_download: downloadFunction,
+    });
+
+    expect(downloadFunction).toHaveBeenCalledOnce();
+    expect(result.images).toHaveLength(2);
+    expect(result.images[0].base64).toBe(pngBase64);
+    expect(result.images[1].base64).toBe(jpegBase64);
+  });
+
+  it('should use default download function when experimental_download is not provided', async () => {
+    const imageUrl = 'https://example.com/image.png';
+    const downloadedImageData = convertBase64ToUint8Array(pngBase64);
+
+    // Mock global fetch
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => downloadedImageData.buffer,
+      headers: {
+        get: () => 'image/png',
+      },
+    });
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [imageUrl],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      imageUrl,
+      expect.objectContaining({
+        headers: expect.any(Object),
+      }),
+    );
+
+    expect(result.images).toHaveLength(1);
+    expect(result.images[0].base64).toBe(pngBase64);
+    expect(result.images[0].mediaType).toBe('image/png');
+
+    global.fetch = originalFetch;
+  });
+
+  it('should detect media type from downloaded data when not provided', async () => {
+    const imageUrl = 'https://example.com/image.png';
+    const downloadedImageData = convertBase64ToUint8Array(jpegBase64);
+
+    const downloadFunction = vi.fn().mockResolvedValue([
+      {
+        data: downloadedImageData,
+        mediaType: undefined, // No media type provided
+      },
+    ]);
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [imageUrl],
+          }),
+      }),
+      prompt,
+      experimental_download: downloadFunction,
+    });
+
+    expect(result.images[0].mediaType).toBe('image/jpeg');
+  });
+
+  it('should handle multiple URL images in parallel', async () => {
+    const imageUrl1 = 'https://example.com/image1.png';
+    const imageUrl2 = 'https://example.com/image2.png';
+    const downloadedImageData1 = convertBase64ToUint8Array(pngBase64);
+    const downloadedImageData2 = convertBase64ToUint8Array(jpegBase64);
+
+    const downloadFunction = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          data: downloadedImageData1,
+          mediaType: 'image/png',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          data: downloadedImageData2,
+          mediaType: 'image/jpeg',
+        },
+      ]);
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [imageUrl1, imageUrl2],
+          }),
+      }),
+      prompt,
+      experimental_download: downloadFunction,
+    });
+
+    expect(downloadFunction).toHaveBeenCalledTimes(2);
+    expect(downloadFunction).toHaveBeenNthCalledWith(1, [
+      {
+        url: new URL(imageUrl1),
+        isUrlSupportedByModel: false,
+      },
+    ]);
+    expect(downloadFunction).toHaveBeenNthCalledWith(2, [
+      {
+        url: new URL(imageUrl2),
+        isUrlSupportedByModel: false,
+      },
+    ]);
+
+    expect(result.images).toHaveLength(2);
+    expect(result.images[0].base64).toBe(pngBase64);
+    expect(result.images[1].base64).toBe(jpegBase64);
+  });
+
+  it('should handle URL images across multiple calls', async () => {
+    const imageUrl1 = 'https://example.com/image1.png';
+    const imageUrl2 = 'https://example.com/image2.png';
+    const downloadedImageData1 = convertBase64ToUint8Array(pngBase64);
+    const downloadedImageData2 = convertBase64ToUint8Array(jpegBase64);
+
+    let generateCallCount = 0;
+    let downloadCallCount = 0;
+
+    const downloadFunction = vi.fn().mockImplementation(async requests => {
+      if (downloadCallCount === 0) {
+        downloadCallCount++;
+        return [
+          {
+            data: downloadedImageData1,
+            mediaType: 'image/png',
+          },
+        ];
+      } else {
+        downloadCallCount++;
+        return [
+          {
+            data: downloadedImageData2,
+            mediaType: 'image/jpeg',
+          },
+        ];
+      }
+    });
+
+    const result = await generateImage({
+      model: new MockImageModelV3({
+        maxImagesPerCall: 1,
+        doGenerate: async () => {
+          switch (generateCallCount) {
+            case 0:
+              generateCallCount++;
+              return createMockResponse({
+                images: [imageUrl1],
+              });
+            case 1:
+              generateCallCount++;
+              return createMockResponse({
+                images: [imageUrl2],
+              });
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      prompt,
+      n: 2,
+      experimental_download: downloadFunction,
+    });
+
+    expect(result.images).toHaveLength(2);
+    expect(result.images[0].base64).toBe(pngBase64);
+    expect(result.images[1].base64).toBe(jpegBase64);
+  });
+});
+
 describe('deprecated APIs', () => {
   it('experimental_generateImage should still work', async () => {
     // Import the deprecated export

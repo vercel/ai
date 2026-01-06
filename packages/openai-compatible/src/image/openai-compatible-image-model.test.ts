@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
@@ -224,6 +224,57 @@ describe('OpenAICompatibleImageModel', () => {
       expect(result.images).toHaveLength(2);
       expect(result.images[0]).toBe('test1234');
       expect(result.images[1]).toBe('test5678');
+    });
+
+    it('should return URL images when provided', async () => {
+      server.urls[
+        'https://api.example.com/dall-e-3/images/generations'
+      ].response = {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              url: 'https://example.com/image1.png',
+            },
+            {
+              b64_json: 'test5678',
+            },
+          ],
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          n: 2,
+        }),
+      );
+
+      expect(result.images).toHaveLength(2);
+      expect(result.images[0]).toBe('https://example.com/image1.png');
+      expect(result.images[1]).toBe('test5678');
+    });
+
+    it('should prefer URL over b64_json when both are provided', async () => {
+      server.urls[
+        'https://api.example.com/dall-e-3/images/generations'
+      ].response = {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              url: 'https://example.com/image1.png',
+              b64_json: 'test1234',
+            },
+          ],
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate(createDefaultGenerateParams());
+
+      expect(result.images).toHaveLength(1);
+      expect(result.images[0]).toBe('https://example.com/image1.png');
     });
 
     describe('response metadata', () => {
@@ -453,6 +504,49 @@ describe('OpenAICompatibleImageModel', () => {
         modelId: 'dall-e-3',
         headers: expect.any(Object),
       });
+    });
+
+    it('should return URL images from edit response when provided', async () => {
+      // Temporarily override the edit server response for this test
+      const originalResponse = editServer.urls[
+        'https://api.example.com/dall-e-3/images/edits'
+      ].response;
+      
+      editServer.urls['https://api.example.com/dall-e-3/images/edits'].response =
+        {
+          type: 'json-value',
+          body: {
+            data: [
+              {
+                url: 'https://example.com/edited-image.png',
+              },
+            ],
+          },
+        };
+
+      const model = createBasicModel();
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              data: imageData,
+              mediaType: 'image/png',
+            },
+          ],
+        }),
+      );
+
+      expect(result.images).toStrictEqual([
+        'https://example.com/edited-image.png',
+      ]);
+
+      // Restore original response
+      editServer.urls['https://api.example.com/dall-e-3/images/edits'].response =
+        originalResponse;
     });
   });
 });

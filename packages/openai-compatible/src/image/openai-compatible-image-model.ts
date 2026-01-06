@@ -104,7 +104,9 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       });
 
       return {
-        images: response.data.map(item => item.b64_json),
+        images: response.data.map(
+          item => item.url ?? item.b64_json ?? '',
+        ),
         warnings,
         response: {
           timestamp: currentDate,
@@ -140,7 +142,9 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     });
 
     return {
-      images: response.data.map(item => item.b64_json),
+      images: response.data.map(
+        item => item.url ?? item.b64_json ?? '',
+      ),
       warnings,
       response: {
         timestamp: currentDate,
@@ -154,7 +158,12 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(
+    z.object({
+      b64_json: z.string().nullish(),
+      url: z.string().nullish(),
+    }),
+  ),
 });
 
 type OpenAICompatibleFormDataInput = {
