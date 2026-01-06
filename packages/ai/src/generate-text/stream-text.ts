@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -9,7 +8,6 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
-  mergedAbortSignals,
   ProviderOptions,
   ToolApprovalResponse,
   ToolContent,
@@ -68,6 +66,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -433,19 +432,16 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
-  // Merge timeout and abort signal
-  const mergedAbortSignal = mergedAbortSignals(
-    abortSignal,
-    timeout != null ? AbortSignal.timeout(timeout) : undefined,
-  );
-
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
     maxRetries,
-    abortSignal: mergedAbortSignal,
+    abortSignal: mergeAbortSignals(
+      abortSignal,
+      timeout != null ? AbortSignal.timeout(timeout) : undefined,
+    ),
     system,
     prompt,
     messages,

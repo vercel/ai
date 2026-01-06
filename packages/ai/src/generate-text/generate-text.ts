@@ -7,7 +7,6 @@ import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
-  mergedAbortSignals,
   ProviderOptions,
   ToolApprovalResponse,
   withUserAgentSuffix,
@@ -70,6 +69,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -308,8 +308,7 @@ A function that attempts to repair a tool call that failed to parse.
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
 
-  // Merge timeout and abort signal
-  const mergedAbortSignal = mergedAbortSignals(
+  const mergedAbortSignal = mergeAbortSignals(
     abortSignal,
     timeout != null ? AbortSignal.timeout(timeout) : undefined,
   );

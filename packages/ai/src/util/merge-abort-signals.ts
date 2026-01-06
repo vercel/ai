@@ -7,7 +7,7 @@
  * @returns An AbortSignal that aborts when any of the input signals abort,
  *          or undefined if no valid signals are provided.
  */
-export function mergedAbortSignals(
+export function mergeAbortSignals(
   ...signals: (AbortSignal | null | undefined)[]
 ): AbortSignal | undefined {
   const validSignals = signals.filter(
