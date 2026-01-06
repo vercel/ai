@@ -7,6 +7,8 @@ import {
   Sparkles,
   Activity,
   Radio,
+  Image,
+  Wand2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -42,6 +44,20 @@ export const navItems: NavItem[] = [
     label: 'streamEvents',
     description: 'Semantic event streaming',
     icon: Radio,
+  },
+  {
+    href: '/multimodal',
+    label: 'Vision Input',
+    description: 'Send images for analysis',
+    icon: Image,
+    badge: 'Vision',
+  },
+  {
+    href: '/image-generation',
+    label: 'Image Generation',
+    description: 'Generate images as output',
+    icon: Wand2,
+    badge: 'Output',
   },
   {
     href: '/createAgent',

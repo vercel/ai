@@ -857,6 +857,243 @@ describe('convertModelMessages', () => {
     expect(result[0].content).toBe('Hello');
   });
 
+  it('should convert user messages with image content (URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            image: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.jpg' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with image content (base64)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            image: 'iVBORw0KGgoAAAANSUhEUgAAAAE',
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with image content (data URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this.' },
+          {
+            type: 'image',
+            image: 'data:image/png;base64,abc123',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Describe this.' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with file content (URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document.' },
+          {
+            type: 'file',
+            data: 'https://example.com/document.pdf',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Summarize this document.' },
+      {
+        type: 'file',
+        url: 'https://example.com/document.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with file content (base64)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this file?' },
+          {
+            type: 'file',
+            data: 'JVBERi0xLjQK',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this file?' },
+      {
+        type: 'file',
+        data: 'JVBERi0xLjQK',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with mixed multimodal content', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Compare these:' },
+          {
+            type: 'image',
+            image: 'https://example.com/image1.jpg',
+          },
+          { type: 'text', text: 'And this document:' },
+          {
+            type: 'file',
+            data: 'https://example.com/doc.pdf',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Compare these:' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image1.jpg' },
+      },
+      { type: 'text', text: 'And this document:' },
+      {
+        type: 'file',
+        url: 'https://example.com/doc.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with URL object for image', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is this?' },
+          {
+            type: 'image',
+            image: new URL('https://example.com/image.png'),
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.png' },
+      },
+    ]);
+  });
+
+  it('should convert image files (file type with image mediaType) using image_url format', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this photo.' },
+          {
+            type: 'file',
+            data: 'https://example.com/photo.jpg',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Describe this photo.' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.jpg' },
+      },
+    ]);
+  });
+
   it('should convert assistant messages with text content', () => {
     const modelMessages: ModelMessage[] = [
       { role: 'assistant', content: 'Hello, how can I help?' },
@@ -1018,8 +1255,14 @@ describe('toBaseMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
-    // Text content should be extracted
-    expect(result[0].content).toBe('What is in this image?');
+    // Image files are converted to OpenAI's image_url format
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
   });
 });
 
