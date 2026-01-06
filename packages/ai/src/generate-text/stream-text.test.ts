@@ -14031,6 +14031,51 @@ describe('streamText', () => {
           ]
         `);
       });
+
+      it('should serialize AbortSignal.timeout() reason to string', async () => {
+        let pullCalls = 0;
+
+        const resultWithTimeout = streamText({
+          // AbortSignal.timeout(0) sets reason to a TimeoutError DOMException
+          abortSignal: AbortSignal.timeout(0),
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                async pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      // Wait to ensure timeout triggers
+                      await new Promise(resolve => setTimeout(resolve, 10));
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      // This error triggers abort handling; reason comes from signal, not this error
+                      controller.error(
+                        new DOMException('Aborted', 'AbortError'),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        const chunks = await convertAsyncIterableToArray(
+          resultWithTimeout.fullStream,
+        );
+        const abortChunk = chunks.find(chunk => chunk.type === 'abort');
+
+        expect(abortChunk).toBeDefined();
+        expect(abortChunk?.type).toBe('abort');
+        // Reason is serialized from AbortSignal.timeout()'s TimeoutError, not from the stream error
+        expect(typeof abortChunk?.reason).toBe('string');
+        expect(abortChunk?.reason).toContain('timeout');
+      });
     });
 
     describe('abort in 2nd step', () => {
