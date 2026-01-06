@@ -3,4 +3,4 @@
 'ai': patch
 ---
 
-Add ImageModelMiddleware
+Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
