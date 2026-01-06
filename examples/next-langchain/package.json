@@ -11,13 +11,13 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.11",
-    "@ai-sdk/langchain": "2.0.12",
+    "@ai-sdk/react": "3.0.12",
+    "@ai-sdk/langchain": "2.0.13",
     "@langchain/openai": "^1.2.0",
     "@langchain/core": "^1.1.5",
     "@langchain/langgraph": "^1.0.5",
     "@langchain/langgraph-cli": "^1.1.2",
-    "ai": "6.0.11",
+    "ai": "6.0.12",
     "langchain": "^1.2.0",
     "next": "^15.5.9",
     "lucide-react": "^0.561.0",

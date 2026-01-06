@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.12
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/gateway@3.0.9
+  - @ai-sdk/provider-utils@4.0.4
+
 ## 6.0.11
 
 ### Patch Changes
