@@ -500,6 +500,13 @@ export async function convertToOpenAIResponsesInput({
                       };
                     }
 
+                    case 'image-url': {
+                      return {
+                        type: 'input_image' as const,
+                        image_url: item.url,
+                      };
+                    }
+
                     case 'file-data': {
                       return {
                         type: 'input_file' as const,
