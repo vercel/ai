@@ -12036,7 +12036,7 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "tool-input-start",
   },
   {
-    "delta": "",
+    "delta": "{"query":"from:xai filter:media","limit":20,"mode":"Latest"}",
     "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_24148162",
     "type": "tool-input-delta",
   },
@@ -12045,31 +12045,10 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "tool-input-end",
   },
   {
-    "input": "",
+    "input": "{"query":"from:xai filter:media","limit":20,"mode":"Latest"}",
     "providerExecuted": true,
     "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_24148162",
     "toolName": "x_search",
-    "type": "tool-call",
-  },
-  {
-    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
-    "toolName": "view_x_video",
-    "type": "tool-input-start",
-  },
-  {
-    "delta": "",
-    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
-    "type": "tool-input-delta",
-  },
-  {
-    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
-    "type": "tool-input-end",
-  },
-  {
-    "input": "",
-    "providerExecuted": true,
-    "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
-    "toolName": "view_x_video",
     "type": "tool-call",
   },
   {
@@ -12154,6 +12133,27 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "providerExecuted": true,
     "toolCallId": "ws_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_call_45339693",
     "toolName": "web_search",
+    "type": "tool-call",
+  },
+  {
+    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
+    "toolName": "view_x_video",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"video_url":"https://video.twimg.com/amplify_video/1991284765027364866/vid/avc1/468x270/kRkbodV96jk4PmbG.mp4"}",
+    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"video_url":"https://video.twimg.com/amplify_video/1991284765027364866/vid/avc1/468x270/kRkbodV96jk4PmbG.mp4"}",
+    "providerExecuted": true,
+    "toolCallId": "ctc_b7b464ea-cc85-d44a-0f2f-1f7320e703c3_xs_call_14963218",
+    "toolName": "view_x_video",
     "type": "tool-call",
   },
   {
