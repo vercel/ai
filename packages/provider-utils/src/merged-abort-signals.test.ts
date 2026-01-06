@@ -81,10 +81,39 @@ describe('mergedAbortSignals', () => {
     expect(merged.reason).toBe(reason1);
   });
 
-  it('should handle empty input (no signals)', () => {
+  it('should return undefined when no signals provided', () => {
     const merged = mergedAbortSignals();
 
-    expect(merged.aborted).toBe(false);
+    expect(merged).toBeUndefined();
+  });
+
+  it('should return undefined when only null/undefined signals provided', () => {
+    const merged = mergedAbortSignals(null, undefined, null);
+
+    expect(merged).toBeUndefined();
+  });
+
+  it('should filter out null and undefined signals', () => {
+    const controller = new AbortController();
+    const reason = new Error('abort reason');
+
+    const merged = mergedAbortSignals(null, controller.signal, undefined);
+
+    expect(merged).not.toBeUndefined();
+    expect(merged!.aborted).toBe(false);
+
+    controller.abort(reason);
+
+    expect(merged!.aborted).toBe(true);
+    expect(merged!.reason).toBe(reason);
+  });
+
+  it('should return the signal directly when only one valid signal provided', () => {
+    const controller = new AbortController();
+
+    const merged = mergedAbortSignals(null, controller.signal, undefined);
+
+    expect(merged).toBe(controller.signal);
   });
 
   it('should use the first aborting signal reason when multiple abort simultaneously', () => {
@@ -102,18 +131,12 @@ describe('mergedAbortSignals', () => {
     expect(merged.reason).toBe(reason1);
   });
 
-  it('should work with a single signal', () => {
+  it('should return the original signal when only one signal provided', () => {
     const controller = new AbortController();
-    const reason = new Error('single signal reason');
 
     const merged = mergedAbortSignals(controller.signal);
 
-    expect(merged.aborted).toBe(false);
-
-    controller.abort(reason);
-
-    expect(merged.aborted).toBe(true);
-    expect(merged.reason).toBe(reason);
+    expect(merged).toBe(controller.signal);
   });
 
   it('should work with many signals', () => {
