@@ -1253,7 +1253,11 @@ describe('smoothStream', () => {
     it('should use line chunking for reasoning', async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'reasoning-start', id: '1' },
-        { text: 'Step 1: Analyze\nStep 2: Solve\n', type: 'reasoning-delta', id: '1' },
+        {
+          text: 'Step 1: Analyze\nStep 2: Solve\n',
+          type: 'reasoning-delta',
+          id: '1',
+        },
         { type: 'reasoning-end', id: '1' },
       ]).pipeThrough(
         smoothStream({
