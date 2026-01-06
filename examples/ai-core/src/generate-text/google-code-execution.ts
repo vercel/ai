@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-2.5-flash'),
     tools: {
       code_execution: google.tools.codeExecution({}),
     },
