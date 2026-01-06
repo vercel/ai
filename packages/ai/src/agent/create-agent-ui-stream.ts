@@ -12,8 +12,9 @@ import { Agent } from './agent';
  * Runs the agent and stream the output as a UI message stream.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
  * @param abortSignal - The abort signal. Optional.
+ * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
  *
@@ -26,15 +27,17 @@ export async function createAgentUIStream<
   MESSAGE_METADATA = unknown,
 >({
   agent,
-  messages,
+  uiMessages,
   options,
   abortSignal,
+  timeout,
   experimental_transform,
   ...uiMessageStreamOptions
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  messages: unknown[];
+  uiMessages: unknown[];
   abortSignal?: AbortSignal;
+  timeout?: number;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>
@@ -49,11 +52,11 @@ export async function createAgentUIStream<
   const validatedMessages = await validateUIMessages<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
-    messages,
+    messages: uiMessages,
     tools: agent.tools,
   });
 
-  const modelMessages = convertToModelMessages(validatedMessages, {
+  const modelMessages = await convertToModelMessages(validatedMessages, {
     tools: agent.tools,
   });
 
@@ -61,6 +64,7 @@ export async function createAgentUIStream<
     prompt: modelMessages,
     options: options as CALL_OPTIONS,
     abortSignal,
+    timeout,
     experimental_transform,
   });
 

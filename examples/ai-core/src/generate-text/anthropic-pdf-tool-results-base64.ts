@@ -27,17 +27,17 @@ run(async () => {
         throw new Error(`Failed to analyze PDF: ${error}`);
       }
     },
-    toModelOutput(result) {
+    toModelOutput({ output }) {
       return {
         type: 'content',
         value: [
           {
             type: 'text',
-            text: result.description,
+            text: output.description,
           },
           {
             type: 'file-data',
-            data: result.pdfData,
+            data: output.pdfData,
             mediaType: 'application/pdf',
             filename: 'ai.pdf',
           },

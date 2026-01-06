@@ -1,12 +1,13 @@
 import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -46,6 +47,8 @@ export class FalImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]) {
     const warnings: Array<SharedV3Warning> = [];
 
@@ -70,6 +73,25 @@ export class FalImageModel implements ImageModelV3 {
       num_images: n,
     };
 
+    // Handle image editing: convert files to image_url
+    if (files != null && files.length > 0) {
+      // Use first file as the primary image_url
+      requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+
+      if (files.length > 1) {
+        warnings.push({
+          type: 'other',
+          message:
+            'fal.ai only supports a single input image. Additional images are ignored.',
+        });
+      }
+    }
+
+    // Handle mask for inpainting
+    if (mask != null) {
+      requestBody.mask_url = convertImageModelFileToDataUri(mask);
+    }
+
     if (falOptions) {
       const deprecatedKeys =
         '__deprecatedKeys' in falOptions
@@ -92,6 +114,7 @@ export class FalImageModel implements ImageModelV3 {
 
       const fieldMapping: Record<string, string> = {
         imageUrl: 'image_url',
+        maskUrl: 'mask_url',
         guidanceScale: 'guidance_scale',
         numInferenceSteps: 'num_inference_steps',
         enableSafetyChecker: 'enable_safety_checker',

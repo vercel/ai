@@ -1,63 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`standardSchema > arktype > should create a schema with simple types 1`] = `
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "properties": {
-    "number": {
-      "type": "number",
-    },
-    "text": {
-      "type": "string",
-    },
-  },
-  "required": [
-    "number",
-    "text",
-  ],
-  "type": "object",
-}
-`;
-
-exports[`standardSchema > effect > should create a schema with simple types 1`] = `
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
-  "properties": {
-    "number": {
-      "type": "number",
-    },
-    "text": {
-      "type": "string",
-    },
-  },
-  "required": [
-    "text",
-    "number",
-  ],
-  "type": "object",
-}
-`;
-
-exports[`standardSchema > valibot > should create a schema with simple types 1`] = `
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "properties": {
-    "number": {
-      "type": "number",
-    },
-    "text": {
-      "type": "string",
-    },
-  },
-  "required": [
-    "text",
-    "number",
-  ],
-  "type": "object",
-}
-`;
-
 exports[`zodSchema > zod/v4 > json schema conversion > .literal and .enum 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -328,6 +270,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should use recursive refe
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
+      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
@@ -364,6 +307,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should use references whe
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
+      "additionalProperties": false,
       "properties": {
         "number": {
           "type": "number",

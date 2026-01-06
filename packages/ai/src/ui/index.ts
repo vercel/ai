@@ -19,6 +19,10 @@ export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-par
 export { convertToModelMessages } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
+  DirectChatTransport,
+  type DirectChatTransportOptions,
+} from './direct-chat-transport';
+export {
   HttpChatTransport,
   type HttpChatTransportInitOptions,
   type PrepareReconnectToStreamRequest,
@@ -28,11 +32,13 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  getStaticToolName,
   getToolName,
   getToolOrDynamicToolName,
   isDataUIPart,
   isFileUIPart,
   isReasoningUIPart,
+  isStaticToolUIPart,
   isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,

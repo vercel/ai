@@ -18,7 +18,7 @@ const CHUNKING_REGEXPS = {
 export type ChunkDetector = (buffer: string) => string | undefined | null;
 
 /**
- * Smooths text streaming output.
+ * Smooths text and reasoning streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
@@ -88,31 +88,39 @@ export function smoothStream<TOOLS extends ToolSet>({
   return () => {
     let buffer = '';
     let id = '';
+    let type: 'text-delta' | 'reasoning-delta' | undefined = undefined;
+
+    function flushBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (buffer.length > 0 && type !== undefined) {
+        controller.enqueue({ type, text: buffer, id });
+        buffer = '';
+      }
+    }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type !== 'text-delta') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', text: buffer, id });
-            buffer = '';
-          }
-
+        // Handle non-smoothable chunks: flush buffer and pass through
+        if (chunk.type !== 'text-delta' && chunk.type !== 'reasoning-delta') {
+          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
 
-        if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text-delta', text: buffer, id });
-          buffer = '';
+        // Flush buffer when type or id changes
+        if ((chunk.type !== type || chunk.id !== id) && buffer.length > 0) {
+          flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
+        type = chunk.type;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text-delta', text: match, id });
+          controller.enqueue({ type, text: match, id });
           buffer = buffer.slice(match.length);
 
           await delay(delayInMs);

@@ -1,5 +1,4 @@
-import { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { azure } from '@ai-sdk/azure';
+import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
 
 import {
   convertToModelMessages,
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: azure('gpt-5-mini'),
     tools,
-    messages: convertToModelMessages(uiMessages),
+    messages: await convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
       console.log(JSON.stringify(request.body, null, 2));
 
@@ -68,7 +67,7 @@ export async function POST(req: Request) {
       }
     },
     providerOptions: {
-      openai: {
+      azure: {
         store: true,
       } satisfies OpenAIResponsesProviderOptions,
     },

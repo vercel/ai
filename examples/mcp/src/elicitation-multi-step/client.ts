@@ -1,7 +1,4 @@
-import {
-  experimental_createMCPClient as createMCPClient,
-  ElicitationRequestSchema,
-} from '@ai-sdk/mcp';
+import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 import { createInterface } from 'node:readline/promises';

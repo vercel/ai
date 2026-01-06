@@ -96,6 +96,66 @@ const { messages, sendMessage } = useChat({
 });
 ```
 
+## Direct Agent Transport
+
+For scenarios where you want to communicate directly with an [Agent](/docs/reference/ai-sdk-core/agent) without going through HTTP, you can use `DirectChatTransport`. This transport invokes the agent's `stream()` method directly in-process.
+
+This is useful for:
+
+- **Server-side rendering**: Run the agent on the server without an API endpoint
+- **Testing**: Test chat functionality without network requests
+- **Single-process applications**: Desktop or CLI apps where client and agent run together
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions: 'You are a helpful assistant.',
+  tools: {
+    weather: weatherTool,
+  },
+});
+
+const { messages, sendMessage } = useChat({
+  transport: new DirectChatTransport({ agent }),
+});
+```
+
+### How It Works
+
+Unlike `DefaultChatTransport` which sends HTTP requests:
+
+1. `DirectChatTransport` validates incoming UI messages
+2. Converts them to model messages using `convertToModelMessages`
+3. Calls the agent's `stream()` method directly
+4. Returns the result as a UI message stream via `toUIMessageStream()`
+
+### Configuration Options
+
+You can pass additional options to customize the stream output:
+
+```tsx
+const transport = new DirectChatTransport({
+  agent,
+  // Pass options to the agent
+  options: { customOption: 'value' },
+  // Configure what's sent to the client
+  sendReasoning: true,
+  sendSources: true,
+});
+```
+
+<Note>
+  `DirectChatTransport` does not support stream reconnection since there is no
+  persistent server-side stream. The `reconnectToStream()` method always returns
+  `null`.
+</Note>
+
+For complete API details, see the [DirectChatTransport reference](/docs/reference/ai-sdk-ui/direct-chat-transport).
+
 ## Building Custom Transports
 
 To understand how to build your own transport, refer to the source code of the default implementation:

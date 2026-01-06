@@ -824,7 +824,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -899,7 +902,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -993,7 +999,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1172,7 +1181,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1252,7 +1264,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1360,7 +1375,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1495,7 +1513,10 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1583,6 +1604,110 @@ describe('tool result format support', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Here is the result' },
     ]);
-    expect(result.finishReason).toBe('stop');
+
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
+  });
+});
+
+describe('reference content parsing', () => {
+  it('should handle reference_ids as numbers', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                { type: 'reference', reference_ids: [1, 2, 3] },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
+  });
+
+  it('should handle reference_ids as strings', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                {
+                  type: 'reference',
+                  reference_ids: ['ref-1', 'ref-2', 'ref-3'],
+                },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
+  });
+
+  it('should handle mixed reference_ids (numbers and strings)', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                { type: 'reference', reference_ids: [1, 'ref-2', 3] },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
   });
 });

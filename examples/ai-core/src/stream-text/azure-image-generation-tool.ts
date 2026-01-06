@@ -4,27 +4,6 @@ import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 import { convertBase64ToUint8Array } from '../lib/convert-base64';
 
-/**
- *
- * *** NOTICE ***
- * The image_generation function is currently preview(Not GA).
- * Unfortunately ,This example code does not work, now.
- * Because image_generation tool is not supported stream mode on Azure OpenAI, yet.
- * So it doesn't work on streamText function.
- *
- * This example finish error with this message.
- * "ImageGen as a tool is not supported in streaming mode."
- *
- *
- * ` The Responses API image generation tool does not currently support streaming mode. `
- * link:
- * https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?tabs=python-secure#image-generation-preview
- *
- *
- * When updated on Azure , it will work on streamText function in the future.
- * And then this example code will be fixed.
- */
-
 run(async () => {
   const azure = createAzure({
     headers: {

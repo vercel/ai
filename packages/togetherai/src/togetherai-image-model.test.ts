@@ -45,6 +45,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -69,6 +71,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: '1024x1024',
       seed: 42,
@@ -91,6 +95,8 @@ describe('doGenerate', () => {
 
     await modelWithHeaders.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -123,6 +129,8 @@ describe('doGenerate', () => {
     await expect(
       model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -140,6 +148,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -165,6 +175,8 @@ describe('doGenerate', () => {
 
     const generatePromise = model.doGenerate({
       prompt,
+      files: undefined,
+      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -187,6 +199,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -219,6 +233,8 @@ describe('doGenerate', () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -243,5 +259,208 @@ describe('constructor', () => {
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
     expect(model.specificationVersion).toBe('v3');
     expect(model.maxImagesPerCall).toBe(1);
+  });
+});
+
+describe('Image Editing', () => {
+  const server = createTestServer({
+    'https://api.example.com/*': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'test-id',
+          data: [{ index: 0, b64_json: 'test-base64-content' }],
+          model: 'black-forest-labs/FLUX.1-kontext-pro',
+          object: 'list',
+        },
+      },
+    },
+  });
+
+  it('should send image_url when URL file is provided', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Make the shirt yellow',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchInlineSnapshot(`
+      {
+        "image_url": "https://example.com/input.jpg",
+        "model": "stabilityai/stable-diffusion-xl",
+        "n": 1,
+        "prompt": "Make the shirt yellow",
+        "response_format": "base64",
+      }
+    `);
+  });
+
+  it('should convert Uint8Array file to data URI', async () => {
+    const model = createBasicModel();
+    const testImageData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
+    await model.doGenerate({
+      prompt: 'Transform this image',
+      files: [
+        {
+          type: 'file',
+          data: testImageData,
+          mediaType: 'image/png',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toMatch(/^data:image\/png;base64,/);
+    expect(requestBody.prompt).toBe('Transform this image');
+  });
+
+  it('should convert file with base64 string data to data URI', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Edit this',
+      files: [
+        {
+          type: 'file',
+          data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          mediaType: 'image/png',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toBe(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    );
+  });
+
+  it('should throw error when mask is provided', async () => {
+    const model = createBasicModel();
+
+    await expect(
+      model.doGenerate({
+        prompt: 'Inpaint this area',
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/input.jpg',
+          },
+        ],
+        mask: {
+          type: 'url',
+          url: 'https://example.com/mask.png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      }),
+    ).rejects.toThrow(
+      'Together AI does not support mask-based image editing. ' +
+        'Use FLUX Kontext models (e.g., black-forest-labs/FLUX.1-kontext-pro) ' +
+        'with a reference image and descriptive prompt instead.',
+    );
+  });
+
+  it('should warn when multiple files are provided', async () => {
+    const model = createBasicModel();
+
+    const result = await model.doGenerate({
+      prompt: 'Edit multiple images',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input1.jpg',
+        },
+        {
+          type: 'url',
+          url: 'https://example.com/input2.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Together AI only supports a single input image. Additional images are ignored.",
+          "type": "other",
+        },
+      ]
+    `);
+
+    // Should only use the first image
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.image_url).toBe('https://example.com/input1.jpg');
+  });
+
+  it('should pass provider options with image editing', async () => {
+    const model = createBasicModel();
+
+    await model.doGenerate({
+      prompt: 'Transform the style',
+      files: [
+        {
+          type: 'url',
+          url: 'https://example.com/input.jpg',
+        },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {
+        togetherai: {
+          steps: 28,
+          guidance: 3.5,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchInlineSnapshot(`
+      {
+        "guidance": 3.5,
+        "image_url": "https://example.com/input.jpg",
+        "model": "stabilityai/stable-diffusion-xl",
+        "n": 1,
+        "prompt": "Transform the style",
+        "response_format": "base64",
+        "steps": 28,
+      }
+    `);
   });
 });

@@ -16,7 +16,7 @@ describe('ToolLoopAgent', () => {
           doGenerateOptions = options;
           return {
             content: [{ type: 'text', text: 'reply' }],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: {
               cachedInputTokens: undefined,
               inputTokens: {
@@ -75,6 +75,18 @@ describe('ToolLoopAgent', () => {
       });
 
       expect(doGenerateOptions?.abortSignal).toBe(abortController.signal);
+    });
+
+    it('should pass timeout to generateText', async () => {
+      const agent = new ToolLoopAgent({ model: mockModel });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        timeout: 5000,
+      });
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doGenerateOptions?.abortSignal).toBeDefined();
     });
 
     it('should pass experimental_download to generateText', async () => {
@@ -266,7 +278,7 @@ describe('ToolLoopAgent', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: {
                   inputTokens: {
                     total: 3,
@@ -336,6 +348,22 @@ describe('ToolLoopAgent', () => {
       await result.consumeStream();
 
       expect(doStreamOptions?.abortSignal).toBe(abortController.signal);
+    });
+
+    it('should pass timeout to streamText', async () => {
+      const agent = new ToolLoopAgent({
+        model: mockModel,
+      });
+
+      const result = await agent.stream({
+        prompt: 'Hello, world!',
+        timeout: 5000,
+      });
+
+      await result.consumeStream();
+
+      // timeout is merged into abortSignal, so we check that an abort signal was created
+      expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
     it('should pass string instructions', async () => {
