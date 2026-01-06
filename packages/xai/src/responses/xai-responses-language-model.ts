@@ -279,6 +279,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         outputTokens: response.usage.output_tokens,
         totalTokens: response.usage.total_tokens,
         reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
+        cachedInputTokens: response.usage.input_tokens_details?.cached_tokens,
       },
       request: { body },
       response: {
@@ -459,6 +460,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
               if (response.usage) {
                 usage.inputTokens = response.usage.input_tokens;
+                usage.cachedInputTokens =
+                  response.usage.input_tokens_details?.cached_tokens;
                 usage.outputTokens = response.usage.output_tokens;
                 usage.totalTokens = response.usage.total_tokens;
                 usage.reasoningTokens =

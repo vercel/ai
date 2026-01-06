@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import { XaiResponsesProviderOptions } from './xai-responses-options';
+import type { XaiResponsesProviderOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -119,11 +119,14 @@ describe('XaiResponsesLanguageModel', () => {
           output: [],
           usage: {
             input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 50,
+            },
             output_tokens: 538,
-            total_tokens: 883,
             output_tokens_details: {
               reasoning_tokens: 123,
             },
+            total_tokens: 883,
           },
         });
 
@@ -133,6 +136,7 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
+            "cachedInputTokens": 50,
             "inputTokens": 345,
             "outputTokens": 538,
             "reasoningTokens": 123,
@@ -769,6 +773,64 @@ describe('XaiResponsesLanguageModel', () => {
           url: 'https://example.com',
           title: 'example',
         });
+      });
+    });
+
+    describe('usage streaming', () => {
+      it('should extract usage with cached input tokens', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 345,
+                input_tokens_details: {
+                  cached_tokens: 50,
+                },
+                output_tokens: 538,
+                output_tokens_details: {
+                  reasoning_tokens: 123,
+                },
+                total_tokens: 883,
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const finishPart = parts.find(part => part.type === 'finish');
+        expect(finishPart).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 50,
+              "inputTokens": 345,
+              "outputTokens": 538,
+              "reasoningTokens": 123,
+              "totalTokens": 883,
+            },
+          }
+        `);
       });
     });
   });
