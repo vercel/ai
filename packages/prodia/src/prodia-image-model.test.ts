@@ -87,8 +87,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -115,8 +113,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -139,8 +135,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: '1024x768',
         aspectRatio: undefined,
@@ -168,8 +162,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -195,8 +187,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -222,8 +212,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -249,8 +237,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -267,8 +253,6 @@ describe('ProdiaImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -291,8 +275,6 @@ describe('ProdiaImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         providerOptions: {},
         headers: {
@@ -317,8 +299,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -339,8 +319,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -382,8 +360,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         seed: undefined,
@@ -405,8 +381,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: 'invalid' as `${number}x${number}`,
         seed: undefined,
@@ -418,8 +392,8 @@ describe('ProdiaImageModel', () => {
         [
           {
             "details": "Invalid size format: invalid. Expected format: WIDTHxHEIGHT (e.g., 1024x1024)",
-            "feature": "size",
-            "type": "unsupported",
+            "setting": "size",
+            "type": "unsupported-setting",
           },
         ]
       `);
@@ -472,8 +446,6 @@ describe('ProdiaImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        files: undefined,
-        mask: undefined,
         n: 1,
         providerOptions: {},
         size: undefined,
@@ -495,7 +467,7 @@ describe('ProdiaImageModel', () => {
 
       expect(model.provider).toBe('prodia.image');
       expect(model.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

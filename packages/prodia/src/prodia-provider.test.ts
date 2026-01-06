@@ -66,7 +66,7 @@ describe('Prodia provider', () => {
     expect(imageModel.provider).toBe('prodia.image');
     expect(imageModel.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
     expect(imageModel2.modelId).toBe('inference.flux.schnell.txt2img.v2');
-    expect(imageModel.specificationVersion).toBe('v3');
+    expect(imageModel.specificationVersion).toBe('v2');
   });
 
   it('configures baseURL and headers correctly', async () => {
@@ -82,8 +82,6 @@ describe('Prodia provider', () => {
 
     await model.doGenerate({
       prompt: 'A serene mountain landscape at sunset',
-      files: undefined,
-      mask: undefined,
       n: 1,
       size: undefined,
       seed: undefined,
@@ -116,8 +114,8 @@ describe('Prodia provider', () => {
     expect(() => provider.languageModel('some-id')).toThrowError(
       'No such languageModel',
     );
-    expect(() => provider.embeddingModel('some-id')).toThrowError(
-      'No such embeddingModel',
+    expect(() => provider.textEmbeddingModel('some-id')).toThrowError(
+      'No such textEmbeddingModel',
     );
   });
 });

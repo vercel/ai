@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
@@ -13,8 +13,8 @@ import {
 import { z } from 'zod/v4';
 import type { ProdiaImageModelId } from './prodia-image-settings';
 
-export class ProdiaImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class ProdiaImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -31,8 +31,8 @@ export class ProdiaImageModel implements ImageModelV3 {
     size,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV2['doGenerate']>[0]) {
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     const prodiaOptions = await parseProviderOptions({
       provider: 'prodia',
@@ -53,8 +53,8 @@ export class ProdiaImageModel implements ImageModelV3 {
         !Number.isFinite(height)
       ) {
         warnings.push({
-          type: 'unsupported',
-          feature: 'size',
+          type: 'unsupported-setting',
+          setting: 'size',
           details: `Invalid size format: ${size}. Expected format: WIDTHxHEIGHT (e.g., 1024x1024)`,
         });
         width = undefined;
@@ -103,8 +103,8 @@ export class ProdiaImageModel implements ImageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV2['doGenerate']>>> {
     const { body, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();

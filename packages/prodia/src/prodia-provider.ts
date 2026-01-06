@@ -1,7 +1,7 @@
 import {
-  type ImageModelV3,
+  type ImageModelV2,
   NoSuchModelError,
-  type ProviderV3,
+  type ProviderV2,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -36,16 +36,16 @@ export interface ProdiaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ProdiaProvider extends ProviderV3 {
+export interface ProdiaProvider extends ProviderV2 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ProdiaImageModelId): ImageModelV3;
+  image(modelId: ProdiaImageModelId): ImageModelV2;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV3;
+  imageModel(modelId: ProdiaImageModelId): ImageModelV2;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -80,10 +80,10 @@ export function createProdia(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
+  const textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,
-      modelType: 'embeddingModel',
+      modelType: 'textEmbeddingModel',
     });
   };
 
@@ -95,12 +95,10 @@ export function createProdia(
   };
 
   return {
-    specificationVersion: 'v3',
     imageModel: createImageModel,
     image: createImageModel,
     languageModel,
-    embeddingModel,
-    textEmbeddingModel: embeddingModel,
+    textEmbeddingModel,
   };
 }
 
