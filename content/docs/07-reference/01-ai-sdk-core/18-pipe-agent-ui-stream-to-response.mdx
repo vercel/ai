@@ -68,6 +68,13 @@ export async function handler(req, res) {
         'Optional abort signal to cancel streaming (e.g., on client disconnect). Supply an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal), for example from an `AbortController`.',
     },
     {
+      name: 'timeout',
+      type: 'number',
+      isRequired: false,
+      description:
+        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isRequired: false,

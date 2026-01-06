@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -67,6 +66,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -231,6 +231,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -253,6 +254,7 @@ export function streamText<
   messages,
   maxRetries,
   abortSignal,
+  timeout,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -436,7 +438,10 @@ Internal. For test use only. May change without notice.
     headers,
     settings,
     maxRetries,
-    abortSignal,
+    abortSignal: mergeAbortSignals(
+      abortSignal,
+      timeout != null ? AbortSignal.timeout(timeout) : undefined,
+    ),
     system,
     prompt,
     messages,

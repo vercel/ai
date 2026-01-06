@@ -73,6 +73,12 @@ Abort signal.
   abortSignal?: AbortSignal;
 
   /**
+Timeout in milliseconds. The call will be aborted if it takes longer
+than the specified timeout. Can be used alongside abortSignal.
+   */
+  timeout?: number;
+
+  /**
 Additional HTTP headers to be sent with the request.
 Only applicable for HTTP-based providers.
    */

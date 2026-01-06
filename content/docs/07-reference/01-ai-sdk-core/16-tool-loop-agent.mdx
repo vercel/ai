@@ -196,12 +196,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       description: 'How many times to retry on failure. Default: 2.',
     },
     {
-      name: 'abortSignal',
-      type: 'AbortSignal',
-      isOptional: true,
-      description: 'Optional abort signal to cancel the ongoing request.',
-    },
-    {
       name: 'providerOptions',
       type: 'ProviderOptions',
       isOptional: true,
@@ -247,6 +241,13 @@ const result = await agent.generate({
       description:
         'An optional abort signal that can be used to cancel the call.',
     },
+    {
+      name: 'timeout',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
   ]}
 />
 
@@ -286,6 +287,13 @@ for await (const chunk of stream.textStream) {
       isOptional: true,
       description:
         'An optional abort signal that can be used to cancel the call.',
+    },
+    {
+      name: 'timeout',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_transform',

@@ -47,6 +47,11 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
      * Abort signal.
      */
     abortSignal?: AbortSignal;
+
+    /**
+     * Timeout in milliseconds.
+     */
+    timeout?: number;
   };
 
 /**

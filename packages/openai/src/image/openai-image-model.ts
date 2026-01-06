@@ -162,7 +162,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         n,
         size,
         ...(providerOptions.openai ?? {}),
-        ...(!hasDefaultResponseFormat.has(this.modelId)
+        ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
       },
