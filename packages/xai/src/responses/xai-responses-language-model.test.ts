@@ -888,6 +888,26 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(parts).toMatchSnapshot();
       });
+
+      it('should stream x_search tool call', async () => {
+        prepareChunksFixtureResponse('xai-x-search-tool');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
+      });
     });
 
     describe('tool call streaming', () => {
