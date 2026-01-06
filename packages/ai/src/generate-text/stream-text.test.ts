@@ -12913,6 +12913,123 @@ describe('streamText', () => {
           }
         `);
       });
+
+      describe('experimental_repairText', () => {
+        it('should repair JSON parse errors and return parsed output', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "value": "test-value"',
+                }, // missing closing brace
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+            experimental_repairText: async ({ text }) => {
+              return text + '}'; // repair by adding closing brace
+            },
+          });
+
+          await result.consumeStream();
+
+          expect(await result.output).toEqual({ value: 'test-value' });
+        });
+
+        it('should repair schema validation errors and return parsed output', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ "value": 123 }' }, // wrong type
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+            experimental_repairText: async () => {
+              return '{ "value": "repaired" }';
+            },
+          });
+
+          await result.consumeStream();
+
+          expect(await result.output).toEqual({ value: 'repaired' });
+        });
+
+        it('should throw original error when repair returns null', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ broken json' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+            experimental_repairText: async () => null,
+          });
+
+          await result.consumeStream();
+
+          await expect(result.output).rejects.toThrow(
+            'No object generated: could not parse the response.',
+          );
+        });
+
+        it('should throw error when no repair function is provided', async () => {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '{ broken json' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            prompt: 'prompt',
+          });
+
+          await result.consumeStream();
+
+          await expect(result.output).rejects.toThrow(
+            'No object generated: could not parse the response.',
+          );
+        });
+      });
     });
 
     describe('array output', () => {
