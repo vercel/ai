@@ -1,0 +1,132 @@
+import { describe, expect, it } from 'vitest';
+import { mergedAbortSignals } from './merged-abort-signals';
+
+describe('mergedAbortSignals', () => {
+  it('should return a signal that is initially not aborted', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    expect(merged.aborted).toBe(false);
+  });
+
+  it('should abort when the first signal aborts', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    controller1.abort();
+
+    expect(merged.aborted).toBe(true);
+  });
+
+  it('should abort when the second signal aborts', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    controller2.abort();
+
+    expect(merged.aborted).toBe(true);
+  });
+
+  it('should preserve the abort reason from the triggering signal', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+    const reason = new Error('custom abort reason');
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    controller1.abort(reason);
+
+    expect(merged.reason).toBe(reason);
+  });
+
+  it('should preserve string abort reason', () => {
+    const controller1 = new AbortController();
+
+    const merged = mergedAbortSignals(controller1.signal);
+
+    controller1.abort('string reason');
+
+    expect(merged.reason).toBe('string reason');
+  });
+
+  it('should handle already-aborted signals', () => {
+    const controller1 = new AbortController();
+    const reason = new Error('already aborted');
+    controller1.abort(reason);
+
+    const merged = mergedAbortSignals(controller1.signal);
+
+    expect(merged.aborted).toBe(true);
+    expect(merged.reason).toBe(reason);
+  });
+
+  it('should use the first already-aborted signal reason when multiple are aborted', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+    const reason1 = new Error('first reason');
+    const reason2 = new Error('second reason');
+
+    controller1.abort(reason1);
+    controller2.abort(reason2);
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    expect(merged.aborted).toBe(true);
+    expect(merged.reason).toBe(reason1);
+  });
+
+  it('should handle empty input (no signals)', () => {
+    const merged = mergedAbortSignals();
+
+    expect(merged.aborted).toBe(false);
+  });
+
+  it('should use the first aborting signal reason when multiple abort simultaneously', () => {
+    const controller1 = new AbortController();
+    const controller2 = new AbortController();
+    const reason1 = new Error('first reason');
+    const reason2 = new Error('second reason');
+
+    const merged = mergedAbortSignals(controller1.signal, controller2.signal);
+
+    // Both abort, but the first one's listener was registered first
+    controller1.abort(reason1);
+    controller2.abort(reason2);
+
+    expect(merged.reason).toBe(reason1);
+  });
+
+  it('should work with a single signal', () => {
+    const controller = new AbortController();
+    const reason = new Error('single signal reason');
+
+    const merged = mergedAbortSignals(controller.signal);
+
+    expect(merged.aborted).toBe(false);
+
+    controller.abort(reason);
+
+    expect(merged.aborted).toBe(true);
+    expect(merged.reason).toBe(reason);
+  });
+
+  it('should work with many signals', () => {
+    const controllers = Array.from({ length: 10 }, () => new AbortController());
+    const reason = new Error('signal 5 reason');
+
+    const merged = mergedAbortSignals(...controllers.map(c => c.signal));
+
+    expect(merged.aborted).toBe(false);
+
+    controllers[5].abort(reason);
+
+    expect(merged.aborted).toBe(true);
+    expect(merged.reason).toBe(reason);
+  });
+});
