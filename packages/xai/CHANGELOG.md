@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.44
+
+### Patch Changes
+
+- 08bffe4: feat (provider/xai): include cached input token metrics in responses api usage
+
 ## 2.0.43
 
 ### Patch Changes
