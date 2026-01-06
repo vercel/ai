@@ -315,20 +315,18 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
-            "function": {
-              "description": "get weather information",
-              "name": "weather",
-              "parameters": {
-                "properties": {
-                  "location": {
-                    "type": "string",
-                  },
+            "description": "get weather information",
+            "name": "weather",
+            "parameters": {
+              "properties": {
+                "location": {
+                  "type": "string",
                 },
-                "required": [
-                  "location",
-                ],
-                "type": "object",
               },
+              "required": [
+                "location",
+              ],
+              "type": "object",
             },
             "type": "function",
           },
