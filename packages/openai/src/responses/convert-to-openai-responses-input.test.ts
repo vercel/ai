@@ -1861,6 +1861,51 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert single tool result part with multipart that contains image URL', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/screenshot.png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "https://example.com/screenshot.png",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
