@@ -1026,4 +1026,486 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('reasoning smoothing', () => {
+    it('should combine partial reasoning words', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'Let', type: 'reasoning-delta', id: '1' },
+        { text: ' me ', type: 'reasoning-delta', id: '1' },
+        { text: 'think...', type: 'reasoning-delta', id: '1' },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Let ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "me ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "think...",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should split larger reasoning chunks', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'First I need to analyze the problem. Then I will solve it.',
+          type: 'reasoning-delta',
+          id: '1',
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "First ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "need ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "to ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "analyze ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "problem. ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Then ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "will ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "solve ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "it.",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush reasoning buffer before tool call', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { text: 'I should check the', type: 'reasoning-delta', id: '1' },
+        { text: ' weather', type: 'reasoning-delta', id: '1' },
+        {
+          type: 'tool-call',
+          toolCallId: '1',
+          toolName: 'weather',
+          input: { city: 'London' },
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "should ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "check ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "text": "weather",
+            "type": "reasoning-delta",
+          },
+          {
+            "input": {
+              "city": "London",
+            },
+            "toolCallId": "1",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should use line chunking for reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        {
+          text: 'Step 1: Analyze\nStep 2: Solve\n',
+          type: 'reasoning-delta',
+          id: '1',
+        },
+        { type: 'reasoning-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          chunking: 'line',
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Step 1: Analyze
+        ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Step 2: Solve
+        ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('interleaved text and reasoning', () => {
+    it('should flush text buffer when switching to reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'reasoning-start', id: '2' },
+        { text: 'Hello ', type: 'text-delta', id: '1' },
+        { text: 'world', type: 'text-delta', id: '1' },
+        { text: 'Let me', type: 'reasoning-delta', id: '2' },
+        { text: ' think', type: 'reasoning-delta', id: '2' },
+        { type: 'text-end', id: '1' },
+        { type: 'reasoning-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "world",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "Let ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "me ",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "2",
+            "text": "think",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "id": "2",
+            "type": "reasoning-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush reasoning buffer when switching to text', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: '1' },
+        { type: 'text-start', id: '2' },
+        { text: 'Thinking ', type: 'reasoning-delta', id: '1' },
+        { text: 'hard', type: 'reasoning-delta', id: '1' },
+        { text: 'The answer', type: 'text-delta', id: '2' },
+        { text: ' is 42', type: 'text-delta', id: '2' },
+        { type: 'reasoning-end', id: '1' },
+        { type: 'text-end', id: '2' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "2",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Thinking ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "hard",
+            "type": "reasoning-delta",
+          },
+          {
+            "id": "2",
+            "text": "The ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "answer ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "2",
+            "text": "is ",
+            "type": "text-delta",
+          },
+          {
+            "id": "2",
+            "text": "42",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "2",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple switches between text and reasoning', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'reasoning-start', id: 'r1' },
+        { type: 'text-start', id: 't1' },
+        { text: 'Think ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'Hello ', type: 'text-delta', id: 't1' },
+        { text: 'more ', type: 'reasoning-delta', id: 'r1' },
+        { text: 'world ', type: 'text-delta', id: 't1' },
+        { type: 'reasoning-end', id: 'r1' },
+        { type: 'text-end', id: 't1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "r1",
+            "type": "reasoning-start",
+          },
+          {
+            "id": "t1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "r1",
+            "text": "Think ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "t1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "r1",
+            "text": "more ",
+            "type": "reasoning-delta",
+          },
+          "delay 10",
+          {
+            "id": "t1",
+            "text": "world ",
+            "type": "text-delta",
+          },
+          {
+            "id": "r1",
+            "type": "reasoning-end",
+          },
+          {
+            "id": "t1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
 });
