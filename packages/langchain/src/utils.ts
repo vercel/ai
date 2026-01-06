@@ -97,7 +97,10 @@ export function convertAssistantContent(content: AssistantContent): AIMessage {
 /**
  * Helper to generate a default filename from mediaType
  */
-function getDefaultFilename(mediaType: string, prefix: string = 'file'): string {
+function getDefaultFilename(
+  mediaType: string,
+  prefix: string = 'file',
+): string {
   const ext = mediaType.split('/')[1] || 'bin';
   return `${prefix}.${ext}`;
 }
@@ -153,11 +156,10 @@ export function convertUserContent(content: UserContent): HumanMessage {
           type: 'image_url',
           image_url: { url: imagePart.image.toString() },
         });
-      }
+      } else if (typeof imagePart.image === 'string') {
       /**
        * Handle string (could be URL or base64)
        */
-      else if (typeof imagePart.image === 'string') {
         /**
          * Check if it's a URL (including data: URLs)
          */
@@ -183,11 +185,10 @@ export function convertUserContent(content: UserContent): HumanMessage {
             image_url: { url: `data:${mimeType};base64,${imagePart.image}` },
           });
         }
-      }
+      } else if (
       /**
        * Handle Uint8Array or ArrayBuffer (binary data)
        */
-      else if (
         imagePart.image instanceof Uint8Array ||
         imagePart.image instanceof ArrayBuffer
       ) {

@@ -3,7 +3,14 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { AlertCircle, ImageIcon, X, Send, Loader2, Sparkles } from 'lucide-react';
+import {
+  AlertCircle,
+  ImageIcon,
+  X,
+  Send,
+  Loader2,
+  Sparkles,
+} from 'lucide-react';
 import { ChatMessage } from '../../components/chat-message';
 import { ThinkingIndicator } from '../../components/thinking-indicator';
 import { type CustomDataMessage } from '../types';
@@ -176,9 +183,9 @@ export default function MultimodalPage() {
         </h1>
         <div className="text-sm text-[var(--foreground-secondary)] leading-relaxed">
           Send images to <strong>GPT-4o</strong> for analysis. This example
-          demonstrates multimodal input using the{' '}
-          <code>@ai-sdk/langchain</code> adapter, which properly converts images
-          and files to LangChain&apos;s multimodal content format.
+          demonstrates multimodal input using the <code>@ai-sdk/langchain</code>{' '}
+          adapter, which properly converts images and files to LangChain&apos;s
+          multimodal content format.
         </div>
       </div>
 
@@ -229,8 +236,10 @@ export default function MultimodalPage() {
                   </div>
 
                   {/* Label overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent 
-                                flex flex-col justify-end p-3">
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent 
+                                flex flex-col justify-end p-3"
+                  >
                     <div className="flex items-center gap-1.5 text-white text-sm font-medium">
                       <Sparkles className="w-3.5 h-3.5" />
                       {example.label}
@@ -238,11 +247,15 @@ export default function MultimodalPage() {
                   </div>
 
                   {/* Hover indicator */}
-                  <div className="absolute inset-0 bg-[var(--accent)]/0 group-hover:bg-[var(--accent)]/10 
-                                transition-colors duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                  <div
+                    className="absolute inset-0 bg-[var(--accent)]/0 group-hover:bg-[var(--accent)]/10 
+                                transition-colors duration-300 flex items-center justify-center"
+                  >
+                    <div
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-300
                                   bg-[var(--accent)] text-white px-3 py-1.5 rounded-full text-xs font-medium
-                                  flex items-center gap-1.5">
+                                  flex items-center gap-1.5"
+                    >
                       <Send className="w-3 h-3" />
                       Analyze
                     </div>
@@ -363,4 +376,3 @@ export default function MultimodalPage() {
     </div>
   );
 }
-

@@ -10,5 +10,6 @@ Previously, only text content was extracted from user messages - now images and 
 LangChain's multimodal content format with support for base64 data and binary data.
 
 Added two new examples:
+
 - "Vision Input" (`/multimodal`) - Send images to a vision model for analysis, with pre-loaded sample images converted to base64
 - "Image Generation" (`/image-generation`) - Generate images as output using the updated adapter
