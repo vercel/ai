@@ -12,6 +12,7 @@ import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
+import { resolveLatestVersion } from './latest-versions';
 
 type ExtractLiteralUnion<T> = T extends string
   ? string extends T
@@ -220,8 +221,12 @@ class DefaultProviderRegistry<
     id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModelV3 {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
+    
+    // 🔥 NEW: Resolve --latest suffix to actual model version
+    const resolvedModelId = resolveLatestVersion(providerId, modelId);
+    
     let model = this.getProvider(providerId, 'languageModel').languageModel?.(
-      modelId,
+      resolvedModelId,
     );
 
     if (model == null) {
