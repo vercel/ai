@@ -9,6 +9,7 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
+  mergedAbortSignals,
   ProviderOptions,
   ToolApprovalResponse,
   ToolContent,
@@ -231,6 +232,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -253,6 +255,7 @@ export function streamText<
   messages,
   maxRetries,
   abortSignal,
+  timeout,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -430,13 +433,19 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  // Merge timeout and abort signal
+  const mergedAbortSignal = mergedAbortSignals(
+    abortSignal,
+    timeout != null ? AbortSignal.timeout(timeout) : undefined,
+  );
+
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
     maxRetries,
-    abortSignal,
+    abortSignal: mergedAbortSignal,
     system,
     prompt,
     messages,
