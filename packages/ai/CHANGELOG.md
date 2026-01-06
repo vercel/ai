@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
 ## 6.0.13
 
 ### Patch Changes
