@@ -419,4 +419,36 @@ console.log(text);`,
     websiteUrl: 'https://airweave.ai',
     npmUrl: 'https://www.npmjs.com/package/@airweave/vercel-ai-sdk',
   },
+  {
+    slug: 'bash-tool',
+    name: 'bash-tool',
+    description:
+      'Provides bash, readFile, and writeFile tools for AI agents. Powered by just-bash, a bash interpreter written entirely in TypeScript with its own parser, interpreter, and reimplemented commands—no shell process required. Supports @vercel/sandbox for full VM isolation.',
+    packageName: 'bash-tool',
+    tags: ['bash', 'file-system', 'sandbox', 'code-execution'],
+    installCommand: {
+      pnpm: 'pnpm install bash-tool',
+      npm: 'npm install bash-tool',
+      yarn: 'yarn add bash-tool',
+      bun: 'bun add bash-tool',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { createBashTool } from 'bash-tool';
+
+const { tools } = await createBashTool({
+  files: { 'src/index.ts': "export const hello = 'world';" },
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'List the files in src/ and show me the contents of index.ts',
+  tools,
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/vercel/bash-tool',
+    websiteUrl: 'https://github.com/vercel/bash-tool',
+    npmUrl: 'https://www.npmjs.com/package/bash-tool',
+  },
 ];
