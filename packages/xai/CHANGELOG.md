@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.9
+
+### Patch Changes
+
+- 173dcfd: added support for streaming custom tool input chunks in xAI
+
 ## 3.0.8
 
 ### Patch Changes
