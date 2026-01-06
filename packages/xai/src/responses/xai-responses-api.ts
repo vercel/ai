@@ -82,11 +82,9 @@ export type XaiResponsesTool =
   | { type: 'mcp' }
   | {
       type: 'function';
-      function: {
-        name: string;
-        description?: string;
-        parameters: unknown;
-      };
+      name: string;
+      description?: string;
+      parameters: unknown;
     };
 
 const annotationSchema = z.union([
