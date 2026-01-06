@@ -141,6 +141,11 @@ import * as z4 from 'zod/v4';
 // Use z4.core.$ZodType for type references
 ```
 
+### JSON parsing
+
+Never use `JSON.parse` directly in production code to prevent security risks.
+Instead use `parseJSON` or `safeParseJSON` from `@ai-sdk/provider-utils`.
+
 ### File Naming Conventions
 
 - Source files: `kebab-case.ts`
