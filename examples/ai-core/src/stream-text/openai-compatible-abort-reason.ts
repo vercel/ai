@@ -5,9 +5,8 @@ import 'dotenv/config';
 async function main() {
   const openaiCompatible = createOpenAICompatible({
     name: 'openai-compatible',
-    baseURL:
-      process.env.OPENAI_COMPATIBLE_BASE_URL ?? 'https://api.deepseek.com/v1',
-    apiKey: process.env.OPENAI_COMPATIBLE_API_KEY ?? 'YOUR_API_KEY',
+    baseURL: 'https://api.deepseek.com/v1',
+    apiKey: process.env.DEEPSEEK_API_KEY ?? 'YOUR_API_KEY',
   });
 
   const connectionTimeout = 50;
@@ -35,11 +34,7 @@ async function main() {
     for await (const chunk of result.fullStream) {
       if (chunk.type === 'abort') {
         const reason = chunk.reason;
-        if (reason instanceof Error) {
-          console.log('Abort reason (error):', reason.name, reason.message);
-        } else {
-          console.log('Abort reason:', reason);
-        }
+        console.log('Abort reason:', reason);
         break;
       }
     }
