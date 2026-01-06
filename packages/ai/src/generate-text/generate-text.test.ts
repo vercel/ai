@@ -3238,6 +3238,87 @@ describe('generateText', () => {
           }
         `);
       });
+
+      describe('experimental_repairText', () => {
+        it('should repair JSON parse errors and return parsed output', async () => {
+          const result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: `{ "value": "test-value"` }], // missing closing brace
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            experimental_repairText: async ({ text }) => {
+              return text + '}'; // repair by adding closing brace
+            },
+          });
+
+          expect(result.output).toEqual({ value: 'test-value' });
+        });
+
+        it('should repair schema validation errors and return parsed output', async () => {
+          const result = await generateText({
+            model: new MockLanguageModelV3({
+              doGenerate: async () => ({
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: `{ "value": 123 }` }], // wrong type
+              }),
+            }),
+            prompt: 'prompt',
+            output: Output.object({
+              schema: z.object({ value: z.string() }),
+            }),
+            experimental_repairText: async () => {
+              return `{ "value": "repaired" }`;
+            },
+          });
+
+          expect(result.output).toEqual({ value: 'repaired' });
+        });
+
+        it('should throw original error when repair returns null', async () => {
+          await expect(
+            generateText({
+              model: new MockLanguageModelV3({
+                doGenerate: async () => ({
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: `{ broken json` }],
+                }),
+              }),
+              prompt: 'prompt',
+              output: Output.object({
+                schema: z.object({ value: z.string() }),
+              }),
+              experimental_repairText: async () => null,
+            }),
+          ).rejects.toThrow(
+            'No object generated: could not parse the response.',
+          );
+        });
+
+        it('should throw error when no repair function is provided', async () => {
+          await expect(
+            generateText({
+              model: new MockLanguageModelV3({
+                doGenerate: async () => ({
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: `{ broken json` }],
+                }),
+              }),
+              prompt: 'prompt',
+              output: Output.object({
+                schema: z.object({ value: z.string() }),
+              }),
+            }),
+          ).rejects.toThrow(
+            'No object generated: could not parse the response.',
+          );
+        });
+      });
     });
 
     describe('array output', () => {
