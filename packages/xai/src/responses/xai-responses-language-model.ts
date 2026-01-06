@@ -492,45 +492,52 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 part.type === 'view_x_video_call' ||
                 part.type === 'custom_tool_call'
               ) {
-                if (!seenToolCalls.has(part.id)) {
+                const webSearchSubTools = [
+                  'web_search',
+                  'web_search_with_snippets',
+                  'browse_page',
+                ];
+                const xSearchSubTools = [
+                  'x_user_search',
+                  'x_keyword_search',
+                  'x_semantic_search',
+                  'x_thread_fetch',
+                ];
+
+                let toolName = part.name ?? '';
+                if (
+                  webSearchSubTools.includes(part.name ?? '') ||
+                  part.type === 'web_search_call'
+                ) {
+                  toolName = webSearchToolName ?? 'web_search';
+                } else if (
+                  xSearchSubTools.includes(part.name ?? '') ||
+                  part.type === 'x_search_call'
+                ) {
+                  toolName = xSearchToolName ?? 'x_search';
+                } else if (
+                  part.name === 'code_execution' ||
+                  part.type === 'code_interpreter_call' ||
+                  part.type === 'code_execution_call'
+                ) {
+                  toolName = codeExecutionToolName ?? 'code_execution';
+                }
+
+                // custom_tool_call uses 'input' field, others use 'arguments'
+                const toolInput =
+                  part.type === 'custom_tool_call'
+                    ? (part.input ?? '')
+                    : (part.arguments ?? '');
+
+                // for custom_tool_call, input is only available on 'done' event
+                // for other types, input is available on 'added' event
+                const shouldEmit =
+                  part.type === 'custom_tool_call'
+                    ? event.type === 'response.output_item.done'
+                    : !seenToolCalls.has(part.id);
+
+                if (shouldEmit && !seenToolCalls.has(part.id)) {
                   seenToolCalls.add(part.id);
-
-                  const webSearchSubTools = [
-                    'web_search',
-                    'web_search_with_snippets',
-                    'browse_page',
-                  ];
-                  const xSearchSubTools = [
-                    'x_user_search',
-                    'x_keyword_search',
-                    'x_semantic_search',
-                    'x_thread_fetch',
-                  ];
-
-                  let toolName = part.name ?? '';
-                  if (
-                    webSearchSubTools.includes(part.name ?? '') ||
-                    part.type === 'web_search_call'
-                  ) {
-                    toolName = webSearchToolName ?? 'web_search';
-                  } else if (
-                    xSearchSubTools.includes(part.name ?? '') ||
-                    part.type === 'x_search_call'
-                  ) {
-                    toolName = xSearchToolName ?? 'x_search';
-                  } else if (
-                    part.name === 'code_execution' ||
-                    part.type === 'code_interpreter_call' ||
-                    part.type === 'code_execution_call'
-                  ) {
-                    toolName = codeExecutionToolName ?? 'code_execution';
-                  }
-
-                  // custom_tool_call uses 'input' field, others use 'arguments'
-                  const toolInput =
-                    part.type === 'custom_tool_call'
-                      ? (part.input ?? '')
-                      : (part.arguments ?? '');
 
                   controller.enqueue({
                     type: 'tool-input-start',

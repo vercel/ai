@@ -82,11 +82,9 @@ export type XaiResponsesTool =
   | { type: 'mcp' }
   | {
       type: 'function';
-      function: {
-        name: string;
-        description?: string;
-        parameters: unknown;
-      };
+      name: string;
+      description?: string;
+      parameters: unknown;
     };
 
 const annotationSchema = z.union([
@@ -314,6 +312,16 @@ export const xaiResponsesChunkSchema = z.union([
   }),
   z.object({
     type: z.literal('response.x_search_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
     item_id: z.string(),
     output_index: z.number(),
   }),

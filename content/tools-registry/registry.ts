@@ -36,11 +36,11 @@ export const tools: Tool[] = [
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { executeCode } from 'ai-sdk-tool-code-execution';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5.1-codex'),
+  model: 'openai/gpt-5.1-codex',
   prompt: 'What is 5 + 5 minus 84 cubed?',
   tools: {
     executeCode: executeCode(),
@@ -68,11 +68,11 @@ console.log(text);`,
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -100,11 +100,11 @@ console.log(text);`,
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
@@ -132,7 +132,7 @@ console.log(text);`,
       yarn: 'yarn add ctx-zip',
       bun: 'bun add ctx-zip',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from 'ctx-zip';
 
 const { tools } = await createVercelSandboxCodeMode({
@@ -152,7 +152,7 @@ const { tools } = await createVercelSandboxCodeMode({
 });
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4.1-mini'),
+  model: 'openai/gpt-5.2',
   tools,
   stopWhen: stepCountIs(20),
   system: SANDBOX_SYSTEM_PROMPT,
@@ -185,11 +185,11 @@ console.log(text);
       yarn: 'yarn add @perplexity-ai/ai-sdk',
       bun: 'bun add @perplexity-ai/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o-mini'),
+  model: 'openai/gpt-5.2',
   prompt: 'What are the latest AI developments? Use search to find current information.',
   tools: {
     search: perplexitySearch(),
@@ -217,11 +217,11 @@ console.log(text);`,
       yarn: 'yarn add @tavily/ai-sdk',
       bun: 'bun add @tavily/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch,
@@ -249,11 +249,11 @@ console.log(text);`,
       yarn: 'yarn add firecrawl-aisdk',
       bun: 'bun add firecrawl-aisdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5-mini'),
+  model: 'openai/gpt-5-mini',
   prompt: 'Scrape https://firecrawl.dev and summarize what it does',
   tools: {
     scrape: scrapeTool,
@@ -365,13 +365,13 @@ console.log(text);`,
       yarn: 'yarn add @valyu/ai-sdk',
       bun: 'bun add @valyu/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { webSearch } from '@valyu/ai-sdk';
 // Available specialised search tools: financeSearch, paperSearch,
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'Latest data center projects for AI inference?',
   tools: {
     webSearch: webSearch(),
@@ -399,11 +399,11 @@ console.log(text);`,
       yarn: 'yarn add @airweave/vercel-ai-sdk',
       bun: 'bun add @airweave/vercel-ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, stepCountIs } from 'ai';
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-sonnet-4.5'),
+  model: 'anthropic/claude-sonnet-4.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
