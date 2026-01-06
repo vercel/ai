@@ -14,6 +14,7 @@ import { Agent } from './agent';
  * @param agent - The agent to run.
  * @param uiMessages - The input UI messages.
  * @param abortSignal - The abort signal. Optional.
+ * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent.
  * @param experimental_transform - The stream transformations. Optional.
  *
@@ -29,12 +30,14 @@ export async function createAgentUIStream<
   uiMessages,
   options,
   abortSignal,
+  timeout,
   experimental_transform,
   ...uiMessageStreamOptions
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
+  timeout?: number;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>
@@ -61,6 +64,7 @@ export async function createAgentUIStream<
     prompt: modelMessages,
     options: options as CALL_OPTIONS,
     abortSignal,
+    timeout,
     experimental_transform,
   });
 
