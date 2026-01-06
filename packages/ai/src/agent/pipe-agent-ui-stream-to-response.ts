@@ -31,6 +31,7 @@ export async function pipeAgentUIStreamToResponse<
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
+  timeout?: number;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>

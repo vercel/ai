@@ -66,6 +66,13 @@ export async function* streamAgent(
         'Optional abort signal to cancel the stream early (for example, if the client disconnects).',
     },
     {
+      name: 'timeout',
+      type: 'number',
+      isRequired: false,
+      description:
+        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isRequired: false,
