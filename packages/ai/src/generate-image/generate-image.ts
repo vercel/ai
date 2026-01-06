@@ -152,8 +152,7 @@ Return null to pass the URL directly (when supported), or return downloaded cont
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
 
-  const downloadFunction =
-    download ?? createDefaultDownloadFunction();
+  const downloadFunction = download ?? createDefaultDownloadFunction();
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
