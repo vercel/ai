@@ -6,7 +6,6 @@ import {
   Shield,
   Sparkles,
   Activity,
-  Radio,
   Image,
   Wand2,
   LucideIcon,
@@ -38,12 +37,6 @@ export const navItems: NavItem[] = [
     label: 'LangGraph',
     description: 'StateGraph with streaming',
     icon: Cpu,
-  },
-  {
-    href: '/stream-events',
-    label: 'streamEvents',
-    description: 'Semantic event streaming',
-    icon: Radio,
   },
   {
     href: '/multimodal',

@@ -17,17 +17,7 @@ Demonstrates the `@ai-sdk/langchain` adapter with LangGraph:
 
 This example shows how to integrate a LangGraph agent with the AI SDK's `useChat` hook.
 
-### 3. streamEvents (`/stream-events`)
-
-Demonstrates using `streamEvents()` for granular, semantic event streaming:
-
-- **Semantic events**: Get typed events like `on_chat_model_stream`, `on_tool_start`, `on_chain_end`
-- **Debugging**: Useful for observability and understanding what's happening inside chains
-- **LCEL migration**: Ideal when migrating LangChain Expression Language apps that use callbacks
-
-See [Choosing Between stream() and streamEvents()](#choosing-between-stream-and-streamevents) below for guidance.
-
-### 4. Multimodal Vision Input (`/multimodal`)
+### 3. Multimodal Vision Input (`/multimodal`)
 
 Demonstrates sending images to the model for analysis using the `@ai-sdk/langchain` adapter:
 
@@ -37,7 +27,7 @@ Demonstrates sending images to the model for analysis using the `@ai-sdk/langcha
 
 This example showcases the multimodal input support in `convertUserContent()` which handles images and files.
 
-### 5. Image Generation Output (`/image-generation`)
+### 4. Image Generation Output (`/image-generation`)
 
 Demonstrates generating images as multimodal output using OpenAI's image generation tool:
 
@@ -63,7 +53,7 @@ const modelWithImageGeneration = model.bindTools([
 ]);
 ```
 
-### 6. LangChain Agent (`/createAgent`)
+### 5. LangChain Agent (`/createAgent`)
 
 Showcases LangChain's `createAgent` with the AI SDK adapter:
 
@@ -72,7 +62,7 @@ Showcases LangChain's `createAgent` with the AI SDK adapter:
 - Stream responses using `toUIMessageStream`
 - **Image generation**: Uses OpenAI's [Image Generation Tool](https://docs.langchain.com/oss/javascript/integrations/tools/openai#image-generation-tool) to create images
 
-### 7. Custom Data Parts (`/custom-data`)
+### 6. Custom Data Parts (`/custom-data`)
 
 Demonstrates custom streaming events from LangGraph tools:
 
@@ -81,7 +71,7 @@ Demonstrates custom streaming events from LangGraph tools:
 - Include `id` field to persist data in `message.parts` for rendering
 - Transient data (no `id`) is delivered via `onData` callback only
 
-### 8. LangGraph Transport (`/langsmith`)
+### 7. LangGraph Transport (`/langsmith`)
 
 Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
 
@@ -149,52 +139,6 @@ const stream = await graph.stream(
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(stream),
 });
-```
-
-### Streaming with streamEvents
-
-```typescript
-import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
-import { ChatOpenAI } from '@langchain/openai';
-
-const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
-const langchainMessages = await toBaseMessages(messages);
-
-// Use streamEvents for semantic event streaming
-const streamEvents = model.streamEvents(langchainMessages, {
-  version: 'v2',
-});
-
-// The adapter auto-detects streamEvents format
-return createUIMessageStreamResponse({
-  stream: toUIMessageStream(streamEvents),
-});
-```
-
-### Sending Multimodal Content (Images) to the Model
-
-```typescript
-import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
-import { ChatOpenAI } from '@langchain/openai';
-import { createUIMessageStreamResponse } from 'ai';
-
-// Vision-capable model
-const model = new ChatOpenAI({ model: 'gpt-4o' });
-
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  // toBaseMessages automatically converts image/file parts to OpenAI's
-  // image_url format for maximum compatibility with vision models
-  const langchainMessages = await toBaseMessages(messages);
-
-  // The vision model will analyze any images in the messages
-  const stream = await model.stream(langchainMessages);
-
-  return createUIMessageStreamResponse({
-    stream: toUIMessageStream(stream),
-  });
-}
 ```
 
 ### Creating a LangChain Agent
