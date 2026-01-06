@@ -1000,7 +1000,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input when state is output-error', async () => {
+    it('should validate tool input when state is output-error and there is input', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1035,6 +1035,50 @@ describe('validateUIMessages', () => {
                   "foo": "bar",
                 },
                 "providerExecuted": true,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should skip tool input validation when state is output-error and there is no input', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: undefined,
+                errorText: 'Tool input validation failed',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool input validation failed",
+                "input": undefined,
+                "providerExecuted": false,
                 "state": "output-error",
                 "toolCallId": "1",
                 "type": "tool-foo",

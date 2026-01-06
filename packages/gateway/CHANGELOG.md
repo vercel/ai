@@ -1,5 +1,273 @@
 # @ai-sdk/gateway
 
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.8
+
+### Patch Changes
+
+- 8ec1984: fix(gateway): bump `@vercel/oidc` to 3.1.0
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 3.0.6
+
+### Patch Changes
+
+- 74c0157: feat (provider/gateway): support image editing
+
+## 3.0.5
+
+### Patch Changes
+
+- 7ee2d12: chore (provider/gateway): bump specification version header to reflect v3
+
+## 3.0.4
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.3
+
+### Patch Changes
+
+- 1dad057: fix(gateway): add error handling for oidc refresh
+
+## 3.0.2
+
+### Patch Changes
+
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+
+## 3.0.1
+
+### Patch Changes
+
+- c0c8a0e: Add zai/glm-4.7 model support
+
+## 3.0.0
+
+### Major Changes
+
+- 387980f: fix: major version bump for AI SDK v6
+
+## 2.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+- 2f8b0c8: fix(gateway): bump `@vercel/oidc` to latest
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- ea9ca31: feat(provider/gateway): Add new xAI models
+- 5dd4c6a: fix(provider/gateway): Fix Gateway image model provider options not passing through
+- 5d21222: feat(provider/gateway): Add gpt-5-codex to Gateway model string autocomplete
+- 0adc679: feat(provider): shared spec v3
+- 7294355: feat (provider/gateway): update route path version and embed format
+- e8694af: feat(provider/gateway): Server-side image request splitting
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
+- 95f65c2: chore: use import \* from zod/v4
+- c823faf: feat(provider/gateway): Add new Gemini preview models to Gateway model string autocomplete
+- 2b6a848: feat (provider/gateway): add models provider option for model routing
+- 0c4822d: feat: `EmbeddingModelV3`
+- 34ee8d0: feat (provider/gateway): add support for request-scoped byok
+- 1890317: feat (provider/gateway): improve auth error messages
+- 636e614: feat(provider/gateway): Add DeepSeek V3.2 Exp to Gateway language model settings
+- 7ccb36f: feat(provider/gateway): Add LongCat Thinking model to Gateway autocomplete
+- ed329cb: feat: `Provider-V3`
+- 5f66123: chore(provider/gateway): Update gateway language model settings
+- 1cad0ab: feat: add provider version to user-agent header
+- bca7e61: feat(provider/gateway): Change default maxImagesPerCall per-provider
+- 8dac895: feat: `LanguageModelV3`
+- 3e83633: add getCredits() gateway method
+- 1d8ea2c: feat(provider/gateway): Add GPT-5 pro to Gateway model string autocomplete
+- ef62178: feat(gateway): oidc refresh with `@vercel/oidc`
+- 0a2ff8a: feat (provider/gateway): add user and tags provider options
+- ee71658: feat (provider/gateway): add zero data retention provider option
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- 9061dc0: feat: image editing
+- 7d73922: feat(provider/gateway): Add MiniMax M2 to Gateway autocomplete
+- e6bfe91: feat(provider/gateway): Update DeepSeek model string autocomplete
+- acc14d8: feat (provider/gateway): add 'only' to provider options
+- f83903d: getCredits style improvements
+- 0e29b8b: chore(provider/gateway): lazy schema loading
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- cdd0bc2: feat (provider/gateway): add intellect-3 model id
+- 96322b7: feat(provider/gateway): Add GPT OSS Safeguard 20B to Gateway model string autocomplete
+- 4616b86: chore: update zod peer depenedency version
+- 2d166e4: feat(provider/gateway): add support for image models
+- 6c766ef: feat(provider/gateway): Add DeepSeek V3.1 Terminus to Gateway autocomplete
+- 7b1b1b1: fix(provider/gateway): add "react-native" as export condition for browser behavior
+
+  This avoids the use of native Node APIs in bundles created for React Native / Expo apps
+
+- 3782645: bump `@vercel/oidc` to 3.0.5
+- f18ef7f: feat(openai): add gpt-5.2 models
+- 1425df5: feat(provider/gateway): Add Imagen 4 Ultra Generate to model string autocomplete list
+- 9f6149e: feat(provider/gateway): Add Sonnet 4.5 to Gateway model string autocomplete
+- cc5170d: feat(provider/gateway): update gateway model string autocomplete
+- a90dca6: feat(provider/gateway): Add zAI GLM 4.6 to Gateway language model settings
+- b1624f0: feat (provider/gateway): add trinity-mini model id
+- cbf52cd: feat: expose raw finish reason
+- 870297d: feat(google): gemini-3-flash
+- f0b2157: fix: revert zod import change
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
+## 2.0.0-beta.93
+
+### Patch Changes
+
+- 7294355: feat (provider/gateway): update route path version and embed format
+
+## 2.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 2.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 2.0.0-beta.90
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 2.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 2.0.0-beta.88
+
+### Patch Changes
+
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+
+## 2.0.0-beta.87
+
+### Patch Changes
+
+- ee71658: feat (provider/gateway): add zero data retention provider option
+
+## 2.0.0-beta.86
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+
+## 2.0.0-beta.85
+
+### Patch Changes
+
+- 870297d: feat(google): gemini-3-flash
+
+## 2.0.0-beta.84
+
+### Patch Changes
+
+- 366f50b: chore(provider): add deprecated textEmbeddingModel and textEmbedding aliases
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 2.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+
+## 2.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+
+## 2.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+
+## 2.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+
+## 2.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+
+## 2.0.0-beta.78
+
+### Patch Changes
+
+- f18ef7f: feat(openai): add gpt-5.2 models
+
 ## 2.0.0-beta.77
 
 ### Patch Changes
@@ -408,8 +676,7 @@
 ### Patch Changes
 
 - 95f65c2: chore: use import \* from zod/v4
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
 
 ## 2.0.0-beta.21
@@ -456,8 +723,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
 
@@ -478,8 +744,7 @@
 ### Patch Changes
 
 - 0adc679: feat(provider): shared spec v3
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
 
@@ -530,8 +795,7 @@
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
 - ed329cb: feat: `Provider-V3`
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
 
@@ -703,8 +967,7 @@
 ### Patch Changes
 
 - eefa730: refactor(provider/gateway): Make claude-sonnet-4 and similar the primary model slug for Anthropic v4 models
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.3
 
 ## 1.0.5
@@ -772,108 +1035,7 @@
 - 205077b: fix: improve Zod compatibility
 - e001ea1: fix (provider/gateway): remove unnecessary 'x-' prefix on auth method header
 - 27deb4d: feat (provider/gateway): Add providerMetadata to embeddings response
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [023ba40]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
 
@@ -946,8 +1108,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
 
 ## 1.0.0-beta.9
@@ -1002,9 +1163,7 @@
 
 - c91586a: chore (providers/gateway): update language model ids
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
 
 ## 1.0.0-beta.1
@@ -1012,23 +1171,7 @@
 ### Patch Changes
 
 - f77bc38: chore (providers/gateway): update language model ids
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
 
@@ -1037,8 +1180,7 @@
 ### Patch Changes
 
 - c145d62: feat (providers/gateway): add createGateway shorthand alias for createGatewayProvider
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
 
@@ -1046,9 +1188,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
 
@@ -1101,8 +1241,7 @@
 - 3cbcbb7: feat (providers/gateway): share common gateway error transform logic
 - 989ac75: chore (providers/gateway): update chat model ids
 - 7742ba3: feat (providers/gateway): add gateway error types with error detail
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
 

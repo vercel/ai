@@ -7,7 +7,7 @@ async function main() {
     model: new MockLanguageModelV3({
       doGenerate: async () => ({
         content: [{ type: 'text', text: `Hello, world!` }],
-        finishReason: 'stop',
+        finishReason: { raw: undefined, unified: 'stop' },
         usage: {
           inputTokens: {
             total: 10,

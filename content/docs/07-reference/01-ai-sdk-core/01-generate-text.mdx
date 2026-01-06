@@ -611,6 +611,13 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
             },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Can be used to pass provider-specific configuration such as container IDs for Anthropic code execution.',
+            },
           ],
         },
       ],
@@ -705,6 +712,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Schema<OBJECT>',
                       description: 'The schema of the object to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -724,6 +745,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       description:
                         'The schema of the array elements to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -742,6 +777,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Array<string>',
                       description: 'The available choices.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -750,7 +799,28 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'Output.json()',
               type: 'Output',
               description:
-                ' Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+                'Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -767,9 +837,15 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
                 'The reason the model finished generating the text for the step.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1046,8 +1122,14 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1477,8 +1559,14 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
       description: 'The reason the model finished generating the text.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'string | undefined',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -1826,8 +1914,14 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',

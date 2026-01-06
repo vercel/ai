@@ -1232,6 +1232,159 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_fetch tool call with error result', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://httpbin.org/status/500',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: JSON.stringify({
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                }),
+              },
+              toolCallId: 'srvtoolu_016yTvwN6L1sDdjdPUzPbZRV',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "input": {
+                    "url": "https://httpbin.org/status/500",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "url_not_accessible",
+                    "type": "web_fetch_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_016yTvwN6L1sDdjdPUzPbZRV",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic tool_search_tool_regex tool call and result parts', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                pattern: 'weather|forecast',
+                limit: 10,
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_01SACvPAnp6ucMJsstB5qb3f',
+              toolName: 'tool_search_tool_regex',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'tool_reference',
+                    toolName: 'get_weather',
+                  },
+                ],
+              },
+              toolCallId: 'srvtoolu_01SACvPAnp6ucMJsstB5qb3f',
+              toolName: 'tool_search_tool_regex',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+                  "input": {
+                    "limit": 10,
+                    "pattern": "weather|forecast",
+                  },
+                  "name": "tool_search_tool_regex",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "tool_references": [
+                      {
+                        "tool_name": "get_weather",
+                        "type": "tool_reference",
+                      },
+                    ],
+                    "type": "tool_search_tool_search_result",
+                  },
+                  "tool_use_id": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+                  "type": "tool_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV3Warning[] = [];
@@ -1272,40 +1425,41 @@ describe('assistant messages', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-      {
-        "betas": Set {},
-        "prompt": {
-          "messages": [
-            {
-              "content": [
-                {
-                  "cache_control": undefined,
-                  "id": "srvtoolu_01XyZ1234567890",
-                  "input": {
-                    "code": "print(\"Hello, world!\")",
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01XyZ1234567890",
+                    "input": {
+                      "code": "print("Hello, world!")",
+                    },
+                    "name": "code_execution",
+                    "type": "server_tool_use",
                   },
-                  "name": "code_execution",
-                  "type": "server_tool_use",
-                },
-                {
-                  "cache_control": undefined,
-                  "content": {
-                    "return_code": 0,
-                    "stderr": "",
-                    "stdout": "Hello, world!\",
-                    "type": "code_execution_result",
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "Hello, world!",
+                      "type": "code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_01XyZ1234567890",
+                    "type": "code_execution_tool_result",
                   },
-                  "tool_use_id": "srvtoolu_01XyZ1234567890",
-                  "type": "code_execution_tool_result",
-                },
-              ],
-              "role": "assistant",
-            },
-          ],
-          "system": undefined,
-        },
-      }
-    `);
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
   });

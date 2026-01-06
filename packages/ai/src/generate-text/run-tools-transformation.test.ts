@@ -37,7 +37,7 @@ describe('runToolsTransformation', () => {
         { type: 'text-end', id: '1' },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -75,6 +75,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -109,7 +110,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -160,6 +161,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -194,7 +196,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -245,6 +247,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -279,7 +282,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -334,6 +337,7 @@ describe('runToolsTransformation', () => {
         {
           "finishReason": "stop",
           "providerMetadata": undefined,
+          "rawFinishReason": "stop",
           "type": "finish",
           "usage": {
             "cachedInputTokens": undefined,
@@ -368,7 +372,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -428,6 +432,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -472,7 +477,7 @@ describe('runToolsTransformation', () => {
         },
         {
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
         },
       ]);
@@ -503,6 +508,314 @@ describe('runToolsTransformation', () => {
     expect(toolExecuted).toBe(false);
   });
 
+  describe('provider-emitted tool-approval-request (MCP flow)', () => {
+    it('should forward provider-emitted tool-approval-request with the correct tool call', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: `{ "query": "test" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCallId: 'mcp-call-1',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          mcp_tool: {
+            type: 'provider',
+            id: 'mcp.mcp_tool',
+            inputSchema: z.object({ query: z.string() }),
+            args: {},
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "query": "test",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-1",
+            "toolName": "mcp_tool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "mcp-approval-1",
+            "toolCall": {
+              "input": {
+                "query": "test",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-1",
+              "toolName": "mcp_tool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should emit error when tool call is not found for provider approval request', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          // No tool-call part before the approval request
+          {
+            type: 'tool-approval-request',
+            approvalId: 'mcp-approval-1',
+            toolCallId: 'non-existent-call',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: undefined,
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "error": [AI_ToolCallNotFoundForApprovalError: Tool call "non-existent-call" not found for approval request "mcp-approval-1".],
+            "type": "error",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple provider-executed tool calls with approval requests', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_search',
+            input: `{ "query": "first" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-2',
+            toolName: 'mcp_execute',
+            input: `{ "command": "ls" }`,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCallId: 'mcp-call-1',
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-2',
+            toolCallId: 'mcp-call-2',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          mcp_search: {
+            type: 'provider',
+            id: 'mcp.mcp_search',
+            inputSchema: z.object({ query: z.string() }),
+            args: {},
+          },
+          mcp_execute: {
+            type: 'provider',
+            id: 'mcp.mcp_execute',
+            inputSchema: z.object({ command: z.string() }),
+            args: {},
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "query": "first",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-1",
+            "toolName": "mcp_search",
+            "type": "tool-call",
+          },
+          {
+            "input": {
+              "command": "ls",
+            },
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "mcp-call-2",
+            "toolName": "mcp_execute",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "approval-1",
+            "toolCall": {
+              "input": {
+                "query": "first",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-1",
+              "toolName": "mcp_search",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "approval-2",
+            "toolCall": {
+              "input": {
+                "command": "ls",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "mcp-call-2",
+              "toolName": "mcp_execute",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": undefined,
+            "rawFinishReason": undefined,
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe('Tool.onInputAvailable', () => {
     it('should call onInputAvailable before the tool call is executed', async () => {
       const output: unknown[] = [];
@@ -516,7 +829,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);
@@ -571,6 +884,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -606,7 +920,7 @@ describe('runToolsTransformation', () => {
           },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]);
@@ -677,6 +991,7 @@ describe('runToolsTransformation', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "type": "finish",
             "usage": {
               "cachedInputTokens": undefined,
@@ -698,6 +1013,131 @@ describe('runToolsTransformation', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('tool execution error handling', () => {
+    it('should handle error thrown in async tool execution', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const toolError = new Error('Tool execution failed!');
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          failingTool: {
+            title: 'Failing Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(10);
+              throw toolError;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // tool-call should come first
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'failingTool',
+      });
+
+      // tool-error should be included
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          error: toolError,
+        }),
+      );
+
+      // finish should come last (stream closes properly)
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+        finishReason: 'stop',
+      });
+    });
+
+    it('should handle error thrown in sync tool execution', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const toolError = new Error('Sync tool failed!');
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          failingTool: {
+            title: 'Failing Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: ({ value }) => {
+              throw toolError;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // tool-error should be included
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          error: toolError,
+        }),
+      );
+
+      // stream should close properly
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
     });
   });
 });

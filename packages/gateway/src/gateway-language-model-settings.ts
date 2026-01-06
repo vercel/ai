@@ -47,6 +47,7 @@ export type GatewayModelId =
   | 'google/gemini-2.5-pro'
   | 'google/gemini-3-pro-preview'
   | 'google/gemini-3-pro-image'
+  | 'google/gemini-3-flash'
   | 'inception/mercury-coder-small'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
@@ -99,6 +100,9 @@ export type GatewayModelId =
   | 'openai/gpt-5.1-codex-mini'
   | 'openai/gpt-5.1-instant'
   | 'openai/gpt-5.1-thinking'
+  | 'openai/gpt-5.2'
+  | 'openai/gpt-5.2-chat-latest'
+  | 'openai/gpt-5.2-pro'
   | 'openai/gpt-oss-120b'
   | 'openai/gpt-oss-20b'
   | 'openai/gpt-oss-safeguard-20b'
@@ -132,4 +136,5 @@ export type GatewayModelId =
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
   | 'zai/glm-4.6'
+  | 'zai/glm-4.7'
   | (string & {});
