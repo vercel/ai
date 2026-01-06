@@ -4,6 +4,7 @@ import {
   dynamicTool,
   FlexibleSchema,
   jsonSchema,
+  safeParseJSON,
   safeValidateTypes,
   Tool,
   tool,
@@ -587,30 +588,19 @@ class DefaultMCPClient implements MCPClient {
     if ('content' in result && Array.isArray(result.content)) {
       const textContent = result.content.find(c => c.type === 'text');
       if (textContent && 'text' in textContent) {
-        try {
-          const parsed = JSON.parse(textContent.text);
-          const validationResult = await safeValidateTypes({
-            value: parsed,
-            schema: asSchema(outputSchema),
-          });
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
 
-          if (!validationResult.success) {
-            throw new MCPClientError({
-              message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
-              cause: validationResult.error,
-            });
-          }
-
-          return validationResult.value;
-        } catch (error) {
-          if (error instanceof MCPClientError) {
-            throw error;
-          }
+        if (!parseResult.success) {
           throw new MCPClientError({
-            message: `Tool "${toolName}" returned non-JSON content but outputSchema was specified`,
-            cause: error,
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
           });
         }
+
+        return parseResult.value;
       }
     }
 
