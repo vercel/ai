@@ -152,8 +152,7 @@ function processStreamEventsEvent(
        * Handle model start - capture message metadata if available
        * run_id is at event level in v2, but check data for backwards compatibility
        */
-      const runId =
-        event.run_id || (event.data.run_id as string | undefined);
+      const runId = event.run_id || (event.data.run_id as string | undefined);
       if (runId) {
         state.messageId = runId;
       }
@@ -182,7 +181,10 @@ function processStreamEventsEvent(
           if (!state.reasoningStarted) {
             // Track the ID used for reasoning-start to ensure reasoning-end uses the same ID
             state.reasoningMessageId = state.messageId;
-            controller.enqueue({ type: 'reasoning-start', id: state.messageId });
+            controller.enqueue({
+              type: 'reasoning-start',
+              id: state.messageId,
+            });
             state.reasoningStarted = true;
             state.started = true;
           }
@@ -247,8 +249,7 @@ function processStreamEventsEvent(
        * Handle tool call start
        * run_id and name are at event level in v2, check data for backwards compatibility
        */
-      const runId =
-        event.run_id || (event.data.run_id as string | undefined);
+      const runId = event.run_id || (event.data.run_id as string | undefined);
       const name = event.name || (event.data.name as string | undefined);
 
       if (runId && name) {
@@ -267,8 +268,7 @@ function processStreamEventsEvent(
        * Handle tool call end
        * run_id is at event level in v2, check data for backwards compatibility
        */
-      const runId =
-        event.run_id || (event.data.run_id as string | undefined);
+      const runId = event.run_id || (event.data.run_id as string | undefined);
       const output = event.data.output;
 
       if (runId) {
