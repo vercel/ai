@@ -489,6 +489,7 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
+  repairText?: RepairTextFunction,
 ): TransformStream<
   TextStreamPart<TOOLS>,
   EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -565,8 +566,22 @@ function createOutputTransformStream<
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
+      // Apply repair function if provided before parsing the partial JSON
+      let textToParse = text;
+      if (repairText != null) {
+        try {
+          const repaired = await repairText({
+            text,
+            error: new JSONParseError({ text, cause: 'partial-output-repair' }),
+          });
+          if (repaired !== null) {
+            textToParse = repaired;
+          }
+        } catch {}
+      }
+
       // only publish if partial json can be parsed:
-      const result = await output.parsePartialOutput({ text });
+      const result = await output.parsePartialOutput({ text: textToParse });
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
@@ -1078,7 +1093,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output ?? text()))
+      .pipeThrough(createOutputTransformStream(output ?? text(), repairText))
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
