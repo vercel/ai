@@ -119,6 +119,13 @@ console.log(images);
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
     },
+    {
+      name: 'experimental_download',
+      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
+      isOptional: true,
+      description:
+        'Custom download function to control how URLs are fetched when they appear in image results. By default, files are downloaded automatically. Experimental feature. Return null to pass the URL directly (when supported), or return downloaded content with data and media type.',
+    },
   ]}
 />
 
