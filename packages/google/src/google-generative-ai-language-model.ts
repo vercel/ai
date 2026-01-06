@@ -445,7 +445,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               }
             }
 
-            // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
+            // Process tool call's parts before determining finishReason to ensure hasClientToolCalls is properly set
             if (content != null) {
               // Process all parts in a single loop to preserve original order
               const parts = content.parts ?? [];
