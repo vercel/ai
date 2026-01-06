@@ -1013,8 +1013,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           onAbort?.({ steps: recordedSteps });
           controller.enqueue({
             type: 'abort',
+            // Use getErrorMessage to serialize reason (unknown) to string for safe JSON transmission
             ...(abortSignal?.reason !== undefined
-              ? { reason: abortSignal.reason }
+              ? { reason: getErrorMessage(abortSignal.reason) }
               : {}),
           });
           controller.close();
