@@ -94,12 +94,6 @@ export function convertAssistantContent(content: AssistantContent): AIMessage {
   });
 }
 
-
-/**
- * Converts UserContent to LangChain HumanMessage
- * @param content - The UserContent to convert.
- * @returns The converted HumanMessage.
- */
 /**
  * Helper to generate a default filename from mediaType
  */
@@ -128,6 +122,11 @@ type HumanMessageContentBlock =
   | OpenAIImageBlock
   | ContentBlock;
 
+/**
+ * Converts UserContent to LangChain HumanMessage
+ * @param content - The UserContent to convert.
+ * @returns The converted HumanMessage.
+ */
 export function convertUserContent(content: UserContent): HumanMessage {
   if (typeof content === 'string') {
     return new HumanMessage({ content });
@@ -145,29 +144,39 @@ export function convertUserContent(content: UserContent): HumanMessage {
         mediaType?: string;
       };
 
-      // Use OpenAI's native image_url format which is passed through directly
-      // Handle URL objects
+      /**
+       * Use OpenAI's native image_url format which is passed through directly
+       * handle URL objects
+       */
       if (imagePart.image instanceof URL) {
         contentBlocks.push({
           type: 'image_url',
           image_url: { url: imagePart.image.toString() },
         });
       }
-      // Handle string (could be URL or base64)
+      /**
+       * Handle string (could be URL or base64)
+       */
       else if (typeof imagePart.image === 'string') {
-        // Check if it's a URL (including data: URLs)
+        /**
+         * Check if it's a URL (including data: URLs)
+         */
         if (
           imagePart.image.startsWith('http://') ||
           imagePart.image.startsWith('https://') ||
           imagePart.image.startsWith('data:')
         ) {
-          // OpenAI accepts both http URLs and data URLs directly
+          /**
+           * OpenAI accepts both http URLs and data URLs directly
+           */
           contentBlocks.push({
             type: 'image_url',
             image_url: { url: imagePart.image },
           });
         } else {
-          // Assume base64 encoded data - wrap in data URL
+          /**
+           * Assume base64 encoded data - wrap in data URL
+           */
           const mimeType = imagePart.mediaType || 'image/png';
           contentBlocks.push({
             type: 'image_url',
@@ -175,7 +184,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
           });
         }
       }
-      // Handle Uint8Array or ArrayBuffer (binary data)
+      /**
+       * Handle Uint8Array or ArrayBuffer (binary data)
+       */
       else if (
         imagePart.image instanceof Uint8Array ||
         imagePart.image instanceof ArrayBuffer
@@ -184,7 +195,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
           imagePart.image instanceof ArrayBuffer
             ? new Uint8Array(imagePart.image)
             : imagePart.image;
-        // Convert to base64 data URL
+        /**
+         * Convert to base64 data URL
+         */
         const base64 = btoa(String.fromCharCode(...bytes));
         const mimeType = imagePart.mediaType || 'image/png';
         contentBlocks.push({
@@ -200,18 +213,24 @@ export function convertUserContent(content: UserContent): HumanMessage {
         filename?: string;
       };
 
-      // Check if this is an image file - if so, use OpenAI's image_url format
+      /**
+       * Check if this is an image file - if so, use OpenAI's image_url format
+       */
       const isImage = filePart.mediaType?.startsWith('image/');
 
       if (isImage) {
-        // Handle image files using OpenAI's native image_url format
+        /**
+         * Handle image files using OpenAI's native image_url format
+         */
         if (filePart.data instanceof URL) {
           contentBlocks.push({
             type: 'image_url',
             image_url: { url: filePart.data.toString() },
           });
         } else if (typeof filePart.data === 'string') {
-          // URLs (including data URLs) can be passed directly
+          /**
+           * URLs (including data URLs) can be passed directly
+           */
           if (
             filePart.data.startsWith('http://') ||
             filePart.data.startsWith('https://') ||
@@ -222,7 +241,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
               image_url: { url: filePart.data },
             });
           } else {
-            // Assume base64 - wrap in data URL
+            /**
+             * Assume base64 - wrap in data URL
+             */
             contentBlocks.push({
               type: 'image_url',
               image_url: {
@@ -312,7 +333,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
     }
   }
 
-  // If we only have text parts, join them as a simple string for efficiency
+  /**
+   * If we only have text parts, join them as a simple string for efficiency
+   */
   if (contentBlocks.every(block => block.type === 'text')) {
     return new HumanMessage({
       content: contentBlocks
@@ -565,9 +588,13 @@ export function isToolMessageType(
    */
   if (isPlainMessageObject(msg)) {
     const obj = msg as Record<string, unknown>;
-    // Direct type === 'tool' (RemoteGraph format)
+    /**
+     * Direct type === 'tool' (RemoteGraph format)
+     */
     if ('type' in obj && obj.type === 'tool') return true;
-    // Serialized LangChain message format
+    /**
+     * Serialized LangChain message format
+     */
     if (
       obj.type === 'constructor' &&
       Array.isArray(obj.id) &&

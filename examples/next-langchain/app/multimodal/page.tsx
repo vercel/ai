@@ -76,7 +76,9 @@ export default function MultimodalPage() {
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
-  // Auto-scroll to bottom when new messages arrive
+  /**
+   * Auto-scroll to bottom when new messages arrive
+   */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -107,7 +109,9 @@ export default function MultimodalPage() {
     const messageContent = input.trim() || 'What is in this image?';
 
     if (selectedImage && imageFile) {
-      // Send message with image attachment
+      /**
+       * Send message with image attachment
+       */
       await sendMessage({
         text: messageContent,
         files: [
@@ -120,7 +124,9 @@ export default function MultimodalPage() {
         ],
       });
     } else {
-      // Send text-only message
+      /**
+       * Send text-only message
+       */
       await sendMessage({ text: messageContent });
     }
 
@@ -140,9 +146,14 @@ export default function MultimodalPage() {
    * Converts the local image to base64 and sends it to the model
    */
   const handleImageExample = async (example: (typeof IMAGE_EXAMPLES)[0]) => {
-    // Convert local image to base64 data URL
+    /**
+     * Convert local image to base64 data URL
+     */
     const dataUrl = await imageToBase64(example.imagePath);
 
+    /**
+     * Send message with image attachment
+     */
     await sendMessage({
       text: example.prompt,
       files: [

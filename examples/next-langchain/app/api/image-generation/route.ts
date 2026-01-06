@@ -52,19 +52,27 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
 
-    // Convert AI SDK UIMessages to LangChain messages
+    /**
+     * Convert AI SDK UIMessages to LangChain messages
+     */
     const langchainMessages = await toBaseMessages(messages);
 
-    // Add system message at the beginning
+    /**
+     * Add system message at the beginning
+     */
     const messagesWithSystem = [
       { role: 'system' as const, content: SYSTEM_PROMPT },
       ...langchainMessages,
     ];
 
-    // Stream from the model with image generation capability
+    /**
+     * Stream from the model with image generation capability
+     */
     const stream = await modelWithImageGeneration.stream(messagesWithSystem);
 
-    // Convert the LangChain stream to UI message stream
+    /**
+     * Convert the LangChain stream to UI message stream
+     */
     return createUIMessageStreamResponse({
       stream: toUIMessageStream(stream as unknown as ReadableStream),
     });
