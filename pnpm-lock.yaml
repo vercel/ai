@@ -141,7 +141,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
@@ -238,7 +238,7 @@ importers:
         specifier: 2.0.13
         version: link:../../packages/angular
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@angular/common':
         specifier: ^20.3.2
@@ -311,7 +311,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       ai:
         specifier: 6.0.13
@@ -339,7 +339,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       ai:
         specifier: 6.0.13
@@ -364,7 +364,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -392,7 +392,7 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.24.0
@@ -429,7 +429,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -578,7 +578,7 @@ importers:
   examples/next-agent:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -813,7 +813,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/azure
       '@ai-sdk/cohere':
         specifier: 3.0.4
@@ -840,7 +840,7 @@ importers:
         specifier: 3.0.5
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 3.0.4
@@ -955,7 +955,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -1010,7 +1010,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -1062,7 +1062,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -1126,7 +1126,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -1196,7 +1196,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 3.0.13
@@ -1254,7 +1254,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       ai:
         specifier: 6.0.13
@@ -1279,7 +1279,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 3.0.13
@@ -1334,7 +1334,7 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
         specifier: 4.0.4
