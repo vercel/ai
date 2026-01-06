@@ -4524,7 +4524,7 @@ describe('generateText', () => {
                   },
                   {
                     "providerOptions": undefined,
-                    "text": "**Game Over!**
+                    "text": "**Game Over!** 
 
             Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
             - **Round 1**: Both rolled 6 (Draw)

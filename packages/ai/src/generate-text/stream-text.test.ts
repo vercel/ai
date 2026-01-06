@@ -10022,7 +10022,9 @@ describe('streamText', () => {
             receivedAbortSignal = abortSignal;
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: { unified: 'stop', raw: 'stop' },
@@ -10052,7 +10054,9 @@ describe('streamText', () => {
             receivedAbortSignal = abortSignal;
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: { unified: 'stop', raw: 'stop' },
@@ -10084,7 +10088,9 @@ describe('streamText', () => {
             receivedAbortSignal = abortSignal;
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
                   finishReason: { unified: 'stop', raw: 'stop' },
