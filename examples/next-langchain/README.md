@@ -17,7 +17,17 @@ Demonstrates the `@ai-sdk/langchain` adapter with LangGraph:
 
 This example shows how to integrate a LangGraph agent with the AI SDK's `useChat` hook.
 
-### 3. LangChain Agent (`/createAgent`)
+### 3. streamEvents (`/stream-events`)
+
+Demonstrates using `streamEvents()` for granular, semantic event streaming:
+
+- **Semantic events**: Get typed events like `on_chat_model_stream`, `on_tool_start`, `on_chain_end`
+- **Debugging**: Useful for observability and understanding what's happening inside chains
+- **LCEL migration**: Ideal when migrating LangChain Expression Language apps that use callbacks
+
+See [Choosing Between stream() and streamEvents()](#choosing-between-stream-and-streamevents) below for guidance.
+
+### 4. LangChain Agent (`/createAgent`)
 
 Showcases LangChain's `createAgent` with the AI SDK adapter:
 
@@ -25,7 +35,7 @@ Showcases LangChain's `createAgent` with the AI SDK adapter:
 - Define tools with `@langchain/core/tools`
 - Stream responses using `toUIMessageStream`
 
-### 4. Custom Data Parts (`/custom-data`)
+### 5. Custom Data Parts (`/custom-data`)
 
 Demonstrates custom streaming events from LangGraph tools:
 
@@ -34,7 +44,7 @@ Demonstrates custom streaming events from LangGraph tools:
 - Include `id` field to persist data in `message.parts` for rendering
 - Transient data (no `id`) is delivered via `onData` callback only
 
-### 5. LangGraph Transport (`/langsmith`)
+### 6. LangGraph Transport (`/langsmith`)
 
 Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
 
@@ -101,6 +111,26 @@ const stream = await graph.stream(
 // Return UI stream response
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(stream),
+});
+```
+
+### Streaming with streamEvents
+
+```typescript
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { ChatOpenAI } from '@langchain/openai';
+
+const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
+const langchainMessages = await toBaseMessages(messages);
+
+// Use streamEvents for semantic event streaming
+const streamEvents = model.streamEvents(langchainMessages, {
+  version: 'v2',
+});
+
+// The adapter auto-detects streamEvents format
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream(streamEvents),
 });
 ```
 
@@ -206,6 +236,56 @@ function Chat() {
   // ... render chat UI
 }
 ```
+
+## Choosing Between stream() and streamEvents()
+
+The `@ai-sdk/langchain` adapter supports both `graph.stream()` and `streamEvents()`. Here's when to use each:
+
+### When to use `graph.stream()` with `streamMode`
+
+| Use Case | Why |
+| -------- | --- |
+| **LangGraph workflows** | Optimized for state-based graphs with `values`, `messages`, `updates` modes |
+| **Tool execution tracking** | Clean tool call lifecycle with `messages` mode |
+| **Custom data streaming** | Use `custom` mode with `config.writer()` for typed events |
+| **State snapshots** | Get full state after each step with `values` mode |
+| **Production apps** | Simpler integration with AI SDK's `toUIMessageStream` |
+
+```typescript
+const stream = await graph.stream(
+  { messages },
+  { streamMode: ['values', 'messages'] }
+);
+```
+
+### When to use `streamEvents()`
+
+| Use Case | Why |
+| -------- | --- |
+| **Debugging/observability** | Get detailed events for every component in the chain |
+| **Filtering by event type** | Filter for specific events like `on_chat_model_stream`, `on_tool_start` |
+| **Run metadata access** | Access run IDs, names, tags for each component |
+| **LCEL migration** | When migrating apps that rely on callback-based streaming |
+| **Simple model streaming** | Direct model streaming without LangGraph complexity |
+
+```typescript
+const streamEvents = model.streamEvents(messages, {
+  version: 'v2',
+});
+```
+
+### Event Types in streamEvents()
+
+| Event | Description |
+| ----- | ----------- |
+| `on_chat_model_start` | Model invocation started |
+| `on_chat_model_stream` | Token chunk received |
+| `on_chat_model_end` | Model completed with full message |
+| `on_tool_start` | Tool execution started |
+| `on_tool_end` | Tool execution completed |
+| `on_chain_start/end` | Chain/graph lifecycle events |
+
+For most LangGraph applications, `graph.stream()` with appropriate `streamMode` options is recommended. Use `streamEvents()` when you need the additional granularity for debugging or when working with pure LangChain (non-LangGraph) applications.
 
 ## Learn More
 
