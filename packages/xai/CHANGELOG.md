@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.7
+
+### Patch Changes
+
+- 23179aa: fix (provider/xai): use correct format for function tools
+
 ## 3.0.6
 
 ### Patch Changes
