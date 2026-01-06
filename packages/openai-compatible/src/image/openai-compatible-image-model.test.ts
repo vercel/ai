@@ -508,22 +508,21 @@ describe('OpenAICompatibleImageModel', () => {
 
     it('should return URL images from edit response when provided', async () => {
       // Temporarily override the edit server response for this test
-      const originalResponse =
-        editServer.urls['https://api.example.com/dall-e-3/images/edits']
-          .response;
-
-      editServer.urls[
+      const originalResponse = editServer.urls[
         'https://api.example.com/dall-e-3/images/edits'
-      ].response = {
-        type: 'json-value',
-        body: {
-          data: [
-            {
-              url: 'https://example.com/edited-image.png',
-            },
-          ],
-        },
-      };
+      ].response;
+      
+      editServer.urls['https://api.example.com/dall-e-3/images/edits'].response =
+        {
+          type: 'json-value',
+          body: {
+            data: [
+              {
+                url: 'https://example.com/edited-image.png',
+              },
+            ],
+          },
+        };
 
       const model = createBasicModel();
       const imageData = new Uint8Array([137, 80, 78, 71]);
@@ -546,9 +545,8 @@ describe('OpenAICompatibleImageModel', () => {
       ]);
 
       // Restore original response
-      editServer.urls[
-        'https://api.example.com/dall-e-3/images/edits'
-      ].response = originalResponse;
+      editServer.urls['https://api.example.com/dall-e-3/images/edits'].response =
+        originalResponse;
     });
   });
 });

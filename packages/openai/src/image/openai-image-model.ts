@@ -116,7 +116,9 @@ export class OpenAIImageModel implements ImageModelV3 {
       });
 
       return {
-        images: response.data.map(item => item.url ?? item.b64_json ?? ''),
+        images: response.data.map(
+          item => item.url ?? item.b64_json ?? '',
+        ),
         warnings,
         usage:
           response.usage != null
@@ -173,7 +175,9 @@ export class OpenAIImageModel implements ImageModelV3 {
     });
 
     return {
-      images: response.data.map(item => item.url ?? item.b64_json ?? ''),
+      images: response.data.map(
+        item => item.url ?? item.b64_json ?? '',
+      ),
       warnings,
       usage:
         response.usage != null
