@@ -136,12 +136,15 @@ describe('generateText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(0));
     logWarningsSpy = vitest
       .spyOn(logWarningsModule, 'logWarnings')
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     logWarningsSpy.mockRestore();
   });
 
@@ -315,7 +318,6 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
         },
       });
 
@@ -328,7 +330,6 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
         },
       });
 
@@ -341,7 +342,6 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
         },
       });
 
@@ -2580,7 +2580,6 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          currentDate: () => new Date(0),
         },
       });
 
@@ -2683,7 +2682,6 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          currentDate: () => new Date(0),
         },
       });
 
@@ -2745,7 +2743,6 @@ describe('generateText', () => {
         },
         _internal: {
           generateId: () => 'test-id',
-          currentDate: () => new Date(0),
         },
       });
 
@@ -2900,7 +2897,6 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
-          currentDate: () => new Date(0),
         },
       });
 
@@ -5205,7 +5201,6 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
-            currentDate: () => new Date(0),
           },
           tools: {
             cityAttractions: tool({
@@ -5512,7 +5507,6 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
         });
       });
@@ -5629,7 +5623,6 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
         });
       });
@@ -5819,7 +5812,6 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -5985,7 +5977,6 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -6144,7 +6135,6 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -6352,7 +6342,6 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
           });
         });
@@ -6485,7 +6474,6 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
             messages: [
               {
@@ -6645,7 +6633,6 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
             messages: [
               {

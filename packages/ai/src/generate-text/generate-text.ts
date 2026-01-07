@@ -187,10 +187,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
   ...settings
@@ -302,7 +299,6 @@ A function that attempts to repair a tool call that failed to parse.
      */
     _internal?: {
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
@@ -573,7 +569,7 @@ A function that attempts to repair a tool call that failed to parse.
                 // Fill in default values:
                 const responseData = {
                   id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? currentDate(),
+                  timestamp: result.response?.timestamp ?? new Date(),
                   modelId: result.response?.modelId ?? stepModel.modelId,
                   headers: result.response?.headers,
                   body: result.response?.body,
