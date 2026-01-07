@@ -1,3 +1,28 @@
+/**
+Timeout configuration for API calls. Can be specified as:
+- A number representing milliseconds
+- An object with `totalMs` property for the total timeout in milliseconds
+ */
+export type TimeoutConfiguration = number | { totalMs?: number };
+
+/**
+Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
+
+@param timeout - The timeout configuration.
+@returns The total timeout in milliseconds, or undefined if no timeout is configured.
+ */
+export function getTotalTimeoutMs(
+  timeout: TimeoutConfiguration | undefined,
+): number | undefined {
+  if (timeout == null) {
+    return undefined;
+  }
+  if (typeof timeout === 'number') {
+    return timeout;
+  }
+  return timeout.totalMs;
+}
+
 export type CallSettings = {
   /**
 Maximum number of tokens to generate.
@@ -75,8 +100,10 @@ Abort signal.
   /**
 Timeout in milliseconds. The call will be aborted if it takes longer
 than the specified timeout. Can be used alongside abortSignal.
+
+Can be specified as a number (milliseconds) or as an object with `totalMs`.
    */
-  timeout?: number;
+  timeout?: TimeoutConfiguration;
 
   /**
 Additional HTTP headers to be sent with the request.

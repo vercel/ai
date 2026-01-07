@@ -2362,6 +2362,70 @@ describe('generateText', () => {
         },
       );
     });
+
+    it('should support timeout object with totalMs', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 5000 },
+      });
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should merge timeout object with abort signal', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 5000 },
+        abortSignal: abortController.signal,
+      });
+
+      // The merged signal should be different from the original
+      expect(receivedAbortSignal).toBeDefined();
+      expect(receivedAbortSignal).not.toBe(abortController.signal);
+    });
+
+    it('should pass undefined when timeout object has no totalMs', async () => {
+      let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: {},
+      });
+
+      expect(receivedAbortSignal).toBeUndefined();
+    });
   });
 
   describe('options.activeTools', () => {
@@ -4524,7 +4588,7 @@ describe('generateText', () => {
                   },
                   {
                     "providerOptions": undefined,
-                    "text": "**Game Over!** 
+                    "text": "**Game Over!**
 
             Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
             - **Round 1**: Both rolled 6 (Draw)

@@ -16,7 +16,7 @@ import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -308,9 +308,10 @@ A function that attempts to repair a tool call that failed to parse.
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
 
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const mergedAbortSignal = mergeAbortSignals(
     abortSignal,
-    timeout != null ? AbortSignal.timeout(timeout) : undefined,
+    totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
   );
 
   const { maxRetries, retry } = prepareRetries({
