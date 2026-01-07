@@ -1,6 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
+import { TimeoutConfiguration } from '../prompt/call-settings';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
@@ -37,7 +38,7 @@ export async function createAgentUIStream<
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
-  timeout?: number;
+  timeout?: TimeoutConfiguration;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>
