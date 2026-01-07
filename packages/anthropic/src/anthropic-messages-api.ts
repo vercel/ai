@@ -492,50 +492,6 @@ export type AnthropicResponseContextManagement = {
   applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
-export const textCitationSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('char_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_char_index: z.number(),
-    end_char_index: z.number(),
-  }),
-  z.object({
-    type: z.literal('page_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    start_page_number: z.number(),
-    end_page_number: z.number(),
-  }),
-  z.object({
-    type: z.literal('content_block_location'),
-    cited_text: z.string(),
-    document_index: z.number(),
-    document_title: z.string().nullable(),
-    end_block_index: z.number(),
-    file_id: z.string().nullable(),
-    start_block_index: z.number(),
-  }),
-  z.object({
-    type: z.literal('web_search_result_location'),
-    cited_text: z.string(),
-    url: z.string(),
-    title: z.string(),
-    encrypted_index: z.string(),
-  }),
-  z.object({
-    type: z.literal('search_result_location'),
-    cited_text: z.string(),
-    end_block_index: z.number(),
-    search_result_index: z.number(),
-    source: z.string(),
-    start_block_index: z.number(),
-    title: z.string().nullable(),
-  }),
-]);
-
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesResponseSchema = lazySchema(() =>
@@ -549,7 +505,53 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('text'),
             text: z.string(),
-            citations: z.array(textCitationSchema).optional(),
+            citations: z
+              .array(
+                z.discriminatedUnion('type', [
+                  z.object({
+                    type: z.literal('char_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_char_index: z.number(),
+                    end_char_index: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('page_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_page_number: z.number(),
+                    end_page_number: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('content_block_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    end_block_index: z.number(),
+                    file_id: z.string().nullable(),
+                    start_block_index: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('web_search_result_location'),
+                    cited_text: z.string(),
+                    url: z.string(),
+                    title: z.string(),
+                    encrypted_index: z.string(),
+                  }),
+                  z.object({
+                    type: z.literal('search_result_location'),
+                    cited_text: z.string(),
+                    end_block_index: z.number(),
+                    search_result_index: z.number(),
+                    source: z.string(),
+                    start_block_index: z.number(),
+                    title: z.string().nullable(),
+                  }),
+                ]),
+              )
+              .optional(),
           }),
           z.object({
             type: z.literal('thinking'),
@@ -1087,7 +1089,49 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('citations_delta'),
-            citation: textCitationSchema,
+            citation: z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('char_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_char_index: z.number(),
+                end_char_index: z.number(),
+              }),
+              z.object({
+                type: z.literal('page_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_page_number: z.number(),
+                end_page_number: z.number(),
+              }),
+              z.object({
+                type: z.literal('content_block_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                end_block_index: z.number(),
+                file_id: z.string().nullable(),
+                start_block_index: z.number(),
+              }),
+              z.object({
+                type: z.literal('web_search_result_location'),
+                cited_text: z.string(),
+                url: z.string(),
+                title: z.string(),
+                encrypted_index: z.string(),
+              }),
+              z.object({
+                type: z.literal('search_result_location'),
+                cited_text: z.string(),
+                end_block_index: z.number(),
+                search_result_index: z.number(),
+                source: z.string(),
+                start_block_index: z.number(),
+                title: z.string().nullable(),
+              }),
+            ]),
           }),
         ]),
       }),
