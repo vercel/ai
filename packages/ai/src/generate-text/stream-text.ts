@@ -1013,7 +1013,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           onAbort?.({ steps: recordedSteps });
           controller.enqueue({
             type: 'abort',
-            // Use getErrorMessage to serialize reason (unknown) to string for safe JSON transmission
+            // The `reason` is usually of type DOMException, but it can also be of any type,
+            // so we use getErrorMessage for serialization because it is already designed to accept values of the unknown type.
+            // See: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/reason
             ...(abortSignal?.reason !== undefined
               ? { reason: getErrorMessage(abortSignal.reason) }
               : {}),
