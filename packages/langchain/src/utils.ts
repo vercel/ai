@@ -139,6 +139,10 @@ export function processModelChunk(
     messageId: string;
     reasoningStarted?: boolean;
     textStarted?: boolean;
+    /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
+    reasoningMessageId?: string | null;
+    /** Track the ID used for text-start to ensure text-end uses the same ID */
+    textMessageId?: string | null;
   },
   controller: ReadableStreamDefaultController<UIMessageChunk>,
 ): void {
@@ -159,6 +163,8 @@ export function processModelChunk(
     extractReasoningFromValuesMessage(chunk);
   if (reasoning) {
     if (!state.reasoningStarted) {
+      // Track the ID used for reasoning-start to ensure subsequent chunks use the same ID
+      state.reasoningMessageId = state.messageId;
       controller.enqueue({ type: 'reasoning-start', id: state.messageId });
       state.reasoningStarted = true;
       state.started = true;
@@ -166,7 +172,7 @@ export function processModelChunk(
     controller.enqueue({
       type: 'reasoning-delta',
       delta: reasoning,
-      id: state.messageId,
+      id: state.reasoningMessageId ?? state.messageId,
     });
   }
 
@@ -194,11 +200,16 @@ export function processModelChunk(
      * If reasoning was streamed before text, close reasoning first
      */
     if (state.reasoningStarted && !state.textStarted) {
-      controller.enqueue({ type: 'reasoning-end', id: state.messageId });
+      controller.enqueue({
+        type: 'reasoning-end',
+        id: state.reasoningMessageId ?? state.messageId,
+      });
       state.reasoningStarted = false;
     }
 
     if (!state.textStarted) {
+      // Track the ID used for text-start to ensure subsequent chunks use the same ID
+      state.textMessageId = state.messageId;
       controller.enqueue({ type: 'text-start', id: state.messageId });
       state.textStarted = true;
       state.started = true;
@@ -206,7 +217,7 @@ export function processModelChunk(
     controller.enqueue({
       type: 'text-delta',
       delta: text,
-      id: state.messageId,
+      id: state.textMessageId ?? state.messageId,
     });
   }
 }
