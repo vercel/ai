@@ -49,6 +49,23 @@ function convertToString(data: LanguageModelV3DataContent): string {
   });
 }
 
+/**
+ * Checks if data is a URL (either a URL object or a URL string).
+ */
+function isUrlData(
+  data: LanguageModelV3DataContent,
+): data is URL | (string & { __brand: 'url-string' }) {
+  return data instanceof URL || isUrlString(data);
+}
+
+function isUrlString(data: LanguageModelV3DataContent): boolean {
+  return typeof data === 'string' && /^https?:\/\//i.test(data);
+}
+
+function getUrlString(data: LanguageModelV3DataContent): string {
+  return data instanceof URL ? data.toString() : (data as string);
+}
+
 export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
@@ -167,20 +184,19 @@ export async function convertToAnthropicMessagesPrompt({
                     if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'base64',
-                                media_type:
-                                  part.mediaType === 'image/*'
-                                    ? 'image/jpeg'
-                                    : part.mediaType,
-                                data: convertToBase64(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type:
+                                part.mediaType === 'image/*'
+                                  ? 'image/jpeg'
+                                  : part.mediaType,
+                              data: convertToBase64(part.data),
+                            },
                         cache_control: cacheControl,
                       });
                     } else if (part.mediaType === 'application/pdf') {
@@ -196,17 +212,16 @@ export async function convertToAnthropicMessagesPrompt({
 
                       anthropicContent.push({
                         type: 'document',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'base64',
-                                media_type: 'application/pdf',
-                                data: convertToBase64(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type: 'application/pdf',
+                              data: convertToBase64(part.data),
+                            },
                         title: metadata.title ?? part.filename,
                         ...(metadata.context && { context: metadata.context }),
                         ...(enableCitations && {
@@ -225,17 +240,16 @@ export async function convertToAnthropicMessagesPrompt({
 
                       anthropicContent.push({
                         type: 'document',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'text',
-                                media_type: 'text/plain',
-                                data: convertToString(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'text',
+                              media_type: 'text/plain',
+                              data: convertToString(part.data),
+                            },
                         title: metadata.title ?? part.filename,
                         ...(metadata.context && { context: metadata.context }),
                         ...(enableCitations && {
