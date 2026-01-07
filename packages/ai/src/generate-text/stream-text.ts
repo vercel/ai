@@ -17,7 +17,11 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
+import {
+  CallSettings,
+  getTotalTimeoutMs,
+  getStepTimeoutMs,
+} from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -433,6 +437,7 @@ Internal. For test use only. May change without notice.
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
+  const stepTimeoutMs = getStepTimeoutMs(timeout);
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -443,6 +448,7 @@ Internal. For test use only. May change without notice.
       abortSignal,
       totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
     ),
+    stepTimeoutMs,
     system,
     prompt,
     messages,
@@ -610,6 +616,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings,
     maxRetries: maxRetriesArg,
     abortSignal,
+    stepTimeoutMs,
     system,
     prompt,
     messages,
@@ -640,6 +647,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
+    stepTimeoutMs: number | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1273,6 +1281,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           stepFinish = new DelayedPromise<void>();
 
+          const stepAbortSignal = mergeAbortSignals(
+            abortSignal,
+            stepTimeoutMs != null
+              ? AbortSignal.timeout(stepTimeoutMs)
+              : undefined,
+          );
+
           const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
@@ -1369,7 +1384,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions: stepProviderOptions,
-                  abortSignal,
+                  abortSignal: stepAbortSignal,
                   headers,
                   includeRawChunks,
                 }),
