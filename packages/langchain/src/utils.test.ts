@@ -542,6 +542,102 @@ describe('processModelChunk', () => {
     expect(state.reasoningStarted).toBe(false);
     expect(state.textStarted).toBe(true);
   });
+
+  it('should maintain consistent IDs when chunk.id changes during reasoning-to-text transition', () => {
+    // This test reproduces the bug where the message ID changes between chunks,
+    // which would cause the client to fail to look up activeReasoningParts or activeTextParts
+    // because the ID used for *-start doesn't match the ID used for *-delta and *-end.
+    //
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+      reasoningMessageId: null as string | null,
+      textMessageId: null as string | null,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // First reasoning chunk arrives with id "run-abc123"
+    const reasoningChunk1 = new AIMessageChunk({
+      content: '',
+      id: 'run-abc123',
+    });
+    Object.defineProperty(reasoningChunk1, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: 'Let me think...' }],
+    });
+    processModelChunk(reasoningChunk1, state, controller);
+
+    const reasoningChunk2 = new AIMessageChunk({
+      content: '',
+      id: 'msg-xyz789',
+    });
+    Object.defineProperty(reasoningChunk2, 'contentBlocks', {
+      get: () => [{ type: 'reasoning', reasoning: ' about this.' }],
+    });
+    processModelChunk(reasoningChunk2, state, controller);
+
+    // Text chunk arrives with the new id "msg-xyz789"
+    const textChunk = new AIMessageChunk({
+      content: 'Here is my answer.',
+      id: 'msg-xyz789',
+    });
+    processModelChunk(textChunk, state, controller);
+
+    // Verify all reasoning chunks use the same id that was used for reasoning-start
+    // and all text chunks use the same id that was used for text-start
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'run-abc123' },
+      { type: 'reasoning-delta', delta: 'Let me think...', id: 'run-abc123' },
+      { type: 'reasoning-delta', delta: ' about this.', id: 'run-abc123' },
+      { type: 'reasoning-end', id: 'run-abc123' },
+      { type: 'text-start', id: 'msg-xyz789' },
+      { type: 'text-delta', delta: 'Here is my answer.', id: 'msg-xyz789' },
+    ]);
+
+    expect(state.reasoningMessageId).toBe('run-abc123');
+    expect(state.textMessageId).toBe('msg-xyz789');
+    expect(state.messageId).toBe('msg-xyz789');
+  });
+
+  it('should maintain consistent text IDs when chunk.id changes during text streaming', () => {
+    // Similar bug can occur with text-only streaming if the ID changes between chunks
+
+    const state = {
+      started: false,
+      messageId: 'default',
+      reasoningStarted: false,
+      textStarted: false,
+      reasoningMessageId: null as string | null,
+      textMessageId: null as string | null,
+    };
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    // First text chunk arrives with id "run-abc123"
+    const textChunk1 = new AIMessageChunk({
+      content: 'Hello',
+      id: 'run-abc123',
+    });
+    processModelChunk(textChunk1, state, controller);
+
+    const textChunk2 = new AIMessageChunk({
+      content: ' world!',
+      id: 'msg-xyz789',
+    });
+    processModelChunk(textChunk2, state, controller);
+
+    // Verify all text chunks use the same id that was used for text-start
+    expect(chunks).toEqual([
+      { type: 'text-start', id: 'run-abc123' },
+      { type: 'text-delta', delta: 'Hello', id: 'run-abc123' },
+      { type: 'text-delta', delta: ' world!', id: 'run-abc123' },
+    ]);
+
+    expect(state.textMessageId).toBe('run-abc123');
+    expect(state.messageId).toBe('msg-xyz789');
+  });
 });
 
 describe('isPlainMessageObject', () => {
