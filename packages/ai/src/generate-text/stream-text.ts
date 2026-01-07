@@ -915,14 +915,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const error =
-              abortSignal?.aborted &&
-              abortSignal.reason?.name === 'TimeoutError'
-                ? abortSignal.reason
-                : new NoOutputGeneratedError({
-                    message:
-                      'No output generated. Check the stream for errors.',
-                  });
+            const error = abortSignal?.aborted
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                  message: 'No output generated. Check the stream for errors.',
+                });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
