@@ -423,7 +423,7 @@ console.log(text);`,
     slug: 'bash-tool',
     name: 'bash-tool',
     description:
-      'Provides bash, readFile, and writeFile tools for AI agents. Powered by just-bash, a bash interpreter written entirely in TypeScript with its own parser, interpreter, and reimplemented commands—no shell process required. Supports @vercel/sandbox for full VM isolation.',
+      'Provides bash, readFile, and writeFile tools for AI agents. Supports @vercel/sandbox for full VM isolation.',
     packageName: 'bash-tool',
     tags: ['bash', 'file-system', 'sandbox', 'code-execution'],
     installCommand: {
