@@ -1,9 +1,7 @@
 import {
-  JSONParseError,
   LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3ToolCall,
-  TypeValidationError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -14,8 +12,7 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { NoObjectGeneratedError, NoOutputGeneratedError } from '../error';
-import { RepairTextFunction } from '../generate-object/repair-text';
+import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -188,7 +185,6 @@ export async function generateText<
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
-  experimental_repairText: repairText,
   experimental_download: download,
   experimental_context,
   _internal: { generateId = originalGenerateId } = {},
@@ -278,12 +274,6 @@ Optional function that you can use to provide different settings for a step.
 A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
-
-    /**
-A function that attempts to repair the raw text output of the model
-to enable JSON parsing when using Output.object().
-     */
-    experimental_repairText?: RepairTextFunction;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
@@ -894,41 +884,14 @@ to enable JSON parsing when using Output.object().
         let resolvedOutput;
         if (lastStep.finishReason === 'stop') {
           const outputSpecification = output ?? text();
-          const context = {
-            response: lastStep.response,
-            usage: lastStep.usage,
-            finishReason: lastStep.finishReason,
-          };
-
-          try {
-            resolvedOutput = await outputSpecification.parseCompleteOutput(
-              { text: lastStep.text },
-              context,
-            );
-          } catch (parseError) {
-            // Attempt repair if repairText is provided and error is repairable
-            if (
-              repairText != null &&
-              NoObjectGeneratedError.isInstance(parseError) &&
-              (JSONParseError.isInstance(parseError.cause) ||
-                TypeValidationError.isInstance(parseError.cause))
-            ) {
-              const repairedText = await repairText({
-                text: lastStep.text,
-                error: parseError.cause,
-              });
-              if (repairedText !== null) {
-                resolvedOutput = await outputSpecification.parseCompleteOutput(
-                  { text: repairedText },
-                  context,
-                );
-              } else {
-                throw parseError;
-              }
-            } else {
-              throw parseError;
-            }
-          }
+          resolvedOutput = await outputSpecification.parseCompleteOutput(
+            { text: lastStep.text },
+            {
+              response: lastStep.response,
+              usage: lastStep.usage,
+              finishReason: lastStep.finishReason,
+            },
+          );
         }
 
         return new DefaultGenerateTextResult({

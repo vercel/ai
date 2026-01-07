@@ -1,12 +1,20 @@
-import { streamText, Output } from 'ai';
+import {
+  extractJsonMiddleware,
+  gateway,
+  Output,
+  streamText,
+  wrapLanguageModel,
+} from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
-import 'dotenv/config';
 import { run } from '../lib/run';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: 'google/gemini-3-flash',
+    model: wrapLanguageModel({
+      model: gateway('google/gemini-3-flash'),
+      middleware: extractJsonMiddleware(),
+    }),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -21,13 +29,6 @@ run(async () => {
     prompt: 'Generate a lasagna recipe.',
     onError: ({ error }) => {
       console.error(error);
-    },
-
-    experimental_repairText: async ({ text }) => {
-      return text
-        .replace(/^```(?:json)?\s*/, '') // Remove opening fence
-        .replace(/\s*```$/, '') // Remove closing fence
-        .trim();
     },
   });
 

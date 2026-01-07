@@ -1,9 +1,7 @@
 import {
   getErrorMessage,
-  JSONParseError,
   LanguageModelV3,
   SharedV3Warning,
-  TypeValidationError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -16,8 +14,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { NoObjectGeneratedError, NoOutputGeneratedError } from '../error';
-import { RepairTextFunction } from '../generate-object/repair-text';
+import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
@@ -268,7 +265,6 @@ export function streamText<
   experimental_activeTools,
   activeTools = experimental_activeTools,
   experimental_repairToolCall: repairToolCall,
-  experimental_repairText: repairText,
   experimental_transform: transform,
   experimental_download: download,
   includeRawChunks = false,
@@ -367,12 +363,6 @@ A function that attempts to repair a tool call that failed to parse.
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
-A function that attempts to repair the raw text output of the model
-to enable JSON parsing when using Output.object().
-     */
-    experimental_repairText?: RepairTextFunction;
-
-    /**
 Optional stream transformations.
 They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
@@ -461,7 +451,6 @@ Internal. For test use only. May change without notice.
     transforms: asArray(transform),
     activeTools,
     repairToolCall,
-    repairText,
     stopConditions: asArray(stopWhen),
     output,
     providerOptions,
@@ -490,7 +479,6 @@ function createOutputTransformStream<
   OUTPUT extends Output,
 >(
   output: OUTPUT,
-  repairText?: RepairTextFunction,
 ): TransformStream<
   TextStreamPart<TOOLS>,
   EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
@@ -567,22 +555,8 @@ function createOutputTransformStream<
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
 
-      // Apply repair function if provided before parsing the partial JSON
-      let textToParse = text;
-      if (repairText != null) {
-        try {
-          const repaired = await repairText({
-            text,
-            error: new JSONParseError({ text, cause: 'partial-output-repair' }),
-          });
-          if (repaired !== null) {
-            textToParse = repaired;
-          }
-        } catch {}
-      }
-
       // only publish if partial json can be parsed:
-      const result = await output.parsePartialOutput({ text: textToParse });
+      const result = await output.parsePartialOutput({ text });
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
@@ -625,8 +599,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
   private outputSpecification: OUTPUT | undefined;
 
-  private repairText: RepairTextFunction | undefined;
-
   private includeRawChunks: boolean;
 
   private tools: TOOLS | undefined;
@@ -646,7 +618,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     transforms,
     activeTools,
     repairToolCall,
-    repairText,
     stopConditions,
     output,
     providerOptions,
@@ -677,7 +648,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-    repairText: RepairTextFunction | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>>>;
     output: OUTPUT | undefined;
     providerOptions: ProviderOptions | undefined;
@@ -697,7 +667,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
     this.outputSpecification = output;
-    this.repairText = repairText;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
@@ -1104,7 +1073,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     }
 
     this.baseStream = stream
-      .pipeThrough(createOutputTransformStream(output ?? text(), repairText))
+      .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
     const { maxRetries, retry } = prepareRetries({
@@ -2011,35 +1980,14 @@ However, the LLM results are expected to be small enough to not cause issues.
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
     return this.finalStep.then(async step => {
       const output = this.outputSpecification ?? text();
-      const context = {
-        response: step.response,
-        usage: step.usage,
-        finishReason: step.finishReason,
-      };
-
-      try {
-        return await output.parseCompleteOutput({ text: step.text }, context);
-      } catch (parseError) {
-        // Attempt repair if repairText is provided and error is repairable
-        if (
-          this.repairText != null &&
-          NoObjectGeneratedError.isInstance(parseError) &&
-          (JSONParseError.isInstance(parseError.cause) ||
-            TypeValidationError.isInstance(parseError.cause))
-        ) {
-          const repairedText = await this.repairText({
-            text: step.text,
-            error: parseError.cause,
-          });
-          if (repairedText !== null) {
-            return await output.parseCompleteOutput(
-              { text: repairedText },
-              context,
-            );
-          }
-        }
-        throw parseError;
-      }
+      return await output.parseCompleteOutput(
+        { text: step.text },
+        {
+          response: step.response,
+          usage: step.usage,
+          finishReason: step.finishReason,
+        },
+      );
     });
   }
 
