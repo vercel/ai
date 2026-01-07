@@ -21,7 +21,7 @@ import { Chat } from './chat.react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SWRConfig } from 'swr';
+
 
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
@@ -1979,10 +1979,7 @@ describe('resume ongoing stream and return assistant message', () => {
 });
 
 describe('resume should only call once in React StrictMode', () => {
-  let resumeCallCount = 0;
-
   beforeEach(() => {
-    resumeCallCount = 0;
     server.urls['/api/chat/456/stream'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -1999,15 +1996,6 @@ describe('resume should only call once in React StrictMode', () => {
   });
 
   it('should only make one resume request even when effects run twice', async () => {
-    // Render in StrictMode to simulate double effect invocation
-    render(
-      <React.StrictMode>
-        <SWRConfig value={{ provider: () => new Map() }}>
-          <TestComponent />
-        </SWRConfig>
-      </React.StrictMode>,
-    );
-
     function TestComponent() {
       const { messages, status } = useChat({
         id: '456',
@@ -2036,6 +2024,12 @@ describe('resume should only call once in React StrictMode', () => {
         </div>
       );
     }
+
+    render(
+      <React.StrictMode>
+        <TestComponent />
+      </React.StrictMode>,
+    );
 
     // Wait for the stream to complete
     await waitFor(() => {
