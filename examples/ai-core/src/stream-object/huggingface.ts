@@ -1,9 +1,9 @@
 import { huggingface } from '@ai-sdk/huggingface';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod/v4';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
     schema: z.object({
@@ -31,6 +31,4 @@ async function main() {
   console.log('\nFinal object:', finalObject);
   console.log('\nToken usage:', usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

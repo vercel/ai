@@ -1,6 +1,6 @@
-import 'dotenv/config';
 import { createAzure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
 const azureDefault = createAzure({
   fetch: async (input, init) => {
@@ -9,13 +9,11 @@ const azureDefault = createAzure({
   },
 });
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: azureDefault('gpt-5-nano'),
     prompt: 'Write a short poem about the sea.',
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

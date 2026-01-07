@@ -1,8 +1,8 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { ModelMessage, streamText } from 'ai';
-import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../lib/present-image';
+import { run } from '../lib/run';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -11,7 +11,7 @@ const terminal = readline.createInterface({
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   while (true) {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
@@ -40,6 +40,4 @@ async function main() {
 
     messages.push(...(await result.response).messages);
   }
-}
-
-main().catch(console.error);
+});

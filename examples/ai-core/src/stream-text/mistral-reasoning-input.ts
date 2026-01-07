@@ -1,8 +1,8 @@
 import { mistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: mistral('magistral-small-2507'),
     messages: [
@@ -52,6 +52,4 @@ async function main() {
       }
     }
   }
-}
-
-main().catch(console.error);
+});

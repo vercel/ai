@@ -1,7 +1,8 @@
 import * as z4 from 'zod/v4';
 import * as z3 from 'zod/v3';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const z4Schema = z4.object({
     name: z4.string(),
     age: z4.number(),
@@ -22,6 +23,4 @@ async function main() {
 
   console.log(z4StandardSchema.vendor);
   console.log(z3StandardSchema.vendor);
-}
-
-main().catch(console.error);
+});

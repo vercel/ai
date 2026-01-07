@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { cohere } from '@ai-sdk/cohere';
 import { streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: cohere('command-r-plus'),
     maxOutputTokens: 512,
@@ -15,6 +15,4 @@ async function main() {
 
   console.log();
   console.log(JSON.stringify(await result.response, null, 2));
-}
-
-main().catch(console.error);
+});

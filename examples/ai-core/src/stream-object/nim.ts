@@ -1,9 +1,9 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamObject } from 'ai';
 import { z } from 'zod';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const nim = createOpenAICompatible({
     baseURL: 'https://integrate.api.nvidia.com/v1',
     name: 'nim',
@@ -36,6 +36,4 @@ async function main() {
 
   console.log();
   console.log('Token usage:', await result.usage);
-}
-
-main().catch(console.error);
+});

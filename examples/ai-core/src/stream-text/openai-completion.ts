@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-3.5-turbo-instruct'),
     maxOutputTokens: 1024,
@@ -17,6 +17,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});
