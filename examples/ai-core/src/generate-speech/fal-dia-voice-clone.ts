@@ -1,9 +1,9 @@
 import { fal } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import 'dotenv/config';
 import { saveAudioFile } from '../lib/save-audio';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateSpeech({
     model: fal.speech('fal-ai/dia-tts/voice-clone'),
     text: "[S1] Hello, how are you? [S2] I'm good, thank you. [S1] What's your name? [S2] My name is Dia. [S1] Nice to meet you. [S2] Nice to meet you too.",
@@ -23,6 +23,4 @@ async function main() {
   console.log('Provider Metadata:', result.providerMetadata);
 
   await saveAudioFile(result.audio);
-}
-
-main().catch(console.error);
+});

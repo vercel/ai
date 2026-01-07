@@ -1,6 +1,6 @@
 import { streamText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 // An integration test for Vercel AI Gateway provider authentication. There are
 // two authentication methods: OIDC and API key. Proper testing requires that
@@ -187,7 +187,7 @@ async function runAllScenarios() {
   }
 }
 
-async function main() {
+run(async () => {
   const scenarioArg = process.argv[2];
 
   if (!scenarioArg || scenarioArg === 'all') {
@@ -201,6 +201,4 @@ async function main() {
     }
     await testAuthenticationScenario(scenario);
   }
-}
-
-main().catch(console.error);
+});

@@ -441,6 +441,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'abort';
+      reason?: string;
     }
   | {
       type: 'error';

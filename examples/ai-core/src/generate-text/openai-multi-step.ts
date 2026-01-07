@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, usage } = await generateText({
     model: openai('gpt-4o-2024-08-06'),
     tools: {
@@ -35,6 +35,4 @@ async function main() {
       console.log(JSON.stringify(step, null, 2));
     },
   });
-}
-
-main().catch(console.error);
+});

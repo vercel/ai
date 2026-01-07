@@ -1,10 +1,10 @@
-import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const togetherai = createOpenAICompatible({
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
@@ -73,6 +73,4 @@ async function main() {
   console.log('Text:', result.text);
   console.log('Tool Calls:', JSON.stringify(result.toolCalls, null, 2));
   console.log('Tool Results:', JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

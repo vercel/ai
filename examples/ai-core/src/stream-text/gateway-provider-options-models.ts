@@ -1,8 +1,8 @@
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     headers: {
       'X-Simulate-Model-Failures': 'anthropic/claude-4-sonnet',
@@ -27,6 +27,4 @@ async function main() {
   );
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

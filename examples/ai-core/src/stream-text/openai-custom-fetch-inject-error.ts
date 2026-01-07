@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const openai = createOpenAI({
   // example fetch wrapper that injects an error after 1000 characters:
@@ -44,7 +44,7 @@ const openai = createOpenAI({
   },
 });
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-3.5-turbo'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -57,9 +57,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(error => {
-  console.error('HERE');
-  console.error(error);
 });

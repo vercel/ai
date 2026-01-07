@@ -58,10 +58,11 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
      */
     abortSignal?: AbortSignal;
     /**
-     * Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
+     * Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property.
+     * The call will be aborted if it takes longer than the specified timeout.
      * Can be used alongside abortSignal.
      */
-    timeout?: number;
+    timeout?: number | { totalMs?: number };
   };
 
 /**
@@ -134,7 +135,7 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS>` o
 - `messages` (optional): An array of `ModelMessage` objects (mutually exclusive with `prompt`)
 - `options` (optional): Additional call options when `CALL_OPTIONS` is not `never`
 - `abortSignal` (optional): An `AbortSignal` to cancel the operation
-- `timeout` (optional): A timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
+- `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
 
 ## Example: Custom Agent Implementation
 

@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   console.log('Testing OpenAI Flex Processing...\n');
 
   const result = streamText({
@@ -25,6 +25,4 @@ async function main() {
   console.log(`Input tokens: ${usage.inputTokens}`);
   console.log(`Output tokens: ${usage.outputTokens}`);
   console.log(`Total tokens: ${usage.totalTokens}`);
-}
-
-main().catch(console.error);
+});

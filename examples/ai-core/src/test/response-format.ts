@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await openai('gpt-4-turbo').doStream({
     responseFormat: {
       type: 'json',
@@ -39,6 +39,4 @@ async function main() {
       process.stdout.write(value.delta);
     }
   }
-}
-
-main().catch(console.error);
+});

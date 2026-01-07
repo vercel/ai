@@ -1,13 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 const cachedMessage = `The time is ${new Date().toISOString()}. Error message: ${errorMessage}`;
 
-async function main() {
+run(async () => {
   const result = await streamText({
     model: anthropic('claude-3-5-haiku-latest'),
     headers: {
@@ -107,6 +107,4 @@ async function main() {
   //   output_tokens: 1,
   //   service_tier: 'standard'
   // }
-}
-
-main().catch(console.error);
+});

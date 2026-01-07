@@ -3,7 +3,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -12,7 +12,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     maxOutputTokens: 50,
@@ -32,6 +32,4 @@ async function main() {
   }
 
   await sdk.shutdown();
-}
-
-main().catch(console.error);
+});

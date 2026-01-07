@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import { presentImages } from '../lib/present-image';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-2.0-flash-exp'),
     prompt: 'Generate an image of a comic cat',
@@ -16,6 +16,4 @@ async function main() {
       await presentImages([file]);
     }
   }
-}
-
-main().catch(console.error);
+});

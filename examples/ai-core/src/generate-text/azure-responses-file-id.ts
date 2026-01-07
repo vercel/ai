@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare 1
@@ -14,9 +14,9 @@ import 'dotenv/config';
  * https://oai.azure.com/resource/datafile
  */
 
-const fileId = 'assistant-xxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id.async function main() {
+const fileId = 'assistant-xxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id.
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: azure.responses('gpt-4.1-mini'), // please question about your documents.
     messages: [
@@ -39,6 +39,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

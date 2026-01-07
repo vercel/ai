@@ -17,7 +17,7 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -432,6 +432,7 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -440,7 +441,7 @@ Internal. For test use only. May change without notice.
     maxRetries,
     abortSignal: mergeAbortSignals(
       abortSignal,
-      timeout != null ? AbortSignal.timeout(timeout) : undefined,
+      totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
     ),
     system,
     prompt,
@@ -914,9 +915,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const error = new NoOutputGeneratedError({
-              message: 'No output generated. Check the stream for errors.',
-            });
+            const error = abortSignal?.aborted
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                  message: 'No output generated. Check the stream for errors.',
+                });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1016,7 +1019,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         // abort handling:
         function abort() {
           onAbort?.({ steps: recordedSteps });
-          controller.enqueue({ type: 'abort' });
+          controller.enqueue({
+            type: 'abort',
+            // The `reason` is usually of type DOMException, but it can also be of any type,
+            // so we use getErrorMessage for serialization because it is already designed to accept values of the unknown type.
+            // See: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/reason
+            ...(abortSignal?.reason !== undefined
+              ? { reason: getErrorMessage(abortSignal.reason) }
+              : {}),
+          });
           controller.close();
         }
 

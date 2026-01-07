@@ -1,5 +1,21 @@
 # @ai-sdk/anthropic
 
+## 3.0.9
+
+### Patch Changes
+
+- de2399b: fix(anthropic): assign type urls in file parts correctly
+
+## 3.0.8
+
+### Patch Changes
+
+- bee4f82: fix(anthropic): enable structured output support for claude-haiku-4-5
+
+  This fixes an issue where the `strict: true` property was not included in the request body when using tools with Claude Haiku 4.5, because `supportsStructuredOutput` was incorrectly set to `false` for this model.
+
+  Claude Haiku 4.5 supports structured outputs, so the `strict` property should be forwarded to the Anthropic API when specified on tools.
+
 ## 3.0.7
 
 ### Patch Changes
