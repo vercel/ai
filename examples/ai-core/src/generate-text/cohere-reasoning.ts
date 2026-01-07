@@ -1,8 +1,8 @@
 import { cohere, type CohereChatModelOptions } from '@ai-sdk/cohere';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: cohere('command-a-reasoning-08-2025'),
     prompt:
@@ -20,6 +20,4 @@ async function main() {
 
   console.log(JSON.stringify(result.request.body, null, 2));
   console.log(JSON.stringify(result.content, null, 2));
-}
-
-main().catch(console.error);
+});

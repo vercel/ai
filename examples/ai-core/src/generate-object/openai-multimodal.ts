@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { object } = await generateObject({
     model: openai('gpt-4-turbo'),
     schema: z.object({
@@ -27,6 +27,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(object.artwork, null, 2));
-}
-
-main().catch(console.error);
+});

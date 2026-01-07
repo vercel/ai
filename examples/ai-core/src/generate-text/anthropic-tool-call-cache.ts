@@ -1,9 +1,9 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: anthropic('claude-3-5-haiku-latest'),
     tools: {
@@ -20,6 +20,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result.request.body, null, 2));
-}
-
-main().catch(console.error);
+});

@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: openai('gpt-4o-2024-08-06'),
     providerOptions: {
@@ -30,6 +30,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

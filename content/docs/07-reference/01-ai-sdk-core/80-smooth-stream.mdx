@@ -1,14 +1,14 @@
 ---
 title: smoothStream
-description: Stream transformer for smoothing text output
+description: Stream transformer for smoothing text and reasoning output
 ---
 
 # `smoothStream()`
 
 `smoothStream` is a utility function that creates a TransformStream
 for the `streamText` `transform` option
-to smooth out text streaming by buffering and releasing complete words with configurable delays.
-This creates a more natural reading experience when streaming text responses.
+to smooth out text and reasoning streaming by buffering and releasing complete chunks with configurable delays.
+This creates a more natural reading experience when streaming text and reasoning responses.
 
 ```ts highlight={"6-9"}
 import { smoothStream, streamText } from 'ai';
@@ -45,7 +45,7 @@ const result = streamText({
       type: '"word" | "line" | RegExp | (buffer: string) => string | undefined | null',
       isOptional: true,
       description:
-        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom callback or RegExp pattern for custom chunking.',
+        'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom callback or RegExp pattern for custom chunking.',
     },
   ]}
 />
@@ -130,7 +130,7 @@ smoothStream({
 
 Returns a `TransformStream` that:
 
-- Buffers incoming text chunks
-- Releases text when the chunking pattern is encountered
+- Buffers incoming text and reasoning chunks
+- Releases content when the chunking pattern is encountered
 - Adds configurable delays between chunks for smooth output
-- Passes through non-text chunks (like step-finish events) immediately
+- Passes through non-text/reasoning chunks (like tool calls, step-finish events) immediately

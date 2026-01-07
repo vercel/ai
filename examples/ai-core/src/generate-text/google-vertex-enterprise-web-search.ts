@@ -1,8 +1,8 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, sources, providerMetadata } = await generateText({
     model: vertex('gemini-2.5-flash'),
     tools: {
@@ -25,6 +25,4 @@ async function main() {
   console.log();
   console.log('GROUNDING METADATA');
   console.log('Web Search Queries:', groundingMetadata?.webSearchQueries);
-}
-
-main().catch(console.error);
+});

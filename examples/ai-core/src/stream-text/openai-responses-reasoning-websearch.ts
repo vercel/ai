@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
 import { generateText, streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai.responses('gpt-5-mini'),
     prompt: 'What happened in the world today?',
@@ -32,6 +32,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result2, null, 2));
-}
-
-main().catch(console.error);
+});

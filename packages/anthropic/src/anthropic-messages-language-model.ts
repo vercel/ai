@@ -433,6 +433,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
+    } else {
+      // Only check temperature/topP mutual exclusivity when thinking is not enabled
+      if (topP != null && temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported when temperature is set. topP is ignored.`,
+        });
+        baseArgs.top_p = undefined;
+      }
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
@@ -1942,7 +1952,8 @@ function getModelCapabilities(modelId: string): {
 } {
   if (
     modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5')
+    modelId.includes('claude-opus-4-5') ||
+    modelId.includes('claude-haiku-4-5')
   ) {
     return {
       maxOutputTokens: 64000,
@@ -1957,8 +1968,7 @@ function getModelCapabilities(modelId: string): {
     };
   } else if (
     modelId.includes('claude-sonnet-4-') ||
-    modelId.includes('claude-3-7-sonnet') ||
-    modelId.includes('claude-haiku-4-5')
+    modelId.includes('claude-3-7-sonnet')
   ) {
     return {
       maxOutputTokens: 64000,

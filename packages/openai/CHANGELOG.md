@@ -1,5 +1,32 @@
 # @ai-sdk/openai
 
+## 3.0.7
+
+### Patch Changes
+
+- 89202fb: fix(openai/azure): passing response_format correctly
+
+## 3.0.6
+
+### Patch Changes
+
+- dc87517: Fix handling of `image-url` tool result content type in OpenAI Responses API conversion
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
 ## 3.0.3
 
 ### Patch Changes

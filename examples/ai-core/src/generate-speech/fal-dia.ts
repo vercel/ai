@@ -1,9 +1,9 @@
 import { fal } from '@ai-sdk/fal';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import 'dotenv/config';
 import { saveAudioFile } from '../lib/save-audio';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateSpeech({
     model: fal.speech('fal-ai/dia-tts'),
     text: '[S1] Dia is an open weights text to dialogue model... [S2] Try it now on Fal.',
@@ -15,6 +15,4 @@ async function main() {
   console.log('Provider Metadata:', result.providerMetadata);
 
   await saveAudioFile(result.audio);
-}
-
-main().catch(console.error);
+});

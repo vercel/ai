@@ -1,11 +1,11 @@
 import { vercel } from '@ai-sdk/vercel';
 import { streamText, ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
-import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
@@ -65,6 +65,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

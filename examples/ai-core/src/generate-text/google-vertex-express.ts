@@ -1,8 +1,8 @@
 import { createVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const vertex = createVertex({
     apiKey: process.env.GOOGLE_VERTEX_API_KEY,
   });
@@ -16,6 +16,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

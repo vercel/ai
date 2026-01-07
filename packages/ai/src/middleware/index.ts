@@ -5,4 +5,5 @@ export { simulateStreamingMiddleware } from './simulate-streaming-middleware';
 export { addToolInputExamplesMiddleware } from './add-tool-input-examples-middleware';
 export { wrapLanguageModel } from './wrap-language-model';
 export { wrapEmbeddingModel } from './wrap-embedding-model';
+export { wrapImageModel } from './wrap-image-model';
 export { wrapProvider } from './wrap-provider';

@@ -1,8 +1,8 @@
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, usage } = await generateText({
     model: deepinfra('mistralai/Mixtral-8x7B-Instruct-v0.1'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -11,6 +11,4 @@ async function main() {
   console.log(text);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

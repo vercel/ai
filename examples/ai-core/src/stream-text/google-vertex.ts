@@ -1,8 +1,8 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: vertex('gemini-2.5-pro'),
     system: 'You are a comedian. Only give funny answers.',
@@ -19,6 +19,4 @@ async function main() {
 
   const usageMetadata = (await result.providerMetadata)?.google?.usageMetadata;
   console.log('Usage meta data:', usageMetadata);
-}
-
-main().catch(console.error);
+});

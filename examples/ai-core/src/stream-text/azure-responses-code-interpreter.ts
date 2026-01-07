@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare
@@ -9,7 +9,7 @@ import 'dotenv/config';
  * AZURE_API_KEY="<your_api_key>"
  */
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'), // use your own deployment
@@ -36,6 +36,4 @@ async function main() {
       }
     }
   }
-}
-
-main().catch(console.error);
+});

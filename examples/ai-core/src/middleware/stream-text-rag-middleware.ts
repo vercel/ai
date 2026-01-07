@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
 import { yourRagMiddleware } from './your-rag-middleware';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
@@ -15,6 +15,4 @@ async function main() {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

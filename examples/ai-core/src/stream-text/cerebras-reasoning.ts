@@ -1,8 +1,8 @@
 import { cerebras } from '@ai-sdk/cerebras';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: cerebras('gpt-oss-120b'),
     prompt: 'What is notable about Sonoran food?',
@@ -19,6 +19,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

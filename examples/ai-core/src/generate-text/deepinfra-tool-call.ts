@@ -1,10 +1,10 @@
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: deepinfra('mistralai/Mixtral-8x7B-Instruct-v0.1'),
     maxOutputTokens: 512,
@@ -65,6 +65,4 @@ async function main() {
   console.log('Text:', result.text);
   console.log('Tool Calls:', JSON.stringify(result.toolCalls, null, 2));
   console.log('Tool Results:', JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

@@ -1,9 +1,9 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText, stepCountIs, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text } = await generateText({
     model: vertex('gemini-1.5-flash'),
     tools: {
@@ -34,6 +34,4 @@ async function main() {
   });
 
   console.log(text);
-}
-
-main().catch(console.error);
+});
