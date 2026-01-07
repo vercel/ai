@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
 ## 6.0.17
 
 ### Patch Changes
