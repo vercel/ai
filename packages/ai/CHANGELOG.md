@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
 ## 6.0.15
 
 ### Patch Changes
