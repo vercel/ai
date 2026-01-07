@@ -1,10 +1,10 @@
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: bedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
     tools: {
@@ -62,6 +62,4 @@ async function main() {
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
   console.log(JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

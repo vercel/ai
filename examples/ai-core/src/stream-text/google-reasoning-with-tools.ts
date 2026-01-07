@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: google('gemini-2.0-flash-thinking-exp'),
     prompt: 'Calculate the sum of 2+2 using the calculate function.',
@@ -58,6 +58,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

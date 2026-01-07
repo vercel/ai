@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: google('gemini-1.5-pro-002'),
     schema: z.object({
@@ -25,6 +25,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

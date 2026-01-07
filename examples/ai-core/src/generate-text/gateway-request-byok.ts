@@ -1,7 +1,7 @@
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { providerMetadata, text, usage } = await generateText({
     model: 'anthropic/claude-haiku-4.5',
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -18,6 +18,4 @@ async function main() {
   console.log();
   console.log('Usage:', usage);
   console.log(JSON.stringify(providerMetadata, null, 2));
-}
-
-main().catch(console.error);
+});

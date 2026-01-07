@@ -1,8 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-flash'),
     prompt: 'what is the sum of the first 10 prime numbers?',
@@ -31,6 +31,4 @@ async function main() {
   console.log('Output tokens:', result.usage.outputTokens);
   console.log('Reasoning tokens:', result.usage.reasoningTokens || 0);
   console.log('Total tokens:', result.usage.totalTokens);
-}
-
-main().catch(console.error);
+});

@@ -1,9 +1,9 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const imageData = fs.readFileSync('data/comic-cat.png');
   const imageBase64_string = imageData.toString('base64');
 
@@ -33,6 +33,4 @@ async function main() {
   console.log(text);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

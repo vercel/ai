@@ -1,10 +1,10 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-async function main() {
+run(async () => {
   const myCustomProvider = createGoogleGenerativeAI({
     name: 'my-custom-provider',
   });
@@ -33,6 +33,4 @@ async function main() {
   });
 
   await sdk.shutdown();
-}
-
-main().catch(console.error);
+});

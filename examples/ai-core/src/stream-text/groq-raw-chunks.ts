@@ -1,8 +1,8 @@
 import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: groq('llama-3.3-70b-versatile'),
     prompt: 'Count from 1 to 3 slowly.',
@@ -31,6 +31,4 @@ async function main() {
   console.log('Text chunks:', textChunkCount);
   console.log('Raw chunks:', rawChunkCount);
   console.log('Final text:', await result.text);
-}
-
-main().catch(console.error);
+});

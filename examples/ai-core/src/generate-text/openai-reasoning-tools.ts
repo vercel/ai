@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, reasoning, toolCalls, usage } = await generateText({
     model: openai('gpt-5'),
     tools: {
@@ -35,6 +35,4 @@ async function main() {
   console.log('\nReasoning:', reasoning);
   console.log('\nTool Calls:', toolCalls);
   console.log('\nUsage:', usage);
-}
-
-main().catch(console.error);
+});

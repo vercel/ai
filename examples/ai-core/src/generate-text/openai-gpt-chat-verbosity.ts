@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: openai.chat('gpt-5'),
     prompt: 'Write a poem about a boy and his first pet dog.',
@@ -15,6 +15,4 @@ async function main() {
 
   console.log('Response:', result.response?.body);
   console.log('Request:', result.request?.body);
-}
-
-main().catch(console.error);
+});
