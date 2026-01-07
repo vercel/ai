@@ -1281,13 +1281,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           stepFinish = new DelayedPromise<void>();
 
-          const stepAbortSignal = mergeAbortSignals(
-            abortSignal,
-            stepTimeoutMs != null
-              ? AbortSignal.timeout(stepTimeoutMs)
-              : undefined,
-          );
-
           const stepInputMessages = [...initialMessages, ...responseMessages];
 
           const prepareStepResult = await prepareStep?.({
@@ -1325,6 +1318,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerOptions,
             prepareStepResult?.providerOptions,
           );
+
+          const stepAbortSignal = mergeAbortSignals(
+            abortSignal,
+            stepTimeoutMs != null
+              ? AbortSignal.timeout(stepTimeoutMs)
+              : undefined,
+          );
+
           const {
             result: { stream, response, request },
             doStreamSpan,

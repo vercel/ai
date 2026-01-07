@@ -1,7 +1,9 @@
 /**
 Timeout configuration for API calls. Can be specified as:
 - A number representing milliseconds
-- An object with `totalMs` property for the total timeout in milliseconds
+- An object with timeout properties:
+  - `totalMs`: Total timeout for the entire operation in millisecond
+  - `stepMs`: Timeout for each individual step in millisecond
  */
 export type TimeoutConfiguration =
   | number
