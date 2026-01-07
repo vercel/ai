@@ -157,9 +157,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
           image_url: { url: imagePart.image.toString() },
         });
       } else if (typeof imagePart.image === 'string') {
-      /**
-       * Handle string (could be URL or base64)
-       */
+        /**
+         * Handle string (could be URL or base64)
+         */
         /**
          * Check if it's a URL (including data: URLs)
          */
@@ -186,9 +186,9 @@ export function convertUserContent(content: UserContent): HumanMessage {
           });
         }
       } else if (
-      /**
-       * Handle Uint8Array or ArrayBuffer (binary data)
-       */
+        /**
+         * Handle Uint8Array or ArrayBuffer (binary data)
+         */
         imagePart.image instanceof Uint8Array ||
         imagePart.image instanceof ArrayBuffer
       ) {
