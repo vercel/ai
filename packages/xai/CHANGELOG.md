@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.10
+
+### Patch Changes
+
+- 659c53d: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+
 ## 3.0.9
 
 ### Patch Changes
