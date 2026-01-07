@@ -1,6 +1,5 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { run } from '../lib/run';
 
 run(async () => {

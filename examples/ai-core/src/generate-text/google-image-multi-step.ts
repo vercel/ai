@@ -4,7 +4,6 @@ import { generateText } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
 
-import 'dotenv/config';
 
 run(async () => {
   const step1 = await generateText({
