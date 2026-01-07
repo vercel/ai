@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
 ## 6.0.16
 
 ### Patch Changes

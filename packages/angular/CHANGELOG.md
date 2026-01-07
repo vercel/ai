@@ -1,5 +1,12 @@
 # @ai-sdk/angular
 
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
 ## 2.0.16
 
 ### Patch Changes
