@@ -11,6 +11,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   delay,
+  DelayedPromise,
   dynamicTool,
   jsonSchema,
   ModelMessage,
@@ -10107,6 +10108,39 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(receivedAbortSignal).toBeUndefined();
+    });
+
+    it('should throw Timeout error when abort signal is aborted', async () => {
+      const delayedPromise = new DelayedPromise();
+      const abortController = new AbortController();
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            await delayedPromise.promise;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        abortSignal: abortController.signal,
+        onError: () => {},
+      });
+
+      abortController.abort();
+      delayedPromise.resolve(undefined);
+
+      await expect(result.text).rejects.toHaveProperty('name', 'AbortError');
     });
 
     it('should support timeout object with totalMs', async () => {
