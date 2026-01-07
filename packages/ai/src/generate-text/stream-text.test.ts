@@ -10108,6 +10108,38 @@ describe('streamText', () => {
 
       expect(receivedAbortSignal).toBeUndefined();
     });
+
+    it('should throw timeout error when timeout occurs', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            await new Promise(r => setTimeout(r, 100));
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: 10,
+        onError: () => {},
+      });
+
+      await expect(result.text).rejects.toMatchObject({
+        message: expect.stringContaining('timed out'),
+        cause: expect.objectContaining({
+          name: 'TimeoutError',
+        }),
+      });
+    });
   });
 
   describe('telemetry', () => {
