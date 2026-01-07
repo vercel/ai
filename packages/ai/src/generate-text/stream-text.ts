@@ -144,14 +144,14 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text-delta'
-        | 'reasoning-delta'
-        | 'source'
-        | 'tool-call'
-        | 'tool-input-start'
-        | 'tool-input-delta'
-        | 'tool-result'
-        | 'raw';
+      | 'text-delta'
+      | 'reasoning-delta'
+      | 'source'
+      | 'tool-call'
+      | 'tool-input-start'
+      | 'tool-input-delta'
+      | 'tool-result'
+      | 'raw';
     }
   >;
 }) => PromiseLike<void> | void;
@@ -306,8 +306,8 @@ When the condition is an array, any of the conditions can be met to stop the gen
 @default stepCountIs(1)
      */
     stopWhen?:
-      | StopCondition<NoInfer<TOOLS>>
-      | Array<StopCondition<NoInfer<TOOLS>>>;
+    | StopCondition<NoInfer<TOOLS>>
+    | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
 Optional telemetry configuration (experimental).
@@ -368,8 +368,8 @@ They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
-      | StreamTextTransform<TOOLS>
-      | Array<StreamTextTransform<TOOLS>>;
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Custom download function to use for URLs.
@@ -571,8 +571,7 @@ function createOutputTransformStream<
 }
 
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
-  implements StreamTextResult<TOOLS, OUTPUT>
-{
+  implements StreamTextResult<TOOLS, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
@@ -914,23 +913,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            if (
-              abortSignal?.aborted &&
-              abortSignal.reason?.name === 'TimeoutError'
-            ) {
-              const timeoutError = abortSignal.reason;
-
-              self._finishReason.reject(timeoutError);
-              self._rawFinishReason.reject(timeoutError);
-              self._totalUsage.reject(timeoutError);
-              self._steps.reject(timeoutError);
-
-              return;
-            }
-
-            const error = new NoOutputGeneratedError({
-              message: 'No output generated. Check the stream for errors.',
-            });
+            const error = abortSignal?.aborted && abortSignal.reason?.name === 'TimeoutError'
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                message: 'No output generated. Check the stream for errors.',
+              });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -2010,9 +1997,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     const responseMessageId =
       generateMessageId != null
         ? getResponseUIMessageId({
-            originalMessages,
-            responseMessageId: generateMessageId,
-          })
+          originalMessages,
+          responseMessageId: generateMessageId,
+        })
         : undefined;
 
     // TODO simplify once dynamic is no longer needed for invalid tool inputs
