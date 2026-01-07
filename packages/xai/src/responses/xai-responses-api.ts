@@ -82,11 +82,9 @@ export type XaiResponsesTool =
   | { type: 'mcp' }
   | {
       type: 'function';
-      function: {
-        name: string;
-        description?: string;
-        parameters: unknown;
-      };
+      name: string;
+      description?: string;
+      parameters: unknown;
     };
 
 const annotationSchema = z.union([
@@ -318,6 +316,16 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_execution_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
@@ -343,9 +351,27 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.code_interpreter_call.interpreting'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_interpreter_call.completed'),
     item_id: z.string(),
     output_index: z.number(),
+  }),
+  // Code interpreter code streaming events
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    code: z.string(),
   }),
   z.object({
     type: z.literal('response.done'),

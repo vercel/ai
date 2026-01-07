@@ -1,8 +1,8 @@
 import { groq, GroqProviderOptions } from '@ai-sdk/groq';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: groq('gemma2-9b-it'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -20,6 +20,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

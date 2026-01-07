@@ -1,9 +1,9 @@
 import { mistral } from '@ai-sdk/mistral';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: mistral('open-mistral-7b'),
     maxOutputTokens: 2000,
@@ -26,6 +26,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

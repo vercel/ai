@@ -1,9 +1,9 @@
 import { xai } from '@ai-sdk/xai';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: xai('grok-3-beta'),
     schemaName: 'recipe',
@@ -25,6 +25,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

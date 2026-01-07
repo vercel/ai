@@ -1,8 +1,8 @@
 import { huggingface } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: huggingface.responses('deepseek-ai/DeepSeek-V3-0324'),
     prompt:
@@ -25,6 +25,4 @@ async function main() {
       });
     }
   }
-}
-
-main().catch(console.error);
+});

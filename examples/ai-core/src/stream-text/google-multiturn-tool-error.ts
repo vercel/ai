@@ -1,10 +1,10 @@
 import { google } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { readFile } from 'fs/promises';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   console.log('testing multi-turn conversation with tool error\n');
   console.log(
     'this test verifies that thoughtSignatures from gemini 3 pro are:',
@@ -247,6 +247,4 @@ async function main() {
     }
     process.exit(1);
   }
-}
-
-main().catch(console.error);
+});

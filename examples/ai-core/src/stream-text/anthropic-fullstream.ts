@@ -1,10 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     tools: {
@@ -75,6 +75,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const togetherai = createOpenAICompatible({
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
@@ -23,6 +23,4 @@ async function main() {
   console.log(embeddings);
   console.log(usage);
   console.log(warnings);
-}
-
-main().catch(console.error);
+});

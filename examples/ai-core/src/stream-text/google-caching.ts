@@ -1,11 +1,11 @@
-import 'dotenv/config';
 import { google } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
-async function main() {
+run(async () => {
   const result1 = streamText({
     model: google('gemini-2.5-flash'),
     prompt: errorMessage,
@@ -50,6 +50,4 @@ async function main() {
   //     totalTokenCount: 3727
   //   }
   // }
-}
-
-main().catch(console.error);
+});

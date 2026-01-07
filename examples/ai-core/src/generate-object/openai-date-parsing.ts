@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const {
     object: { events },
   } = await generateObject({
@@ -23,6 +23,4 @@ async function main() {
   });
 
   console.log(events);
-}
-
-main().catch(console.error);
+});

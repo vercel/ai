@@ -1,8 +1,8 @@
 import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
-import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const anthropic = createAnthropic({
   // example fetch wrapper that logs the input to the API call:
@@ -23,7 +23,7 @@ const terminal = readline.createInterface({
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   while (true) {
     const userInput = await terminal.question('You: ');
 
@@ -70,6 +70,4 @@ async function main() {
 
     messages.push(...(await result.response).messages);
   }
-}
-
-main().catch(console.error);
+});

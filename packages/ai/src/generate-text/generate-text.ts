@@ -16,7 +16,7 @@ import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -69,6 +69,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -149,6 +150,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param experimental_generateMessageId - Generate a unique ID for each message.
@@ -171,6 +173,7 @@ export async function generateText<
   messages,
   maxRetries: maxRetriesArg,
   abortSignal,
+  timeout,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -184,10 +187,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
   ...settings
@@ -299,14 +299,20 @@ A function that attempts to repair a tool call that failed to parse.
      */
     _internal?: {
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
+
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
+  const mergedAbortSignal = mergeAbortSignals(
+    abortSignal,
+    totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+  );
+
   const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
-    abortSignal,
+    abortSignal: mergedAbortSignal,
   });
 
   const callSettings = prepareCallSettings(settings);
@@ -375,7 +381,7 @@ A function that attempts to repair a tool call that failed to parse.
             tracer,
             telemetry,
             messages: initialMessages,
-            abortSignal,
+            abortSignal: mergedAbortSignal,
             experimental_context,
           });
 
@@ -556,14 +562,14 @@ A function that attempts to repair a tool call that failed to parse.
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions: stepProviderOptions,
-                  abortSignal,
+                  abortSignal: mergedAbortSignal,
                   headers: headersWithUserAgent,
                 });
 
                 // Fill in default values:
                 const responseData = {
                   id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? currentDate(),
+                  timestamp: result.response?.timestamp ?? new Date(),
                   modelId: result.response?.modelId ?? stepModel.modelId,
                   headers: result.response?.headers,
                   body: result.response?.body,
@@ -659,7 +665,7 @@ A function that attempts to repair a tool call that failed to parse.
                 input: toolCall.input,
                 toolCallId: toolCall.toolCallId,
                 messages: stepInputMessages,
-                abortSignal,
+                abortSignal: mergedAbortSignal,
                 experimental_context,
               });
             }
@@ -716,7 +722,7 @@ A function that attempts to repair a tool call that failed to parse.
                 tracer,
                 telemetry,
                 messages: stepInputMessages,
-                abortSignal,
+                abortSignal: mergedAbortSignal,
                 experimental_context,
               })),
             );

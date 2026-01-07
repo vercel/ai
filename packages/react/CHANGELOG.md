@@ -1,5 +1,110 @@
 # @ai-sdk/react
 
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [3a73fb3]
+  - ai@6.0.15
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [3f9453f]
+  - ai@6.0.14
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [e2c445d]
+  - ai@6.0.13
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - ai@6.0.12
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.11
+
+### Patch Changes
+
+- ai@6.0.11
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [ae26f95]
+  - ai@6.0.10
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [4e90233]
+  - ai@6.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - ai@6.0.8
+
+## 3.0.7
+
+### Patch Changes
+
+- ai@6.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.4
+
+### Patch Changes
+
+- ai@6.0.4
+
 ## 3.0.3
 
 ### Patch Changes

@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: cohere('command-r-plus'),
     tools: {
@@ -41,6 +41,4 @@ async function main() {
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
   console.log(JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

@@ -1,5 +1,109 @@
 # ai
 
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
+## 6.0.15
+
+### Patch Changes
+
+- 3a73fb3: Include abort reason in stream chunks and document the new field
+
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
+## 6.0.12
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/gateway@3.0.9
+  - @ai-sdk/provider-utils@4.0.4
+
+## 6.0.11
+
+### Patch Changes
+
+- Updated dependencies [8ec1984]
+  - @ai-sdk/gateway@3.0.8
+
+## 6.0.10
+
+### Patch Changes
+
+- ae26f95: Add missing `.catch()` handler to `executeToolCall` promise in `runToolsTransformation` to prevent potential stream hang when the promise rejects.
+
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/gateway@3.0.7
+
+## 6.0.7
+
+### Patch Changes
+
+- Updated dependencies [74c0157]
+  - @ai-sdk/gateway@3.0.6
+
+## 6.0.6
+
+### Patch Changes
+
+- Updated dependencies [7ee2d12]
+  - @ai-sdk/gateway@3.0.5
+
+## 6.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/gateway@3.0.4
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 6.0.4
+
+### Patch Changes
+
+- Updated dependencies [1dad057]
+  - @ai-sdk/gateway@3.0.3
+
 ## 6.0.3
 
 ### Patch Changes

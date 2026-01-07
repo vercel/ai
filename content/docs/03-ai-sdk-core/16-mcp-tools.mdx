@@ -197,6 +197,50 @@ const tools = await mcpClient.tools({
 
 This approach provides full TypeScript type safety and IDE autocompletion, letting you catch parameter mismatches during development. When you define `schemas`, the client only pulls the explicitly defined tools, keeping your application focused on the tools it needs
 
+### Typed Tool Outputs
+
+When MCP servers return `structuredContent` (per the [MCP specification](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content)), you can define an `outputSchema` to get typed tool results:
+
+```typescript
+import { z } from 'zod';
+
+const tools = await mcpClient.tools({
+  schemas: {
+    'get-weather': {
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      // Define outputSchema for typed results
+      outputSchema: z.object({
+        temperature: z.number(),
+        conditions: z.string(),
+        humidity: z.number(),
+      }),
+    },
+  },
+});
+
+const result = await tools['get-weather'].execute(
+  { location: 'New York' },
+  { messages: [], toolCallId: 'weather-1' },
+);
+
+console.log(`Temperature: ${result.temperature}°C`);
+```
+
+When `outputSchema` is provided:
+
+- The client extracts `structuredContent` from the tool result
+- The output is validated against your schema at runtime
+- You get full TypeScript type safety for the result
+
+If the server doesn't return `structuredContent`, the client falls back to parsing JSON from the text content. If neither is available or validation fails, an error is thrown.
+
+<Note>
+  Without `outputSchema`, the tool returns the raw `CallToolResult` object
+  containing `content` and optional `isError` fields.
+</Note>
+
 ## Using MCP Resources
 
 According to the [MCP specification](https://modelcontextprotocol.io/docs/learn/server-concepts#resources), resources are **application-driven** data sources that provide context to the model. Unlike tools (which are model-controlled), your application decides when to fetch and pass resources as context.

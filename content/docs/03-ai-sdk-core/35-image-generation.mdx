@@ -227,6 +227,34 @@ try {
 }
 ```
 
+## Image Middleware
+
+You can enhance image models, e.g. to set default values or implement logging, using
+`wrapImageModel` and `ImageModelV3Middleware`.
+
+Here is an example that sets a default size when none is provided:
+
+```ts
+import { generateImage, wrapImageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const model = wrapImageModel({
+  model: openai.image('gpt-image-1'),
+  middleware: {
+    specificationVersion: 'v3',
+    transformParams: async ({ params }) => ({
+      ...params,
+      size: params.size ?? '1024x1024',
+    }),
+  },
+});
+
+const { image } = await generateImage({
+  model,
+  prompt: 'Santa Claus driving a Cadillac',
+});
+```
+
 ## Generating Images with Language Models
 
 Some language models such as Google `gemini-2.5-flash-image-preview` support multi-modal outputs including images.

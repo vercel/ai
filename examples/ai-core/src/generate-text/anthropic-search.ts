@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: anthropic('claude-3-5-sonnet-latest'),
     prompt: 'What are the latest developments in AI research and technology?',
@@ -21,6 +21,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result.content, null, 2));
-}
-
-main().catch(console.error);
+});

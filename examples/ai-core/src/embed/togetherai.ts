@@ -1,8 +1,8 @@
 import { togetherai } from '@ai-sdk/togetherai';
 import { embed } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { embedding, usage, warnings } = await embed({
     model: togetherai.embeddingModel('BAAI/bge-base-en-v1.5'),
     value: 'sunny day at the beach',
@@ -11,6 +11,4 @@ async function main() {
   console.log(embedding);
   console.log(usage);
   console.log(warnings);
-}
-
-main().catch(console.error);
+});
