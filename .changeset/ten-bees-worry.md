@@ -1,5 +1,4 @@
 ---
-'@example/next-langchain': patch
 '@ai-sdk/langchain': patch
 ---
 
