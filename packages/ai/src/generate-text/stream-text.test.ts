@@ -10109,6 +10109,34 @@ describe('streamText', () => {
       expect(receivedAbortSignal).toBeUndefined();
     });
 
+    it('should throw Timeout error when timeout occurs', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            // Simulate a model response that takes longer than the timeout
+            await new Promise(r => setTimeout(r, 100));
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: 10, // 10ms timeout to ensure it triggers
+        onError: () => {},
+      });
+
+      await expect(result.text).rejects.toHaveProperty('name', 'TimeoutError');
+    });
+
     it('should support timeout object with totalMs', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
