@@ -14031,33 +14031,99 @@ describe('streamText', () => {
       it('should only stream initial chunks in full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "request": {},
-              "type": "start-step",
-              "warnings": [],
-            },
-            {
-              "type": "abort",
-            },
-          ]
-        `);
+            [
+              {
+                "type": "start",
+              },
+              {
+                "request": {},
+                "type": "start-step",
+                "warnings": [],
+              },
+              {
+                "reason": "This operation was aborted",
+                "type": "abort",
+              },
+            ]
+          `);
       });
 
       it('should sent an abort chunk in the ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "reason": "This operation was aborted",
+                "type": "abort",
+              },
+            ]
+          `);
+      });
+
+      it('should include abort reason when provided', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+
+        const resultWithReason = streamText({
+          abortSignal: abortController.signal,
+          model: new MockLanguageModelV3({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      abortController.abort('manual abort');
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        expect(await convertAsyncIterableToArray(resultWithReason.fullStream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "start",
+              },
+              {
+                "reason": "manual abort",
+                "type": "abort",
+              },
+            ]
+          `);
+
+        expect(
+          await convertAsyncIterableToArray(
+            resultWithReason.toUIMessageStream(),
+          ),
+        ).toMatchInlineSnapshot(`
           [
             {
               "type": "start",
             },
             {
-              "type": "start-step",
-            },
-            {
+              "reason": "manual abort",
               "type": "abort",
             },
           ]
@@ -14337,6 +14403,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "reason": "This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -14346,37 +14413,38 @@ describe('streamText', () => {
       it('should sent an abort chunk in the ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "start",
-            },
-            {
-              "type": "start-step",
-            },
-            {
-              "input": {
-                "value": "value",
+            [
+              {
+                "type": "start",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-input-available",
-            },
-            {
-              "output": "result1",
-              "toolCallId": "call-1",
-              "type": "tool-output-available",
-            },
-            {
-              "type": "finish-step",
-            },
-            {
-              "type": "start-step",
-            },
-            {
-              "type": "abort",
-            },
-          ]
-        `);
+              {
+                "type": "start-step",
+              },
+              {
+                "input": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-input-available",
+              },
+              {
+                "output": "result1",
+                "toolCallId": "call-1",
+                "type": "tool-output-available",
+              },
+              {
+                "type": "finish-step",
+              },
+              {
+                "type": "start-step",
+              },
+              {
+                "reason": "This operation was aborted",
+                "type": "abort",
+              },
+            ]
+          `);
       });
     });
 
@@ -14521,6 +14589,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "reason": "This operation was aborted",
                 "type": "abort",
               },
             ]

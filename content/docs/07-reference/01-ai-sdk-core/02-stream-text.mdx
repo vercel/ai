@@ -2940,6 +2940,13 @@ To see `streamText` in action, check out [these examples](#examples).
               type: "'abort'",
               description: 'The type to identify the object as abort.',
             },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+            },
           ],
         },
       ],

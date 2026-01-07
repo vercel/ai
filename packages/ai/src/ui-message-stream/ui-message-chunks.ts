@@ -168,6 +168,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.strictObject({
         type: z.literal('abort'),
+        reason: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('message-metadata'),
@@ -324,6 +325,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'abort';
+      reason?: string;
     }
   | {
       type: 'message-metadata';
