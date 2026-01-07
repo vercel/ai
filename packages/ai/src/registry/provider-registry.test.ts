@@ -637,4 +637,55 @@ describe('middleware functionality', () => {
     expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
     expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
   });
+
+  it('should wrap all image models accessed through the provider registry', () => {
+    const model1 = new MockImageModelV3({ modelId: 'model-1' });
+    const model2 = new MockImageModelV3({ modelId: 'model-2' });
+    const model3 = new MockImageModelV3({ modelId: 'model-3' });
+
+    const provider1 = new MockProviderV3({
+      imageModels: {
+        'model-1': model1,
+        'model-2': model2,
+      },
+    });
+
+    const provider2 = new MockProviderV3({
+      imageModels: {
+        'model-3': model3,
+      },
+    });
+
+    const overrideModelId = vi
+      .fn()
+      .mockImplementation(({ model }) => `override-${model.modelId}`);
+
+    const registry = createProviderRegistry(
+      {
+        provider1,
+        provider2,
+      },
+      {
+        imageModelMiddleware: {
+          specificationVersion: 'v3',
+          overrideModelId,
+        },
+      },
+    );
+
+    expect(registry.imageModel('provider1:model-1').modelId).toBe(
+      'override-model-1',
+    );
+    expect(registry.imageModel('provider1:model-2').modelId).toBe(
+      'override-model-2',
+    );
+    expect(registry.imageModel('provider2:model-3').modelId).toBe(
+      'override-model-3',
+    );
+
+    expect(overrideModelId).toHaveBeenCalledTimes(3);
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
+    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+  });
 });

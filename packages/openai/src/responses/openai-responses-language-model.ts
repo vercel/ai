@@ -151,11 +151,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const openaiOptions = await parseProviderOptions({
-      provider: 'openai',
+    const providerOptionsName = this.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let openaiOptions = await parseProviderOptions({
+      provider: providerOptionsName,
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
+
+    if (openaiOptions == null && providerOptionsName !== 'openai') {
+      openaiOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiResponsesProviderOptionsSchema,
+      });
+    }
 
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -192,6 +203,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           (isReasoningModel
             ? 'developer'
             : modelCapabilities.systemMessageMode),
+        providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -412,6 +424,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings: [...warnings, ...toolWarnings],
       store,
       toolNameMapping,
+      providerOptionsName,
     };
   }
 
@@ -423,13 +436,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings,
       webSearchToolName,
       toolNameMapping,
+      providerOptionsName,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
       modelId: this.modelId,
     });
-
-    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
@@ -482,7 +494,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-                [providerKey]: {
+                [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -522,7 +534,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               action: part.action,
             } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
-              [providerKey]: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -542,7 +554,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               },
             } satisfies InferSchema<typeof shellInputSchema>),
             providerMetadata: {
-              [providerKey]: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -554,7 +566,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         case 'message': {
           for (const contentPart of part.content) {
             if (
-              options.providerOptions?.openai?.logprobs &&
+              options.providerOptions?.[providerOptionsName]?.logprobs &&
               contentPart.logprobs
             ) {
               logprobs.push(contentPart.logprobs);
@@ -571,7 +583,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                [providerKey]: providerMetadata,
+                [providerOptionsName]: providerMetadata,
               },
             });
 
@@ -593,7 +605,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: annotation.filename,
                   filename: annotation.filename,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       index: annotation.index,
@@ -612,7 +624,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: annotation.filename,
                   filename: annotation.filename,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
@@ -631,7 +643,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: annotation.file_id,
                   filename: annotation.file_id,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: annotation.type,
                       fileId: annotation.file_id,
                       index: annotation.index,
@@ -657,7 +669,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: part.name,
             input: part.arguments,
             providerMetadata: {
-              [providerKey]: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -722,7 +734,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 : {}),
             } satisfies InferSchema<typeof mcpOutputSchema>,
             providerMetadata: {
-              [providerKey]: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -839,7 +851,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               operation: part.operation,
             } satisfies InferSchema<typeof applyPatchInputSchema>),
             providerMetadata: {
-              [providerKey]: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -851,15 +863,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const providerMetadata: SharedV3ProviderMetadata = {
-      [providerKey]: { responseId: response.id },
+      [providerOptionsName]: { responseId: response.id },
     };
 
     if (logprobs.length > 0) {
-      providerMetadata[providerKey].logprobs = logprobs;
+      providerMetadata[providerOptionsName].logprobs = logprobs;
     }
 
     if (typeof response.service_tier === 'string') {
-      providerMetadata[providerKey].serviceTier = response.service_tier;
+      providerMetadata[providerOptionsName].serviceTier = response.service_tier;
     }
 
     const usage = response.usage!; // defined when there is no error
@@ -896,6 +908,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       toolNameMapping,
       store,
+      providerOptionsName,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -917,7 +930,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const self = this;
-    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     const approvalRequestIdToDummyToolCallIdFromPrompt =
       extractApprovalRequestIdToToolCallIdMapping(options.prompt);
@@ -1153,7 +1165,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1171,7 +1183,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item.id}:0`,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
@@ -1185,7 +1197,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'text-end',
                   id: value.item.id,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
@@ -1208,7 +1220,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: value.item.name,
                   input: value.item.arguments,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1337,7 +1349,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       : {}),
                   } satisfies InferSchema<typeof mcpOutputSchema>,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1387,7 +1399,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       operation: value.item.operation,
                     } satisfies InferSchema<typeof applyPatchInputSchema>),
                     providerMetadata: {
-                      [providerKey]: {
+                      [providerOptionsName]: {
                         itemId: value.item.id,
                       },
                     },
@@ -1441,7 +1453,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
-                    [providerKey]: { itemId: value.item.id },
+                    [providerOptionsName]: { itemId: value.item.id },
                   },
                 });
               } else if (value.item.type === 'shell_call') {
@@ -1457,7 +1469,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     },
                   } satisfies InferSchema<typeof shellInputSchema>),
                   providerMetadata: {
-                    [providerKey]: { itemId: value.item.id },
+                    [providerOptionsName]: { itemId: value.item.id },
                   },
                 });
               } else if (value.item.type === 'reasoning') {
@@ -1479,7 +1491,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
-                      [providerKey]: {
+                      [providerOptionsName]: {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
@@ -1602,7 +1614,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delta: value.delta,
               });
 
-              if (options.providerOptions?.openai?.logprobs && value.logprobs) {
+              if (
+                options.providerOptions?.[providerOptionsName]?.logprobs &&
+                value.logprobs
+              ) {
                 logprobs.push(value.logprobs);
               }
             } else if (value.type === 'response.reasoning_summary_part.added') {
@@ -1625,7 +1640,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
                       providerMetadata: {
-                        [providerKey]: { itemId: value.item_id },
+                        [providerOptionsName]: { itemId: value.item_id },
                       },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
@@ -1637,7 +1652,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       itemId: value.item_id,
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
@@ -1652,7 +1667,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                  [providerKey]: {
+                  [providerOptionsName]: {
                     itemId: value.item_id,
                   },
                 },
@@ -1665,7 +1680,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    [providerKey]: { itemId: value.item_id },
+                    [providerOptionsName]: { itemId: value.item_id },
                   },
                 });
 
@@ -1711,7 +1726,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: value.annotation.filename,
                   filename: value.annotation.filename,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       index: value.annotation.index,
@@ -1730,7 +1745,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: value.annotation.filename,
                   filename: value.annotation.filename,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
@@ -1749,7 +1764,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   title: value.annotation.file_id,
                   filename: value.annotation.file_id,
                   providerMetadata: {
-                    [providerKey]: {
+                    [providerOptionsName]: {
                       type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       index: value.annotation.index,
@@ -1767,17 +1782,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
           flush(controller) {
             const providerMetadata: SharedV3ProviderMetadata = {
-              [providerKey]: {
+              [providerOptionsName]: {
                 responseId,
               },
             };
 
             if (logprobs.length > 0) {
-              providerMetadata[providerKey].logprobs = logprobs;
+              providerMetadata[providerOptionsName].logprobs = logprobs;
             }
 
             if (serviceTier !== undefined) {
-              providerMetadata[providerKey].serviceTier = serviceTier;
+              providerMetadata[providerOptionsName].serviceTier = serviceTier;
             }
 
             controller.enqueue({

@@ -1015,4 +1015,129 @@ describe('runToolsTransformation', () => {
       `);
     });
   });
+
+  describe('tool execution error handling', () => {
+    it('should handle error thrown in async tool execution', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const toolError = new Error('Tool execution failed!');
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          failingTool: {
+            title: 'Failing Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(10);
+              throw toolError;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // tool-call should come first
+      expect(result[0]).toMatchObject({
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'failingTool',
+      });
+
+      // tool-error should be included
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          error: toolError,
+        }),
+      );
+
+      // finish should come last (stream closes properly)
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+        finishReason: 'stop',
+      });
+    });
+
+    it('should handle error thrown in sync tool execution', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const toolError = new Error('Sync tool failed!');
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          failingTool: {
+            title: 'Failing Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: ({ value }) => {
+              throw toolError;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // tool-error should be included
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'failingTool',
+          error: toolError,
+        }),
+      );
+
+      // stream should close properly
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+    });
+  });
 });

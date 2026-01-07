@@ -1,7 +1,7 @@
-import { azure } from '@ai-sdk/azure';
-import type {
-  AzureResponsesSourceDocumentProviderMetadata,
-  OpenAIResponsesProviderOptions,
+import {
+  azure,
+  type AzureResponsesSourceDocumentProviderMetadata,
+  type OpenAIResponsesProviderOptions,
 } from '@ai-sdk/azure';
 import {
   convertToModelMessages,
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       }
     },
     providerOptions: {
-      openai: {
+      azure: {
         store: true,
       } satisfies OpenAIResponsesProviderOptions,
     },

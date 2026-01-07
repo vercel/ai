@@ -93,15 +93,31 @@ Maximum number of retries. Set to 0 to disable retries. Default: `2`.
 An optional abort signal that can be used to cancel the call.
 
 The abort signal can e.g. be forwarded from a user interface to cancel the call,
-or to define a timeout.
+or to define a timeout using `AbortSignal.timeout`.
 
-#### Example: Timeout
+#### Example: AbortSignal.timeout
 
 ```ts
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   abortSignal: AbortSignal.timeout(5000), // 5 seconds
+});
+```
+
+### `timeout`
+
+An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified duration.
+
+This is a convenience parameter that creates an abort signal internally. It can be used alongside `abortSignal` - if both are provided, the call will abort when either condition is met.
+
+#### Example: 5 second timeout
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Invent a new holiday and describe its traditions.',
+  timeout: 5000, // 5 seconds
 });
 ```
 

@@ -159,7 +159,25 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
               type: 'TOOL_SCHEMAS',
               isOptional: true,
               description:
-                'Schema definitions for compile-time type checking. When not provided, schemas are inferred from the server.',
+                'Schema definitions for compile-time type checking. When not provided, schemas are inferred from the server. Each tool schema can include inputSchema for typed inputs, and optionally outputSchema for typed outputs when the server returns structuredContent.',
+            },
+          ],
+        },
+        {
+          type: 'TOOL_SCHEMAS',
+          parameters: [
+            {
+              name: 'inputSchema',
+              type: 'FlexibleSchema',
+              description:
+                'Zod schema or JSON schema defining the expected input parameters for the tool.',
+            },
+            {
+              name: 'outputSchema',
+              type: 'FlexibleSchema',
+              isOptional: true,
+              description:
+                'Zod schema or JSON schema defining the expected output structure. When provided, the client extracts and validates structuredContent from tool results, giving you typed outputs.',
             },
           ],
         },
