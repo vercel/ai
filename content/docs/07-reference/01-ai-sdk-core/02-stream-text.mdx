@@ -438,10 +438,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'number | { totalMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -2939,6 +2939,13 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'type',
               type: "'abort'",
               description: 'The type to identify the object as abort.',
+            },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
             },
           ],
         },
