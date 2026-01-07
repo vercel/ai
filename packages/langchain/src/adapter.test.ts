@@ -1351,6 +1351,241 @@ describe('toUIMessageStream', () => {
   });
 });
 
+describe('toUIMessageStream with streamEvents', () => {
+  it('should detect and handle streamEvents format', async () => {
+    // Simulate streamEvents output from agent.streamEvents()
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        data: { input: 'Hello' },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: 'Hello',
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: ' World',
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_end',
+        data: {
+          output: {
+            id: 'stream-msg-1',
+            content: 'Hello World',
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "stream-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "delta": " World",
+          "id": "stream-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with tool calls', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        data: { input: 'What is the weather?' },
+      },
+      {
+        event: 'on_tool_start',
+        data: {
+          run_id: 'tool-call-123',
+          name: 'get_weather',
+          inputs: { city: 'SF' },
+        },
+      },
+      {
+        event: 'on_tool_end',
+        data: {
+          run_id: 'tool-call-123',
+          output: 'Sunny, 72°F',
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "tool-call-123",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "output": "Sunny, 72°F",
+          "toolCallId": "tool-call-123",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with reasoning content', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'reasoning-msg-1',
+            content: '',
+            contentBlocks: [
+              { type: 'reasoning', reasoning: 'Let me think...' },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'reasoning-msg-1',
+            content: 'Here is my answer.',
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think...",
+          "id": "reasoning-msg-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is my answer.",
+          "id": "reasoning-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with array content', async () => {
+    // Test content as array of text blocks (common in some providers)
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'array-msg-1',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ' from array' },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "array-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello from array",
+          "id": "array-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "array-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+});
+
 describe('toUIMessageStream with LangGraph HITL fixture', () => {
   beforeEach(() => {
     // Mock Date.now() to make generated HITL IDs deterministic for snapshots
