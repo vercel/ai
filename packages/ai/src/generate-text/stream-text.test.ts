@@ -10134,10 +10134,7 @@ describe('streamText', () => {
       });
 
       await expect(result.text).rejects.toMatchObject({
-        message: expect.stringContaining('timed out'),
-        cause: expect.objectContaining({
-          name: 'TimeoutError',
-        }),
+        name: 'TimeoutError',
       });
     });
   });

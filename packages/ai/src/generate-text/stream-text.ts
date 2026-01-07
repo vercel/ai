@@ -914,15 +914,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const isTimeout =
+            if (
               abortSignal?.aborted &&
-              abortSignal.reason?.name === 'TimeoutError';
+              abortSignal.reason?.name === 'TimeoutError'
+            ) {
+              const timeoutError = abortSignal.reason;
+
+              self._finishReason.reject(timeoutError);
+              self._rawFinishReason.reject(timeoutError);
+              self._totalUsage.reject(timeoutError);
+              self._steps.reject(timeoutError);
+
+              return;
+            }
 
             const error = new NoOutputGeneratedError({
-              message: isTimeout
-                ? 'Request timed out before generating any output'
-                : 'No output generated. Check the stream for errors.',
-              cause: isTimeout ? abortSignal.reason : undefined,
+              message: 'No output generated. Check the stream for errors.',
             });
 
             self._finishReason.reject(error);
