@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { jsonSchema, streamObject } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: openai('gpt-4-turbo'),
     schema: jsonSchema<{
@@ -46,6 +46,4 @@ async function main() {
     console.clear();
     console.log(JSON.stringify(partialObject, null, 2));
   }
-}
-
-main().catch(console.error);
+});

@@ -2,7 +2,7 @@ import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
-run(async function main() {
+run(async () => {
   const result = streamText({
     model: azure.completion('model-router'),
     prompt: 'Say where is copenhagen in three words max',

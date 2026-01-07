@@ -1,10 +1,10 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: azure('gpt-4.1-mini'), // use your own deployment
     tools: {
@@ -75,6 +75,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

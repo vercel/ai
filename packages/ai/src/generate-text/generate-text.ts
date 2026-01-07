@@ -19,7 +19,7 @@ import { RepairTextFunction } from '../generate-object/repair-text';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -191,10 +191,7 @@ export async function generateText<
   experimental_repairText: repairText,
   experimental_download: download,
   experimental_context,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
   ...settings
@@ -312,15 +309,15 @@ to enable JSON parsing when using Output.object().
      */
     _internal?: {
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
 
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const mergedAbortSignal = mergeAbortSignals(
     abortSignal,
-    timeout != null ? AbortSignal.timeout(timeout) : undefined,
+    totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
   );
 
   const { maxRetries, retry } = prepareRetries({
@@ -582,7 +579,7 @@ to enable JSON parsing when using Output.object().
                 // Fill in default values:
                 const responseData = {
                   id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? currentDate(),
+                  timestamp: result.response?.timestamp ?? new Date(),
                   modelId: result.response?.modelId ?? stepModel.modelId,
                   headers: result.response?.headers,
                   body: result.response?.body,

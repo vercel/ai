@@ -1,8 +1,8 @@
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: anthropic('claude-3-7-sonnet-20250219'),
     prompt: 'How many "r"s are in the word "strawberry"?',
@@ -24,6 +24,4 @@ async function main() {
   console.log();
 
   console.log('Warnings:', result.warnings);
-}
-
-main().catch(console.error);
+});

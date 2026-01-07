@@ -1,8 +1,8 @@
 import { baseten } from '@ai-sdk/baseten';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   // Using default Model APIs - works with hosted models on Baseten
   const { text, usage } = await generateText({
     model: baseten('deepseek-ai/DeepSeek-V3-0324'),
@@ -12,6 +12,4 @@ async function main() {
   console.log(text);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

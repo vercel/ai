@@ -1,11 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-main().catch(console.error);
-
-async function main() {
+run(async () => {
   const agentA = {
     system: 'You are a helpful agent.',
     activeTools: ['transferToAgentB'] as 'transferToAgentB'[],
@@ -38,4 +36,4 @@ async function main() {
   for await (const chunk of result.textStream) {
     process.stdout.write(chunk);
   }
-}
+});

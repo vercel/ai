@@ -6,7 +6,6 @@ import {
   tool,
   ToolApprovalResponse,
 } from 'ai';
-import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../lib/run';
