@@ -1,5 +1,45 @@
 # @ai-sdk/langchain
 
+## 2.0.21
+
+### Patch Changes
+
+- 75da969: fix(langchain): re-enable support for streamEvents in toUIMessageStream
+
+## 2.0.20
+
+### Patch Changes
+
+- ai@6.0.19
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [3a73fb3]
+  - ai@6.0.15
+
 ## 2.0.15
 
 ### Patch Changes

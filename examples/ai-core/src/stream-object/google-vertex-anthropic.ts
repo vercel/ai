@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { streamObject } from 'ai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     maxOutputTokens: 2000,
@@ -26,6 +26,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

@@ -1,8 +1,8 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-5'),
     prompt: 'How many "r"s are in the word "strawberry"?',
@@ -43,6 +43,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

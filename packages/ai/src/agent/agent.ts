@@ -4,6 +4,7 @@ import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
+import { TimeoutConfiguration } from '../prompt/call-settings';
 
 /**
  * Parameters for calling an agent.
@@ -49,9 +50,9 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
     abortSignal?: AbortSignal;
 
     /**
-     * Timeout in milliseconds.
+     * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
      */
-    timeout?: number;
+    timeout?: TimeoutConfiguration;
   };
 
 /**

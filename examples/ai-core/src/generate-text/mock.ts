@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, usage } = await generateText({
     model: new MockLanguageModelV3({
       doGenerate: async () => ({
@@ -30,6 +30,4 @@ async function main() {
   console.log(text);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

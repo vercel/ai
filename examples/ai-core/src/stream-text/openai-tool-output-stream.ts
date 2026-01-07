@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import 'dotenv/config';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     stopWhen: stepCountIs(5),
@@ -90,6 +90,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

@@ -276,6 +276,32 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.messages).toHaveLength(2);
     });
 
+    it('should pass through abort reason when provided', async () => {
+      const onFinishCallback = vi.fn();
+      const inputChunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'msg-abort-reason' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Starting text' },
+        { type: 'abort', reason: 'manual abort' },
+        { type: 'finish' },
+      ];
+
+      const stream = createUIMessageStream(inputChunks);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-abort-reason',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onFinish: onFinishCallback,
+      });
+
+      const result = await convertReadableStreamToArray(resultStream);
+
+      expect(result).toEqual(inputChunks);
+      expect(onFinishCallback).toHaveBeenCalledTimes(1);
+    });
+
     it('should set isAborted to false when no abort chunk is encountered', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [

@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare 1
@@ -16,7 +16,7 @@ import 'dotenv/config';
 
 const fileId = 'assistant-xxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id.
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'), // please question about your documents.
     messages: [
@@ -41,6 +41,4 @@ async function main() {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

@@ -1,8 +1,8 @@
 import { revai } from '@ai-sdk/revai';
 import { experimental_transcribe as transcribe } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await transcribe({
     model: revai.transcription('machine'),
     audio: new URL(
@@ -17,6 +17,4 @@ async function main() {
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
   console.log('Provider Metadata:', result.providerMetadata);
-}
-
-main().catch(console.error);
+});

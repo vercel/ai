@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
 import { yourCacheMiddleware } from './your-cache-middleware';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const modelWithCaching = wrapLanguageModel({
     model: openai('gpt-4o'),
     middleware: yourCacheMiddleware,
@@ -27,6 +27,4 @@ async function main() {
   console.log(`Time taken for result2: ${end2 - start2}ms`);
 
   console.log(result1.text === result2.text);
-}
-
-main().catch(console.error);
+});

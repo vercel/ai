@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: azure.responses('gpt-5-mini'), // use your own deployment
     system: 'You are a helpful assistant.',
@@ -24,6 +24,4 @@ async function main() {
   console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
   console.log('Provider metadata:', result.providerMetadata);
-}
-
-main().catch(console.error);
+});

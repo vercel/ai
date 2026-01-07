@@ -1,11 +1,10 @@
-import 'dotenv/config';
-
 import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { streamObject } from 'ai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
   traceExporter: new ConsoleSpanExporter(),
@@ -14,7 +13,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: openai('gpt-4o-mini'),
     schema: z.object({
@@ -46,6 +45,4 @@ async function main() {
   }
 
   await sdk.shutdown();
-}
-
-main().catch(console.error);
+});

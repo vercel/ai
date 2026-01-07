@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   // enum support:
   const result = await generateObject({
     model: google('gemini-exp-1206'),
@@ -18,6 +18,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

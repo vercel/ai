@@ -1,8 +1,8 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const openai = createOpenAI({
     baseURL: 'https://api.x.ai/v1',
     apiKey: process.env.XAI_API_KEY,
@@ -37,6 +37,4 @@ async function main() {
   }
 
   console.log();
-}
-
-main().catch(console.error);
+});

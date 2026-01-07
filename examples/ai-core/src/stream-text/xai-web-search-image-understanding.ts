@@ -1,8 +1,8 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { fullStream } = streamText({
     model: xai.responses('grok-4-fast'),
     tools: {
@@ -38,6 +38,4 @@ async function main() {
   }
 
   console.log('\n');
-}
-
-main().catch(console.error);
+});

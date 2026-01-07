@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text } = await generateText({
     model: google('gemini-1.5-pro'),
     tools: {
@@ -34,6 +34,4 @@ async function main() {
   });
 
   console.log(text);
-}
-
-main().catch(console.error);
+});

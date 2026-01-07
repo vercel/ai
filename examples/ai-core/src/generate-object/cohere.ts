@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateObject({
     model: cohere('command-a-03-2025'),
     schema: z.object({
@@ -25,6 +25,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});
