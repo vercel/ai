@@ -1978,9 +1978,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
-    return this.finalStep.then(async step => {
+    return this.finalStep.then(step => {
       const output = this.outputSpecification ?? text();
-      return await output.parseCompleteOutput(
+      return output.parseCompleteOutput(
         { text: step.text },
         {
           response: step.response,
