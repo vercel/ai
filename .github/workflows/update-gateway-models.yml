@@ -121,7 +121,7 @@ jobs:
       - name: Create branch and commit changes
         if: steps.check-changes.outputs.has-changes == 'true'
         run: |
-          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d)"
+          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
           git checkout -b "$BRANCH_NAME"
           git add .
           git commit -m "chore(provider/gateway): update gateway model settings files"
