@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.9
+
+### Patch Changes
+
+- de2399b: fix(anthropic): assign type urls in file parts correctly
+
 ## 3.0.8
 
 ### Patch Changes

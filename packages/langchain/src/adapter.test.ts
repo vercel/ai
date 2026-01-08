@@ -53,6 +53,9 @@ describe('toUIMessageStream', () => {
         {
           "type": "start",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -83,6 +86,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-1",
           "type": "tool-output-available",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -110,6 +116,9 @@ describe('toUIMessageStream', () => {
           "transient": true,
           "type": "data-custom",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -136,6 +145,9 @@ describe('toUIMessageStream', () => {
           "id": undefined,
           "transient": true,
           "type": "data-custom",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -197,6 +209,9 @@ describe('toUIMessageStream', () => {
         {
           "type": "start",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -237,6 +252,9 @@ describe('toUIMessageStream', () => {
           "id": "chatcmpl-123",
           "type": "text-end",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -268,6 +286,9 @@ describe('toUIMessageStream', () => {
           "output": "Tool result here",
           "toolCallId": "call-abc",
           "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -317,6 +338,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-123",
           "toolName": "get_weather",
           "type": "tool-input-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -370,6 +394,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-456",
           "toolName": "get_weather",
           "type": "tool-input-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -533,6 +560,9 @@ describe('toUIMessageStream', () => {
           "id": "msg-reason",
           "type": "reasoning-end",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -576,6 +606,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-think",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -624,6 +657,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-reason",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -682,6 +718,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -749,6 +788,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -855,6 +897,243 @@ describe('convertModelMessages', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
     expect(result[0].content).toBe('Hello');
+  });
+
+  it('should convert user messages with image content (URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            image: 'https://example.com/image.jpg',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.jpg' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with image content (base64)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this image?' },
+          {
+            type: 'image',
+            image: 'iVBORw0KGgoAAAANSUhEUgAAAAE',
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAE' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with image content (data URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this.' },
+          {
+            type: 'image',
+            image: 'data:image/png;base64,abc123',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Describe this.' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
+  });
+
+  it('should convert user messages with file content (URL)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document.' },
+          {
+            type: 'file',
+            data: 'https://example.com/document.pdf',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Summarize this document.' },
+      {
+        type: 'file',
+        url: 'https://example.com/document.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with file content (base64)', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is in this file?' },
+          {
+            type: 'file',
+            data: 'JVBERi0xLjQK',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this file?' },
+      {
+        type: 'file',
+        data: 'JVBERi0xLjQK',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with mixed multimodal content', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Compare these:' },
+          {
+            type: 'image',
+            image: 'https://example.com/image1.jpg',
+          },
+          { type: 'text', text: 'And this document:' },
+          {
+            type: 'file',
+            data: 'https://example.com/doc.pdf',
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Compare these:' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image1.jpg' },
+      },
+      { type: 'text', text: 'And this document:' },
+      {
+        type: 'file',
+        url: 'https://example.com/doc.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should convert user messages with URL object for image', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'What is this?' },
+          {
+            type: 'image',
+            image: new URL('https://example.com/image.png'),
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.png' },
+      },
+    ]);
+  });
+
+  it('should convert image files (file type with image mediaType) using image_url format', () => {
+    const modelMessages: ModelMessage[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this photo.' },
+          {
+            type: 'file',
+            data: 'https://example.com/photo.jpg',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ];
+
+    const result = convertModelMessages(modelMessages);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeInstanceOf(HumanMessage);
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'Describe this photo.' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.jpg' },
+      },
+    ]);
   });
 
   it('should convert assistant messages with text content', () => {
@@ -1018,8 +1297,14 @@ describe('toBaseMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeInstanceOf(HumanMessage);
-    // Text content should be extracted
-    expect(result[0].content).toBe('What is in this image?');
+    // Image files are converted to OpenAI's image_url format
+    expect(result[0].content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
   });
 });
 
@@ -1348,6 +1633,362 @@ describe('toUIMessageStream', () => {
     expect(toolInputStartEvents[0]).toMatchObject({
       toolCallId: currentToolCall,
     });
+  });
+});
+
+describe('toUIMessageStream with streamEvents', () => {
+  it('should detect and handle streamEvents format', async () => {
+    // Simulate streamEvents output from agent.streamEvents()
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        data: { input: 'Hello' },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: 'Hello',
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'stream-msg-1',
+            content: ' World',
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_end',
+        data: {
+          output: {
+            id: 'stream-msg-1',
+            content: 'Hello World',
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "stream-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "delta": " World",
+          "id": "stream-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "stream-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with tool calls', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_start',
+        data: { input: 'What is the weather?' },
+      },
+      {
+        event: 'on_tool_start',
+        data: {
+          run_id: 'tool-call-123',
+          name: 'get_weather',
+          inputs: { city: 'SF' },
+        },
+      },
+      {
+        event: 'on_tool_end',
+        data: {
+          run_id: 'tool-call-123',
+          output: 'Sunny, 72°F',
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "tool-call-123",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "output": "Sunny, 72°F",
+          "toolCallId": "tool-call-123",
+          "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with reasoning content', async () => {
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'reasoning-msg-1',
+            content: '',
+            contentBlocks: [
+              { type: 'reasoning', reasoning: 'Let me think...' },
+            ],
+          },
+        },
+      },
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'reasoning-msg-1',
+            content: 'Here is my answer.',
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Let me think...",
+          "id": "reasoning-msg-1",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Here is my answer.",
+          "id": "reasoning-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "reasoning-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+
+  it('should handle streamEvents with array content', async () => {
+    // Test content as array of text blocks (common in some providers)
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: {
+          chunk: {
+            id: 'array-msg-1',
+            content: [
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ' from array' },
+            ],
+          },
+        },
+      },
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "start",
+        },
+        {
+          "id": "array-msg-1",
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello from array",
+          "id": "array-msg-1",
+          "type": "text-delta",
+        },
+        {
+          "id": "array-msg-1",
+          "type": "text-end",
+        },
+        {
+          "type": "finish",
+        },
+      ]
+    `);
+  });
+});
+
+describe('toUIMessageStream LangGraph finish events', () => {
+  it('should emit finish event for LangGraph streams', async () => {
+    const valuesData = {
+      messages: [
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: 'Hello!',
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have finish event at the end
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishEvents).toHaveLength(1);
+    expect(result[result.length - 1]).toEqual({ type: 'finish' });
+  });
+
+  it('should emit finish-step and finish events for LangGraph streams with steps', async () => {
+    const chunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk, { langgraph_step: 0 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have both start-step and finish-step
+    const startStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'start-step',
+    );
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+
+    expect(startStepEvents).toHaveLength(1);
+    expect(finishStepEvents).toHaveLength(1);
+    expect(finishEvents).toHaveLength(1);
+
+    // finish-step should come before finish
+    const finishStepIndex = result.findIndex(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    const finishIndex = result.findIndex(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishStepIndex).toBeLessThan(finishIndex);
+  });
+
+  it('should emit multiple finish-step events when steps change', async () => {
+    const chunk1 = new AIMessageChunk({ content: 'Step 0', id: 'msg-1' });
+    const chunk2 = new AIMessageChunk({ content: 'Step 1', id: 'msg-2' });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1, { langgraph_step: 0 }]],
+      ['messages', [chunk2, { langgraph_step: 1 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have 2 start-step events (one for each step)
+    // Should have 2 finish-step events (one when changing to step 1, one at stream end)
+    const startStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'start-step',
+    );
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+
+    expect(startStepEvents).toHaveLength(2);
+    expect(finishStepEvents).toHaveLength(2);
+  });
+
+  it('should not emit finish-step if no step was started', async () => {
+    const valuesData = {
+      messages: [
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: 'Hello!',
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should NOT have finish-step (no step was started)
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    expect(finishStepEvents).toHaveLength(0);
+
+    // But should still have finish
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishEvents).toHaveLength(1);
   });
 });
 
