@@ -1,0 +1,174 @@
+name: Update Gateway Model Settings
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+  pull_request:  # Temporary: for testing only
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-models:
+    name: Update Gateway Model Settings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository_owner == 'vercel'
+
+    steps:
+      - name: Create access token for GitHub App
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.VERCEL_AI_SDK_GITHUB_APP_PRIVATE_KEY_PKCS8 }}
+
+      - name: Get GitHub App User ID
+        id: app-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Configure git user for GitHub App
+        run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch and update language models
+        run: |
+          echo "Fetching language models..."
+          {
+            echo "export type GatewayModelId ="
+            echo "  | 'test/fake-model-for-workflow-testing'"
+            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "language") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
+            echo "  | (string & {});"
+          } > packages/gateway/src/gateway-language-model-settings.ts
+          echo "Language models updated"
+
+      - name: Fetch and update embedding models
+        run: |
+          echo "Fetching embedding models..."
+          {
+            echo "export type GatewayEmbeddingModelId ="
+            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "embedding") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
+            echo "  | (string & {});"
+          } > packages/gateway/src/gateway-embedding-model-settings.ts
+          echo "Embedding models updated"
+
+      - name: Fetch and update image models
+        run: |
+          echo "Fetching image models..."
+          {
+            echo "export type GatewayImageModelId ="
+            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "image") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
+            echo "  | (string & {});"
+          } > packages/gateway/src/gateway-image-model-settings.ts
+          echo "Image models updated"
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet packages/gateway/src/gateway-*-model-settings.ts; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+            echo "No changes detected in model settings"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected in model settings"
+            git diff --stat packages/gateway/src/gateway-*-model-settings.ts
+          fi
+
+      - name: Create changeset
+        if: steps.check-changes.outputs.has-changes == 'true'
+        run: |
+          # Generate a random changeset filename
+          CHANGESET_ID=$(openssl rand -hex 8)
+          CHANGESET_FILE=".changeset/${CHANGESET_ID}.md"
+
+          cat > "$CHANGESET_FILE" << 'EOF'
+          ---
+          "@ai-sdk/gateway": patch
+          ---
+
+          chore(provider/gateway): update gateway model settings files
+          EOF
+
+          echo "Created changeset: $CHANGESET_FILE"
+          cat "$CHANGESET_FILE"
+
+      - name: Create branch and commit changes
+        if: steps.check-changes.outputs.has-changes == 'true'
+        run: |
+          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "chore(provider/gateway): update gateway model settings files"
+          git push origin "$BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> "$GITHUB_ENV"
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.has-changes == 'true'
+        id: create-pr
+        run: |
+          PR_TITLE="chore(provider/gateway): update gateway model settings files"
+
+          PR_URL=$(gh pr create \
+            --title "$PR_TITLE" \
+            --body "This is an automated weekly update of the gateway model settings files.
+
+          Models fetched from: https://ai-gateway.vercel.sh/v1/models" \
+            --base main \
+            --head "$BRANCH_NAME")
+
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "pr-title=$PR_TITLE" >> "$GITHUB_OUTPUT"
+          echo "Changes updated, PR: $PR_URL"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: No changes
+        if: steps.check-changes.outputs.has-changes == 'false'
+        run: |
+          echo "No changes. Model settings are already up to date."
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          if [ "$HAS_CHANGES" == "true" ]; then
+            curl "$SLACK_SEND_MESSAGE_URL" -X POST -H "Content-Type: application/json" \
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"text\": \"<$URL|$TITLE> <@U0A54KMV02E>\"}"
+          else
+            curl "$SLACK_SEND_MESSAGE_URL" -X POST -H "Content-Type: application/json" \
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"number\": \"n/a\", \"title\": \"Gateway model settings auto-update completed. No changes detected.\", \"url\": \"n/a\"}"
+          fi
+        env:
+          SLACK_SEND_MESSAGE_URL: ${{ secrets.SLACK_SEND_MESSAGE_URL }}
+          CHANNEL_ID: "C0A7TF81HS5"
+          HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
+          NUMBER: ${{ steps.create-pr.outputs.pr-number }}
+          TITLE: ${{ steps.create-pr.outputs.pr-title }}
+          URL: ${{ steps.create-pr.outputs.pr-url }}
