@@ -1,6 +1,7 @@
 import { ProviderOptions, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
+import { context as otelContext } from '@opentelemetry/api';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -73,6 +74,8 @@ Only applicable for HTTP-based providers.
    */
   experimental_telemetry?: TelemetrySettings;
 }): Promise<EmbedResult> {
+  const capturedContext = otelContext.active();
+
   const model = resolveEmbeddingModel(modelArg);
 
   const { maxRetries, retry } = prepareRetries({
@@ -105,7 +108,8 @@ Only applicable for HTTP-based providers.
       },
     }),
     tracer,
-    fn: async span => {
+    parentContext: capturedContext,
+    fn: async (span, currentContext) => {
       const { embedding, usage, warnings, response, providerMetadata } =
         await retry(() =>
           // nested spans to align with the embedMany telemetry data:
@@ -124,6 +128,7 @@ Only applicable for HTTP-based providers.
               },
             }),
             tracer,
+            parentContext: currentContext,
             fn: async doEmbedSpan => {
               const modelResponse = await model.doEmbed({
                 values: [value],
