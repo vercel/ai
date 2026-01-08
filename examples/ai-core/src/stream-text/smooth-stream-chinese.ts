@@ -9,11 +9,11 @@ run(async () => {
         stream: simulateReadableStream({
           chunks: [
             { type: 'text-start', id: '0' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            { type: 'text-delta', id: '0', delta: '今天天气很好，' },
+            { type: 'text-delta', id: '0', delta: '我们一起去公园散步吧。' },
+            { type: 'text-delta', id: '0', delta: '春天的花朵非常美丽，' },
+            { type: 'text-delta', id: '0', delta: '阳光温暖而舒适。' },
+            { type: 'text-delta', id: '0', delta: '这是一个完美的周末。' },
             { type: 'text-end', id: '0' },
             {
               type: 'finish',
