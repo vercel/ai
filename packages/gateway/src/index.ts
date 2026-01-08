@@ -15,6 +15,19 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type { GatewayProviderOptions } from './gateway-provider-options';
+export { gatewayTools } from './gateway-tools';
+export {
+  perplexitySearch,
+  perplexitySearchToolFactory,
+} from './tool/perplexity-search';
+export type {
+  PerplexitySearchConfig,
+  PerplexitySearchError,
+  PerplexitySearchInput,
+  PerplexitySearchOutput,
+  PerplexitySearchResponse,
+  PerplexitySearchResult,
+} from './tool/perplexity-search';
 export {
   GatewayError,
   GatewayAuthenticationError,
