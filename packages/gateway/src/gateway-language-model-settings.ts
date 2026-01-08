@@ -1,4 +1,5 @@
 export type GatewayModelId =
+  | 'test/fake-model-for-workflow-testing'
   | 'alibaba/qwen-3-14b'
   | 'alibaba/qwen-3-235b'
   | 'alibaba/qwen-3-30b'
