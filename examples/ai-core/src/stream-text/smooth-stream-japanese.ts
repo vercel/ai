@@ -9,17 +9,11 @@ run(async () => {
         stream: simulateReadableStream({
           chunks: [
             { type: 'text-start', id: '0' },
-            { type: 'text-delta', id: '0', delta: '東京は日本の首都です。' },
-            { type: 'text-delta', id: '0', delta: '人口は約1400万人で、' },
             {
               type: 'text-delta',
               id: '0',
-              delta: '世界最大の都市圏の一つです。',
-            },
-            {
-              type: 'text-delta',
-              id: '0',
-              delta: '美しい桜の季節には多くの観光客が訪れます。',
+              delta:
+                '東京は日本の首都です。人口は約1400万人で、世界最大の都市圏の一つです。美しい桜の季節には多くの観光客が訪れます。',
             },
             { type: 'text-end', id: '0' },
             {
