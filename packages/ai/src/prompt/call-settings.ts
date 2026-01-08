@@ -2,8 +2,11 @@
 Timeout configuration for API calls. Can be specified as:
 - A number representing milliseconds
 - An object with `totalMs` property for the total timeout in milliseconds
+- An object with `stepMs` property for the timeout of each step in milliseconds
  */
-export type TimeoutConfiguration = number | { totalMs?: number };
+export type TimeoutConfiguration =
+  | number
+  | { totalMs?: number; stepMs?: number };
 
 /**
 Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
@@ -21,6 +24,21 @@ export function getTotalTimeoutMs(
     return timeout;
   }
   return timeout.totalMs;
+}
+
+/**
+Extracts the step timeout value in milliseconds from a TimeoutConfiguration.
+
+@param timeout - The timeout configuration.
+@returns The step timeout in milliseconds, or undefined if no step timeout is configured.
+ */
+export function getStepTimeoutMs(
+  timeout: TimeoutConfiguration | undefined,
+): number | undefined {
+  if (timeout == null || typeof timeout === 'number') {
+    return undefined;
+  }
+  return timeout.stepMs;
 }
 
 export type CallSettings = {

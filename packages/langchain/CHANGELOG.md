@@ -1,5 +1,45 @@
 # @ai-sdk/langchain
 
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
+## 2.0.27
+
+### Patch Changes
+
+- 6251282: fix(langchain): ensure message id consistency
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [f0d29de]
+  - ai@6.0.22
+
+## 2.0.25
+
+### Patch Changes
+
+- 3f81ea8: fix(langchain): emit finish and finish-step events for LangGraph streams
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [9667780]
+  - ai@6.0.21
+
+## 2.0.23
+
+### Patch Changes
+
+- 78683c1: fix(langchain): add multimodal support to convertUserContent
+
 ## 2.0.22
 
 ### Patch Changes

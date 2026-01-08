@@ -4,11 +4,31 @@ This example demonstrates how to use the [AI SDK](https://ai-sdk.dev/docs) with 
 
 ## Examples Included
 
-### 1. Chat (`/`)
+### 1. Basic Chat (`/`)
 
 Basic chat example using LangChain's `ChatOpenAI` with message streaming and the `@ai-sdk/langchain` adapter.
 
-### 2. LangGraph (`/langgraph`)
+### 2. Text Completion (`/completion`)
+
+Simple text completion using the `useCompletion` hook with LangChain streaming:
+
+- **`useCompletion`**: Uses AI SDK's completion hook for single-turn text generation
+- **Streaming**: Real-time token streaming from LangChain's `ChatOpenAI`
+- **`toUIMessageStream`**: Converts LangChain stream to AI SDK format
+
+```typescript
+import { ChatOpenAI } from '@langchain/openai';
+import { toUIMessageStream } from '@ai-sdk/langchain';
+
+const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
+const stream = await model.stream([{ role: 'user', content: prompt }]);
+
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream(stream),
+});
+```
+
+### 3. LangGraph (`/langgraph`)
 
 Demonstrates the `@ai-sdk/langchain` adapter with LangGraph:
 
@@ -17,25 +37,81 @@ Demonstrates the `@ai-sdk/langchain` adapter with LangGraph:
 
 This example shows how to integrate a LangGraph agent with the AI SDK's `useChat` hook.
 
-### 3. streamEvents (`/stream-events`)
+### 4. Multimodal Vision Input (`/multimodal`)
 
-Demonstrates using `streamEvents()` for granular, semantic event streaming:
+Demonstrates sending images to the model for analysis using the `@ai-sdk/langchain` adapter:
 
-- **Semantic events**: Get typed events like `on_chat_model_stream`, `on_tool_start`, `on_chain_end`
-- **Debugging**: Useful for observability and understanding what's happening inside chains
-- **LCEL migration**: Ideal when migrating LangChain Expression Language apps that use callbacks
+- **Image upload**: Attach images directly in the chat interface
+- **Vision analysis**: Uses GPT-4o's vision capabilities to analyze images
+- **Multimodal conversion**: The adapter converts images to OpenAI's `image_url` format for vision models
 
-See [Choosing Between stream() and streamEvents()](#choosing-between-stream-and-streamevents) below for guidance.
+This example showcases the multimodal input support in `convertUserContent()` which handles images and files.
 
-### 4. LangChain Agent (`/createAgent`)
+### 5. Image Generation Output (`/image-generation`)
+
+Demonstrates generating images as multimodal output using OpenAI's image generation tool:
+
+- **Responses API**: Uses `ChatOpenAI` with `useResponsesApi: true` to access built-in tools
+- **Image generation tool**: Uses `tools.imageGeneration()` from `@langchain/openai`
+- **Streaming output**: Generated images are streamed back as part of the response
+- **AI SDK integration**: Images are rendered using the standard message parts system
+
+```typescript
+import { ChatOpenAI, tools } from '@langchain/openai';
+
+const model = new ChatOpenAI({
+  model: 'gpt-4o',
+  useResponsesApi: true,
+});
+
+const modelWithImageGeneration = model.bindTools([
+  tools.imageGeneration({
+    size: '1024x1024',
+    quality: 'medium',
+    outputFormat: 'png',
+  }),
+]);
+```
+
+### 6. ReAct Agent (`/createAgent`)
 
 Showcases LangChain's `createAgent` with the AI SDK adapter:
 
 - Create agents with LangChain's `createAgent()`
 - Define tools with `@langchain/core/tools`
 - Stream responses using `toUIMessageStream`
+- **Image generation**: Uses OpenAI's [Image Generation Tool](https://docs.langchain.com/oss/javascript/integrations/tools/openai#image-generation-tool) to create images
 
-### 5. Custom Data Parts (`/custom-data`)
+### 7. Human-in-the-Loop (`/hitl`)
+
+Demonstrates LangChain's `humanInTheLoopMiddleware` for requiring user approval before executing sensitive tool actions:
+
+- **`humanInTheLoopMiddleware`**: Middleware that intercepts tool calls and requests user approval
+- **Selective approval**: Configure which tools require approval vs auto-approve
+- **Approval workflow**: Uses `addToolApprovalResponse` with AI SDK's `dynamic-tool` parts
+- **Thread persistence**: Uses `MemorySaver` to maintain conversation state across approvals
+
+```typescript
+import { createAgent, humanInTheLoopMiddleware } from 'langchain';
+import { MemorySaver } from '@langchain/langgraph';
+
+const agent = createAgent({
+  model,
+  tools: [sendEmailTool, deleteFileTool, searchTool],
+  checkpointer: new MemorySaver(),
+  middleware: [
+    humanInTheLoopMiddleware({
+      interruptOn: {
+        send_email: { allowedDecisions: ['approve', 'edit', 'reject'] },
+        delete_file: { allowedDecisions: ['approve', 'reject'] },
+        search: false, // Auto-approve safe operations
+      },
+    }),
+  ],
+});
+```
+
+### 8. Custom Data Parts (`/custom-data`)
 
 Demonstrates custom streaming events from LangGraph tools:
 
@@ -44,7 +120,7 @@ Demonstrates custom streaming events from LangGraph tools:
 - Include `id` field to persist data in `message.parts` for rendering
 - Transient data (no `id`) is delivered via `onData` callback only
 
-### 6. LangGraph Transport (`/langsmith`)
+### 9. LangGraph Transport (`/langsmith`)
 
 Connect directly to a LangGraph app from the browser using `LangSmithDeploymentTransport`:
 
@@ -111,26 +187,6 @@ const stream = await graph.stream(
 // Return UI stream response
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(stream),
-});
-```
-
-### Streaming with streamEvents
-
-```typescript
-import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
-import { ChatOpenAI } from '@langchain/openai';
-
-const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
-const langchainMessages = await toBaseMessages(messages);
-
-// Use streamEvents for semantic event streaming
-const streamEvents = model.streamEvents(langchainMessages, {
-  version: 'v2',
-});
-
-// The adapter auto-detects streamEvents format
-return createUIMessageStreamResponse({
-  stream: toUIMessageStream(streamEvents),
 });
 ```
 
