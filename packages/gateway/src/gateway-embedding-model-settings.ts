@@ -1,4 +1,5 @@
 export type GatewayEmbeddingModelId =
+  | 'test/fake-model-for-workflow-testing'
   | 'alibaba/qwen3-embedding-0.6b'
   | 'alibaba/qwen3-embedding-4b'
   | 'alibaba/qwen3-embedding-8b'
