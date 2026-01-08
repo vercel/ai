@@ -16,7 +16,11 @@ import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
-import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
+import {
+  CallSettings,
+  getStepTimeoutMs,
+  getTotalTimeoutMs,
+} from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -305,9 +309,13 @@ A function that attempts to repair a tool call that failed to parse.
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
+  const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const stepAbortController =
+    stepTimeoutMs != null ? new AbortController() : undefined;
   const mergedAbortSignal = mergeAbortSignals(
     abortSignal,
     totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+    stepAbortController?.signal,
   );
 
   const { maxRetries, retry } = prepareRetries({
@@ -473,98 +481,106 @@ A function that attempts to repair a tool call that failed to parse.
         >();
 
         do {
-          const stepInputMessages = [...initialMessages, ...responseMessages];
+          // Set up step timeout if configured
+          const stepTimeoutId =
+            stepTimeoutMs != null
+              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+              : undefined;
 
-          const prepareStepResult = await prepareStep?.({
-            model,
-            steps,
-            stepNumber: steps.length,
-            messages: stepInputMessages,
-            experimental_context,
-          });
+          try {
+            const stepInputMessages = [...initialMessages, ...responseMessages];
 
-          const stepModel = resolveLanguageModel(
-            prepareStepResult?.model ?? model,
-          );
-
-          const promptMessages = await convertToLanguageModelPrompt({
-            prompt: {
-              system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: prepareStepResult?.messages ?? stepInputMessages,
-            },
-            supportedUrls: await stepModel.supportedUrls,
-            download,
-          });
-
-          experimental_context =
-            prepareStepResult?.experimental_context ?? experimental_context;
-
-          const { toolChoice: stepToolChoice, tools: stepTools } =
-            await prepareToolsAndToolChoice({
-              tools,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+            const prepareStepResult = await prepareStep?.({
+              model,
+              steps,
+              stepNumber: steps.length,
+              messages: stepInputMessages,
+              experimental_context,
             });
 
-          currentModelResponse = await retry(() =>
-            recordSpan({
-              name: 'ai.generateText.doGenerate',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.generateText.doGenerate',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  // model:
-                  'ai.model.provider': stepModel.provider,
-                  'ai.model.id': stepModel.modelId,
-                  // prompt:
-                  'ai.prompt.messages': {
-                    input: () => stringifyForTelemetry(promptMessages),
-                  },
-                  'ai.prompt.tools': {
-                    // convert the language model level tools:
-                    input: () => stepTools?.map(tool => JSON.stringify(tool)),
-                  },
-                  'ai.prompt.toolChoice': {
-                    input: () =>
-                      stepToolChoice != null
-                        ? JSON.stringify(stepToolChoice)
-                        : undefined,
-                  },
+            const stepModel = resolveLanguageModel(
+              prepareStepResult?.model ?? model,
+            );
 
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.system': stepModel.provider,
-                  'gen_ai.request.model': stepModel.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.stop_sequences': settings.stopSequences,
-                  'gen_ai.request.temperature':
-                    settings.temperature ?? undefined,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
-                },
-              }),
-              tracer,
-              fn: async span => {
-                const stepProviderOptions = mergeObjects(
-                  providerOptions,
-                  prepareStepResult?.providerOptions,
-                );
+            const promptMessages = await convertToLanguageModelPrompt({
+              prompt: {
+                system: prepareStepResult?.system ?? initialPrompt.system,
+                messages: prepareStepResult?.messages ?? stepInputMessages,
+              },
+              supportedUrls: await stepModel.supportedUrls,
+              download,
+            });
 
-                const result = await stepModel.doGenerate({
-                  ...callSettings,
-                  tools: stepTools,
-                  toolChoice: stepToolChoice,
-                  responseFormat: await output?.responseFormat,
-                  prompt: promptMessages,
-                  providerOptions: stepProviderOptions,
-                  abortSignal: mergedAbortSignal,
-                  headers: headersWithUserAgent,
-                });
+            experimental_context =
+              prepareStepResult?.experimental_context ?? experimental_context;
+
+            const { toolChoice: stepToolChoice, tools: stepTools } =
+              await prepareToolsAndToolChoice({
+                tools,
+                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                activeTools: prepareStepResult?.activeTools ?? activeTools,
+              });
+
+            currentModelResponse = await retry(() =>
+              recordSpan({
+                name: 'ai.generateText.doGenerate',
+                attributes: selectTelemetryAttributes({
+                  telemetry,
+                  attributes: {
+                    ...assembleOperationName({
+                      operationId: 'ai.generateText.doGenerate',
+                      telemetry,
+                    }),
+                    ...baseTelemetryAttributes,
+                    // model:
+                    'ai.model.provider': stepModel.provider,
+                    'ai.model.id': stepModel.modelId,
+                    // prompt:
+                    'ai.prompt.messages': {
+                      input: () => stringifyForTelemetry(promptMessages),
+                    },
+                    'ai.prompt.tools': {
+                      // convert the language model level tools:
+                      input: () => stepTools?.map(tool => JSON.stringify(tool)),
+                    },
+                    'ai.prompt.toolChoice': {
+                      input: () =>
+                        stepToolChoice != null
+                          ? JSON.stringify(stepToolChoice)
+                          : undefined,
+                    },
+
+                    // standardized gen-ai llm span attributes:
+                    'gen_ai.system': stepModel.provider,
+                    'gen_ai.request.model': stepModel.modelId,
+                    'gen_ai.request.frequency_penalty':
+                      settings.frequencyPenalty,
+                    'gen_ai.request.max_tokens': settings.maxOutputTokens,
+                    'gen_ai.request.presence_penalty': settings.presencePenalty,
+                    'gen_ai.request.stop_sequences': settings.stopSequences,
+                    'gen_ai.request.temperature':
+                      settings.temperature ?? undefined,
+                    'gen_ai.request.top_k': settings.topK,
+                    'gen_ai.request.top_p': settings.topP,
+                  },
+                }),
+                tracer,
+                fn: async span => {
+                  const stepProviderOptions = mergeObjects(
+                    providerOptions,
+                    prepareStepResult?.providerOptions,
+                  );
+
+                  const result = await stepModel.doGenerate({
+                    ...callSettings,
+                    tools: stepTools,
+                    toolChoice: stepToolChoice,
+                    responseFormat: await output?.responseFormat,
+                    prompt: promptMessages,
+                    providerOptions: stepProviderOptions,
+                    abortSignal: mergedAbortSignal,
+                    headers: headersWithUserAgent,
+                  });
 
                 // Fill in default values:
                 const responseData = {
@@ -796,8 +812,13 @@ A function that attempts to repair a tool call that failed to parse.
             model: stepModel.modelId,
           });
 
-          steps.push(currentStepResult);
-          await onStepFinish?.(currentStepResult);
+            steps.push(currentStepResult);
+            await onStepFinish?.(currentStepResult);
+          } finally {
+            if (stepTimeoutId != null) {
+              clearTimeout(stepTimeoutId);
+            }
+          }
         } while (
           // Continue if:
           // 1. There are client tool calls that have all been executed, OR
