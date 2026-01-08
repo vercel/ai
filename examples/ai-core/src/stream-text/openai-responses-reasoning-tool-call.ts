@@ -1,9 +1,9 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai.responses('o3-mini'),
     stopWhen: stepCountIs(10),
@@ -136,6 +136,4 @@ async function main() {
     console.log(`Step ${i}:`, JSON.stringify(message, null, 2));
   }
   console.log('MESSAGES FINISH');
-}
-
-main().catch(console.error);
+});

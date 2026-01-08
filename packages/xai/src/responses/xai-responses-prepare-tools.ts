@@ -127,11 +127,9 @@ export async function prepareResponsesTools({
     } else {
       xaiTools.push({
         type: 'function',
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-        },
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.inputSchema,
       });
     }
   }

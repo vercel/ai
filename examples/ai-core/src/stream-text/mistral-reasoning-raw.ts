@@ -1,8 +1,8 @@
 import { mistral } from '@ai-sdk/mistral';
 import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
       model: mistral('magistral-small-2506'),
@@ -38,6 +38,4 @@ async function main() {
   console.log();
   console.log();
   console.log('Usage:', await result.usage);
-}
-
-main().catch(console.error);
+});

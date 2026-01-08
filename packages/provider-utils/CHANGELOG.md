@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- 0b429d4: fix(provider-utils): handle anyOf/allOf/oneOf and definitions in addAdditionalPropertiesToJsonSchema
+
 ## 4.0.2
 
 ### Patch Changes

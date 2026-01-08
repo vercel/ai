@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import fs from 'node:fs';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-flash-image-preview'),
     prompt:
@@ -25,6 +25,4 @@ async function main() {
   console.log();
   console.log('token usage:', result.usage);
   console.log('finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

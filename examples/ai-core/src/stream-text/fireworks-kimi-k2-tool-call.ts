@@ -1,11 +1,11 @@
 import { fireworks } from '@ai-sdk/fireworks';
 import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
@@ -78,6 +78,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

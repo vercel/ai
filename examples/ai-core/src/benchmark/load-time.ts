@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import { appendFileSync } from 'fs';
+import { run } from '../lib/run';
 
 const moduleName = process.argv[2];
 
@@ -42,7 +43,7 @@ console.log(t1 - t0);
   });
 }
 
-async function main() {
+run(async () => {
   const times: number[] = [];
   const iterations = 50;
 
@@ -89,6 +90,4 @@ async function main() {
       console.error('Failed to write to GitHub Actions output:', error);
     }
   }
-}
-
-main().catch(console.error);
+});

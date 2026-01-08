@@ -1,9 +1,9 @@
 import { groq } from '@ai-sdk/groq';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: groq('llama-3.1-70b-versatile'),
     schema: z.object({
@@ -28,6 +28,4 @@ async function main() {
 
   console.log();
   console.log('Token usage:', await result.usage);
-}
-
-main().catch(console.error);
+});

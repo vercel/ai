@@ -1,9 +1,9 @@
 import { fal } from '@ai-sdk/fal';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { images } = await generateImage({
     model: fal.image('fal-ai/flux-pro/kontext/max'),
     prompt: {
@@ -14,6 +14,4 @@ async function main() {
     },
   });
   await presentImages(images);
-}
-
-main().catch(console.error);
+});

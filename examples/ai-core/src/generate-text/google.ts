@@ -1,8 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-3-flash-preview'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -18,6 +18,4 @@ async function main() {
     promptFeedback: googleMetadata?.promptFeedback,
     safetyRatings: googleMetadata?.safetyRatings,
   });
-}
-
-main().catch(console.error);
+});

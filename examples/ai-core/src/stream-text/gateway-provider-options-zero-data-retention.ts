@@ -1,8 +1,8 @@
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: 'openai/gpt-oss-120b',
     prompt: 'Tell me the history of the tenrec in a few sentences.',
@@ -24,6 +24,4 @@ async function main() {
     'Provider metadata:',
     JSON.stringify(await result.providerMetadata, null, 2),
   );
-}
-
-main().catch(console.error);
+});

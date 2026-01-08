@@ -1,6 +1,6 @@
-import 'dotenv/config';
 import { createVertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
 const vertexAnthropic = createVertexAnthropic({
   // example fetch wrapper that logs the URL:
@@ -13,13 +13,11 @@ const vertexAnthropic = createVertexAnthropic({
   },
 });
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

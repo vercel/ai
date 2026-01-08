@@ -6,6 +6,7 @@ import {
   Shield,
   Sparkles,
   Activity,
+  Radio,
   LucideIcon,
 } from 'lucide-react';
 
@@ -35,6 +36,12 @@ export const navItems: NavItem[] = [
     label: 'LangGraph',
     description: 'StateGraph with streaming',
     icon: Cpu,
+  },
+  {
+    href: '/stream-events',
+    label: 'streamEvents',
+    description: 'Semantic event streaming',
+    icon: Radio,
   },
   {
     href: '/createAgent',

@@ -4,9 +4,9 @@ import {
   generateText,
   wrapLanguageModel,
 } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: wrapLanguageModel({
       model: huggingface('deepseek-ai/DeepSeek-R1'),
@@ -22,6 +22,4 @@ async function main() {
   console.log(result.reasoning);
   console.log();
   console.log('Token usage:', result.usage);
-}
-
-main().catch(console.error);
+});

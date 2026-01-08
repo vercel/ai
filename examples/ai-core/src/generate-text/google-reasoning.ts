@@ -1,8 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-pro'),
     prompt: 'How many "r"s are in the word "strawberry"?',
@@ -12,6 +12,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

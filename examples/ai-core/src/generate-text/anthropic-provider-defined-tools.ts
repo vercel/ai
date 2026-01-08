@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
     prompt: 'Search for recent information about AI SDK development',
@@ -33,6 +33,4 @@ async function main() {
     console.log(`- Tool: ${toolCall.toolName}`);
     console.log(`- Input:`, JSON.stringify(toolCall.input, null, 2));
   }
-}
-
-main().catch(console.error);
+});

@@ -1,6 +1,6 @@
 import { createAzure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 // Initialize Azure OpenAI provider
 const azure = createAzure({
@@ -8,7 +8,7 @@ const azure = createAzure({
   apiKey: process.env.AZURE_API_KEY,
 });
 
-async function main() {
+run(async () => {
   // Basic text generation
   const basicResult = await generateText({
     model: azure.responses('gpt-4.1-mini'),
@@ -17,6 +17,4 @@ async function main() {
 
   console.log('\n=== Basic Text Generation ===');
   console.log(basicResult.text);
-}
-
-main().catch(console.error);
+});

@@ -6,7 +6,6 @@ import {
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
-import 'dotenv/config';
 
 run(async () => {
   const imageBuffer = readFileSync('data/comic-cat.png');

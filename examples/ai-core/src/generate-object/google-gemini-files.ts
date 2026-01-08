@@ -2,10 +2,10 @@ import { GoogleAIFileManager } from '@google/generative-ai/server';
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import path from 'path';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const fileManager = new GoogleAIFileManager(
     process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
   );
@@ -42,6 +42,4 @@ async function main() {
   });
 
   console.log(summary);
-}
-
-main().catch(console.error);
+});

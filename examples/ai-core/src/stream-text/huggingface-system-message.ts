@@ -1,8 +1,8 @@
 import { huggingface } from '@ai-sdk/huggingface';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: huggingface('meta-llama/Llama-3.1-8B-Instruct'),
     system:
@@ -16,6 +16,4 @@ async function main() {
 
   console.log();
   console.log('Token usage:', await result.usage);
-}
-
-main().catch(console.error);
+});

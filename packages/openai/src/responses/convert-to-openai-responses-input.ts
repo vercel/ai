@@ -37,6 +37,7 @@ export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
   systemMessageMode,
+  providerOptionsName,
   fileIdPrefixes,
   store,
   hasLocalShellTool = false,
@@ -46,6 +47,7 @@ export async function convertToOpenAIResponsesInput({
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  providerOptionsName: string;
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasLocalShellTool?: boolean;
@@ -113,7 +115,8 @@ export async function convertToOpenAIResponsesInput({
                         : {
                             image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
-                    detail: part.providerOptions?.openai?.imageDetail,
+                    detail:
+                      part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
@@ -151,7 +154,7 @@ export async function convertToOpenAIResponsesInput({
         for (const part of content) {
           switch (part.type) {
             case 'text': {
-              const id = part.providerOptions?.openai?.itemId as
+              const id = part.providerOptions?.[providerOptionsName]?.itemId as
                 | string
                 | undefined;
 
@@ -170,12 +173,16 @@ export async function convertToOpenAIResponsesInput({
               break;
             }
             case 'tool-call': {
-              const id = (part.providerOptions?.openai?.itemId ??
+              const id = (part.providerOptions?.[providerOptionsName]?.itemId ??
                 (
                   part as {
-                    providerMetadata?: { openai?: { itemId?: string } };
+                    providerMetadata?: {
+                      [providerOptionsName]?: { itemId?: string };
+                    };
                   }
-                ).providerMetadata?.openai?.itemId) as string | undefined;
+                ).providerMetadata?.[providerOptionsName]?.itemId) as
+                | string
+                | undefined;
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -264,9 +271,12 @@ export async function convertToOpenAIResponsesInput({
                 const itemId =
                   (
                     part as {
-                      providerMetadata?: { openai?: { itemId?: string } };
+                      providerMetadata?: {
+                        [providerOptionsName]?: { itemId?: string };
+                      };
                     }
-                  ).providerMetadata?.openai?.itemId ?? part.toolCallId;
+                  ).providerMetadata?.[providerOptionsName]?.itemId ??
+                  part.toolCallId;
                 input.push({ type: 'item_reference', id: itemId });
               } else {
                 warnings.push({
@@ -280,7 +290,7 @@ export async function convertToOpenAIResponsesInput({
 
             case 'reasoning': {
               const providerOptions = await parseProviderOptions({
-                provider: 'openai',
+                provider: providerOptionsName,
                 providerOptions: part.providerOptions,
                 schema: openaiResponsesReasoningProviderOptionsSchema,
               });
@@ -487,6 +497,13 @@ export async function convertToOpenAIResponsesInput({
                       return {
                         type: 'input_image' as const,
                         image_url: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'image-url': {
+                      return {
+                        type: 'input_image' as const,
+                        image_url: item.url,
                       };
                     }
 

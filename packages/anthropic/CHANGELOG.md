@@ -1,5 +1,62 @@
 # @ai-sdk/anthropic
 
+## 3.0.9
+
+### Patch Changes
+
+- de2399b: fix(anthropic): assign type urls in file parts correctly
+
+## 3.0.8
+
+### Patch Changes
+
+- bee4f82: fix(anthropic): enable structured output support for claude-haiku-4-5
+
+  This fixes an issue where the `strict: true` property was not included in the request body when using tools with Claude Haiku 4.5, because `supportsStructuredOutput` was incorrectly set to `false` for this model.
+
+  Claude Haiku 4.5 supports structured outputs, so the `strict` property should be forwarded to the Anthropic API when specified on tools.
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.6
+
+### Patch Changes
+
+- 2231e84: fix(anthropic): implement temperature/topP mutual exclusivity
+
+  Resolves the Anthropic API breaking change where sampling parameters must use only `temperature` OR `top_p`, not both. When both parameters are provided:
+
+  - Temperature takes priority and topP is ignored
+  - A warning is added to inform users: "topP is not supported when temperature is set. topP is ignored."
+  - The validation only runs when thinking mode is not enabled (thinking mode has its own parameter validation)
+
+  See Anthropic migration guide: https://platform.claude.com/docs/en/about-claude/models/migrating-to-claude-4
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 3.0.4
+
+### Patch Changes
+
+- bf39dac: Fix: Use provider tool name in Tool Search Tool results
+
+## 3.0.3
+
+### Patch Changes
+
+- 77b760d: fix(anthropic): support deferred results for web search/fetch tool
+
 ## 3.0.2
 
 ### Patch Changes

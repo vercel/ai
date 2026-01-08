@@ -1,5 +1,52 @@
 # @ai-sdk/xai
 
+## 3.0.10
+
+### Patch Changes
+
+- 659c53d: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+
+## 3.0.9
+
+### Patch Changes
+
+- 173dcfd: added support for streaming custom tool input chunks in xAI
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/openai-compatible@2.0.4
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.7
+
+### Patch Changes
+
+- 23179aa: fix (provider/xai): use correct format for function tools
+
+## 3.0.6
+
+### Patch Changes
+
+- 77012ef: fix(xai): correct token counting for reasoning models to prevent negative text_output_tokens
+
+## 3.0.5
+
+### Patch Changes
+
+- e7f0a6f: fix(xai): add missing stream response schema and provider tool name parsing
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/openai-compatible@2.0.3
+
 ## 3.0.3
 
 ### Patch Changes

@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3FinishReason,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -18,7 +17,7 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -67,6 +66,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -231,6 +231,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -253,6 +254,7 @@ export function streamText<
   messages,
   maxRetries,
   abortSignal,
+  timeout,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -430,13 +432,17 @@ Internal. For test use only. May change without notice.
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
     maxRetries,
-    abortSignal,
+    abortSignal: mergeAbortSignals(
+      abortSignal,
+      totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+    ),
     system,
     prompt,
     messages,
@@ -909,9 +915,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const error = new NoOutputGeneratedError({
-              message: 'No output generated. Check the stream for errors.',
-            });
+            const error = abortSignal?.aborted
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                  message: 'No output generated. Check the stream for errors.',
+                });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1011,7 +1019,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         // abort handling:
         function abort() {
           onAbort?.({ steps: recordedSteps });
-          controller.enqueue({ type: 'abort' });
+          controller.enqueue({
+            type: 'abort',
+            // The `reason` is usually of type DOMException, but it can also be of any type,
+            // so we use getErrorMessage for serialization because it is already designed to accept values of the unknown type.
+            // See: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/reason
+            ...(abortSignal?.reason !== undefined
+              ? { reason: getErrorMessage(abortSignal.reason) }
+              : {}),
+          });
           controller.close();
         }
 

@@ -1,7 +1,8 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertex('gemini-2.5-flash-preview-04-17'),
     prompt:
@@ -24,6 +25,4 @@ async function main() {
 
   console.log();
   console.log('Warnings:', result.warnings);
-}
-
-main().catch(console.log);
+});
