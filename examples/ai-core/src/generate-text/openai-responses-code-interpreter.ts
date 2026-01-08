@@ -1,4 +1,8 @@
-import { openai, OpenaiResponsesSourceDocumentProviderMetadata, OpenaiResponsesTextProviderMetadata } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenaiResponsesSourceDocumentProviderMetadata,
+  type OpenaiResponsesTextProviderMetadata,
+} from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../lib/run';
@@ -61,5 +65,4 @@ run(async () => {
       containerFile.fileId,
     );
   }
-
 });

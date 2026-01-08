@@ -1,6 +1,7 @@
-import { azure,
+import {
+  azure,
   type AzureResponsesSourceDocumentProviderMetadata,
-  type AzureResponsesTextProviderMetadata
+  type AzureResponsesTextProviderMetadata,
 } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { z } from 'zod/v4';
@@ -18,7 +19,6 @@ const azureResponsesTextProviderMetadataSchema =
   z.custom<AzureResponsesTextProviderMetadata>();
 const azureResponsesSourceDocumentProviderMetadataSchema =
   z.custom<AzureResponsesSourceDocumentProviderMetadata>();
-
 
 run(async () => {
   // Basic text generation
@@ -74,5 +74,4 @@ run(async () => {
       containerFile.fileId,
     );
   }
-
 });
