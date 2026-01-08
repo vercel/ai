@@ -60,8 +60,43 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
+  // Create a single ref for all callbacks to avoid stale closures
+  const callbacksRef = useRef(
+    !('chat' in options)
+      ? {
+          onToolCall: options.onToolCall,
+          onData: options.onData,
+          onFinish: options.onFinish,
+          onError: options.onError,
+          sendAutomaticallyWhen: options.sendAutomaticallyWhen,
+        }
+      : {},
+  );
+
+  // Update callbacks ref on each render to keep them current
+  if (!('chat' in options)) {
+    callbacksRef.current = {
+      onToolCall: options.onToolCall,
+      onData: options.onData,
+      onFinish: options.onFinish,
+      onError: options.onError,
+      sendAutomaticallyWhen: options.sendAutomaticallyWhen,
+    };
+  }
+
+  // Ensure the Chat instance has the latest callbacks
+  const optionsWithCallbacks: typeof options = {
+    ...options,
+    onToolCall: arg => callbacksRef.current.onToolCall?.(arg),
+    onData: arg => callbacksRef.current.onData?.(arg),
+    onFinish: arg => callbacksRef.current.onFinish?.(arg),
+    onError: arg => callbacksRef.current.onError?.(arg),
+    sendAutomaticallyWhen: arg =>
+      callbacksRef.current.sendAutomaticallyWhen?.(arg) ?? false,
+  };
+
   const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(options),
+    'chat' in options ? options.chat : new Chat(optionsWithCallbacks),
   );
 
   const shouldRecreateChat =
@@ -69,7 +104,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     ('id' in options && chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
-    chatRef.current = 'chat' in options ? options.chat : new Chat(options);
+    chatRef.current =
+      'chat' in options ? options.chat : new Chat(optionsWithCallbacks);
   }
 
   const subscribeToMessages = useCallback(
@@ -115,25 +151,6 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       chatRef.current.resumeStream();
     }
   }, [resume, chatRef]);
-
-  // Keep callbacks up-to-date to avoid stale closures without recreating the chat instance
-  if (chatRef.current) {
-    if ('onToolCall' in options) {
-      chatRef.current.setOnToolCall(options.onToolCall);
-    }
-    if ('onData' in options) {
-      chatRef.current.setOnData(options.onData);
-    }
-    if ('onFinish' in options) {
-      chatRef.current.setOnFinish(options.onFinish);
-    }
-    if ('onError' in options) {
-      chatRef.current.setOnError(options.onError);
-    }
-    if ('sendAutomaticallyWhen' in options) {
-      chatRef.current.setSendAutomaticallyWhen(options.sendAutomaticallyWhen);
-    }
-  }
 
   return {
     id: chatRef.current.id,
