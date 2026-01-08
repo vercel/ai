@@ -1,12 +1,12 @@
-import 'dotenv/config';
 import { generateText, Output } from 'ai';
 import { xai } from '@ai-sdk/xai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
-  const { experimental_output } = await generateText({
+run(async () => {
+  const { output } = await generateText({
     model: xai('grok-3-beta'),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         name: z.string(),
         age: z.number().nullable().describe('Age of the person.'),
@@ -23,6 +23,4 @@ async function main() {
     }),
     prompt: 'Generate an example person for testing.',
   });
-}
-
-main().catch(console.error);
+});

@@ -11,12 +11,13 @@ import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
-  options?: { isGemmaModel?: boolean },
+  options?: { isGemmaModel?: boolean; providerOptionsName?: string },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const providerOptionsName = options?.providerOptionsName ?? 'google';
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -81,14 +82,19 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
+              const providerOpts = part.providerOptions?.[providerOptionsName];
+              const thoughtSignature =
+                providerOpts?.thoughtSignature != null
+                  ? String(providerOpts.thoughtSignature)
+                  : undefined;
+
               switch (part.type) {
                 case 'text': {
                   return part.text.length === 0
                     ? undefined
                     : {
                         text: part.text,
-                        thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature,
                       };
                 }
 
@@ -98,19 +104,11 @@ export function convertToGoogleGenerativeAIMessages(
                     : {
                         text: part.text,
                         thought: true,
-                        thoughtSignature:
-                          part.providerOptions?.google?.thoughtSignature,
+                        thoughtSignature,
                       };
                 }
 
                 case 'file': {
-                  if (part.mediaType !== 'image/png') {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'Only PNG images are supported in assistant messages',
-                    });
-                  }
-
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
                       functionality:
@@ -123,6 +121,7 @@ export function convertToGoogleGenerativeAIMessages(
                       mimeType: part.mediaType,
                       data: convertToBase64(part.data),
                     },
+                    thoughtSignature,
                   };
                 }
 
@@ -132,8 +131,7 @@ export function convertToGoogleGenerativeAIMessages(
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature:
-                      part.providerOptions?.google?.thoughtSignature,
+                    thoughtSignature,
                   };
                 }
               }
@@ -149,6 +147,9 @@ export function convertToGoogleGenerativeAIMessages(
         const parts: GoogleGenerativeAIContentPart[] = [];
 
         for (const part of content) {
+          if (part.type === 'tool-approval-response') {
+            continue;
+          }
           const output = part.output;
 
           if (output.type === 'content') {
@@ -165,7 +166,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   });
                   break;
-                case 'media':
+                case 'image-data':
                   parts.push(
                     {
                       inlineData: {

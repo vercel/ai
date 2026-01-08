@@ -1,16 +1,19 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+/**
+ * *** NOTICE ***
+ * The completion API may not be available.
+ */
+
+run(async () => {
   const result = streamText({
-    model: azure.completion('my-gpt-35-turbo-instruct-deployment'), // use your own deployment
+    model: azure.completion('gpt-35-turbo'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

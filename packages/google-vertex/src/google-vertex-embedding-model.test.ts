@@ -18,7 +18,7 @@ const dummyEmbeddings = [
 const testValues = ['test text one', 'test text two'];
 
 const DEFAULT_URL =
-  'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
+  'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google/models/textembedding-gecko@001:predict';
 
 const CUSTOM_URL =
   'https://custom-endpoint.com/models/textembedding-gecko@001:predict';
@@ -43,7 +43,7 @@ describe('GoogleVertexEmbeddingModel', () => {
     project: 'test-project',
     headers: () => ({}),
     baseURL:
-      'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
+      'https://us-central1-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/us-central1/publishers/google',
   };
 
   const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);
@@ -138,6 +138,27 @@ describe('GoogleVertexEmbeddingModel', () => {
     });
   });
 
+  it('should accept vertex as provider options key', async () => {
+    prepareJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { vertex: mockProviderOptions },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: mockProviderOptions.taskType,
+        title: mockProviderOptions.title,
+      })),
+      parameters: {
+        outputDimensionality: mockProviderOptions.outputDimensionality,
+        autoTruncate: mockProviderOptions.autoTruncate,
+      },
+    });
+  });
+
   it('should pass the taskType setting in instances', async () => {
     prepareJsonResponse();
 
@@ -182,7 +203,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       headers: { 'X-Custom-Header': 'custom-value' },
     });
 
-    await provider.textEmbeddingModel(mockModelId).doEmbed({
+    await provider.embeddingModel(mockModelId).doEmbed({
       values: testValues,
       headers: { 'X-Request-Header': 'request-value' },
       providerOptions: { google: mockProviderOptions },

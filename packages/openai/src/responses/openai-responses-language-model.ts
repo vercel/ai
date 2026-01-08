@@ -1,138 +1,92 @@
 import {
   APICallError,
+  JSONValue,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  LanguageModelV3Prompt,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3ProviderTool,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV3StreamResult,
+  LanguageModelV3ToolApprovalRequest,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  createToolNameMapping,
   generateId,
+  InferSchema,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { applyPatchInputSchema } from '../tool/apply-patch';
 import {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
 } from '../tool/code-interpreter';
 import { fileSearchOutputSchema } from '../tool/file-search';
 import { imageGenerationOutputSchema } from '../tool/image-generation';
+import { localShellInputSchema } from '../tool/local-shell';
+import { mcpOutputSchema } from '../tool/mcp';
+import { shellInputSchema } from '../tool/shell';
+import { webSearchOutputSchema } from '../tool/web-search';
+import {
+  convertOpenAIResponsesUsage,
+  OpenAIResponsesUsage,
+} from './convert-openai-responses-usage';
 import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import {
+  OpenAIResponsesChunk,
+  openaiResponsesChunkSchema,
   OpenAIResponsesIncludeOptions,
   OpenAIResponsesIncludeValue,
-} from './openai-responses-api-types';
+  OpenAIResponsesLogprobs,
+  openaiResponsesResponseSchema,
+  OpenAIResponsesWebSearchAction,
+  OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  OpenAIResponsesApplyPatchOperationDiffDoneChunk,
+} from './openai-responses-api';
+import {
+  OpenAIResponsesModelId,
+  openaiResponsesProviderOptionsSchema,
+  TOP_LOGPROBS_MAX,
+} from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
-import { OpenAIResponsesModelId } from './openai-responses-settings';
-import { localShellInputSchema } from '../tool/local-shell';
-
-const webSearchCallItem = z.object({
-  type: z.literal('web_search_call'),
-  id: z.string(),
-  status: z.string(),
-  action: z
-    .discriminatedUnion('type', [
-      z.object({
-        type: z.literal('search'),
-        query: z.string().nullish(),
-      }),
-      z.object({
-        type: z.literal('open_page'),
-        url: z.string(),
-      }),
-      z.object({
-        type: z.literal('find'),
-        url: z.string(),
-        pattern: z.string(),
-      }),
-    ])
-    .nullish(),
-});
-
-const fileSearchCallItem = z.object({
-  type: z.literal('file_search_call'),
-  id: z.string(),
-  queries: z.array(z.string()),
-  results: z
-    .array(
-      z.object({
-        attributes: z.record(z.string(), z.unknown()),
-        file_id: z.string(),
-        filename: z.string(),
-        score: z.number(),
-        text: z.string(),
-      }),
-    )
-    .nullish(),
-});
-
-const codeInterpreterCallItem = z.object({
-  type: z.literal('code_interpreter_call'),
-  id: z.string(),
-  code: z.string().nullable(),
-  container_id: z.string(),
-  outputs: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({ type: z.literal('logs'), logs: z.string() }),
-        z.object({ type: z.literal('image'), url: z.string() }),
-      ]),
-    )
-    .nullable(),
-});
-
-const localShellCallItem = z.object({
-  type: z.literal('local_shell_call'),
-  id: z.string(),
-  call_id: z.string(),
-  action: z.object({
-    type: z.literal('exec'),
-    command: z.array(z.string()),
-    timeout_ms: z.number().optional(),
-    user: z.string().optional(),
-    working_directory: z.string().optional(),
-    env: z.record(z.string(), z.string()).optional(),
-  }),
-});
-
-const imageGenerationCallItem = z.object({
-  type: z.literal('image_generation_call'),
-  id: z.string(),
-  result: z.string(),
-});
 
 /**
- * `top_logprobs` request body argument can be set to an integer between
- * 0 and 20 specifying the number of most likely tokens to return at each
- * token position, each with an associated log probability.
- *
- * @see https://platform.openai.com/docs/api-reference/responses/create#responses_create-top_logprobs
+ * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
+ * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
+ * the pending approval in our system. When the user responds to the approval (and we
+ * continue the conversation), we need to map the approval request ID back to our tool call ID
+ * so that tool results reference the correct tool call.
  */
-const TOP_LOGPROBS_MAX = 20;
-
-const LOGPROBS_SCHEMA = z.array(
-  z.object({
-    token: z.string(),
-    logprob: z.number(),
-    top_logprobs: z.array(
-      z.object({
-        token: z.string(),
-        logprob: z.number(),
-      }),
-    ),
-  }),
-);
+function extractApprovalRequestIdToToolCallIdMapping(
+  prompt: LanguageModelV3Prompt,
+): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  for (const message of prompt) {
+    if (message.role !== 'assistant') continue;
+    for (const part of message.content) {
+      if (part.type !== 'tool-call') continue;
+      const approvalRequestId = part.providerOptions?.openai
+        ?.approvalRequestId as string | undefined;
+      if (approvalRequestId != null) {
+        mapping[approvalRequestId] = part.toolCallId;
+      }
+    }
+  }
+  return mapping;
+}
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -169,66 +123,107 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
-    const modelConfig = getResponsesModelConfig(this.modelId);
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = [];
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
+      warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
     if (presencePenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'presencePenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'presencePenalty' });
     }
 
     if (frequencyPenalty != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'frequencyPenalty',
-      });
+      warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
 
     if (stopSequences != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const openaiOptions = await parseProviderOptions({
-      provider: 'openai',
+    const providerOptionsName = this.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let openaiOptions = await parseProviderOptions({
+      provider: providerOptionsName,
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
+    });
+
+    if (openaiOptions == null && providerOptionsName !== 'openai') {
+      openaiOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiResponsesProviderOptionsSchema,
+      });
+    }
+
+    const isReasoningModel =
+      openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
+
+    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'conversation',
+        details: 'conversation and previousResponseId cannot be used together',
+      });
+    }
+
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'openai.code_interpreter': 'code_interpreter',
+        'openai.file_search': 'file_search',
+        'openai.image_generation': 'image_generation',
+        'openai.local_shell': 'local_shell',
+        'openai.shell': 'shell',
+        'openai.web_search': 'web_search',
+        'openai.web_search_preview': 'web_search_preview',
+        'openai.mcp': 'mcp',
+        'openai.apply_patch': 'apply_patch',
+      },
     });
 
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
-        systemMessageMode: modelConfig.systemMessageMode,
+        toolNameMapping,
+        systemMessageMode:
+          openaiOptions?.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
+        providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
+        hasShellTool: hasOpenAITool('openai.shell'),
+        hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
       });
 
     warnings.push(...inputWarnings);
 
-    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
-      include = include != null ? [...include, key] : [key];
+      if (include == null) {
+        include = [key];
+      } else if (!include.includes(key)) {
+        include = [...include, key];
+      }
     }
 
     function hasOpenAITool(id: string) {
       return (
-        tools?.find(
-          tool => tool.type === 'provider-defined' && tool.id === id,
-        ) != null
+        tools?.find(tool => tool.type === 'provider' && tool.id === id) != null
       );
     }
 
@@ -248,10 +243,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const webSearchToolName = (
       tools?.find(
         tool =>
-          tool.type === 'provider-defined' &&
+          tool.type === 'provider' &&
           (tool.id === 'openai.web_search' ||
             tool.id === 'openai.web_search_preview'),
-      ) as LanguageModelV3ProviderDefinedTool | undefined
+      ) as LanguageModelV3ProviderTool | undefined
     )?.name;
 
     if (webSearchToolName) {
@@ -261,6 +256,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     // when a code interpreter tool is present, automatically include the outputs:
     if (hasOpenAITool('openai.code_interpreter')) {
       addInclude('code_interpreter_call.outputs');
+    }
+
+    const store = openaiOptions?.store;
+
+    // store defaults to true in the OpenAI responses API, so check for false exactly:
+    if (store === false && isReasoningModel) {
+      addInclude('reasoning.encrypted_content');
     }
 
     const baseArgs = {
@@ -291,21 +293,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }),
 
       // provider options:
+      conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
       previous_response_id: openaiOptions?.previousResponseId,
-      store: openaiOptions?.store,
+      store,
       user: openaiOptions?.user,
       instructions: openaiOptions?.instructions,
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
+      truncation: openaiOptions?.truncation,
 
       // model-specific settings:
-      ...(modelConfig.isReasoningModel &&
+      ...(isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
@@ -317,44 +322,50 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             }),
           },
         }),
-      ...(modelConfig.requiredAutoTruncation && {
-        truncation: 'auto',
-      }),
     };
 
-    if (modelConfig.isReasoningModel) {
-      // remove unsupported settings for reasoning models
-      // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
-      }
+    // remove unsupported settings for reasoning models
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
+    if (isReasoningModel) {
+      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        !(
+          openaiOptions?.reasoningEffort === 'none' &&
+          modelCapabilities.supportsNonReasoningParameters
+        )
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
 
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported',
+            feature: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'reasoningEffort',
+          type: 'unsupported',
+          feature: 'reasoningEffort',
           details: 'reasoningEffort is not supported for non-reasoning models',
         });
       }
 
       if (openaiOptions?.reasoningSummary != null) {
         warnings.push({
-          type: 'unsupported-setting',
-          setting: 'reasoningSummary',
+          type: 'unsupported',
+          feature: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
         });
       }
@@ -363,11 +374,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !modelConfig.supportsFlexProcessing
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'flex processing is only available for o3, o4-mini, and gpt-5 models',
       });
@@ -378,11 +389,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     // Validate priority processing support
     if (
       openaiOptions?.serviceTier === 'priority' &&
-      !modelConfig.supportsPriorityProcessing
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
+        type: 'unsupported',
+        feature: 'serviceTier',
         details:
           'priority processing is only available for supported models (gpt-4, gpt-5, gpt-5-mini, o3, o4-mini) and requires Enterprise access. gpt-5-nano is not supported',
       });
@@ -394,10 +405,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
       toolWarnings,
-    } = prepareResponsesTools({
+    } = await prepareResponsesTools({
       tools,
       toolChoice,
-      strictJsonSchema,
     });
 
     return {
@@ -408,21 +418,29 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      store,
+      toolNameMapping,
+      providerOptionsName,
     };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const {
       args: body,
       warnings,
       webSearchToolName,
+      toolNameMapping,
+      providerOptionsName,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
       modelId: this.modelId,
     });
+
+    const approvalRequestIdToDummyToolCallIdFromPrompt =
+      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
 
     const {
       responseHeaders,
@@ -434,87 +452,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
-        z.object({
-          id: z.string(),
-          created_at: z.number(),
-          error: z
-            .object({
-              code: z.string(),
-              message: z.string(),
-            })
-            .nullish(),
-          model: z.string(),
-          output: z.array(
-            z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('message'),
-                role: z.literal('assistant'),
-                id: z.string(),
-                content: z.array(
-                  z.object({
-                    type: z.literal('output_text'),
-                    text: z.string(),
-                    logprobs: LOGPROBS_SCHEMA.nullish(),
-                    annotations: z.array(
-                      z.discriminatedUnion('type', [
-                        z.object({
-                          type: z.literal('url_citation'),
-                          start_index: z.number(),
-                          end_index: z.number(),
-                          url: z.string(),
-                          title: z.string(),
-                        }),
-                        z.object({
-                          type: z.literal('file_citation'),
-                          file_id: z.string(),
-                          filename: z.string().nullish(),
-                          index: z.number().nullish(),
-                          start_index: z.number().nullish(),
-                          end_index: z.number().nullish(),
-                          quote: z.string().nullish(),
-                        }),
-                        z.object({
-                          type: z.literal('container_file_citation'),
-                        }),
-                      ]),
-                    ),
-                  }),
-                ),
-              }),
-              webSearchCallItem,
-              fileSearchCallItem,
-              codeInterpreterCallItem,
-              imageGenerationCallItem,
-              localShellCallItem,
-              z.object({
-                type: z.literal('function_call'),
-                call_id: z.string(),
-                name: z.string(),
-                arguments: z.string(),
-                id: z.string(),
-              }),
-              z.object({
-                type: z.literal('computer_call'),
-                id: z.string(),
-                status: z.string().optional(),
-              }),
-              z.object({
-                type: z.literal('reasoning'),
-                id: z.string(),
-                encrypted_content: z.string().nullish(),
-                summary: z.array(
-                  z.object({
-                    type: z.literal('summary_text'),
-                    text: z.string(),
-                  }),
-                ),
-              }),
-            ]),
-          ),
-          service_tier: z.string().nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: usageSchema,
-        }),
+        openaiResponsesResponseSchema,
       ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
@@ -533,13 +471,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const content: Array<LanguageModelV3Content> = [];
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
-    // map response content to content array
-    for (const part of response.output) {
+    // map response content to content array (defined when there is no error)
+    for (const part of response.output!) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:
@@ -552,7 +490,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-                openai: {
+                [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -566,7 +504,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'image_generation',
+            toolName: toolNameMapping.toCustomToolName('image_generation'),
             input: '{}',
             providerExecuted: true,
           });
@@ -574,11 +512,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'image_generation',
+            toolName: toolNameMapping.toCustomToolName('image_generation'),
             result: {
               result: part.result,
-            } satisfies z.infer<typeof imageGenerationOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof imageGenerationOutputSchema>,
           });
 
           break;
@@ -588,12 +525,32 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
-            toolName: 'local_shell',
-            input: JSON.stringify({ action: part.action } satisfies z.infer<
-              typeof localShellInputSchema
-            >),
+            toolName: toolNameMapping.toCustomToolName('local_shell'),
+            input: JSON.stringify({
+              action: part.action,
+            } satisfies InferSchema<typeof localShellInputSchema>),
             providerMetadata: {
-              openai: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+
+          break;
+        }
+
+        case 'shell_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('shell'),
+            input: JSON.stringify({
+              action: {
+                commands: part.action.commands,
+              },
+            } satisfies InferSchema<typeof shellInputSchema>),
+            providerMetadata: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -605,19 +562,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         case 'message': {
           for (const contentPart of part.content) {
             if (
-              options.providerOptions?.openai?.logprobs &&
+              options.providerOptions?.[providerOptionsName]?.logprobs &&
               contentPart.logprobs
             ) {
               logprobs.push(contentPart.logprobs);
             }
 
+            const providerMetadata: SharedV3ProviderMetadata[string] = {
+              itemId: part.id,
+              ...(contentPart.annotations.length > 0 && {
+                annotations: contentPart.annotations,
+              }),
+            };
+
             content.push({
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: {
-                  itemId: part.id,
-                },
+                [providerOptionsName]: providerMetadata,
               },
             });
 
@@ -638,6 +600,51 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   mediaType: 'text/plain',
                   title: annotation.quote ?? annotation.filename ?? 'Document',
                   filename: annotation.filename ?? annotation.file_id,
+                  ...(annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          [providerOptionsName]: {
+                            fileId: annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    annotation.filename ?? annotation.file_id ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      fileId: annotation.file_id,
+                      containerId: annotation.container_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (annotation.type === 'file_path') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: annotation.file_id,
+                  filename: annotation.file_id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      fileId: annotation.file_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             }
@@ -655,7 +662,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             toolName: part.name,
             input: part.arguments,
             providerMetadata: {
-              openai: {
+              [providerOptionsName]: {
                 itemId: part.id,
               },
             },
@@ -667,19 +674,91 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: webSearchToolName ?? 'web_search',
-            input: JSON.stringify({ action: part.action }),
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
+            input: JSON.stringify({}),
             providerExecuted: true,
           });
 
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: webSearchToolName ?? 'web_search',
-            result: { status: part.status },
-            providerExecuted: true,
+            toolName: toolNameMapping.toCustomToolName(
+              webSearchToolName ?? 'web_search',
+            ),
+            result: mapWebSearchOutput(part.action),
           });
 
+          break;
+        }
+
+        case 'mcp_call': {
+          const toolCallId =
+            part.approval_request_id != null
+              ? (approvalRequestIdToDummyToolCallIdFromPrompt[
+                  part.approval_request_id
+                ] ?? part.id)
+              : part.id;
+
+          const toolName = `mcp.${part.name}`;
+
+          content.push({
+            type: 'tool-call',
+            toolCallId,
+            toolName,
+            input: part.arguments,
+            providerExecuted: true,
+            dynamic: true,
+          });
+
+          content.push({
+            type: 'tool-result',
+            toolCallId,
+            toolName,
+            result: {
+              type: 'call',
+              serverLabel: part.server_label,
+              name: part.name,
+              arguments: part.arguments,
+              ...(part.output != null ? { output: part.output } : {}),
+              ...(part.error != null
+                ? { error: part.error as unknown as JSONValue }
+                : {}),
+            } satisfies InferSchema<typeof mcpOutputSchema>,
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+          break;
+        }
+
+        case 'mcp_list_tools': {
+          // skip
+          break;
+        }
+
+        case 'mcp_approval_request': {
+          const approvalRequestId = part.approval_request_id ?? part.id;
+          const dummyToolCallId = this.config.generateId?.() ?? generateId();
+          const toolName = `mcp.${part.name}`;
+
+          content.push({
+            type: 'tool-call',
+            toolCallId: dummyToolCallId,
+            toolName,
+            input: part.arguments,
+            providerExecuted: true,
+            dynamic: true,
+          });
+
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: approvalRequestId,
+            toolCallId: dummyToolCallId,
+          } satisfies LanguageModelV3ToolApprovalRequest);
           break;
         }
 
@@ -687,7 +766,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'computer_use',
+            toolName: toolNameMapping.toCustomToolName('computer_use'),
             input: '',
             providerExecuted: true,
           });
@@ -695,12 +774,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'computer_use',
+            toolName: toolNameMapping.toCustomToolName('computer_use'),
             result: {
               type: 'computer_use_tool_result',
               status: part.status || 'completed',
             },
-            providerExecuted: true,
           });
           break;
         }
@@ -709,7 +787,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'file_search',
+            toolName: toolNameMapping.toCustomToolName('file_search'),
             input: '{}',
             providerExecuted: true,
           });
@@ -717,7 +795,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'file_search',
+            toolName: toolNameMapping.toCustomToolName('file_search'),
             result: {
               queries: part.queries,
               results:
@@ -728,8 +806,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   score: result.score,
                   text: result.text,
                 })) ?? null,
-            } satisfies z.infer<typeof fileSearchOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof fileSearchOutputSchema>,
           });
           break;
         }
@@ -738,59 +815,74 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           content.push({
             type: 'tool-call',
             toolCallId: part.id,
-            toolName: 'code_interpreter',
+            toolName: toolNameMapping.toCustomToolName('code_interpreter'),
             input: JSON.stringify({
               code: part.code,
               containerId: part.container_id,
-            } satisfies z.infer<typeof codeInterpreterInputSchema>),
+            } satisfies InferSchema<typeof codeInterpreterInputSchema>),
             providerExecuted: true,
           });
 
           content.push({
             type: 'tool-result',
             toolCallId: part.id,
-            toolName: 'code_interpreter',
+            toolName: toolNameMapping.toCustomToolName('code_interpreter'),
             result: {
               outputs: part.outputs,
-            } satisfies z.infer<typeof codeInterpreterOutputSchema>,
-            providerExecuted: true,
+            } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
           });
+          break;
+        }
+
+        case 'apply_patch_call': {
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: toolNameMapping.toCustomToolName('apply_patch'),
+            input: JSON.stringify({
+              callId: part.call_id,
+              operation: part.operation,
+            } satisfies InferSchema<typeof applyPatchInputSchema>),
+            providerMetadata: {
+              [providerOptionsName]: {
+                itemId: part.id,
+              },
+            },
+          });
+
           break;
         }
       }
     }
 
     const providerMetadata: SharedV3ProviderMetadata = {
-      openai: { responseId: response.id },
+      [providerOptionsName]: { responseId: response.id },
     };
 
     if (logprobs.length > 0) {
-      providerMetadata.openai.logprobs = logprobs;
+      providerMetadata[providerOptionsName].logprobs = logprobs;
     }
 
     if (typeof response.service_tier === 'string') {
-      providerMetadata.openai.serviceTier = response.service_tier;
+      providerMetadata[providerOptionsName].serviceTier = response.service_tier;
     }
+
+    const usage = response.usage!; // defined when there is no error
 
     return {
       content,
-      finishReason: mapOpenAIResponseFinishReason({
-        finishReason: response.incomplete_details?.reason,
-        hasFunctionCall,
-      }),
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
-        reasoningTokens:
-          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
-        cachedInputTokens:
-          response.usage.input_tokens_details?.cached_tokens ?? undefined,
+      finishReason: {
+        unified: mapOpenAIResponseFinishReason({
+          finishReason: response.incomplete_details?.reason,
+          hasFunctionCall,
+        }),
+        raw: response.incomplete_details?.reason ?? undefined,
       },
+      usage: convertOpenAIResponsesUsage(usage),
       request: { body },
       response: {
         id: response.id,
-        timestamp: new Date(response.created_at * 1000),
+        timestamp: new Date(response.created_at! * 1000),
         modelId: response.model,
         headers: responseHeaders,
         body: rawResponse,
@@ -801,12 +893,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const {
       args: body,
       warnings,
       webSearchToolName,
+      toolNameMapping,
+      store,
+      providerOptionsName,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -829,14 +924,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const self = this;
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    const approvalRequestIdToDummyToolCallIdFromPrompt =
+      extractApprovalRequestIdToToolCallIdMapping(options.prompt);
+
+    const approvalRequestIdToDummyToolCallIdFromStream = new Map<
+      string,
+      string
+    >();
+
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
-    const logprobs: Array<z.infer<typeof LOGPROBS_SCHEMA>> = [];
+    let usage: OpenAIResponsesUsage | undefined = undefined;
+    const logprobs: Array<OpenAIResponsesLogprobs> = [];
     let responseId: string | null = null;
+
     const ongoingToolCalls: Record<
       number,
       | {
@@ -845,9 +948,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           codeInterpreter?: {
             containerId: string;
           };
+          applyPatch?: {
+            hasDiff: boolean;
+            endEmitted: boolean;
+          };
         }
       | undefined
     > = {};
+
+    // set annotations in 'text-end' part providerMetadata.
+    const ongoingAnnotations: Array<
+      Extract<
+        OpenAIResponsesChunk,
+        { type: 'response.output_text.annotation.added' }
+      >['annotation']
+    > = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -856,7 +971,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       string,
       {
         encryptedContent?: string | null;
-        summaryParts: number[];
+        // summary index as string to reasoning part state:
+        summaryParts: Record<string, 'active' | 'can-conclude' | 'concluded'>;
       }
     > = {};
 
@@ -865,7 +981,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
+          ParseResult<OpenAIResponsesChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -879,7 +995,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -900,29 +1016,51 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               } else if (value.item.type === 'web_search_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
                   toolCallId: value.item.id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: webSearchToolName ?? 'web_search',
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
+                  providerExecuted: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: value.item.id,
+                });
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: value.item.id,
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
+                  input: JSON.stringify({}),
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   toolCallId: value.item.id,
                 };
 
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
+                  providerExecuted: true,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = {
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   toolCallId: value.item.id,
                   codeInterpreter: {
                     containerId: value.item.container_id,
@@ -932,7 +1070,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-start',
                   id: value.item.id,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
+                  providerExecuted: true,
                 });
 
                 controller.enqueue({
@@ -944,7 +1084,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'file_search',
+                  toolName: toolNameMapping.toCustomToolName('file_search'),
                   input: '{}',
                   providerExecuted: true,
                 });
@@ -952,31 +1092,91 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'image_generation',
+                  toolName:
+                    toolNameMapping.toCustomToolName('image_generation'),
                   input: '{}',
                   providerExecuted: true,
                 });
+              } else if (
+                value.item.type === 'mcp_call' ||
+                value.item.type === 'mcp_list_tools' ||
+                value.item.type === 'mcp_approval_request'
+              ) {
+                // Emit MCP tool-call/approval parts on output_item.done instead, so we can:
+                // - alias mcp_call IDs when an approval_request_id is present
+                // - emit a proper tool-approval-request part for MCP approvals
+              } else if (value.item.type === 'apply_patch_call') {
+                const { call_id: callId, operation } = value.item;
+
+                ongoingToolCalls[value.output_index] = {
+                  toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                  toolCallId: callId,
+                  applyPatch: {
+                    // delete_file doesn't have diff
+                    hasDiff: operation.type === 'delete_file',
+                    endEmitted: operation.type === 'delete_file',
+                  },
+                };
+
+                controller.enqueue({
+                  type: 'tool-input-start',
+                  id: callId,
+                  toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                });
+
+                if (operation.type === 'delete_file') {
+                  const inputString = JSON.stringify({
+                    callId,
+                    operation,
+                  } satisfies InferSchema<typeof applyPatchInputSchema>);
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: callId,
+                    delta: inputString,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: callId,
+                  });
+                } else {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: callId,
+                    delta: `{"callId":"${escapeJSONDelta(callId)}","operation":{"type":"${escapeJSONDelta(operation.type)}","path":"${escapeJSONDelta(operation.path)}","diff":"`,
+                  });
+                }
+              } else if (value.item.type === 'shell_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  toolCallId: value.item.call_id,
+                };
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
                 });
-              } else if (isResponseOutputItemAddedReasoningChunk(value)) {
+              } else if (
+                isResponseOutputItemAddedChunk(value) &&
+                value.item.type === 'reasoning'
+              ) {
                 activeReasoning[value.item.id] = {
                   encryptedContent: value.item.encrypted_content,
-                  summaryParts: [0],
+                  summaryParts: { 0: 'active' },
                 };
 
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: `${value.item.id}:0`,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
@@ -985,7 +1185,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
-              if (value.item.type === 'function_call') {
+              if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: value.item.id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                      ...(ongoingAnnotations.length > 0 && {
+                        annotations: ongoingAnnotations,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1000,7 +1213,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolName: value.item.name,
                   input: value.item.arguments,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item.id,
                     },
                   },
@@ -1009,24 +1222,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = undefined;
 
                 controller.enqueue({
-                  type: 'tool-input-end',
-                  id: value.item.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  input: JSON.stringify({ action: value.item.action }),
-                  providerExecuted: true,
-                });
-
-                controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
-                  result: { status: value.item.status },
-                  providerExecuted: true,
+                  toolName: toolNameMapping.toCustomToolName(
+                    webSearchToolName ?? 'web_search',
+                  ),
+                  result: mapWebSearchOutput(value.item.action),
                 });
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1039,7 +1240,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   input: '',
                   providerExecuted: true,
                 });
@@ -1047,12 +1248,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'computer_use',
+                  toolName: toolNameMapping.toCustomToolName('computer_use'),
                   result: {
                     type: 'computer_use_tool_result',
                     status: value.item.status || 'completed',
                   },
-                  providerExecuted: true,
                 });
               } else if (value.item.type === 'file_search_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1060,7 +1260,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'file_search',
+                  toolName: toolNameMapping.toCustomToolName('file_search'),
                   result: {
                     queries: value.item.queries,
                     results:
@@ -1071,8 +1271,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         score: result.score,
                         text: result.text,
                       })) ?? null,
-                  } satisfies z.infer<typeof fileSearchOutputSchema>,
-                  providerExecuted: true,
+                  } satisfies InferSchema<typeof fileSearchOutputSchema>,
                 });
               } else if (value.item.type === 'code_interpreter_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1080,21 +1279,154 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   result: {
                     outputs: value.item.outputs,
-                  } satisfies z.infer<typeof codeInterpreterOutputSchema>,
-                  providerExecuted: true,
+                  } satisfies InferSchema<typeof codeInterpreterOutputSchema>,
                 });
               } else if (value.item.type === 'image_generation_call') {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'image_generation',
+                  toolName:
+                    toolNameMapping.toCustomToolName('image_generation'),
                   result: {
                     result: value.item.result,
-                  } satisfies z.infer<typeof imageGenerationOutputSchema>,
+                  } satisfies InferSchema<typeof imageGenerationOutputSchema>,
+                });
+              } else if (value.item.type === 'mcp_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                const approvalRequestId =
+                  value.item.approval_request_id ?? undefined;
+
+                // when MCP tools require approval, we track them with our own
+                // tool call IDs and then map OpenAI's approval_request_id back to our ID so results match.
+                const aliasedToolCallId =
+                  approvalRequestId != null
+                    ? (approvalRequestIdToDummyToolCallIdFromStream.get(
+                        approvalRequestId,
+                      ) ??
+                      approvalRequestIdToDummyToolCallIdFromPrompt[
+                        approvalRequestId
+                      ] ??
+                      value.item.id)
+                    : value.item.id;
+
+                const toolName = `mcp.${value.item.name}`;
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: aliasedToolCallId,
+                  toolName,
+                  input: value.item.arguments,
                   providerExecuted: true,
+                  dynamic: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-result',
+                  toolCallId: aliasedToolCallId,
+                  toolName,
+                  result: {
+                    type: 'call',
+                    serverLabel: value.item.server_label,
+                    name: value.item.name,
+                    arguments: value.item.arguments,
+                    ...(value.item.output != null
+                      ? { output: value.item.output }
+                      : {}),
+                    ...(value.item.error != null
+                      ? { error: value.item.error as unknown as JSONValue }
+                      : {}),
+                  } satisfies InferSchema<typeof mcpOutputSchema>,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
+              } else if (value.item.type === 'mcp_list_tools') {
+                // Skip listTools - we don't expose this to the UI or send it back
+                ongoingToolCalls[value.output_index] = undefined;
+
+                // skip
+              } else if (value.item.type === 'apply_patch_call') {
+                const toolCall = ongoingToolCalls[value.output_index];
+                if (
+                  toolCall?.applyPatch &&
+                  !toolCall.applyPatch.endEmitted &&
+                  value.item.operation.type !== 'delete_file'
+                ) {
+                  if (!toolCall.applyPatch.hasDiff) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: toolCall.toolCallId,
+                      delta: escapeJSONDelta(value.item.operation.diff),
+                    });
+                  }
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: '"}}',
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCall.toolCallId,
+                  });
+
+                  toolCall.applyPatch.endEmitted = true;
+                }
+
+                // Emit the final tool-call with complete diff when status is 'completed'
+                if (toolCall && value.item.status === 'completed') {
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolNameMapping.toCustomToolName('apply_patch'),
+                    input: JSON.stringify({
+                      callId: value.item.call_id,
+                      operation: value.item.operation,
+                    } satisfies InferSchema<typeof applyPatchInputSchema>),
+                    providerMetadata: {
+                      [providerOptionsName]: {
+                        itemId: value.item.id,
+                      },
+                    },
+                  });
+                }
+
+                ongoingToolCalls[value.output_index] = undefined;
+              } else if (value.item.type === 'mcp_approval_request') {
+                ongoingToolCalls[value.output_index] = undefined;
+
+                const dummyToolCallId =
+                  self.config.generateId?.() ?? generateId();
+                const approvalRequestId =
+                  value.item.approval_request_id ?? value.item.id;
+                approvalRequestIdToDummyToolCallIdFromStream.set(
+                  approvalRequestId,
+                  dummyToolCallId,
+                );
+
+                const toolName = `mcp.${value.item.name}`;
+
+                controller.enqueue({
+                  type: 'tool-call',
+                  toolCallId: dummyToolCallId,
+                  toolName,
+                  input: value.item.arguments,
+                  providerExecuted: true,
+                  dynamic: true,
+                });
+
+                controller.enqueue({
+                  type: 'tool-approval-request',
+                  approvalId: approvalRequestId,
+                  toolCallId: dummyToolCallId,
                 });
               } else if (value.item.type === 'local_shell_call') {
                 ongoingToolCalls[value.output_index] = undefined;
@@ -1102,7 +1434,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.call_id,
-                  toolName: 'local_shell',
+                  toolName: toolNameMapping.toCustomToolName('local_shell'),
                   input: JSON.stringify({
                     action: {
                       type: 'exec',
@@ -1112,25 +1444,47 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       workingDirectory: value.item.action.working_directory,
                       env: value.item.action.env,
                     },
-                  } satisfies z.infer<typeof localShellInputSchema>),
+                  } satisfies InferSchema<typeof localShellInputSchema>),
                   providerMetadata: {
-                    openai: { itemId: value.item.id },
+                    [providerOptionsName]: { itemId: value.item.id },
                   },
                 });
-              } else if (value.item.type === 'message') {
+              } else if (value.item.type === 'shell_call') {
+                ongoingToolCalls[value.output_index] = undefined;
+
                 controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
+                  type: 'tool-call',
+                  toolCallId: value.item.call_id,
+                  toolName: toolNameMapping.toCustomToolName('shell'),
+                  input: JSON.stringify({
+                    action: {
+                      commands: value.item.action.commands,
+                    },
+                  } satisfies InferSchema<typeof shellInputSchema>),
+                  providerMetadata: {
+                    [providerOptionsName]: { itemId: value.item.id },
+                  },
                 });
-              } else if (isResponseOutputItemDoneReasoningChunk(value)) {
+              } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
 
-                for (const summaryIndex of activeReasoningPart.summaryParts) {
+                // get all active or can-conclude summary parts' ids
+                // to conclude ongoing reasoning parts:
+                const summaryPartIndices = Object.entries(
+                  activeReasoningPart.summaryParts,
+                )
+                  .filter(
+                    ([_, status]) =>
+                      status === 'active' || status === 'can-conclude',
+                  )
+                  .map(([summaryIndex]) => summaryIndex);
+
+                for (const summaryIndex of summaryPartIndices) {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
-                      openai: {
+                      [providerOptionsName]: {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
@@ -1151,15 +1505,53 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   delta: value.delta,
                 });
               }
+            } else if (isResponseApplyPatchCallOperationDiffDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall?.applyPatch) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: escapeJSONDelta(value.delta),
+                });
+
+                toolCall.applyPatch.hasDiff = true;
+              }
+            } else if (isResponseApplyPatchCallOperationDiffDoneChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall?.applyPatch && !toolCall.applyPatch.endEmitted) {
+                if (!toolCall.applyPatch.hasDiff) {
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCall.toolCallId,
+                    delta: escapeJSONDelta(value.diff),
+                  });
+
+                  toolCall.applyPatch.hasDiff = true;
+                }
+
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  id: toolCall.toolCallId,
+                  delta: '"}}',
+                });
+
+                controller.enqueue({
+                  type: 'tool-input-end',
+                  id: toolCall.toolCallId,
+                });
+
+                toolCall.applyPatch.endEmitted = true;
+              }
             } else if (isResponseImageGenerationCallPartialImageChunk(value)) {
               controller.enqueue({
                 type: 'tool-result',
                 toolCallId: value.item_id,
-                toolName: 'image_generation',
+                toolName: toolNameMapping.toCustomToolName('image_generation'),
                 result: {
                   result: value.partial_image_b64,
-                } satisfies z.infer<typeof imageGenerationOutputSchema>,
-                providerExecuted: true,
+                } satisfies InferSchema<typeof imageGenerationOutputSchema>,
                 preliminary: true,
               });
             } else if (isResponseCodeInterpreterCallCodeDeltaChunk(value)) {
@@ -1169,9 +1561,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-input-delta',
                   id: toolCall.toolCallId,
-                  // The delta is code, which is embedding in a JSON string.
-                  // To escape it, we use JSON.stringify and slice to remove the outer quotes.
-                  delta: JSON.stringify(value.delta).slice(1, -1),
+                  delta: escapeJSONDelta(value.delta),
                 });
               }
             } else if (isResponseCodeInterpreterCallCodeDoneChunk(value)) {
@@ -1193,11 +1583,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: toolCall.toolCallId,
-                  toolName: 'code_interpreter',
+                  toolName:
+                    toolNameMapping.toCustomToolName('code_interpreter'),
                   input: JSON.stringify({
                     code: value.code,
                     containerId: toolCall.codeInterpreter!.containerId,
-                  } satisfies z.infer<typeof codeInterpreterInputSchema>),
+                  } satisfies InferSchema<typeof codeInterpreterInputSchema>),
                   providerExecuted: true,
                 });
               }
@@ -1216,21 +1607,45 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 delta: value.delta,
               });
 
-              if (options.providerOptions?.openai?.logprobs && value.logprobs) {
+              if (
+                options.providerOptions?.[providerOptionsName]?.logprobs &&
+                value.logprobs
+              ) {
                 logprobs.push(value.logprobs);
               }
-            } else if (isResponseReasoningSummaryPartAddedChunk(value)) {
-              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk.
+            } else if (value.type === 'response.reasoning_summary_part.added') {
+              // the first reasoning start is pushed in isResponseOutputItemAddedReasoningChunk
               if (value.summary_index > 0) {
-                activeReasoning[value.item_id]?.summaryParts.push(
-                  value.summary_index,
-                );
+                const activeReasoningPart = activeReasoning[value.item_id]!;
+
+                activeReasoningPart.summaryParts[value.summary_index] =
+                  'active';
+
+                // since there is a new active summary part, we can conclude all can-conclude summary parts
+                for (const summaryIndex of Object.keys(
+                  activeReasoningPart.summaryParts,
+                )) {
+                  if (
+                    activeReasoningPart.summaryParts[summaryIndex] ===
+                    'can-conclude'
+                  ) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: `${value.item_id}:${summaryIndex}`,
+                      providerMetadata: {
+                        [providerOptionsName]: { itemId: value.item_id },
+                      },
+                    });
+                    activeReasoningPart.summaryParts[summaryIndex] =
+                      'concluded';
+                  }
+                }
 
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    openai: {
+                    [providerOptionsName]: {
                       itemId: value.item_id,
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
@@ -1239,37 +1654,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
-            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+            } else if (value.type === 'response.reasoning_summary_text.delta') {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                  openai: {
+                  [providerOptionsName]: {
                     itemId: value.item_id,
                   },
                 },
               });
+            } else if (value.type === 'response.reasoning_summary_part.done') {
+              // when OpenAI stores the message data, we can immediately conclude the reasoning part
+              // since we do not need to send the encrypted content.
+              if (store) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: `${value.item_id}:${value.summary_index}`,
+                  providerMetadata: {
+                    [providerOptionsName]: { itemId: value.item_id },
+                  },
+                });
+
+                // mark the summary part as concluded
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'concluded';
+              } else {
+                // mark the summary part as can-conclude only
+                // because we need to have a final summary part with the encrypted content
+                activeReasoning[value.item_id]!.summaryParts[
+                  value.summary_index
+                ] = 'can-conclude';
+              }
             } else if (isResponseFinishedChunk(value)) {
-              finishReason = mapOpenAIResponseFinishReason({
-                finishReason: value.response.incomplete_details?.reason,
-                hasFunctionCall,
-              });
-              usage.inputTokens = value.response.usage.input_tokens;
-              usage.outputTokens = value.response.usage.output_tokens;
-              usage.totalTokens =
-                value.response.usage.input_tokens +
-                value.response.usage.output_tokens;
-              usage.reasoningTokens =
-                value.response.usage.output_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.response.usage.input_tokens_details?.cached_tokens ??
-                undefined;
+              finishReason = {
+                unified: mapOpenAIResponseFinishReason({
+                  finishReason: value.response.incomplete_details?.reason,
+                  hasFunctionCall,
+                }),
+                raw: value.response.incomplete_details?.reason ?? undefined,
+              };
+              usage = value.response.usage;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
+              ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
                   type: 'source',
@@ -1290,6 +1722,54 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     'Document',
                   filename:
                     value.annotation.filename ?? value.annotation.file_id,
+                  ...(value.annotation.file_id
+                    ? {
+                        providerMetadata: {
+                          [providerOptionsName]: {
+                            fileId: value.annotation.file_id,
+                          },
+                        },
+                      }
+                    : {}),
+                });
+              } else if (value.annotation.type === 'container_file_citation') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    value.annotation.filename ??
+                    value.annotation.file_id ??
+                    'Document',
+                  filename:
+                    value.annotation.filename ?? value.annotation.file_id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      fileId: value.annotation.file_id,
+                      containerId: value.annotation.container_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (value.annotation.type === 'file_path') {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: self.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: value.annotation.file_id,
+                  filename: value.annotation.file_id,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      fileId: value.annotation.file_id,
+                      ...(value.annotation.index != null
+                        ? { index: value.annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             } else if (isErrorChunk(value)) {
@@ -1299,23 +1779,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
           flush(controller) {
             const providerMetadata: SharedV3ProviderMetadata = {
-              openai: {
+              [providerOptionsName]: {
                 responseId,
               },
             };
 
             if (logprobs.length > 0) {
-              providerMetadata.openai.logprobs = logprobs;
+              providerMetadata[providerOptionsName].logprobs = logprobs;
             }
 
             if (serviceTier !== undefined) {
-              providerMetadata.openai.serviceTier = serviceTier;
+              providerMetadata[providerOptionsName].serviceTier = serviceTier;
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertOpenAIResponsesUsage(usage),
               providerMetadata,
             });
           },
@@ -1327,450 +1807,122 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   }
 }
 
-const usageSchema = z.object({
-  input_tokens: z.number(),
-  input_tokens_details: z
-    .object({ cached_tokens: z.number().nullish() })
-    .nullish(),
-  output_tokens: z.number(),
-  output_tokens_details: z
-    .object({ reasoning_tokens: z.number().nullish() })
-    .nullish(),
-});
-
-const textDeltaChunkSchema = z.object({
-  type: z.literal('response.output_text.delta'),
-  item_id: z.string(),
-  delta: z.string(),
-  logprobs: LOGPROBS_SCHEMA.nullish(),
-});
-
-const errorChunkSchema = z.object({
-  type: z.literal('error'),
-  code: z.string(),
-  message: z.string(),
-  param: z.string().nullish(),
-  sequence_number: z.number(),
-});
-
-const responseFinishedChunkSchema = z.object({
-  type: z.enum(['response.completed', 'response.incomplete']),
-  response: z.object({
-    incomplete_details: z.object({ reason: z.string() }).nullish(),
-    usage: usageSchema,
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseCreatedChunkSchema = z.object({
-  type: z.literal('response.created'),
-  response: z.object({
-    id: z.string(),
-    created_at: z.number(),
-    model: z.string(),
-    service_tier: z.string().nullish(),
-  }),
-});
-
-const responseOutputItemAddedSchema = z.object({
-  type: z.literal('response.output_item.added'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-    }),
-    z.object({
-      type: z.literal('web_search_call'),
-      id: z.string(),
-      status: z.string(),
-      action: z
-        .object({
-          type: z.literal('search'),
-          query: z.string().optional(),
-        })
-        .nullish(),
-    }),
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_search_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('image_generation_call'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('code_interpreter_call'),
-      id: z.string(),
-      container_id: z.string(),
-      code: z.string().nullable(),
-      outputs: z
-        .array(
-          z.discriminatedUnion('type', [
-            z.object({ type: z.literal('logs'), logs: z.string() }),
-            z.object({ type: z.literal('image'), url: z.string() }),
-          ]),
-        )
-        .nullable(),
-      status: z.string(),
-    }),
-  ]),
-});
-
-const responseOutputItemDoneSchema = z.object({
-  type: z.literal('response.output_item.done'),
-  output_index: z.number(),
-  item: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('message'),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal('reasoning'),
-      id: z.string(),
-      encrypted_content: z.string().nullish(),
-    }),
-    z.object({
-      type: z.literal('function_call'),
-      id: z.string(),
-      call_id: z.string(),
-      name: z.string(),
-      arguments: z.string(),
-      status: z.literal('completed'),
-    }),
-    codeInterpreterCallItem,
-    imageGenerationCallItem,
-    webSearchCallItem,
-    fileSearchCallItem,
-    localShellCallItem,
-    z.object({
-      type: z.literal('computer_call'),
-      id: z.string(),
-      status: z.literal('completed'),
-    }),
-  ]),
-});
-
-const responseFunctionCallArgumentsDeltaSchema = z.object({
-  type: z.literal('response.function_call_arguments.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseImageGenerationCallPartialImageSchema = z.object({
-  type: z.literal('response.image_generation_call.partial_image'),
-  item_id: z.string(),
-  output_index: z.number(),
-  partial_image_b64: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDeltaSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.delta'),
-  item_id: z.string(),
-  output_index: z.number(),
-  delta: z.string(),
-});
-
-const responseCodeInterpreterCallCodeDoneSchema = z.object({
-  type: z.literal('response.code_interpreter_call_code.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  code: z.string(),
-});
-
-const responseAnnotationAddedSchema = z.object({
-  type: z.literal('response.output_text.annotation.added'),
-  annotation: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('url_citation'),
-      url: z.string(),
-      title: z.string(),
-    }),
-    z.object({
-      type: z.literal('file_citation'),
-      file_id: z.string(),
-      filename: z.string().nullish(),
-      index: z.number().nullish(),
-      start_index: z.number().nullish(),
-      end_index: z.number().nullish(),
-      quote: z.string().nullish(),
-    }),
-  ]),
-});
-
-const responseReasoningSummaryPartAddedSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.added'),
-  item_id: z.string(),
-  summary_index: z.number(),
-});
-
-const responseReasoningSummaryTextDeltaSchema = z.object({
-  type: z.literal('response.reasoning_summary_text.delta'),
-  item_id: z.string(),
-  summary_index: z.number(),
-  delta: z.string(),
-});
-
-const openaiResponsesChunkSchema = z.union([
-  textDeltaChunkSchema,
-  responseFinishedChunkSchema,
-  responseCreatedChunkSchema,
-  responseOutputItemAddedSchema,
-  responseOutputItemDoneSchema,
-  responseFunctionCallArgumentsDeltaSchema,
-  responseImageGenerationCallPartialImageSchema,
-  responseCodeInterpreterCallCodeDeltaSchema,
-  responseCodeInterpreterCallCodeDoneSchema,
-  responseAnnotationAddedSchema,
-  responseReasoningSummaryPartAddedSchema,
-  responseReasoningSummaryTextDeltaSchema,
-  errorChunkSchema,
-  z.object({ type: z.string() }).loose(), // fallback for unknown chunks
-]);
-
-type ExtractByType<
-  T,
-  K extends T extends { type: infer U } ? U : never,
-> = T extends { type: K } ? T : never;
-
 function isTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof textDeltaChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_text.delta' } {
   return chunk.type === 'response.output_text.delta';
 }
 
 function isResponseOutputItemDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.done' } {
   return chunk.type === 'response.output_item.done';
 }
 
-function isResponseOutputItemDoneReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemDoneSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemDoneSchema>['item'],
-    'reasoning'
-  >;
-} {
-  return (
-    isResponseOutputItemDoneChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseFinishedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFinishedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.completed' | 'response.incomplete';
+} {
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
 }
 
 function isResponseCreatedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCreatedChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.created' } {
   return chunk.type === 'response.created';
 }
 
 function isResponseFunctionCallArgumentsDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.function_call_arguments.delta';
+} {
   return chunk.type === 'response.function_call_arguments.delta';
 }
 function isResponseImageGenerationCallPartialImageChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseImageGenerationCallPartialImageSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.image_generation_call.partial_image';
+} {
   return chunk.type === 'response.image_generation_call.partial_image';
 }
 
 function isResponseCodeInterpreterCallCodeDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDeltaSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.delta';
+} {
   return chunk.type === 'response.code_interpreter_call_code.delta';
 }
 
 function isResponseCodeInterpreterCallCodeDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCodeInterpreterCallCodeDoneSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.code_interpreter_call_code.done';
+} {
   return chunk.type === 'response.code_interpreter_call_code.done';
 }
 
+function isResponseApplyPatchCallOperationDiffDeltaChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesApplyPatchOperationDiffDeltaChunk {
+  return chunk.type === 'response.apply_patch_call_operation_diff.delta';
+}
+
+function isResponseApplyPatchCallOperationDiffDoneChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesApplyPatchOperationDiffDoneChunk {
+  return chunk.type === 'response.apply_patch_call_operation_diff.done';
+}
+
 function isResponseOutputItemAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.output_item.added' } {
   return chunk.type === 'response.output_item.added';
 }
 
-function isResponseOutputItemAddedReasoningChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseOutputItemAddedSchema> & {
-  item: ExtractByType<
-    z.infer<typeof responseOutputItemAddedSchema>['item'],
-    'reasoning'
-  >;
-} {
-  return (
-    isResponseOutputItemAddedChunk(chunk) && chunk.item.type === 'reasoning'
-  );
-}
-
 function isResponseAnnotationAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseAnnotationAddedSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & {
+  type: 'response.output_text.annotation.added';
+} {
   return chunk.type === 'response.output_text.annotation.added';
 }
 
-function isResponseReasoningSummaryPartAddedChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartAddedSchema> {
-  return chunk.type === 'response.reasoning_summary_part.added';
-}
-
-function isResponseReasoningSummaryTextDeltaChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
-  return chunk.type === 'response.reasoning_summary_text.delta';
-}
-
 function isErrorChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof errorChunkSchema> {
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'error' } {
   return chunk.type === 'error';
 }
 
-type ResponsesModelConfig = {
-  isReasoningModel: boolean;
-  systemMessageMode: 'remove' | 'system' | 'developer';
-  requiredAutoTruncation: boolean;
-  supportsFlexProcessing: boolean;
-  supportsPriorityProcessing: boolean;
-};
-
-function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
-  const supportsFlexProcessing =
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
-  const supportsPriorityProcessing =
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini');
-  const defaults = {
-    requiredAutoTruncation: false,
-    systemMessageMode: 'system' as const,
-    supportsFlexProcessing,
-    supportsPriorityProcessing,
-  };
-
-  // gpt-5-chat models are non-reasoning
-  if (modelId.startsWith('gpt-5-chat')) {
-    return {
-      ...defaults,
-      isReasoningModel: false,
-    };
-  }
-
-  // o series reasoning models:
-  if (
-    modelId.startsWith('o') ||
-    modelId.startsWith('gpt-5') ||
-    modelId.startsWith('codex-') ||
-    modelId.startsWith('computer-use')
-  ) {
-    if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
+function mapWebSearchOutput(
+  action: OpenAIResponsesWebSearchAction,
+): InferSchema<typeof webSearchOutputSchema> {
+  switch (action.type) {
+    case 'search':
       return {
-        ...defaults,
-        isReasoningModel: true,
-        systemMessageMode: 'remove',
+        action: { type: 'search', query: action.query ?? undefined },
+        // include sources when provided by the Responses API (behind include flag)
+        ...(action.sources != null && { sources: action.sources }),
       };
-    }
-
-    return {
-      ...defaults,
-      isReasoningModel: true,
-      systemMessageMode: 'developer',
-    };
+    case 'open_page':
+      return { action: { type: 'openPage', url: action.url } };
+    case 'find_in_page':
+      return {
+        action: {
+          type: 'findInPage',
+          url: action.url,
+          pattern: action.pattern,
+        },
+      };
   }
-
-  // gpt models:
-  return {
-    ...defaults,
-    isReasoningModel: false,
-  };
 }
 
-// TODO AI SDK 6: use optional here instead of nullish
-const openaiResponsesProviderOptionsSchema = z.object({
-  include: z
-    .array(
-      z.enum([
-        'reasoning.encrypted_content',
-        'file_search_call.results',
-        'message.output_text.logprobs',
-      ]),
-    )
-    .nullish(),
-  instructions: z.string().nullish(),
-
-  /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   *
-   * @see https://platform.openai.com/docs/api-reference/responses/create
-   * @see https://cookbook.openai.com/examples/using_logprobs
-   */
-  logprobs: z
-    .union([z.boolean(), z.number().min(1).max(TOP_LOGPROBS_MAX)])
-    .optional(),
-
-  /**
-   * The maximum number of total calls to built-in tools that can be processed in a response.
-   * This maximum number applies across all built-in tool calls, not per individual tool.
-   * Any further attempts to call a tool by the model will be ignored.
-   */
-  maxToolCalls: z.number().nullish(),
-
-  metadata: z.any().nullish(),
-  parallelToolCalls: z.boolean().nullish(),
-  previousResponseId: z.string().nullish(),
-  promptCacheKey: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
-  safetyIdentifier: z.string().nullish(),
-  serviceTier: z.enum(['auto', 'flex', 'priority']).nullish(),
-  store: z.boolean().nullish(),
-  strictJsonSchema: z.boolean().nullish(),
-  textVerbosity: z.enum(['low', 'medium', 'high']).nullish(),
-  user: z.string().nullish(),
-});
-
-export type OpenAIResponsesProviderOptions = z.infer<
-  typeof openaiResponsesProviderOptionsSchema
->;
+// The delta is embedded in a JSON string.
+// To escape it, we use JSON.stringify and slice to remove the outer quotes.
+function escapeJSONDelta(delta: string) {
+  return JSON.stringify(delta).slice(1, -1);
+}

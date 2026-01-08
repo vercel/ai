@@ -1,11 +1,11 @@
 import { google, GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { image } = await generateImage({
-    model: google.image('imagen-3.0-generate-002'),
+    model: google.image('imagen-4.0-generate-001'),
     prompt: 'A burrito launched through a tunnel',
     aspectRatio: '1:1',
     providerOptions: {
@@ -16,6 +16,4 @@ async function main() {
   });
 
   await presentImages([image]);
-}
-
-main().catch(console.error);
+});

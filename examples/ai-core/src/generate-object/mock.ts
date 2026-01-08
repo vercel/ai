@@ -1,18 +1,26 @@
 import { generateObject } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { object, usage } = await generateObject({
     model: new MockLanguageModelV3({
       doGenerate: async () => ({
         content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
-        finishReason: 'stop',
+        finishReason: { raw: undefined, unified: 'stop' },
         usage: {
-          inputTokens: 10,
-          outputTokens: 20,
-          totalTokens: 30,
+          inputTokens: {
+            total: 10,
+            noCache: 10,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 20,
+            text: 20,
+            reasoning: undefined,
+          },
         },
         warnings: [],
       }),
@@ -24,6 +32,4 @@ async function main() {
   console.log(object);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

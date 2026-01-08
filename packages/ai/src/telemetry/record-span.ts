@@ -1,6 +1,6 @@
 import { Attributes, Span, Tracer, SpanStatusCode } from '@opentelemetry/api';
 
-export function recordSpan<T>({
+export async function recordSpan<T>({
   name,
   tracer,
   attributes,
@@ -9,30 +9,34 @@ export function recordSpan<T>({
 }: {
   name: string;
   tracer: Tracer;
-  attributes: Attributes;
+  attributes: Attributes | PromiseLike<Attributes>;
   fn: (span: Span) => Promise<T>;
   endWhenDone?: boolean;
 }) {
-  return tracer.startActiveSpan(name, { attributes }, async span => {
-    try {
-      const result = await fn(span);
-
-      if (endWhenDone) {
-        span.end();
-      }
-
-      return result;
-    } catch (error) {
+  return tracer.startActiveSpan(
+    name,
+    { attributes: await attributes },
+    async span => {
       try {
-        recordErrorOnSpan(span, error);
-      } finally {
-        // always stop the span when there is an error:
-        span.end();
-      }
+        const result = await fn(span);
 
-      throw error;
-    }
-  });
+        if (endWhenDone) {
+          span.end();
+        }
+
+        return result;
+      } catch (error) {
+        try {
+          recordErrorOnSpan(span, error);
+        } finally {
+          // always stop the span when there is an error:
+          span.end();
+        }
+
+        throw error;
+      }
+    },
+  );
 }
 
 /**

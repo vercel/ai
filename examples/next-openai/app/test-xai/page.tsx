@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import ChatInput from '@/component/chat-input';
+import ChatInput from '@/components/chat-input';
 
 export default function TestXai() {
   const { error, status, sendMessage, messages, regenerate, stop } = useChat({

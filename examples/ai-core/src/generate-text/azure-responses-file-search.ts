@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare 1
@@ -16,7 +16,7 @@ import 'dotenv/config';
 
 const VectorStoreId = 'vs_xxxxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id.
 
-async function main() {
+run(async () => {
   // Basic text generation
   const basicResult = await generateText({
     model: azure.responses('gpt-4.1-mini'),
@@ -37,8 +37,7 @@ async function main() {
 
   console.log('\n=== Basic Text Generation ===');
   console.log(basicResult.text);
-  console.log(basicResult.toolCalls);
-  console.log(basicResult.toolResults);
-}
-
-main().catch(console.error);
+  console.log('\n=== Other Outputs ===');
+  console.dir(basicResult.toolCalls, { depth: Infinity });
+  console.dir(basicResult.toolResults, { depth: Infinity });
+});

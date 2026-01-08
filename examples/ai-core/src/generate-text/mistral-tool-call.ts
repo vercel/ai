@@ -1,10 +1,10 @@
 import { mistral } from '@ai-sdk/mistral';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: mistral('mistral-large-latest'),
     maxOutputTokens: 512,
@@ -61,6 +61,4 @@ async function main() {
   }
 
   console.log(JSON.stringify(result, null, 2));
-}
-
-main().catch(console.error);
+});

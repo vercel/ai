@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, stepCountIs } from 'ai';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
@@ -33,13 +33,17 @@ async function main() {
         },
 
         // map to tool result content for LLM consumption:
-        toModelOutput(result) {
+        toModelOutput({ output }) {
           return {
             type: 'content',
             value: [
-              typeof result === 'string'
-                ? { type: 'text', text: result }
-                : { type: 'media', data: result.data, mediaType: 'image/png' },
+              typeof output === 'string'
+                ? { type: 'text', text: output }
+                : {
+                    type: 'image-data',
+                    data: output.data,
+                    mediaType: 'image/png',
+                  },
             ],
           };
         },
@@ -53,6 +57,4 @@ async function main() {
   console.log(result.text);
   console.log(result.finishReason);
   console.log(JSON.stringify(result.toolCalls, null, 2));
-}
-
-main().catch(console.error);
+});

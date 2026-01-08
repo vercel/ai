@@ -1,9 +1,9 @@
-import { experimental_generateImage as generateImage } from 'ai';
-import 'dotenv/config';
+import { generateImage } from 'ai';
 import fs from 'node:fs';
 import { myImageModels } from './setup-registry';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { image } = await generateImage({
     model: myImageModels.imageModel('flux'),
     prompt: 'The Loch Ness Monster getting a manicure',
@@ -12,6 +12,4 @@ async function main() {
   const filename = `image-${Date.now()}.png`;
   fs.writeFileSync(filename, image.uint8Array);
   console.log(`Image saved to ${filename}`);
-}
-
-main().catch(console.error);
+});

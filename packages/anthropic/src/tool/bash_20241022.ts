@@ -1,7 +1,20 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
-import z from 'zod/v4';
+import {
+  createProviderToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 
-export const bash_20241022 = createProviderDefinedToolFactory<
+const bash_20241022InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      command: z.string(),
+      restart: z.boolean().optional(),
+    }),
+  ),
+);
+
+export const bash_20241022 = createProviderToolFactory<
   {
     /**
      * The bash command to run. Required unless the tool is being restarted.
@@ -16,9 +29,5 @@ export const bash_20241022 = createProviderDefinedToolFactory<
   {}
 >({
   id: 'anthropic.bash_20241022',
-  name: 'bash',
-  inputSchema: z.object({
-    command: z.string(),
-    restart: z.boolean().optional(),
-  }),
+  inputSchema: bash_20241022InputSchema,
 });

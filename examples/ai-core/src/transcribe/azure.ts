@@ -1,11 +1,21 @@
 import { azure } from '@ai-sdk/azure';
 import { experimental_transcribe as transcribe } from 'ai';
-import 'dotenv/config';
 import { readFile } from 'fs/promises';
+import { run } from '../lib/run';
 
-async function main() {
+/**
+ *
+ * *** NOTICE ***
+ * It has been reported that transcribe does not work as expected with the default version.
+ * If you want to use a working version, try the source code below.
+ *
+ * ai\examples\ai-core\src\transcribe\azure-deployment-based.ts
+ *
+ */
+
+run(async () => {
   const result = await transcribe({
-    model: azure.transcription('whisper-1'),
+    model: azure.transcription('whisper-1'), // use your own deployment
     audio: await readFile('data/galileo.mp3'),
   });
 
@@ -15,6 +25,4 @@ async function main() {
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
-}
-
-main().catch(console.error);
+});

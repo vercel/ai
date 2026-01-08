@@ -6,7 +6,7 @@ import { LanguageModelMiddleware } from '../types';
  */
 export function simulateStreamingMiddleware(): LanguageModelMiddleware {
   return {
-    middlewareVersion: 'v3',
+    specificationVersion: 'v3',
     wrapStream: async ({ doGenerate }) => {
       const result = await doGenerate();
 

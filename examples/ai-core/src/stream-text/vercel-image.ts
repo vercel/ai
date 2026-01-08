@@ -1,9 +1,9 @@
 import { vercel } from '@ai-sdk/vercel';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: vercel('v0-1.0-md'),
     messages: [
@@ -23,6 +23,4 @@ async function main() {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

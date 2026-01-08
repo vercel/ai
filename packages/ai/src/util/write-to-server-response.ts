@@ -16,7 +16,12 @@ export function writeToServerResponse({
   headers?: Record<string, string | number | string[]>;
   stream: ReadableStream<Uint8Array>;
 }): void {
-  response.writeHead(status ?? 200, statusText, headers);
+  const statusCode = status ?? 200;
+  if (statusText !== undefined) {
+    response.writeHead(statusCode, statusText, headers);
+  } else {
+    response.writeHead(statusCode, headers);
+  }
 
   const reader = stream.getReader();
   const read = async () => {
@@ -24,7 +29,14 @@ export function writeToServerResponse({
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        response.write(value);
+
+        // Respect backpressure: if write() returns false, wait for 'drain' event
+        const canContinue = response.write(value);
+        if (!canContinue) {
+          await new Promise<void>(resolve => {
+            response.once('drain', resolve);
+          });
+        }
       }
     } catch (error) {
       throw error;

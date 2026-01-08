@@ -1,15 +1,13 @@
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { image } = await generateImage({
     model: xai.image('grok-2-image'),
     prompt: 'A salamander at dusk in a forest pond surrounded by fireflies.',
   });
 
   await presentImages([image]);
-}
-
-main().catch(console.error);
+});

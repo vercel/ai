@@ -1,28 +1,35 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  LanguageModelV3CallOptions,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV3StreamResult,
   SharedV3ProviderMetadata,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { openaiFailedResponseHandler } from '../openai-error';
 import {
-  openaiErrorDataSchema,
-  openaiFailedResponseHandler,
-} from '../openai-error';
+  convertOpenAICompletionUsage,
+  OpenAICompletionUsage,
+} from './convert-openai-completion-usage';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
+import {
+  OpenAICompletionChunk,
+  openaiCompletionChunkSchema,
+  openaiCompletionResponseSchema,
+} from './openai-completion-api';
 import {
   OpenAICompletionModelId,
   openaiCompletionProviderOptions,
@@ -76,8 +83,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     toolChoice,
     seed,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
-    const warnings: LanguageModelV3CallWarning[] = [];
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const openaiOptions = {
@@ -94,21 +101,21 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     };
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
     if (tools?.length) {
-      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
+      warnings.push({ type: 'unsupported', feature: 'tools' });
     }
 
     if (toolChoice != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
+      warnings.push({ type: 'unsupported', feature: 'toolChoice' });
     }
 
     if (responseFormat != null && responseFormat.type !== 'text') {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'responseFormat',
+        type: 'unsupported',
+        feature: 'responseFormat',
         details: 'JSON response format is not supported.',
       });
     }
@@ -154,8 +161,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -187,12 +194,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
     return {
       content: [{ type: 'text', text: choice.text }],
-      usage: {
-        inputTokens: response.usage?.prompt_tokens,
-        outputTokens: response.usage?.completion_tokens,
-        totalTokens: response.usage?.total_tokens,
+      usage: convertOpenAICompletionUsage(response.usage),
+      finishReason: {
+        unified: mapOpenAIFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
-      finishReason: mapOpenAIFinishReason(choice.finish_reason),
       request: { body: args },
       response: {
         ...getResponseMetadata(response),
@@ -205,8 +211,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -233,19 +239,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    let usage: OpenAICompletionUsage | undefined = undefined;
     let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
-          ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
+          ParseResult<OpenAICompletionChunk>,
           LanguageModelV3StreamPart
         >({
           start(controller) {
@@ -259,7 +264,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -268,7 +273,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -285,15 +290,16 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens = value.usage.total_tokens;
+              usage = value.usage;
             }
 
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapOpenAIFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapOpenAIFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.logprobs != null) {
@@ -318,7 +324,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
               type: 'finish',
               finishReason,
               providerMetadata,
-              usage,
+              usage: convertOpenAICompletionUsage(usage),
             });
           },
         }),
@@ -328,57 +334,3 @@ export class OpenAICompletionLanguageModel implements LanguageModelV3 {
     };
   }
 }
-
-const usageSchema = z.object({
-  prompt_tokens: z.number(),
-  completion_tokens: z.number(),
-  total_tokens: z.number(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionResponseSchema = z.object({
-  id: z.string().nullish(),
-  created: z.number().nullish(),
-  model: z.string().nullish(),
-  choices: z.array(
-    z.object({
-      text: z.string(),
-      finish_reason: z.string(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-        })
-        .nullish(),
-    }),
-  ),
-  usage: usageSchema.nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const openaiCompletionChunkSchema = z.union([
-  z.object({
-    id: z.string().nullish(),
-    created: z.number().nullish(),
-    model: z.string().nullish(),
-    choices: z.array(
-      z.object({
-        text: z.string(),
-        finish_reason: z.string().nullish(),
-        index: z.number(),
-        logprobs: z
-          .object({
-            tokens: z.array(z.string()),
-            token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
-          })
-          .nullish(),
-      }),
-    ),
-    usage: usageSchema.nullish(),
-  }),
-  openaiErrorDataSchema,
-]);

@@ -1,32 +1,48 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  createProviderToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const codeInterpreterInputSchema = z.object({
-  code: z.string().nullish(),
-  containerId: z.string(),
-});
+export const codeInterpreterInputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      code: z.string().nullish(),
+      containerId: z.string(),
+    }),
+  ),
+);
 
-export const codeInterpreterOutputSchema = z.object({
-  outputs: z
-    .array(
-      z.discriminatedUnion('type', [
-        z.object({ type: z.literal('logs'), logs: z.string() }),
-        z.object({ type: z.literal('image'), url: z.string() }),
-      ]),
-    )
-    .nullish(),
-});
+export const codeInterpreterOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      outputs: z
+        .array(
+          z.discriminatedUnion('type', [
+            z.object({ type: z.literal('logs'), logs: z.string() }),
+            z.object({ type: z.literal('image'), url: z.string() }),
+          ]),
+        )
+        .nullish(),
+    }),
+  ),
+);
 
-export const codeInterpreterArgsSchema = z.object({
-  container: z
-    .union([
-      z.string(),
-      z.object({
-        fileIds: z.array(z.string()).optional(),
-      }),
-    ])
-    .optional(),
-});
+export const codeInterpreterArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      container: z
+        .union([
+          z.string(),
+          z.object({
+            fileIds: z.array(z.string()).optional(),
+          }),
+        ])
+        .optional(),
+    }),
+  ),
+);
 
 type CodeInterpreterArgs = {
   /**
@@ -38,7 +54,7 @@ type CodeInterpreterArgs = {
 };
 
 export const codeInterpreterToolFactory =
-  createProviderDefinedToolFactoryWithOutputSchema<
+  createProviderToolFactoryWithOutputSchema<
     {
       /**
        * The code to run, or null if not available.
@@ -77,7 +93,6 @@ export const codeInterpreterToolFactory =
     CodeInterpreterArgs
   >({
     id: 'openai.code_interpreter',
-    name: 'code_interpreter',
     inputSchema: codeInterpreterInputSchema,
     outputSchema: codeInterpreterOutputSchema,
   });

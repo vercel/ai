@@ -1,7 +1,7 @@
 import {
   JSONObject,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
@@ -11,7 +11,7 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
-export function prepareTools({
+export async function prepareTools({
   tools,
   toolChoice,
   modelId,
@@ -19,13 +19,13 @@ export function prepareTools({
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: string;
-}): {
+}): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
   betas: Set<string>;
-  toolWarnings: LanguageModelV3CallWarning[];
-} {
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  toolWarnings: SharedV3Warning[];
+}> {
+  const toolWarnings: SharedV3Warning[] = [];
   const betas = new Set<string>();
 
   if (tools == null || tools.length === 0) {
@@ -40,12 +40,12 @@ export function prepareTools({
   // Filter out unsupported web_search tool and add a warning
   const supportedTools = tools.filter(tool => {
     if (
-      tool.type === 'provider-defined' &&
+      tool.type === 'provider' &&
       tool.id === 'anthropic.web_search_20250305'
     ) {
       toolWarnings.push({
-        type: 'unsupported-tool',
-        tool,
+        type: 'unsupported',
+        feature: 'web_search_20250305 tool',
         details:
           'The web_search_20250305 tool is not supported on Amazon Bedrock.',
       });
@@ -64,23 +64,21 @@ export function prepareTools({
   }
 
   const isAnthropicModel = modelId.includes('anthropic.');
-  const providerDefinedTools = supportedTools.filter(
-    t => t.type === 'provider-defined',
-  );
+  const ProviderTools = supportedTools.filter(t => t.type === 'provider');
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const bedrockTools: BedrockTool[] = [];
 
-  const usingAnthropicTools =
-    isAnthropicModel && providerDefinedTools.length > 0;
+  const usingAnthropicTools = isAnthropicModel && ProviderTools.length > 0;
 
   // Handle Anthropic provider-defined tools for Anthropic models on Bedrock
   if (usingAnthropicTools) {
     if (functionTools.length > 0) {
       toolWarnings.push({
-        type: 'unsupported-setting',
-        setting: 'tools',
+        type: 'unsupported',
+        feature:
+          'mixing Anthropic provider-defined tools and standard function tools',
         details:
           'Mixed Anthropic provider-defined tools and standard function tools are not supported in a single call to Bedrock. Only Anthropic tools will be used.',
       });
@@ -90,9 +88,10 @@ export function prepareTools({
       toolChoice: preparedAnthropicToolChoice,
       toolWarnings: anthropicToolWarnings,
       betas: anthropicBetas,
-    } = prepareAnthropicTools({
-      tools: providerDefinedTools,
+    } = await prepareAnthropicTools({
+      tools: ProviderTools,
       toolChoice,
+      supportsStructuredOutput: false,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -107,7 +106,7 @@ export function prepareTools({
     }
 
     // Create a standard Bedrock tool representation for validation purposes
-    for (const tool of providerDefinedTools) {
+    for (const tool of ProviderTools) {
       const toolFactory = Object.values(anthropicTools).find(factory => {
         const instance = (factory as (args: any) => any)({});
         return instance.id === tool.id;
@@ -119,19 +118,19 @@ export function prepareTools({
           toolSpec: {
             name: tool.name,
             inputSchema: {
-              json: asSchema(fullToolDefinition.inputSchema)
-                .jsonSchema as JSONObject,
+              json: (await asSchema(fullToolDefinition.inputSchema)
+                .jsonSchema) as JSONObject,
             },
           },
         });
       } else {
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({ type: 'unsupported', feature: 'tool ${tool.id}' });
       }
     }
   } else {
     // Report unsupported provider-defined tools for non-anthropic models
-    for (const tool of providerDefinedTools) {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
+    for (const tool of ProviderTools) {
+      toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
     }
   }
 
@@ -140,7 +139,9 @@ export function prepareTools({
     bedrockTools.push({
       toolSpec: {
         name: tool.name,
-        description: tool.description,
+        ...(tool.description?.trim() !== ''
+          ? { description: tool.description }
+          : {}),
         inputSchema: {
           json: tool.inputSchema as JSONObject,
         },

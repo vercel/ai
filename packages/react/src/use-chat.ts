@@ -32,6 +32,7 @@ export type UseChatHelpers<UI_MESSAGE extends UIMessage> = {
   | 'stop'
   | 'resumeStream'
   | 'addToolResult'
+  | 'addToolOutput'
   | 'addToolApprovalResponse'
   | 'status'
   | 'messages'
@@ -71,14 +72,12 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     chatRef.current = 'chat' in options ? options.chat : new Chat(options);
   }
 
-  const optionsId = 'id' in options ? options.id : null;
-
   const subscribeToMessages = useCallback(
     (update: () => void) =>
       chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    // optionsId is required to trigger re-subscription when the chat ID changes
+    // `chatRef.current.id` is required to trigger re-subscription when the chat ID changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [throttleWaitMs, optionsId],
+    [throttleWaitMs, chatRef.current.id],
   );
 
   const messages = useSyncExternalStore(
@@ -147,7 +146,11 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     error,
     resumeStream: chatRef.current.resumeStream,
     status,
-    addToolResult: chatRef.current.addToolResult,
+    /**
+     * @deprecated Use `addToolOutput` instead.
+     */
+    addToolResult: chatRef.current.addToolOutput,
+    addToolOutput: chatRef.current.addToolOutput,
     addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
   };
 }

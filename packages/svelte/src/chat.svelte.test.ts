@@ -5,7 +5,7 @@ import {
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   DefaultChatTransport,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   type UIMessageChunk,
 } from 'ai';
@@ -422,7 +422,7 @@ describe('onToolCall', () => {
       async onToolCall({ toolCall }) {
         await toolCallPromise;
 
-        chat.addToolResult({
+        chat.addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -449,7 +449,9 @@ describe('onToolCall', () => {
     const appendOperation = chat.sendMessage({ text: 'hi' });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -460,6 +462,7 @@ describe('onToolCall', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -467,20 +470,23 @@ describe('onToolCall', () => {
     resolve();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output:
-          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output:
+            'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 });
 
@@ -518,7 +524,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -529,6 +537,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -542,7 +551,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -553,6 +564,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -566,7 +578,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-streaming',
           errorText: undefined,
@@ -577,6 +591,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -591,7 +606,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -602,6 +619,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -616,19 +634,22 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output: 'test-result',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 
   it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
@@ -650,7 +671,9 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -661,6 +684,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
@@ -676,22 +700,25 @@ describe('tool invocations', () => {
 
     await appendOperation;
 
-    expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
-      {
-        state: 'output-available',
-        errorText: undefined,
-        rawInput: undefined,
-        toolCallId: 'tool-call-0',
-        type: 'tool-test-tool',
-        input: { testArg: 'test-value' },
-        output: 'test-result',
-        providerExecuted: undefined,
-        preliminary: undefined,
-      },
-    ]);
+    expect(chat.messages.at(1)?.parts.filter(isStaticToolUIPart)).toStrictEqual(
+      [
+        {
+          state: 'output-available',
+          errorText: undefined,
+          rawInput: undefined,
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          output: 'test-result',
+          providerExecuted: undefined,
+          preliminary: undefined,
+          title: undefined,
+        },
+      ],
+    );
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -709,7 +736,9 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'input-available',
           errorText: undefined,
@@ -720,18 +749,21 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });
 
-    chat.addToolResult({
+    chat.addToolOutput({
       tool: 'test-tool',
       toolCallId: 'tool-call-0',
       output: 'test-result',
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)?.parts.filter(isToolUIPart)).toStrictEqual([
+      expect(
+        chat.messages.at(1)?.parts.filter(isStaticToolUIPart),
+      ).toStrictEqual([
         {
           state: 'output-available',
           errorText: undefined,
@@ -742,6 +774,7 @@ describe('tool invocations', () => {
           output: 'test-result',
           providerExecuted: undefined,
           preliminary: undefined,
+          title: undefined,
         },
       ]);
     });

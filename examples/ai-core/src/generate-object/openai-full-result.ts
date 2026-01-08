@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
     schema: z.object({
@@ -19,6 +19,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result, null, 2));
-}
-
-main().catch(console.error);
+});

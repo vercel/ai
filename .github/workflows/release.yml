@@ -9,13 +9,14 @@ on:
       - '.github/workflows/release.yml'
   workflow_dispatch:
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: 
+  group: 'release'
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     # do not attempt running in forks
     if: github.repository_owner == 'vercel'
     steps:

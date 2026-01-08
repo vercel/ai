@@ -1,18 +1,20 @@
 import {
   LanguageModelV3Prompt,
-  LanguageModelV3ProviderDefinedTool,
+  LanguageModelV3ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
+import {
+  GoogleGenerativeAILanguageModel,
+  getGroundingMetadataSchema,
+  getUrlContextMetadataSchema,
+} from './google-generative-ai-language-model';
 
 import {
   GoogleGenerativeAIGroundingMetadata,
   GoogleGenerativeAIUrlContextMetadata,
 } from './google-generative-ai-prompt';
 import { createGoogleGenerativeAI } from './google-provider';
-import { groundingMetadataSchema } from './tool/google-search';
-import { urlContextMetadataSchema } from './tool/url-context';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
@@ -47,6 +49,9 @@ const provider = createGoogleGenerativeAI({
   generateId: () => 'test-id',
 });
 const model = provider.chat('gemini-pro');
+
+const groundingMetadataSchema = getGroundingMetadataSchema();
+const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
@@ -83,6 +88,22 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].web with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          web: {
+            // Missing `title`
+            uri: 'https://example.com/weather',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates complete grounding metadata with Vertex AI Search results', () => {
     const metadata = {
       retrievalQueries: ['How to make appointment to renew driving license?'],
@@ -111,6 +132,56 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].retrievedContext with missing title', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            // Missing `title`
+            uri: 'https://vertexaisearch.cloud.google.com/grounding-api-redirect/AXiHM.....QTN92V5ePQ==',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore (new format)', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Sample content for testing...',
+            fileSearchStore: 'fileSearchStores/test-store-xyz',
+            title: 'Test Document',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].retrievedContext with fileSearchStore and missing uri', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            text: 'Content without uri field',
+            fileSearchStore: 'fileSearchStores/store-abc',
+            // Missing `uri` - should still be valid
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -123,6 +194,39 @@ describe('groundingMetadataSchema', () => {
 
   it('validates empty grounding metadata', () => {
     const metadata = {};
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates grounding metadata with maps chunks', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+            title: 'Best Italian Restaurant',
+            text: 'A great Italian restaurant',
+            placeId: 'ChIJ12345',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].maps with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+          },
+        },
+      ],
+    };
 
     const result = groundingMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(true);
@@ -283,11 +387,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "reasoningTokens": undefined,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "candidatesTokenCount": 5,
+          "promptTokenCount": 20,
+          "totalTokenCount": 25,
+        },
       }
     `);
   });
@@ -320,7 +435,12 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`[]`);
-    expect(finishReason).toStrictEqual('error');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "MALFORMED_FUNCTION_CALL",
+        "unified": "error",
+      }
+    `);
   });
 
   it('should extract tool calls', async () => {
@@ -377,7 +497,12 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(finishReason).toStrictEqual('tool-calls');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -482,19 +607,21 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+              },
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
       toolConfig: {
         functionCallingConfig: {
           mode: 'ANY',
@@ -633,22 +760,24 @@ describe('doGenerate', () => {
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
       toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-      tools: {
-        functionDeclarations: [
-          {
-            name: 'test-tool',
-            description: '',
-            parameters: {
-              properties: {
-                property1: { type: 'string' },
-                property2: { type: 'number' },
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'test-tool',
+              description: '',
+              parameters: {
+                properties: {
+                  property1: { type: 'string' },
+                  property2: { type: 'number' },
+                },
+                required: ['property1', 'property2'],
+                type: 'object',
               },
-              required: ['property1', 'property2'],
-              type: 'object',
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
     });
   });
 
@@ -735,12 +864,6 @@ describe('doGenerate', () => {
           {
             web: { uri: 'https://source.example.com', title: 'Source Title' },
           },
-          {
-            retrievedContext: {
-              uri: 'https://not-a-source.example.com',
-              title: 'Not a Source',
-            },
-          },
         ],
       },
     });
@@ -765,6 +888,295 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract sources from RAG retrievedContext chunks', async () => {
+    prepareJsonResponse({
+      content: 'test response with RAG',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com', title: 'Web Source' },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://rag-corpus/document.pdf',
+              title: 'RAG Document',
+              text: 'Retrieved context...',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external-rag-source.com/page',
+              title: 'External RAG Source',
+              text: 'External retrieved context...',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with RAG",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "Web Source",
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "RAG Document",
+              "type": "source",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": "External RAG Source",
+              "type": "source",
+              "url": "https://external-rag-source.com/page",
+            },
+          ]
+        `);
+  });
+
+  it('should extract sources from File Search retrievedContext (new format)', async () => {
+    prepareJsonResponse({
+      content: 'test response with File Search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            retrievedContext: {
+              text: 'Sample content for testing...',
+              fileSearchStore: 'fileSearchStores/test-store-xyz',
+              title: 'Test Document',
+            },
+          },
+          {
+            retrievedContext: {
+              text: 'Another document content...',
+              fileSearchStore: 'fileSearchStores/another-store-abc',
+              // Missing title - should default to 'Unknown Document'
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with File Search",
+              "type": "text",
+            },
+            {
+              "filename": "test-store-xyz",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Test Document",
+              "type": "source",
+            },
+            {
+              "filename": "another-store-abc",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
+  });
+
+  it('should handle URL sources with undefined title correctly', async () => {
+    prepareJsonResponse({
+      content: 'test response with URLs',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://example.com/page1',
+              // No title provided
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://example.com/page2',
+              // No title provided
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with URLs",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page1",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://example.com/page2",
+            },
+          ]
+        `);
+  });
+
+  it('should extract sources from maps grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with Maps',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=12345',
+              title: 'Best Italian Restaurant',
+              placeId: 'ChIJ12345',
+            },
+          },
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=67890',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with Maps",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Best Italian Restaurant",
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=12345",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=67890",
+        },
+      ]
+    `);
+  });
+
+  it('should handle mixed source types with correct title defaults', async () => {
+    prepareJsonResponse({
+      content: 'test response with mixed sources',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: { uri: 'https://web.example.com' },
+          },
+          {
+            retrievedContext: {
+              uri: 'https://external.example.com',
+            },
+          },
+          {
+            retrievedContext: {
+              uri: 'gs://bucket/document.pdf',
+            },
+          },
+          {
+            retrievedContext: {
+              fileSearchStore: 'fileSearchStores/store-123',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": undefined,
+              "text": "test response with mixed sources",
+              "type": "text",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://web.example.com",
+            },
+            {
+              "id": "test-id",
+              "sourceType": "url",
+              "title": undefined,
+              "type": "source",
+              "url": "https://external.example.com",
+            },
+            {
+              "filename": "document.pdf",
+              "id": "test-id",
+              "mediaType": "application/pdf",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+            {
+              "filename": "store-123",
+              "id": "test-id",
+              "mediaType": "application/octet-stream",
+              "sourceType": "document",
+              "title": "Unknown Document",
+              "type": "source",
+            },
+          ]
+        `);
   });
 
   describe('async headers handling', () => {
@@ -1058,33 +1470,217 @@ describe('doGenerate', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { content } = await model.doGenerate({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.tools).toEqual({ codeExecution: {} });
+    expect(requestBody.tools).toEqual([{ codeExecution: {} }]);
 
-    expect(content).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(1+1)"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: '2',
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(1+1)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "2",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('should return stop finish reason for code execution (provider-executed tool)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
       },
-    ]);
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Provider-executed tools should not trigger 'tool-calls' finish reason
+    // since they don't require SDK iteration
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+  });
+
+  it('should return stop finish reason for code execution with text response (structured output scenario)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'primes = [2, 3, 5, 7, 11]\nprint(sum(primes))',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '28',
+                  },
+                },
+                {
+                  text: '{"answer": 28, "explanation": "Sum of first 5 primes"}',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason, content } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Should return 'stop' so structured output can be parsed
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+
+    // Verify text content is included
+    const textPart = content.find(part => part.type === 'text');
+    expect(textPart).toBeDefined();
+    expect((textPart as { type: 'text'; text: string }).text).toBe(
+      '{"answer": 28, "explanation": "Sum of first 5 primes"}',
+    );
+  });
+
+  it('should return tool-calls finish reason when code execution is combined with function tools', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Should return 'tool-calls' because there's a client-executed function tool
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   describe('search tool selection', () => {
@@ -1103,7 +1699,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1112,7 +1708,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1126,7 +1722,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1135,7 +1731,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -1149,7 +1745,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -1158,7 +1754,7 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -1173,7 +1769,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {
@@ -1185,14 +1781,16 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
@@ -1205,7 +1803,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.url_context',
             name: 'url_context',
             args: {},
@@ -1214,7 +1812,45 @@ describe('doGenerate', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { urlContext: {} },
+        tools: [{ urlContext: {} }],
+      });
+    });
+    it('should use vertexRagStore for gemini-2.0-pro', async () => {
+      prepareJsonResponse({
+        url: TEST_URL_GEMINI_2_0_PRO,
+      });
+
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
+      await gemini2Pro.doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.vertex_rag_store',
+            name: 'vertex_rag_store',
+            args: {
+              ragCorpus:
+                'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+              topK: 5,
+            },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        tools: [
+          {
+            retrieval: {
+              vertex_rag_store: {
+                rag_resources: {
+                  rag_corpus:
+                    'projects/my-project/locations/us-central1/ragCorpora/my-rag-corpus',
+                },
+                similarity_top_k: 5,
+              },
+            },
+          },
+        ],
       });
     });
   });
@@ -1272,6 +1908,7 @@ describe('doGenerate', () => {
         {
           "data": "base64encodedimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
@@ -1282,6 +1919,7 @@ describe('doGenerate', () => {
         {
           "data": "anotherbase64encodedimagedata",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1334,11 +1972,13 @@ describe('doGenerate', () => {
         {
           "data": "imagedata1",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "imagedata2",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1379,6 +2019,69 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toMatchObject({
       generationConfig: {
         mediaResolution: 'MEDIA_RESOLUTION_LOW',
+      },
+    });
+  });
+
+  it('should pass imageConfig.aspectRatio in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
+  it('should pass retrievalConfig in provider options', async () => {
+    prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
+
+    const gemini2Model = provider.chat('gemini-2.0-flash-exp');
+
+    await gemini2Model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.google_maps',
+          name: 'google_maps',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        google: {
+          retrievalConfig: {
+            latLng: {
+              latitude: 34.090199,
+              longitude: -117.881081,
+            },
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: {
+            latitude: 34.090199,
+            longitude: -117.881081,
+          },
+        },
       },
     });
   });
@@ -1430,11 +2133,13 @@ describe('doGenerate', () => {
         {
           "data": "validimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "pdfdata",
           "mediaType": "application/pdf",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1617,113 +2322,345 @@ describe('doGenerate', () => {
       ]
     `);
   });
-  describe('warnings for includeThoughts option', () => {
-    it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
 
-      // Manually create a model instance to control the provider string
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}), // Dummy implementation
-      });
-
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: true,
-              thinkingBudget: 500,
-            },
-          },
-        },
-      });
-
-      expect(warnings).toMatchInlineSnapshot(`
-        [
+  it('should support includeThoughts with google generative ai provider', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            "message": "The 'includeThoughts' option is only supported with the Google Vertex provider and might not be supported or could behave unexpectedly with the current Google provider (google.generative-ai.chat).",
-            "type": "other",
+            content: {
+              parts: [
+                {
+                  text: 'let me think about this problem',
+                  thought: true,
+                  thoughtSignature: 'reasoning_sig',
+                },
+                { text: 'the answer is 42' },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
           },
-        ]
-      `);
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 15,
+          totalTokenCount: 25,
+          thoughtsTokenCount: 8,
+        },
+      },
+    };
+
+    const { content, usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            includeThoughts: true,
+            thinkingBudget: 1024,
+          },
+        },
+      },
     });
 
-    it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
-
-      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.vertex.chat', // Simulate Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
-
-      const { warnings } = await vertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: true,
-              thinkingBudget: 500,
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "reasoning_sig",
             },
           },
+          "text": "let me think about this problem",
+          "type": "reasoning",
         },
-      });
+        {
+          "providerMetadata": undefined,
+          "text": "the answer is 42",
+          "type": "text",
+        },
+      ]
+    `);
 
-      expect(warnings).toMatchInlineSnapshot(`[]`);
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 10,
+          "total": 10,
+        },
+        "outputTokens": {
+          "reasoning": 8,
+          "text": 15,
+          "total": 23,
+        },
+        "raw": {
+          "candidatesTokenCount": 15,
+          "promptTokenCount": 10,
+          "thoughtsTokenCount": 8,
+          "totalTokenCount": 25,
+        },
+      }
+    `);
+  });
+
+  it('should pass thinkingLevel in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'high',
+          },
+        },
+      },
     });
 
-    it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'high',
+        },
+      },
+    });
+  });
 
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
+  it('should pass thinkingLevel "minimal" in provider options', async () => {
+    prepareJsonResponse({});
 
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            thinkingConfig: {
-              includeThoughts: false,
-              thinkingBudget: 500,
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'minimal',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'minimal',
+        },
+      },
+    });
+  });
+
+  it('should pass thinkingLevel "medium" in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'medium',
+        },
+      },
+    });
+  });
+
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello!' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                webSearchQueries: ['test query'],
+              },
             },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
           },
         },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
       });
 
-      expect(warnings).toMatchInlineSnapshot(`[]`);
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toHaveProperty('vertex');
+      expect(providerMetadata).not.toHaveProperty('google');
+      expect(providerMetadata?.vertex).toMatchObject({
+        promptFeedback: expect.any(Object),
+        groundingMetadata: expect.any(Object),
+        safetyRatings: expect.any(Array),
+      });
     });
 
-    it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
-      prepareJsonResponse({ content: 'test' }); // Mock API response
-      const nonVertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
-        provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        supportedUrls: () => ({}),
-      });
-
-      const { warnings } = await nonVertexModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          google: {
-            // No thinkingConfig
+    it('should use "google" as providerMetadata key when provider does not include "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello!' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+              groundingMetadata: {
+                webSearchQueries: ['test query'],
+              },
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
           },
         },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        //should default to 'google'
       });
 
-      expect(warnings).toMatchInlineSnapshot(`[]`);
+      const { providerMetadata } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(providerMetadata).toHaveProperty('google');
+      expect(providerMetadata).not.toHaveProperty('vertex');
+      expect(providerMetadata?.google).toMatchObject({
+        promptFeedback: expect.any(Object),
+        groundingMetadata: expect.any(Object),
+        safetyRatings: expect.any(Array),
+      });
+    });
+
+    it('should use "vertex" as providerMetadata key in thoughtSignature content when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'thinking...',
+                    thought: true,
+                    thoughtSignature: 'sig123',
+                  },
+                  { text: 'Final answer' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const reasoningPart = content.find(part => part.type === 'reasoning');
+      expect(reasoningPart?.providerMetadata).toHaveProperty('vertex');
+      expect(reasoningPart?.providerMetadata).not.toHaveProperty('google');
+      expect(reasoningPart?.providerMetadata?.vertex).toMatchObject({
+        thoughtSignature: 'sig123',
+      });
+    });
+
+    it('should use "vertex" as providerMetadata key in tool call content when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'test' },
+                    },
+                    thoughtSignature: 'tool_sig',
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+        },
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { content } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const toolCallPart = content.find(part => part.type === 'tool-call');
+      expect(toolCallPart?.providerMetadata).toHaveProperty('vertex');
+      expect(toolCallPart?.providerMetadata).not.toHaveProperty('google');
+      expect(toolCallPart?.providerMetadata?.vertex).toMatchObject({
+        thoughtSignature: 'tool_sig',
+      });
     });
   });
 });
@@ -1949,7 +2886,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -1982,11 +2922,22 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
         },
       ]
@@ -2100,7 +3051,12 @@ describe('doStream', () => {
     const model = provider.languageModel('gemini-2.0-pro');
     const { stream } = await model.doStream({
       tools: [
-        provider.tools.codeExecution({}) as LanguageModelV3ProviderDefinedTool,
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
       ],
       prompt: TEST_PROMPT,
     });
@@ -2111,25 +3067,98 @@ describe('doStream', () => {
       e => e.type === 'tool-call' || e.type === 'tool-result',
     );
 
-    expect(toolEvents).toEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        input: '{"language":"PYTHON","code":"print(\\"hello\\")"}',
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'test-id',
-        toolName: 'code_execution',
-        result: {
-          outcome: 'OUTCOME_OK',
-          output: 'hello\n',
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print(\\"hello\\")"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
         },
-        providerExecuted: true,
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "hello
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('should return stop finish reason for streamed code execution (provider-executed tool)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print("hello")',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: 'hello\n',
+                    },
+                  },
+                  {
+                    text: '{"result": "hello"}',
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const finishEvent = events.find(e => e.type === 'finish');
+
+    // Provider-executed tools should not trigger 'tool-calls' finish reason
+    // since they don't require SDK iteration - allows structured output to work
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        raw: 'STOP',
+        unified: 'stop',
       },
-    ]);
+    });
   });
 
   describe('search tool selection', () => {
@@ -2150,7 +3179,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2159,7 +3188,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2176,7 +3205,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2185,7 +3214,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearch: {} },
+        tools: [{ googleSearch: {} }],
       });
     });
 
@@ -2201,7 +3230,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {},
@@ -2210,7 +3239,7 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: { googleSearchRetrieval: {} },
+        tools: [{ googleSearchRetrieval: {} }],
       });
     });
 
@@ -2227,7 +3256,7 @@ describe('doStream', () => {
         includeRawChunks: false,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'google.google_search',
             name: 'google_search',
             args: {
@@ -2239,14 +3268,16 @@ describe('doStream', () => {
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: {
-          googleSearchRetrieval: {
-            dynamicRetrievalConfig: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
+        tools: [
+          {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 1,
+              },
             },
           },
-        },
+        ],
       });
     });
   });
@@ -2467,7 +3498,10 @@ describe('doStream', () => {
           "type": "file",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -2495,12 +3529,114 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 294,
-            "outputTokens": 233,
-            "reasoningTokens": undefined,
-            "totalTokens": 527,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 294,
+              "total": 294,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 233,
+              "total": 233,
+            },
+            "raw": {
+              "candidatesTokenCount": 233,
+              "promptTokenCount": 294,
+              "totalTokenCount": 527,
+            },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream text and files in correct order', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Step 1: ' },
+                  { inlineData: { data: 'image1', mimeType: 'image/png' } },
+                  { text: ' Step 2: ' },
+                  { inlineData: { data: 'image2', mimeType: 'image/jpeg' } },
+                  { text: ' Done' },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    // Filter to content events only (excluding metadata)
+    const contentEvents = events.filter(
+      event =>
+        event.type === 'text-start' ||
+        event.type === 'text-delta' ||
+        event.type === 'text-end' ||
+        event.type === 'file',
+    );
+
+    // Verify that text and file parts are interleaved in the correct order
+    expect(contentEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
+          "delta": "Step 1: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image1",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+        {
+          "delta": " Step 2: ",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "data": "image2",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "delta": " Done",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
         },
       ]
     `);
@@ -2570,9 +3706,12 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const finishEvent = events.find(event => event.type === 'finish');
 
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
-      'tool-calls',
-    );
+    expect(finishEvent?.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should only pass valid provider options', async () => {
@@ -2747,7 +3886,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -2764,11 +3906,23 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokens": 14,
-            "outputTokens": 18,
-            "reasoningTokens": 142,
-            "totalTokens": 174,
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 14,
+              "total": 14,
+            },
+            "outputTokens": {
+              "reasoning": 142,
+              "text": 18,
+              "total": 160,
+            },
+            "raw": {
+              "candidatesTokenCount": 18,
+              "promptTokenCount": 14,
+              "thoughtsTokenCount": 142,
+              "totalTokenCount": 174,
+            },
           },
         },
       ]
@@ -2876,7 +4030,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -2904,9 +4061,18 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": undefined,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": undefined,
+            },
+            "raw": undefined,
           },
         },
       ]
@@ -3025,6 +4191,197 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+  });
+
+  describe('providerMetadata key based on provider string', () => {
+    it('should use "vertex" as providerMetadata key in finish event when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ' World!' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+                groundingMetadata: {
+                  webSearchQueries: ['test query'],
+                },
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(finishEvent?.type === 'finish').toBe(true);
+      if (finishEvent?.type === 'finish') {
+        expect(finishEvent.providerMetadata).toHaveProperty('vertex');
+        expect(finishEvent.providerMetadata?.vertex).toMatchObject({
+          promptFeedback: null,
+          groundingMetadata: expect.any(Object),
+          safetyRatings: expect.any(Array),
+        });
+      }
+    });
+
+    it('should use "google" as providerMetadata key in finish event when provider does not include "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Hello' }], role: 'model' },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: ' World!' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+                groundingMetadata: {
+                  webSearchQueries: ['test query'],
+                },
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+      const finishEvent = events.find(event => event.type === 'finish');
+
+      expect(finishEvent?.type === 'finish').toBe(true);
+      if (finishEvent?.type === 'finish') {
+        expect(finishEvent.providerMetadata).toHaveProperty('google');
+        expect(finishEvent.providerMetadata).not.toHaveProperty('vertex');
+        expect(finishEvent.providerMetadata?.google).toMatchObject({
+          promptFeedback: null,
+          groundingMetadata: expect.any(Object),
+          safetyRatings: expect.any(Array),
+        });
+      }
+    });
+
+    it('should use "vertex" as providerMetadata key in streaming reasoning events when provider includes "vertex"', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: 'thinking...',
+                      thought: true,
+                      thoughtSignature: 'stream_sig',
+                    },
+                  ],
+                  role: 'model',
+                },
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: { parts: [{ text: 'Final answer' }], role: 'model' },
+                finishReason: 'STOP',
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 1,
+              candidatesTokenCount: 2,
+              totalTokenCount: 3,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      const reasoningStartEvent = events.find(
+        event => event.type === 'reasoning-start',
+      );
+      expect(reasoningStartEvent?.type === 'reasoning-start').toBe(true);
+      if (reasoningStartEvent?.type === 'reasoning-start') {
+        expect(reasoningStartEvent.providerMetadata).toHaveProperty('vertex');
+        expect(reasoningStartEvent.providerMetadata).not.toHaveProperty(
+          'google',
+        );
+        expect(reasoningStartEvent.providerMetadata?.vertex).toMatchObject({
+          thoughtSignature: 'stream_sig',
+        });
+      }
+
+      const reasoningDeltaEvent = events.find(
+        event => event.type === 'reasoning-delta',
+      );
+      expect(reasoningDeltaEvent?.type === 'reasoning-delta').toBe(true);
+      if (reasoningDeltaEvent?.type === 'reasoning-delta') {
+        expect(reasoningDeltaEvent.providerMetadata).toHaveProperty('vertex');
+        expect(reasoningDeltaEvent.providerMetadata).not.toHaveProperty(
+          'google',
+        );
+      }
     });
   });
 });

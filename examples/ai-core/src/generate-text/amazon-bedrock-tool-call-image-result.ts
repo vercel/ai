@@ -1,9 +1,9 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText, stepCountIs, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
     messages: [
@@ -29,13 +29,13 @@ async function main() {
           const bytes = new Uint8Array(arrayBuffer);
           return { bytes };
         },
-        toModelOutput(result) {
+        toModelOutput({ output }) {
           return {
             type: 'content',
             value: [
               {
-                type: 'media',
-                data: Buffer.from(result.bytes).toString('base64'),
+                type: 'image-data',
+                data: Buffer.from(output.bytes).toString('base64'),
                 mediaType: 'image/jpeg',
               },
             ],
@@ -47,6 +47,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

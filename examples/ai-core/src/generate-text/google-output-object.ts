@@ -1,12 +1,12 @@
 import { google } from '@ai-sdk/google';
 import { generateText, Output } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
-  const { experimental_output } = await generateText({
+run(async () => {
+  const { output } = await generateText({
     model: google('gemini-2.5-flash'),
-    experimental_output: Output.object({
+    output: Output.object({
       schema: z.object({
         name: z.string(),
         age: z.number().nullable().describe('Age of the person.'),
@@ -24,7 +24,5 @@ async function main() {
     prompt: 'Generate an example person for testing.',
   });
 
-  console.log(experimental_output);
-}
-
-main().catch(console.error);
+  console.log(output);
+});

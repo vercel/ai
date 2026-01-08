@@ -1,9 +1,9 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateImage({
     model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
     prompt:
@@ -18,6 +18,4 @@ async function main() {
   });
 
   await presentImages(result.images);
-}
-
-main().catch(console.error);
+});

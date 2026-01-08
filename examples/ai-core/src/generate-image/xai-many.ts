@@ -1,9 +1,9 @@
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { images } = await generateImage({
     model: xai.image('grok-2-image'),
     n: 3,
@@ -11,6 +11,4 @@ async function main() {
   });
 
   await presentImages(images);
-}
-
-main().catch(console.error);
+});

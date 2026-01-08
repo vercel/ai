@@ -1,14 +1,14 @@
 import { azure } from '@ai-sdk/azure';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
-  const imageData = fs.readFileSync('/Desktop/sonny-angel.jpg');
+run(async () => {
+  const imageData = fs.readFileSync('data/comic-cat.png');
   const imageBase64_string = imageData.toString('base64');
 
   const { text, usage } = await generateText({
-    model: azure('v0-gpt-35-turbo'), // use your own deployment
+    model: azure('gpt-4.1-mini'), // use your own deployment
     messages: [
       {
         role: 'user',
@@ -20,7 +20,7 @@ async function main() {
             image: imageBase64_string,
             providerOptions: {
               // When using the Azure OpenAI provider, the imageDetail option can be configured under the `openai` key:
-              openai: {
+              azure: {
                 imageDetail: 'low',
               },
             },
@@ -33,6 +33,4 @@ async function main() {
   console.log(text);
   console.log();
   console.log('Usage:', usage);
-}
-
-main().catch(console.error);
+});

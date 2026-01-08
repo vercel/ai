@@ -19,6 +19,9 @@ import { XaiChatLanguageModel } from './xai-chat-language-model';
 import { XaiChatModelId } from './xai-chat-options';
 import { XaiErrorData, xaiErrorDataSchema } from './xai-error';
 import { XaiImageModelId } from './xai-image-settings';
+import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
+import { XaiResponsesModelId } from './responses/xai-responses-options';
+import { xaiTools } from './tool';
 import { VERSION } from './version';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
@@ -43,6 +46,11 @@ Creates an Xai chat model for text generation.
   chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
+Creates an Xai responses model for agentic tool calling.
+   */
+  responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
+
+  /**
 Creates an Xai image model for image generation.
    */
   image(modelId: XaiImageModelId): ImageModelV3;
@@ -51,6 +59,16 @@ Creates an Xai image model for image generation.
 Creates an Xai image model for image generation.
    */
   imageModel(modelId: XaiImageModelId): ImageModelV3;
+
+  /**
+Server-side agentic tools for use with the responses API.
+   */
+  tools: typeof xaiTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface XaiProviderSettings {
@@ -93,9 +111,19 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       `ai-sdk/xai/${VERSION}`,
     );
 
-  const createLanguageModel = (modelId: XaiChatModelId) => {
+  const createChatLanguageModel = (modelId: XaiChatModelId) => {
     return new XaiChatLanguageModel(modelId, {
       provider: 'xai.chat',
+      baseURL,
+      headers: getHeaders,
+      generateId,
+      fetch: options.fetch,
+    });
+  };
+
+  const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {
+    return new XaiResponsesLanguageModel(modelId, {
+      provider: 'xai.responses',
       baseURL,
       headers: getHeaders,
       generateId,
@@ -113,15 +141,20 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) => createLanguageModel(modelId);
+  const provider = (modelId: XaiChatModelId) =>
+    createChatLanguageModel(modelId);
 
-  provider.languageModel = createLanguageModel;
-  provider.chat = createLanguageModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.specificationVersion = 'v3' as const;
+  provider.languageModel = createChatLanguageModel;
+  provider.chat = createChatLanguageModel;
+  provider.responses = createResponsesLanguageModel;
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
+  provider.tools = xaiTools;
 
   return provider;
 }

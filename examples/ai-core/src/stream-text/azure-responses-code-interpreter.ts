@@ -1,6 +1,6 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare
@@ -9,14 +9,14 @@ import 'dotenv/config';
  * AZURE_API_KEY="<your_api_key>"
  */
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = streamText({
-    model: azure.responses('gpt-5-mini'),
+    model: azure.responses('gpt-4.1-mini'), // use your own deployment
     prompt:
-      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results.',
+      'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
-      code_interpreter: azure.tools.codeInterpreter({}),
+      code_interpreter: azure.tools.codeInterpreter(),
     },
   });
 
@@ -27,6 +27,13 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
-}
-
-main().catch(console.error);
+  console.log('\n=== Code Interpreter Annotations ===');
+  for await (const part of result.fullStream) {
+    if (part.type === 'text-end') {
+      const annotations = part.providerMetadata?.azure?.annotations;
+      if (annotations) {
+        console.dir(annotations);
+      }
+    }
+  }
+});

@@ -138,15 +138,15 @@ const toolTests = (model: LanguageModelV3) => {
                 }
               }
             },
-            toModelOutput(result) {
+            toModelOutput({ output }) {
               return {
                 type: 'content',
                 value: [
-                  typeof result === 'string'
-                    ? { type: 'text', text: result }
+                  typeof output === 'string'
+                    ? { type: 'text', text: output }
                     : {
-                        type: 'media',
-                        data: result.data,
+                        type: 'image-data',
+                        data: output.data,
                         mediaType: 'image/png',
                       },
                 ],

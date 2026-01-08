@@ -1,10 +1,13 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
+  type InferSchema,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -49,19 +52,36 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     const {
       prompt,
       n = 1,
-      size = '1024x1024',
+      size,
       aspectRatio = '1:1',
       seed,
       providerOptions,
       headers,
       abortSignal,
+      files,
+      mask,
     } = options;
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
+
+    // Google Generative AI does not support image editing
+    if (files != null && files.length > 0) {
+      throw new Error(
+        'Google Generative AI does not support image editing. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
+
+    if (mask != null) {
+      throw new Error(
+        'Google Generative AI does not support image editing with masks. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
 
     if (size != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
@@ -69,8 +89,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
 
     if (seed != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
+        type: 'unsupported',
+        feature: 'seed',
         details:
           'This model does not support the `seed` option through this provider.',
       });
@@ -136,21 +156,29 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
 }
 
 // minimal version of the schema
-const googleImageResponseSchema = z.object({
-  predictions: z
-    .array(z.object({ bytesBase64Encoded: z.string() }))
-    .default([]),
-});
+const googleImageResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      predictions: z
+        .array(z.object({ bytesBase64Encoded: z.string() }))
+        .default([]),
+    }),
+  ),
+);
 
 // Note: For the initial GA launch of Imagen 3, safety filters are not configurable.
 // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
-const googleImageProviderOptionsSchema = z.object({
-  personGeneration: z
-    .enum(['dont_allow', 'allow_adult', 'allow_all'])
-    .nullish(),
-  aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
-});
+const googleImageProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      personGeneration: z
+        .enum(['dont_allow', 'allow_adult', 'allow_all'])
+        .nullish(),
+      aspectRatio: z.enum(['1:1', '3:4', '4:3', '9:16', '16:9']).nullish(),
+    }),
+  ),
+);
 
-export type GoogleGenerativeAIImageProviderOptions = z.infer<
+export type GoogleGenerativeAIImageProviderOptions = InferSchema<
   typeof googleImageProviderOptionsSchema
 >;

@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const { embeddings, usage } = await embedMany({
+run(async () => {
+  const { embeddings, usage, warnings } = await embedMany({
     model: openai.embedding('text-embedding-3-small'),
     values: [
       'sunny day at the beach',
@@ -14,6 +14,5 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});

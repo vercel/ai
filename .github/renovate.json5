@@ -1,0 +1,45 @@
+{
+  // Enable Renovate
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  
+  // Extend from recommended base configuration
+  extends: ["config:recommended", ":disableDependencyDashboard"],
+  
+  // Timezone for schedules (adjust as needed)
+  timezone: "America/Los_Angeles",
+  
+  // Package rules for different update schedules
+  packageRules: [
+    {
+      // Rule 1: Update production dependencies in packages/* every Friday
+      description: "Update production dependencies for packages/* every Friday",
+      matchFileNames: ["packages/*/package.json"],
+      matchDepTypes: ["dependencies", "peerDependencies"],
+      // Cron: At 5am every Friday (minute hour day month weekday)
+      schedule: ["* 5 * * 5"]
+    },
+    {
+      // Rule 2: Update development dependencies in packages/* on first Friday of the month
+      description: "Update development dependencies for packages/* on first Friday of the month",
+      matchFileNames: ["packages/*/package.json"],
+      matchDepTypes: ["devDependencies"],
+      // Cron: At 5am on Friday during days 1-7 (first week contains first Friday)
+      schedule: ["* 5 1-7 * 5"]
+    },
+    {
+      // Rule 3: Update all other package.json files on first Friday of each quarter
+      description: "Update all other package.json files quarterly",
+      matchFileNames: ["package.json", "examples/*/package.json", "tools/*/package.json"],
+      // Cron: At 5am on Friday during days 1-7 in Jan, Apr, Jul, Oct
+      schedule: ["* 5 1-7 1,4,7,10 5"]
+    },
+    {
+      // Rule 4: Update GitHub Workflow files on 3rd Friday of every month
+      description: "Update GitHub Actions workflows on 3rd Friday of the month",
+      matchFileNames: [".github/workflows/**"],
+      // Cron: At 5am on Friday during days 15-21 (contains 3rd Friday)
+      schedule: ["* 5 15-21 * 5"]
+    }
+  ]
+}
+

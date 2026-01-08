@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { images } = await generateImage({
     model: openai.image('dall-e-3'),
     n: 3, // 3 calls; dall-e-3 can only generate 1 image at a time
@@ -11,6 +11,4 @@ async function main() {
   });
 
   await presentImages(images);
-}
-
-main().catch(console.error);
+});

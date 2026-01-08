@@ -1,20 +1,19 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { print } from '../lib/print';
+import { printFullStream } from '../lib/print-full-stream';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-haiku-4-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    maxRetries: 0,
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
+  printFullStream({ result });
 
-  console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+  print('Usage:', await result.usage);
+  print('Finish reason:', await result.finishReason);
+  print('Raw finish reason:', await result.rawFinishReason);
+});

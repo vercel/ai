@@ -66,12 +66,12 @@ You can use the following optional settings to customize the Mixedbread provider
 ## Text Embedding Models
 
 You can create models that call the [Mixedbread embeddings API](https://www.mixedbread.com/api-reference/endpoints/embeddings)
-using the `.textEmbeddingModel()` factory method.
+using the `.embeddingModel()` factory method.
 
 ```ts
 import { mixedbread } from 'mixedbread-ai-provider';
 
-const embeddingModel = mixedbread.textEmbeddingModel(
+const embeddingModel = mixedbread.embeddingModel(
   'mixedbread-ai/mxbai-embed-large-v1',
 );
 ```
@@ -83,7 +83,7 @@ import { mixedbread } from 'mixedbread-ai-provider';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mixedbread.textEmbeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
+  model: mixedbread.embeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
   value: 'sunny day at the beach',
 });
 ```
@@ -95,7 +95,7 @@ import { mixedbread } from 'mixedbread-ai-provider';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: mixedbread.textEmbeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
+  model: mixedbread.embeddingModel('mixedbread-ai/mxbai-embed-large-v1'),
   value: 'sunny day at the beach',
   providerOptions: {
     mixedbread: {

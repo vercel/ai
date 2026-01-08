@@ -1,9 +1,9 @@
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: 'xai/grok-3',
     maxOutputTokens: 512,
@@ -60,6 +60,4 @@ async function main() {
   }
 
   console.log(JSON.stringify(result, null, 2));
-}
-
-main().catch(console.error);
+});

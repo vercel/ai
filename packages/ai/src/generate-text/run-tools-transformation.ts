@@ -1,18 +1,19 @@
-import {
-  LanguageModelV3CallWarning,
-  LanguageModelV3StreamPart,
-} from '@ai-sdk/provider';
+import { LanguageModelV3StreamPart, SharedV3Warning } from '@ai-sdk/provider';
 import {
   getErrorMessage,
   IdGenerator,
   ModelMessage,
+  SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
+import { asLanguageModelUsage } from '../types/usage';
 import { executeToolCall } from './execute-tool-call';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { isApprovalNeeded } from './is-approval-needed';
 import { parseToolCall } from './parse-tool-call';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
@@ -64,6 +65,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       id: string;
       toolName: string;
       providerMetadata?: ProviderMetadata;
+      dynamic?: boolean;
+      title?: string;
     }
   | {
       type: 'tool-input-delta';
@@ -85,7 +88,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | { type: 'stream-start'; warnings: LanguageModelV3CallWarning[] }
+  | { type: 'stream-start'; warnings: SharedV3Warning[] }
   | {
       type: 'response-metadata';
       id?: string;
@@ -95,6 +98,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'finish';
       finishReason: FinishReason;
+      rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
@@ -117,7 +121,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   generatorStream: ReadableStream<LanguageModelV3StreamPart>;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  system: string | undefined;
+  system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
@@ -141,6 +145,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // keep track of tool inputs for provider-side tool results
   const toolInputs = new Map<string, unknown>();
+
+  // keep track of parsed tool calls so provider-emitted approval requests can reference them
+  const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   let canClose = false;
   let finishChunk:
@@ -208,10 +215,32 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'finish': {
           finishChunk = {
             type: 'finish',
-            finishReason: chunk.finishReason,
-            usage: chunk.usage,
+            finishReason: chunk.finishReason.unified,
+            rawFinishReason: chunk.finishReason.raw,
+            usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
+          break;
+        }
+
+        case 'tool-approval-request': {
+          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
+          if (toolCall == null) {
+            toolResultsStreamController!.enqueue({
+              type: 'error',
+              error: new ToolCallNotFoundForApprovalError({
+                toolCallId: chunk.toolCallId,
+                approvalId: chunk.approvalId,
+              }),
+            });
+            break;
+          }
+
+          controller.enqueue({
+            type: 'tool-approval-request',
+            approvalId: chunk.approvalId,
+            toolCall,
+          });
           break;
         }
 
@@ -226,6 +255,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               messages,
             });
 
+            toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
             controller.enqueue(toolCall);
 
             if (toolCall.invalid) {
@@ -236,11 +266,18 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 input: toolCall.input,
                 error: getErrorMessage(toolCall.error!),
                 dynamic: true,
+                title: toolCall.title,
               });
               break;
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              break;
+            }
 
             if (tool.onInputAvailable != null) {
               await tool.onInputAvailable({
@@ -252,7 +289,14 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               });
             }
 
-            if (tool.needsApproval) {
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages,
+                experimental_context,
+              })
+            ) {
               toolResultsStreamController!.enqueue({
                 type: 'tool-approval-request',
                 approvalId: generateId(),
@@ -282,11 +326,20 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },
-              }).then(result => {
-                toolResultsStreamController!.enqueue(result);
-                outstandingToolResults.delete(toolExecutionId);
-                attemptClose();
-              });
+              })
+                .then(result => {
+                  toolResultsStreamController!.enqueue(result);
+                })
+                .catch(error => {
+                  toolResultsStreamController!.enqueue({
+                    type: 'error',
+                    error,
+                  });
+                })
+                .finally(() => {
+                  outstandingToolResults.delete(toolExecutionId);
+                  attemptClose();
+                });
             }
           } catch (error) {
             toolResultsStreamController!.enqueue({ type: 'error', error });
@@ -304,8 +357,9 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolCallId: chunk.toolCallId,
               toolName,
               input: toolInputs.get(chunk.toolCallId),
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
               error: chunk.result,
+              dynamic: chunk.dynamic,
             } as TypedToolError<TOOLS>);
           } else {
             controller.enqueue({
@@ -314,7 +368,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               toolName,
               input: toolInputs.get(chunk.toolCallId),
               output: chunk.result,
-              providerExecuted: chunk.providerExecuted,
+              providerExecuted: true,
+              dynamic: chunk.dynamic,
             } as TypedToolResult<TOOLS>);
           }
           break;

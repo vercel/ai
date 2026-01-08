@@ -1,14 +1,18 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import {
+  createProviderToolFactoryWithOutputSchema,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import {
   OpenAIResponsesFileSearchToolComparisonFilter,
   OpenAIResponsesFileSearchToolCompoundFilter,
-} from '../responses/openai-responses-api-types';
-import { z } from 'zod/v4';
+} from '../responses/openai-responses-api';
 
 const comparisonFilterSchema = z.object({
   key: z.string(),
-  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
-  value: z.union([z.string(), z.number(), z.boolean()]),
+  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
 });
 
 const compoundFilterSchema: z.ZodType<any> = z.object({
@@ -18,34 +22,44 @@ const compoundFilterSchema: z.ZodType<any> = z.object({
   ),
 });
 
-export const fileSearchArgsSchema = z.object({
-  vectorStoreIds: z.array(z.string()),
-  maxNumResults: z.number().optional(),
-  ranking: z
-    .object({
-      ranker: z.string().optional(),
-      scoreThreshold: z.number().optional(),
-    })
-    .optional(),
-  filters: z.union([comparisonFilterSchema, compoundFilterSchema]).optional(),
-});
+export const fileSearchArgsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      vectorStoreIds: z.array(z.string()),
+      maxNumResults: z.number().optional(),
+      ranking: z
+        .object({
+          ranker: z.string().optional(),
+          scoreThreshold: z.number().optional(),
+        })
+        .optional(),
+      filters: z
+        .union([comparisonFilterSchema, compoundFilterSchema])
+        .optional(),
+    }),
+  ),
+);
 
-export const fileSearchOutputSchema = z.object({
-  queries: z.array(z.string()),
-  results: z
-    .array(
-      z.object({
-        attributes: z.record(z.string(), z.unknown()),
-        fileId: z.string(),
-        filename: z.string(),
-        score: z.number(),
-        text: z.string(),
-      }),
-    )
-    .nullable(),
-});
+export const fileSearchOutputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      queries: z.array(z.string()),
+      results: z
+        .array(
+          z.object({
+            attributes: z.record(z.string(), z.unknown()),
+            fileId: z.string(),
+            filename: z.string(),
+            score: z.number(),
+            text: z.string(),
+          }),
+        )
+        .nullable(),
+    }),
+  ),
+);
 
-export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
+export const fileSearch = createProviderToolFactoryWithOutputSchema<
   {},
   {
     /**
@@ -126,7 +140,6 @@ export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'openai.file_search',
-  name: 'file_search',
   inputSchema: z.object({}),
   outputSchema: fileSearchOutputSchema,
 });

@@ -1,7 +1,7 @@
 import { embedMany } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await embedMany({
     model: 'openai/text-embedding-3-large',
     values: [
@@ -13,11 +13,10 @@ async function main() {
 
   console.log('Embeddings:', result.embeddings);
   console.log('Usage:', result.usage);
+  console.log('Warnings:', result.warnings);
 
   if (result.providerMetadata) {
     console.log('\nProvider Metadata:');
     console.log(JSON.stringify(result.providerMetadata, null, 2));
   }
-}
-
-main().catch(console.error);
+});

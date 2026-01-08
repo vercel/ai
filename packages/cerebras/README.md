@@ -20,23 +20,8 @@ import { cerebras } from '@ai-sdk/cerebras';
 
 ## Available Models
 
-Currently, Cerebras offers two models:
-
-### Llama 3.1 8B
-
-- Model ID: `llama3.1-8b`
-- 8 billion parameters
-- Knowledge cutoff: March 2023
-- Context Length: 8192
-- Training Tokens: 15 trillion+
-
-### Llama 3.3 70B
-
-- Model ID: `llama-3.3-70b`
-- 70 billion parameters
-- Knowledge cutoff: December 2023
-- Context Length: 8192
-- Training Tokens: 15 trillion+
+Cerebras offers a variety of high-performance language models:
+https://inference-docs.cerebras.ai/models/overview
 
 ## Example
 
@@ -45,7 +30,7 @@ import { cerebras } from '@ai-sdk/cerebras';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: cerebras('llama3.1-8b'),
+  model: cerebras('llama-3.3-70b'),
   prompt: 'Write a JavaScript function that sorts a list:',
 });
 ```

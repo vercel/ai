@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: openai('gpt-4o-mini'),
     schema: z.object({
@@ -23,10 +23,6 @@ async function main() {
 
   for await (const partialObject of result.partialObjectStream) {
     console.clear();
-    console.log(partialObject);
+    console.dir(partialObject, { depth: Infinity });
   }
-
-  console.log(JSON.stringify((await result.request).body, null, 2));
-}
-
-main().catch(console.error);
+});

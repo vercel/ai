@@ -1,12 +1,10 @@
-import { z } from 'zod/v4';
-import {
-  Tool,
-  ToolExecuteFunction,
-  FlexibleSchema,
-} from '@ai-sdk/provider-utils';
-import { tool } from './tool';
-import { describe, it, expectTypeOf } from 'vitest';
 import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { describe, expectTypeOf, it } from 'vitest';
+import { z } from 'zod/v4';
+import { FlexibleSchema } from '../schema';
+import { ModelMessage } from './model-message';
+import { Tool, tool, ToolExecuteFunction } from './tool';
+import { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -77,14 +75,19 @@ describe('tool type', () => {
     it('should infer toModelOutput argument when there is only an input schema', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<any>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        ((output: any) => LanguageModelV3ToolResultPart['output']) | undefined
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: any;
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
       >();
     });
 
@@ -92,14 +95,18 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         execute: async () => 'test' as const,
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
       >();
     });
@@ -108,14 +115,77 @@ describe('tool type', () => {
       const aTool = tool({
         inputSchema: z.object({ number: z.number() }),
         outputSchema: z.literal('test'),
-        toModelOutput: output => {
+        toModelOutput: ({ output }) => {
           expectTypeOf(output).toEqualTypeOf<'test'>();
           return { type: 'text', value: 'test' };
         },
       });
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
-        | ((output: 'test') => LanguageModelV3ToolResultPart['output'])
+        | ((options: {
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+        | undefined
+      >();
+    });
+  });
+
+  describe('needsApproval (function)', () => {
+    it('should infer needsApproval argument when there is only an input schema', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        needsApproval: (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options).toEqualTypeOf<{
+            toolCallId: string;
+            messages: ModelMessage[];
+            experimental_context?: unknown;
+          }>();
+          return true;
+        },
+      });
+
+      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+        | boolean
+        | ((
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              experimental_context: unknown;
+            },
+          ) => boolean | PromiseLike<boolean>)
+        | undefined
+      >();
+    });
+
+    it('should infer needsApproval argument when there is an execute function', () => {
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        execute: async () => 'test' as const,
+        needsApproval: (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options).toEqualTypeOf<{
+            toolCallId: string;
+            messages: ModelMessage[];
+            experimental_context?: unknown;
+          }>();
+          return true;
+        },
+      });
+
+      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+        | boolean
+        | ((
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              experimental_context: unknown;
+            },
+          ) => boolean | PromiseLike<boolean>)
         | undefined
       >();
     });

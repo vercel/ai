@@ -14,22 +14,21 @@ const mockTools = {
   }),
 };
 
-const mockProviderDefinedTool: Tool = {
-  type: 'provider-defined',
+const mockProviderTool: Tool = {
+  type: 'provider',
   id: 'provider.tool-id',
-  name: 'tool-id',
   args: { key: 'value' },
   inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderDefinedTool,
+  providerTool: mockProviderTool,
 };
 
 describe('prepareToolsAndToolChoice', () => {
-  it('should return undefined for both tools and toolChoice when tools is not provided', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should return undefined for both tools and toolChoice when tools is not provided', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: undefined,
       toolChoice: undefined,
       activeTools: undefined,
@@ -43,8 +42,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should return all tools when activeTools is not provided', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should return all tools when activeTools is not provided', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: undefined,
@@ -92,8 +91,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should filter tools based on activeTools', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should filter tools based on activeTools', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: ['tool1'],
@@ -122,8 +121,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle string toolChoice', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle string toolChoice', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: 'none',
       activeTools: undefined,
@@ -171,8 +170,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle object toolChoice', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle object toolChoice', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: { type: 'tool', toolName: 'tool2' },
       activeTools: undefined,
@@ -221,8 +220,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should correctly map tool properties', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should correctly map tool properties', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
       activeTools: undefined,
@@ -270,8 +269,8 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should handle provider-defined tool type', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should handle provider-defined tool type', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: mockToolsWithProviderDefined,
       toolChoice: undefined,
       activeTools: undefined,
@@ -320,15 +319,15 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "id": "provider.tool-id",
             "name": "providerTool",
-            "type": "provider-defined",
+            "type": "provider",
           },
         ],
       }
     `);
   });
 
-  it('should pass through provider options', () => {
-    const result = prepareToolsAndToolChoice({
+  it('should pass through provider options', async () => {
+    const result = await prepareToolsAndToolChoice({
       tools: {
         tool1: tool({
           description: 'Tool 1 description',
@@ -364,6 +363,95 @@ describe('prepareToolsAndToolChoice', () => {
                 "aSetting": "aValue",
               },
             },
+            "type": "function",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should pass through strict mode setting', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        tool1: tool({
+          description: 'Tool 1 description',
+          inputSchema: z.object({}),
+          strict: true,
+        }),
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "type": "auto",
+        },
+        "tools": [
+          {
+            "description": "Tool 1 description",
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {},
+              "type": "object",
+            },
+            "name": "tool1",
+            "providerOptions": undefined,
+            "strict": true,
+            "type": "function",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should pass through input examples', async () => {
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        tool1: tool({
+          description: 'Tool 1 description',
+          inputSchema: z.object({
+            city: z.string(),
+          }),
+          inputExamples: [{ input: { city: 'New York' } }],
+        }),
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolChoice": {
+          "type": "auto",
+        },
+        "tools": [
+          {
+            "description": "Tool 1 description",
+            "inputExamples": [
+              {
+                "input": {
+                  "city": "New York",
+                },
+              },
+            ],
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "city": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "city",
+              ],
+              "type": "object",
+            },
+            "name": "tool1",
+            "providerOptions": undefined,
             "type": "function",
           },
         ],

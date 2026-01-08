@@ -1,32 +1,28 @@
 import {
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   OpenAIChatToolChoice,
   OpenAIChatFunctionTool,
-} from './openai-chat-types';
+} from './openai-chat-api';
 
 export function prepareChatTools({
   tools,
   toolChoice,
-  structuredOutputs,
-  strictJsonSchema,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
-  structuredOutputs: boolean;
-  strictJsonSchema: boolean;
 }): {
   tools?: OpenAIChatFunctionTool[];
   toolChoice?: OpenAIChatToolChoice;
-  toolWarnings: Array<LanguageModelV3CallWarning>;
+  toolWarnings: Array<SharedV3Warning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: LanguageModelV3CallWarning[] = [];
+  const toolWarnings: SharedV3Warning[] = [];
 
   if (tools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -43,12 +39,15 @@ export function prepareChatTools({
             name: tool.name,
             description: tool.description,
             parameters: tool.inputSchema,
-            strict: structuredOutputs ? strictJsonSchema : undefined,
+            ...(tool.strict != null ? { strict: tool.strict } : {}),
           },
         });
         break;
       default:
-        toolWarnings.push({ type: 'unsupported-tool', tool });
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `tool type: ${tool.type}`,
+        });
         break;
     }
   }

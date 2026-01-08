@@ -5,12 +5,12 @@ import {
 } from '@ai-sdk/provider';
 
 /**
-Embedding model that is used by the AI SDK Core functions.
+Embedding model that is used by the AI SDK.
 */
-export type EmbeddingModel<VALUE = string> =
+export type EmbeddingModel =
   | string
-  | EmbeddingModelV3<VALUE>
-  | EmbeddingModelV2<VALUE>;
+  | EmbeddingModelV3
+  | EmbeddingModelV2<string>;
 
 /**
 Embedding.

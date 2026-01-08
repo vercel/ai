@@ -10,7 +10,8 @@ import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
-  isToolUIPart,
+  FinishReason,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageChunk,
@@ -84,7 +85,14 @@ describe('initial messages', () => {
 });
 
 describe('data protocol stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
@@ -304,6 +312,7 @@ describe('data protocol stream', () => {
     controller.write(
       formatChunk({
         type: 'finish',
+        finishReason: 'stop',
         messageMetadata: {
           example: 'metadata',
         },
@@ -346,6 +355,7 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": "stop",
           "isAbort": false,
           "isDisconnect": false,
           "isError": false,
@@ -436,7 +446,14 @@ describe('data protocol stream', () => {
 });
 
 describe('text stream', () => {
-  let onFinishCalls: Array<{ message: UIMessage }> = [];
+  let onFinishCalls: Array<{
+    message: UIMessage;
+    messages: UIMessage[];
+    isAbort: boolean;
+    isDisconnect: boolean;
+    isError: boolean;
+    finishReason?: FinishReason;
+  }> = [];
 
   setupTestComponent(() => {
     const { messages, sendMessage } = useChat({
@@ -537,6 +554,7 @@ describe('text stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "finishReason": undefined,
           "isAbort": false,
           "isDisconnect": false,
           "isError": false,
@@ -721,10 +739,10 @@ describe('onToolCall', () => {
   let toolCallPromise: Promise<void>;
 
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
-        addToolResult({
+        addToolOutput({
           tool: 'test-tool',
           toolCallId: toolCall.toolCallId,
           output: `test-tool-response: ${toolCall.toolName} ${
@@ -738,7 +756,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
                 {JSON.stringify(toolPart)}
               </div>
@@ -859,7 +877,7 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   setupTestComponent(() => {
-    const { messages, sendMessage, addToolResult } = useChat({
+    const { messages, sendMessage, addToolOutput } = useChat({
       generateId: mockId(),
     });
 
@@ -867,7 +885,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
@@ -877,7 +895,7 @@ describe('tool invocations', () => {
                     <button
                       data-testid={`add-result-${toolIdx}`}
                       onClick={() => {
-                        addToolResult({
+                        addToolOutput({
                           tool: 'test-tool',
                           toolCallId: toolPart.toolCallId,
                           output: 'test-result',
@@ -1071,7 +1089,7 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  it('should update tool call to result when addToolOutput is called', async () => {
     const controller = new TestResponseController();
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
@@ -2346,6 +2364,71 @@ describe('chat instance changes', () => {
     await userEvent.click(screen.getByTestId('do-change-chat'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+
+  it('should handle streaming correctly when the id changes', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });
 

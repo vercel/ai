@@ -38,7 +38,10 @@ export type LanguageModelV3Message =
       }
     | {
         role: 'tool';
-        content: Array<LanguageModelV3ToolResultPart>;
+        content: Array<
+          | LanguageModelV3ToolResultPart
+          | LanguageModelV3ToolApprovalResponsePart
+        >;
       }
   ) & {
     /**
@@ -185,11 +188,60 @@ Result of the tool call.
 }
 
 /**
+ * Tool approval response content part of a prompt. It contains the user's
+ * decision to approve or deny a provider-executed tool call.
+ */
+export interface LanguageModelV3ToolApprovalResponsePart {
+  type: 'tool-approval-response';
+
+  /**
+   * ID of the approval request that this response refers to.
+   */
+  approvalId: string;
+
+  /**
+   * Whether the approval was granted (true) or denied (false).
+   */
+  approved: boolean;
+
+  /**
+   * Optional reason for approval or denial.
+   */
+  reason?: string;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV3ProviderOptions;
+}
+
+/**
  * Result of a tool call.
  */
 export type LanguageModelV3ToolResultOutput =
-  | { type: 'text'; value: string }
-  | { type: 'json'; value: JSONValue }
+  | {
+      /**
+       * Text tool output that should be directly sent to the API.
+       */
+      type: 'text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
+  | {
+      type: 'json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
   | {
       /**
        * Type when the user has denied the execution of the tool call.
@@ -200,9 +252,30 @@ export type LanguageModelV3ToolResultOutput =
        * Optional reason for the execution denial.
        */
       reason?: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
     }
-  | { type: 'error-text'; value: string }
-  | { type: 'error-json'; value: JSONValue }
+  | {
+      type: 'error-text';
+      value: string;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
+  | {
+      type: 'error-json';
+      value: JSONValue;
+
+      /**
+       * Provider-specific options.
+       */
+      providerOptions?: SharedV3ProviderOptions;
+    }
   | {
       type: 'content';
       value: Array<
@@ -213,9 +286,14 @@ export type LanguageModelV3ToolResultOutput =
 Text content.
 */
             text: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
           }
         | {
-            type: 'media';
+            type: 'file-data';
 
             /**
 Base-64 encoded media data.
@@ -227,6 +305,118 @@ IANA media type.
 @see https://www.iana.org/assignments/media-types/media-types.xhtml
 */
             mediaType: string;
+
+            /**
+             * Optional filename of the file.
+             */
+            filename?: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            type: 'file-url';
+
+            /**
+             * URL of the file.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            type: 'file-id';
+
+            /**
+             * ID of the file.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using base64 encoded data.
+             */
+            type: 'image-data';
+
+            /**
+Base-64 encoded image data.
+*/
+            data: string;
+
+            /**
+IANA media type.
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+*/
+            mediaType: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a URL.
+             */
+            type: 'image-url';
+
+            /**
+             * URL of the image.
+             */
+            url: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a provider file id.
+             */
+            type: 'image-file-id';
+
+            /**
+             * Image that is referenced using a provider file id.
+             *
+             * If you use multiple providers, you need to
+             * specify the provider specific ids using
+             * the Record option. The key is the provider
+             * name, e.g. 'openai' or 'anthropic'.
+             */
+            fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
+          }
+        | {
+            /**
+             * Custom content part. This can be used to implement
+             * provider-specific content parts.
+             */
+            type: 'custom';
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: SharedV3ProviderOptions;
           }
       >;
     };

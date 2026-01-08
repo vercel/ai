@@ -30,15 +30,24 @@ Creates a model for text generation.
   chat(modelId: MistralChatModelId): LanguageModelV3;
 
   /**
-@deprecated Use `textEmbedding()` instead.
+   * Creates a model for text embeddings.
    */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3<string>;
+  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
 
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV3;
 
-  textEmbeddingModel: (
-    modelId: MistralEmbeddingModelId,
-  ) => EmbeddingModelV3<string>;
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV3;
 }
 
 export interface MistralProviderSettings {
@@ -117,9 +126,11 @@ export function createMistral(
     return createChatModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 

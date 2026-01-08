@@ -12,27 +12,27 @@ describe('GATEWAY_AUTH_METHOD_HEADER', () => {
 
 describe('parseAuthMethod', () => {
   describe('valid authentication methods', () => {
-    it('should parse "api-key" auth method', () => {
+    it('should parse "api-key" auth method', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'api-key',
       };
 
-      const result = parseAuthMethod(headers);
+      const result = await parseAuthMethod(headers);
 
       expect(result).toBe('api-key');
     });
 
-    it('should parse "oidc" auth method', () => {
+    it('should parse "oidc" auth method', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'oidc',
       };
 
-      const result = parseAuthMethod(headers);
+      const result = await parseAuthMethod(headers);
 
       expect(result).toBe('oidc');
     });
 
-    it('should handle headers with other fields present', () => {
+    it('should handle headers with other fields present', async () => {
       const headers = {
         authorization: 'Bearer token',
         'content-type': 'application/json',
@@ -40,97 +40,97 @@ describe('parseAuthMethod', () => {
         'user-agent': 'test-agent',
       };
 
-      const result = parseAuthMethod(headers);
+      const result = await parseAuthMethod(headers);
 
       expect(result).toBe('api-key');
     });
   });
 
   describe('invalid authentication methods', () => {
-    it('should return undefined for invalid auth method string', () => {
+    it('should return undefined for invalid auth method string', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'invalid-method',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for empty string', () => {
+    it('should return undefined for empty string', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for numeric value', () => {
+    it('should return undefined for numeric value', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '123',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for boolean-like strings', () => {
+    it('should return undefined for boolean-like strings', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'true',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for case-sensitive variations', () => {
+    it('should return undefined for case-sensitive variations', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'API-KEY',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for OIDC case variations', () => {
+    it('should return undefined for OIDC case variations', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: 'OIDC',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
   });
 
   describe('missing or undefined headers', () => {
-    it('should return undefined when header is missing', () => {
+    it('should return undefined when header is missing', async () => {
       const headers = {
         authorization: 'Bearer token',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined when header is undefined', () => {
+    it('should return undefined when header is undefined', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: undefined,
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined when headers object is empty', () => {
+    it('should return undefined when headers object is empty', async () => {
       const headers = {};
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
   });
 
   describe('edge cases', () => {
-    it('should return undefined for whitespace-only strings', () => {
+    it('should return undefined for whitespace-only strings', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: '   ',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should return undefined for auth methods with extra whitespace', () => {
+    it('should return undefined for auth methods with extra whitespace', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: ' api-key ',
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
 
-    it('should handle null values', () => {
+    it('should handle null values', async () => {
       const headers = {
         [GATEWAY_AUTH_METHOD_HEADER]: null as any,
       };
-      expect(parseAuthMethod(headers)).toBeUndefined();
+      expect(await parseAuthMethod(headers)).toBeUndefined();
     });
   });
 });

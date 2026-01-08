@@ -1,6 +1,6 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
-import { SpeechWarning } from '../types';
+import { Warning } from '../types/warning';
 import { GeneratedAudioFile } from './generated-audio-file';
 
 /**
@@ -16,7 +16,7 @@ export interface SpeechResult {
   /**
   Warnings for the call, e.g. unsupported settings.
      */
-  readonly warnings: Array<SpeechWarning>;
+  readonly warnings: Array<Warning>;
 
   /**
   Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
@@ -26,5 +26,5 @@ export interface SpeechResult {
   /**
   Provider metadata from the provider.
    */
-  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+  readonly providerMetadata: Record<string, JSONObject>;
 }

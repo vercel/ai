@@ -1,7 +1,32 @@
-import { createProviderDefinedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const computer_20241022 = createProviderDefinedToolFactory<
+const computer_20241022InputSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      action: z.enum([
+        'key',
+        'type',
+        'mouse_move',
+        'left_click',
+        'left_click_drag',
+        'right_click',
+        'middle_click',
+        'double_click',
+        'screenshot',
+        'cursor_position',
+      ]),
+      coordinate: z.array(z.number().int()).optional(),
+      text: z.string().optional(),
+    }),
+  ),
+);
+
+export const computer_20241022 = createProviderToolFactory<
   {
     /**
      * The action to perform. The available actions are:
@@ -58,21 +83,5 @@ export const computer_20241022 = createProviderDefinedToolFactory<
   }
 >({
   id: 'anthropic.computer_20241022',
-  name: 'computer',
-  inputSchema: z.object({
-    action: z.enum([
-      'key',
-      'type',
-      'mouse_move',
-      'left_click',
-      'left_click_drag',
-      'right_click',
-      'middle_click',
-      'double_click',
-      'screenshot',
-      'cursor_position',
-    ]),
-    coordinate: z.array(z.number().int()).optional(),
-    text: z.string().optional(),
-  }),
+  inputSchema: computer_20241022InputSchema,
 });

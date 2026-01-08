@@ -1,9 +1,6 @@
-import { JSONValue } from '../../json-value/json-value';
+import { JSONObject } from '../../json-value/json-value';
 
-type TranscriptionModelV3ProviderOptions = Record<
-  string,
-  Record<string, JSONValue>
->;
+type TranscriptionModelV3ProviderOptions = Record<string, JSONObject>;
 
 export type TranscriptionModelV3CallOptions = {
   /**

@@ -7,7 +7,6 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  Resolvable,
   parseProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -18,7 +17,7 @@ import {
 } from './google-vertex-embedding-options';
 import { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV3<string> {
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: GoogleVertexEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
@@ -43,16 +42,24 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
-    // Parse provider options
-    const googleOptions =
-      (await parseProviderOptions({
+    let googleOptions = await parseProviderOptions({
+      provider: 'vertex',
+      providerOptions,
+      schema: googleVertexEmbeddingProviderOptions,
+    });
+
+    if (googleOptions == null) {
+      googleOptions = await parseProviderOptions({
         provider: 'google',
         providerOptions,
         schema: googleVertexEmbeddingProviderOptions,
-      })) ?? {};
+      });
+    }
+
+    googleOptions = googleOptions ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -96,6 +103,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV3<string> {
     });
 
     return {
+      warnings: [],
       embeddings: response.predictions.map(
         prediction => prediction.embeddings.values,
       ),

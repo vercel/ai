@@ -1,7 +1,7 @@
 'use client';
 
-import ChatInput from '@/component/chat-input';
-import FileSearchView from '@/component/openai-file-search-view';
+import ChatInput from '@/components/chat-input';
+import FileSearchView from '@/components/tool/openai-file-search-view';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { OpenAIFileSearchMessage } from '../api/chat-openai-file-search/route';

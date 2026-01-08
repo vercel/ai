@@ -32,6 +32,9 @@
       "path": "../../packages/azure"
     },
     {
+      "path": "../../packages/black-forest-labs"
+    },
+    {
       "path": "../../packages/cerebras"
     },
     {
@@ -96,6 +99,9 @@
     },
     {
       "path": "../../packages/perplexity"
+    },
+    {
+      "path": "../../packages/prodia"
     },
     {
       "path": "../../packages/provider"

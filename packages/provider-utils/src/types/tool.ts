@@ -1,13 +1,13 @@
-import { JSONValue, LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
 
 /**
  * Additional options that are sent into each tool call.
  */
-// TODO AI SDK 6: rename to ToolExecutionOptions
-export interface ToolCallOptions {
+export interface ToolExecutionOptions {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -25,16 +25,49 @@ export interface ToolCallOptions {
   abortSignal?: AbortSignal;
 
   /**
-   * Additional context.
+   * User-defined context.
+   *
+   * Treat the context object as immutable inside tools.
+   * Mutating the context object can lead to race conditions and unexpected results
+   * when tools are called in parallel.
+   *
+   * If you need to mutate the context, analyze the tool calls and results
+   * in `prepareStep` and update it there.
    *
    * Experimental (can break in patch releases).
    */
   experimental_context?: unknown;
 }
 
+/**
+ * Function that is called to determine if the tool needs approval before it can be executed.
+ */
+export type ToolNeedsApprovalFunction<INPUT> = (
+  input: INPUT,
+  options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * Messages that were sent to the language model to initiate the response that contained the tool call.
+     * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+     */
+    messages: ModelMessage[];
+
+    /**
+     * Additional context.
+     *
+     * Experimental (can break in patch releases).
+     */
+    experimental_context?: unknown;
+  },
+) => boolean | PromiseLike<boolean>;
+
 export type ToolExecuteFunction<INPUT, OUTPUT> = (
   input: INPUT,
-  options: ToolCallOptions,
+  options: ToolExecutionOptions,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
@@ -84,6 +117,11 @@ Not used for provider-defined tools.
   description?: string;
 
   /**
+   * An optional title of the tool.
+   */
+  title?: string;
+
+  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -91,29 +129,48 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 
   /**
-The schema of the input that the tool expects. The language model will use this to generate the input.
-It is also used to validate the output of the language model.
-Use descriptions to make the input understandable for the language model.
+   * The schema of the input that the tool expects.
+   * The language model will use this to generate the input.
+   * It is also used to validate the output of the language model.
+   *
+   * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-Whether the tool needs approval before it can be executed.
+   * An optional list of input examples that show the language
+   * model what the input should look like.
    */
-  needsApproval?: boolean;
+  inputExamples?: Array<{ input: INPUT }>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
+   */
+  needsApproval?:
+    | boolean
+    | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+
+  /**
+   * Strict mode setting for the tool.
+   *
+   * Providers that support strict mode will use this setting to determine
+   * how the input should be generated. Strict mode will always produce
+   * valid inputs, but it might limit what input schemas are supported.
+   */
+  strict?: boolean;
 
   /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
-  onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
+  onInputStart?: (options: ToolExecutionOptions) => void | PromiseLike<void>;
 
   /**
    * Optional function that is called when an argument streaming delta is available.
    * Only called when the tool is used in a streaming context.
    */
   onInputDelta?: (
-    options: { inputTextDelta: string } & ToolCallOptions,
+    options: { inputTextDelta: string } & ToolExecutionOptions,
   ) => void | PromiseLike<void>;
 
   /**
@@ -122,22 +179,35 @@ Whether the tool needs approval before it can be executed.
    */
   onInputAvailable?: (
     options: {
-      input: [INPUT] extends [never] ? undefined : INPUT;
-    } & ToolCallOptions,
+      input: [INPUT] extends [never] ? unknown : INPUT;
+    } & ToolExecutionOptions,
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
-Optional conversion function that maps the tool result to an output that can be used by the language model.
+     * Optional conversion function that maps the tool result to an output that can be used by the language model.
+     *
+     * If not provided, the tool result will be sent as a JSON object.
+     */
+    toModelOutput?: (options: {
+      /**
+       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+       */
+      toolCallId: string;
 
-If not provided, the tool result will be sent as a JSON object.
-  */
-    toModelOutput?: (
+      /**
+       * The input of the tool call.
+       */
+      input: [INPUT] extends [never] ? unknown : INPUT;
+
+      /**
+       * The output of the tool call.
+       */
       output: 0 extends 1 & OUTPUT
         ? any
         : [OUTPUT] extends [never]
           ? any
-          : NoInfer<OUTPUT>,
-    ) => LanguageModelV3ToolResultPart['output'];
+          : NoInfer<OUTPUT>;
+    }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
   } & (
     | {
         /**
@@ -156,22 +226,32 @@ The types of input and output are not known at development time.
         /**
 Tool with provider-defined input and output schemas.
      */
-        type: 'provider-defined';
+        type: 'provider';
 
         /**
-The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
+The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
    */
         id: `${string}.${string}`;
-
-        /**
-The name of the tool that the user must use in the tool set.
- */
-        name: string;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
      */
         args: Record<string, unknown>;
+
+        /**
+         * Whether this provider-executed tool supports deferred results.
+         *
+         * When true, the tool result may not be returned in the same turn as the
+         * tool call (e.g., when using programmatic tool calling where a server tool
+         * triggers a client-executed tool, and the server tool's result is deferred
+         * until the client tool is resolved).
+         *
+         * This flag allows the AI SDK to handle tool results that arrive without
+         * a matching tool call in the current response.
+         *
+         * @default false
+         */
+        supportsDeferredResults?: boolean;
       }
   );
 
@@ -202,14 +282,41 @@ export function tool(tool: any): any {
 }
 
 /**
-Helper function for defining a dynamic tool.
+ * Defines a dynamic tool.
  */
 export function dynamicTool(tool: {
   description?: string;
+  title?: string;
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
   execute: ToolExecuteFunction<unknown, unknown>;
-  toModelOutput?: (output: unknown) => LanguageModelV3ToolResultPart['output'];
+
+  /**
+   * Optional conversion function that maps the tool result to an output that can be used by the language model.
+   *
+   * If not provided, the tool result will be sent as a JSON object.
+   */
+  toModelOutput?: (options: {
+    /**
+     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
+     */
+    toolCallId: string;
+
+    /**
+     * The input of the tool call.
+     */
+    input: unknown;
+
+    /**
+     * The output of the tool call.
+     */
+    output: unknown;
+  }) => ToolResultOutput | PromiseLike<ToolResultOutput>;
+
+  /**
+   * Whether the tool needs approval before it can be executed.
+   */
+  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {

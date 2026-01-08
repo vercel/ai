@@ -1,9 +1,9 @@
 import { cohere } from '@ai-sdk/cohere';
 import { embedMany } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const { embeddings, usage } = await embedMany({
+run(async () => {
+  const { embeddings, usage, warnings } = await embedMany({
     model: cohere.embedding('embed-multilingual-v3.0'),
     values: [
       'sunny day at the beach',
@@ -14,6 +14,5 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});

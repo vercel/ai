@@ -1,10 +1,10 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { embedMany } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const { embeddings, usage } = await embedMany({
-    model: vertex.textEmbeddingModel('text-embedding-004'),
+run(async () => {
+  const { embeddings, usage, warnings } = await embedMany({
+    model: vertex.embeddingModel('text-embedding-004'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',
@@ -14,6 +14,5 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});

@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-3.5-turbo'),
     tools: {
@@ -22,6 +22,4 @@ async function main() {
   // consume stream:
   for await (const textPart of result.textStream) {
   }
-}
-
-main().catch(console.error);
+});

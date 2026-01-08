@@ -1,8 +1,8 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { ModelMessage, generateText, stepCountIs } from 'ai';
-import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -11,7 +11,7 @@ const terminal = readline.createInterface({
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   while (true) {
     const userInput = await terminal.question('You: ');
     messages.push({ role: 'user', content: userInput });
@@ -53,6 +53,4 @@ async function main() {
 
     messages.push(...response.messages);
   }
-}
-
-main().catch(console.error);
+});

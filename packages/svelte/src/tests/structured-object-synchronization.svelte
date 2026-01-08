@@ -1,8 +1,7 @@
 <script lang="ts" generics="RESULT">
+  import type { FlexibleSchema } from '@ai-sdk/provider-utils';
   import { createAIContext } from '../context-provider.js';
   import { StructuredObject } from '../structured-object.svelte.js';
-  import type { Schema } from 'ai';
-  import type { z } from 'zod';
 
   let {
     id,
@@ -11,7 +10,7 @@
   }: {
     id?: string;
     api: string;
-    schema: z.Schema<RESULT, z.ZodTypeDef, unknown> | Schema<RESULT>;
+    schema: FlexibleSchema<RESULT>;
   } = $props();
 
   createAIContext();

@@ -1,8 +1,8 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { APICallError, streamText, UserModelMessage } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result1 = streamText({
     model: openai.responses('o3-mini'),
     prompt:
@@ -12,7 +12,6 @@ async function main() {
         store: false, // No data retention - makes interaction stateless
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-        include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
       } satisfies OpenAIResponsesProviderOptions,
     },
   });
@@ -54,7 +53,6 @@ async function main() {
         store: false, // No data retention - makes interaction stateless
         reasoningEffort: 'medium',
         reasoningSummary: 'auto',
-        include: ['reasoning.encrypted_content'], // Hence, we need to retrieve the model's encrypted reasoning to be able to pass it to follow-up requests
       } satisfies OpenAIResponsesProviderOptions,
     },
     onError: ({ error }) => {
@@ -78,6 +76,4 @@ async function main() {
     'Request body:',
     JSON.stringify((await result2.request).body, null, 2),
   );
-}
-
-main().catch(console.error);
+});

@@ -2,7 +2,7 @@ import { JSONSchema7 } from 'json-schema';
 import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
 import { LanguageModelV3FunctionTool } from './language-model-v3-function-tool';
 import { LanguageModelV3Prompt } from './language-model-v3-prompt';
-import { LanguageModelV3ProviderDefinedTool } from './language-model-v3-provider-defined-tool';
+import { LanguageModelV3ProviderTool } from './language-model-v3-provider-tool';
 import { LanguageModelV3ToolChoice } from './language-model-v3-tool-choice';
 
 export type LanguageModelV3CallOptions = {
@@ -93,9 +93,7 @@ by the model, calls will generate deterministic results.
   /**
 The tools that are available for the model.
   */
-  tools?: Array<
-    LanguageModelV3FunctionTool | LanguageModelV3ProviderDefinedTool
-  >;
+  tools?: Array<LanguageModelV3FunctionTool | LanguageModelV3ProviderTool>;
 
   /**
 Specifies how the tool should be selected. Defaults to 'auto'.

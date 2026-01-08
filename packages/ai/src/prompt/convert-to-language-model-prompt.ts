@@ -3,6 +3,7 @@ import {
   LanguageModelV3Message,
   LanguageModelV3Prompt,
   LanguageModelV3TextPart,
+  LanguageModelV3ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
   DataContent,
@@ -13,6 +14,7 @@ import {
   ReasoningPart,
   TextPart,
   ToolCallPart,
+  ToolResultOutput,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
 import {
@@ -26,6 +28,7 @@ import {
 import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
+import { asArray } from '../util/as-array';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -44,7 +47,13 @@ export async function convertToLanguageModelPrompt({
 
   const messages = [
     ...(prompt.system != null
-      ? [{ role: 'system' as const, content: prompt.system }]
+      ? typeof prompt.system === 'string'
+        ? [{ role: 'system' as const, content: prompt.system }]
+        : asArray(prompt.system).map(message => ({
+            role: 'system' as const,
+            content: message.content,
+            providerOptions: message.providerOptions,
+          }))
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),
@@ -190,7 +199,7 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: part.output,
+                  output: mapToolResultOutput(part.output),
                   providerOptions,
                 };
               }
@@ -204,14 +213,32 @@ export function convertToLanguageModelMessage({
       return {
         role: 'tool',
         content: message.content
-          .filter(part => part.type !== 'tool-approval-response')
-          .map(part => ({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            output: part.output,
-            providerOptions: part.providerOptions,
-          })),
+          .filter(
+            // Only include tool-approval-response for provider-executed tools
+            part =>
+              part.type !== 'tool-approval-response' || part.providerExecuted,
+          )
+          .map(part => {
+            switch (part.type) {
+              case 'tool-result': {
+                return {
+                  type: 'tool-result' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  output: mapToolResultOutput(part.output),
+                  providerOptions: part.providerOptions,
+                };
+              }
+              case 'tool-approval-response': {
+                return {
+                  type: 'tool-approval-response' as const,
+                  approvalId: part.approvalId,
+                  approved: part.approved,
+                  reason: part.reason,
+                };
+              }
+            }
+          }),
         providerOptions: message.providerOptions,
       };
     }
@@ -379,4 +406,37 @@ function convertPartToLanguageModelPart(
       };
     }
   }
+}
+
+function mapToolResultOutput(
+  output: ToolResultOutput,
+): LanguageModelV3ToolResultOutput {
+  if (output.type !== 'content') {
+    return output;
+  }
+
+  return {
+    type: 'content',
+    value: output.value.map(item => {
+      if (item.type !== 'media') {
+        return item;
+      }
+
+      // AI SDK 5 tool backwards compatibility:
+      // map media type to image-data or file-data
+      if (item.mediaType.startsWith('image/')) {
+        return {
+          type: 'image-data' as const,
+          data: item.data,
+          mediaType: item.mediaType,
+        };
+      }
+
+      return {
+        type: 'file-data' as const,
+        data: item.data,
+        mediaType: item.mediaType,
+      };
+    }),
+  };
 }

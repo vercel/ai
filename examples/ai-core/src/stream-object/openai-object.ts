@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: openai('gpt-4-turbo'),
     schema: z.object({
@@ -30,6 +30,4 @@ async function main() {
   // note: the stream needs to be consumed because of backpressure
   for await (const partialObject of result.partialObjectStream) {
   }
-}
-
-main().catch(console.error);
+});

@@ -57,6 +57,7 @@ The AI SDK comes with several built-in middlewares that you can use to configure
 - `extractReasoningMiddleware`: Extracts reasoning information from the generated text and exposes it as a `reasoning` property on the result.
 - `simulateStreamingMiddleware`: Simulates streaming behavior with responses from non-streaming language models.
 - `defaultSettingsMiddleware`: Applies default settings to a language model.
+- `addToolInputExamplesMiddleware`: Adds tool input examples to tool descriptions for providers that don't natively support the `inputExamples` property.
 
 ### Extract Reasoning
 
@@ -110,6 +111,75 @@ const model = wrapLanguageModel({
       maxOutputTokens: 800,
       providerOptions: { openai: { store: false } },
     },
+  }),
+});
+```
+
+### Add Tool Input Examples
+
+The `addToolInputExamplesMiddleware` function adds tool input examples to tool descriptions.
+This is useful for providers that don't natively support the `inputExamples` property on tools.
+The middleware serializes the examples into the tool's description text so models can still benefit from seeing example inputs.
+
+```ts
+import { wrapLanguageModel, addToolInputExamplesMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: addToolInputExamplesMiddleware({
+    examplesPrefix: 'Input Examples:',
+  }),
+});
+```
+
+When you define a tool with `inputExamples`, the middleware will append them to the tool's description:
+
+```ts
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model, // wrapped model from above
+  tools: {
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      inputExamples: [
+        { input: { location: 'San Francisco' } },
+        { input: { location: 'London' } },
+      ],
+    }),
+  },
+  prompt: 'What is the weather in Tokyo?',
+});
+```
+
+The tool description will be transformed to:
+
+```
+Get the weather in a location
+
+Input Examples:
+{"location":"San Francisco"}
+{"location":"London"}
+```
+
+#### Options
+
+- `examplesPrefix` (required): A prefix text to prepend before the examples.
+- `formatExample` (optional): A custom formatter function for each example. Receives the example object and its index. Default: `JSON.stringify(example.input)`.
+- `removeInputExamples` (optional): Whether to remove the `inputExamples` property from the tool after adding them to the description. Default: `true`.
+
+```ts
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: addToolInputExamplesMiddleware({
+    examplesPrefix: 'Input Examples:',
+    formatExample: (example, index) =>
+      `${index + 1}. ${JSON.stringify(example.input)}`,
+    removeInputExamples: true,
   }),
 });
 ```
@@ -342,8 +412,8 @@ export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
 To send and access custom metadata in Middleware, you can use `providerOptions`. This is useful when building logging middleware where you want to pass additional context like user IDs, timestamps, or other contextual data that can help with tracking and debugging.
 
 ```ts
-import { openai } from '@ai-sdk/openai';
 import { generateText, wrapLanguageModel } from 'ai';
+__PROVIDER_IMPORT__;
 import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
 
 export const yourLogMiddleware: LanguageModelV3Middleware = {
@@ -356,7 +426,7 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
 
 const { text } = await generateText({
   model: wrapLanguageModel({
-    model: openai('gpt-4o'),
+    model: __MODEL__,
     middleware: yourLogMiddleware,
   }),
   prompt: 'Invent a new holiday and describe its traditions.',

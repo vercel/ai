@@ -1,8 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
-import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const terminal = readline.createInterface({
   input: process.stdin,
@@ -11,12 +11,12 @@ const terminal = readline.createInterface({
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   while (true) {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: google('gemini-2.0-pro-exp-02-05'),
+      model: google('gemini-2.5-flash'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',
@@ -29,6 +29,29 @@ async function main() {
             location,
             temperature: 72 + Math.floor(Math.random() * 21) - 10,
           }),
+        }),
+        // Test tool with multiple types (tests the anyOf conversion fix)
+        calculate: tool({
+          description:
+            'Perform a calculation with a value that can be string or number',
+          inputSchema: z.object({
+            value: z
+              .union([z.string(), z.number()])
+              .describe('A value that can be either a string or a number'),
+            operation: z
+              .enum(['double', 'triple'])
+              .describe('The operation to perform'),
+          }),
+          execute: async ({ value, operation }) => {
+            const numValue =
+              typeof value === 'string' ? parseFloat(value) : value;
+            const multiplier = operation === 'double' ? 2 : 3;
+            return {
+              input: value,
+              result: numValue * multiplier,
+              operation,
+            };
+          },
         }),
       },
       stopWhen: stepCountIs(5),
@@ -43,6 +66,4 @@ async function main() {
 
     messages.push(...(await result.response).messages);
   }
-}
-
-main().catch(console.error);
+});

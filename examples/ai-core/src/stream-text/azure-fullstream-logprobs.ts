@@ -1,13 +1,13 @@
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
-    model: azure('gpt-4o'),
+    model: azure('gpt-4.1-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
-      openai: {
+      azure: {
         logprobs: 2,
       },
     },
@@ -22,10 +22,9 @@ async function main() {
 
       case 'finish-step': {
         console.log(`finishReason: ${part.finishReason}`);
+        console.log('metadata:', JSON.stringify(part.providerMetadata)); // object: { string, number, array}
         console.log('Logprobs:', part.providerMetadata?.azure.logprobs); // object: { string, number, array}
       }
     }
   }
-}
-
-main().catch(console.error);
+});

@@ -23,7 +23,7 @@ import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
-import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
+import { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
@@ -56,17 +56,22 @@ Creates an OpenAI completion model for text generation.
   /**
 Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for text embeddings.
+   * @deprecated Use `embedding` instead.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for image generation.
@@ -235,11 +240,13 @@ export function createOpenAI(
     return createLanguageModel(modelId);
   };
 
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 

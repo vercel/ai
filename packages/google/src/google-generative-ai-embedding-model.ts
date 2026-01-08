@@ -6,9 +6,11 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   FetchFunction,
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
@@ -24,9 +26,7 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV3<string>
-{
+export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
@@ -50,8 +50,8 @@ export class GoogleGenerativeAIEmbeddingModel
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({
@@ -100,6 +100,7 @@ export class GoogleGenerativeAIEmbeddingModel
       });
 
       return {
+        warnings: [],
         embeddings: [response.embedding.values],
         usage: undefined,
         response: { headers: responseHeaders, body: rawValue },
@@ -130,6 +131,7 @@ export class GoogleGenerativeAIEmbeddingModel
     });
 
     return {
+      warnings: [],
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
       response: { headers: responseHeaders, body: rawValue },
@@ -139,11 +141,19 @@ export class GoogleGenerativeAIEmbeddingModel
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const googleGenerativeAITextEmbeddingResponseSchema = z.object({
-  embeddings: z.array(z.object({ values: z.array(z.number()) })),
-});
+const googleGenerativeAITextEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embeddings: z.array(z.object({ values: z.array(z.number()) })),
+    }),
+  ),
+);
 
 // Schema for single embedding response
-const googleGenerativeAISingleEmbeddingResponseSchema = z.object({
-  embedding: z.object({ values: z.array(z.number()) }),
-});
+const googleGenerativeAISingleEmbeddingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      embedding: z.object({ values: z.array(z.number()) }),
+    }),
+  ),
+);

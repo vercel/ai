@@ -1,6 +1,7 @@
 import {
   FetchFunction,
   Resolvable,
+  normalizeHeaders,
   resolve,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
@@ -160,12 +161,17 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareSendMessagesRequest?.({
       api: this.api,
       id: options.chatId,
       messages: options.messages,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
       trigger: options.trigger,
@@ -175,8 +181,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? this.api;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const body =
       preparedRequest?.body !== undefined
         ? preparedRequest.body
@@ -228,11 +234,16 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const resolvedHeaders = await resolve(this.headers);
     const resolvedCredentials = await resolve(this.credentials);
 
+    const baseHeaders = {
+      ...normalizeHeaders(resolvedHeaders),
+      ...normalizeHeaders(options.headers),
+    };
+
     const preparedRequest = await this.prepareReconnectToStreamRequest?.({
       api: this.api,
       id: options.chatId,
       body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
+      headers: baseHeaders,
       credentials: resolvedCredentials,
       requestMetadata: options.metadata,
     });
@@ -240,8 +251,8 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
     const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
     const headers =
       preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers };
+        ? normalizeHeaders(preparedRequest.headers)
+        : baseHeaders;
     const credentials = preparedRequest?.credentials ?? resolvedCredentials;
 
     // avoid caching globalThis.fetch in case it is patched by other libraries

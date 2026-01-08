@@ -1,13 +1,13 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20241022'),
+    model: anthropic('claude-sonnet-4-5'),
     prompt: 'Search for recent information about AI SDK development',
     tools: {
-      webSearch: anthropic.tools.webSearch_20250305({
+      useWebSearch: anthropic.tools.webSearch_20250305({
         maxUses: 3,
         allowedDomains: ['github.com', 'vercel.com', 'docs.ai'],
         userLocation: {
@@ -18,7 +18,7 @@ async function main() {
         },
       }),
 
-      computer: anthropic.tools.computer_20250124({
+      useComputer: anthropic.tools.computer_20250124({
         displayWidthPx: 1920,
         displayHeightPx: 1080,
       }),
@@ -33,6 +33,4 @@ async function main() {
     console.log(`- Tool: ${toolCall.toolName}`);
     console.log(`- Input:`, JSON.stringify(toolCall.input, null, 2));
   }
-}
-
-main().catch(console.error);
+});

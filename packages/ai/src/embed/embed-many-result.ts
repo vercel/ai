@@ -1,16 +1,17 @@
 import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
 import { ProviderMetadata } from '../types';
+import { Warning } from '../types/warning';
 
 /**
 The result of a `embedMany` call.
 It contains the embeddings, the values, and additional information.
  */
-export interface EmbedManyResult<VALUE> {
+export interface EmbedManyResult {
   /**
   The values that were embedded.
      */
-  readonly values: Array<VALUE>;
+  readonly values: Array<string>;
 
   /**
   The embeddings. They are in the same order as the values.
@@ -21,6 +22,11 @@ export interface EmbedManyResult<VALUE> {
   The embedding token usage.
     */
   readonly usage: EmbeddingModelUsage;
+
+  /**
+  Warnings for the call, e.g. unsupported settings.
+    */
+  readonly warnings: Array<Warning>;
 
   /**
   Optional provider-specific metadata.

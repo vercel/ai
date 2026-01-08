@@ -1,15 +1,14 @@
 import { azure } from '@ai-sdk/azure';
 import { embed } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const { embedding, usage } = await embed({
-    model: azure.embedding('my-embedding-deployment'),
+run(async () => {
+  const { embedding, usage, warnings } = await embed({
+    model: azure.embedding('text-embedding-3-large'), // use your own deployment
     value: 'sunny day at the beach',
   });
 
   console.log(embedding);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});

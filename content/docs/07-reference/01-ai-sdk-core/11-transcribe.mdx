@@ -47,7 +47,7 @@ console.log(transcript);
     },
     {
       name: 'providerOptions',
-      type: 'Record<string, Record<string, JSONValue>>',
+      type: 'Record<string, JSONObject>',
       isOptional: true,
       description: 'Additional provider-specific options.',
     },
@@ -100,7 +100,7 @@ console.log(transcript);
     },
     {
       name: 'warnings',
-      type: 'TranscriptionWarning[]',
+      type: 'Warning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
     },

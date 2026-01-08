@@ -7,6 +7,7 @@ import {
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
+import { GatewayImageModel } from './gateway-image-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
 import { GatewayLanguageModel } from './gateway-language-model';
@@ -51,6 +52,37 @@ vi.mock('./vercel-environment', () => ({
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
+
+type GatewayImageModelInternalConfig = {
+  provider: string;
+  baseURL: string;
+  headers: () => Promise<Record<string, string>>;
+  fetch?: typeof fetch;
+  o11yHeaders: () => Promise<Record<string, string>>;
+};
+
+function assertIsGatewayImageModelInternalConfig(
+  value: unknown,
+): asserts value is GatewayImageModelInternalConfig {
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as { provider?: unknown }).provider !== 'string' ||
+    typeof (value as { baseURL?: unknown }).baseURL !== 'string' ||
+    typeof (value as { headers?: unknown }).headers !== 'function' ||
+    typeof (value as { o11yHeaders?: unknown }).o11yHeaders !== 'function'
+  ) {
+    throw new Error('Invalid GatewayImageModel configuration');
+  }
+}
+
+function getGatewayImageModelInternalConfig(
+  model: GatewayImageModel,
+): GatewayImageModelInternalConfig {
+  const config = Reflect.get(model as object, 'config');
+  assertIsGatewayImageModelInternalConfig(config);
+  return config;
+}
 
 describe('GatewayProvider', () => {
   beforeEach(() => {
@@ -137,15 +169,61 @@ describe('GatewayProvider', () => {
       );
     });
 
-    it('should create GatewayEmbeddingModel for textEmbeddingModel', () => {
+    it('should create GatewayEmbeddingModel for embeddingModel', () => {
       const provider = createGatewayProvider({
         baseURL: 'https://api.example.com',
       });
 
-      const model = provider.textEmbeddingModel(
-        'openai/text-embedding-3-small',
-      );
+      const model = provider.embeddingModel('openai/text-embedding-3-small');
       expect(model).toBeInstanceOf(GatewayEmbeddingModel);
+    });
+
+    it('should create GatewayImageModel for imageModel', () => {
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      const model = provider.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://api.example.com');
+    });
+
+    it('should reuse gateway headers and fetch for imageModel', async () => {
+      const customFetch = vi.fn();
+      const provider = createGatewayProvider({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+        headers: { 'Custom-Header': 'value' },
+        fetch: customFetch,
+      });
+
+      const model = provider.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      const headers = await config.headers();
+
+      expect(headers).toEqual({
+        authorization: 'Bearer test-api-key',
+        'custom-header': 'value',
+        'ai-gateway-protocol-version': expect.any(String),
+        'ai-gateway-auth-method': 'api-key',
+        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+      });
+      expect(config.fetch).toBe(customFetch);
+
+      const o11yHeaders = await config.o11yHeaders();
+      expect(o11yHeaders).toEqual({ 'ai-o11y-request-id': 'mock-request-id' });
     });
 
     it('should fetch available models', async () => {
@@ -331,7 +409,7 @@ describe('GatewayProvider', () => {
       // Check that GatewayFetchMetadata was instantiated with the default baseURL
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
         }),
       );
     });
@@ -342,6 +420,19 @@ describe('GatewayProvider', () => {
       expect(provider).toBeDefined();
       expect(typeof provider).toBe('function');
       expect(typeof provider.languageModel).toBe('function');
+    });
+
+    it('should expose imageModel on the default provider and construct model', () => {
+      expect(typeof gateway.imageModel).toBe('function');
+      const model = gateway.imageModel('google/imagen-4.0-generate');
+
+      if (!(model instanceof GatewayImageModel)) {
+        fail('Expected GatewayImageModel to be created by default provider');
+      }
+
+      const config = getGatewayImageModelInternalConfig(model);
+      expect(config.provider).toBe('gateway');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
     });
 
     it('should override default baseURL when provided', async () => {
@@ -564,26 +655,24 @@ describe('GatewayProvider', () => {
             // Test successful cases
             const result = await getGatewayAuthToken(options);
 
-            expect(result).not.toBeNull();
-            expect(result?.authMethod).toBe(testCase.expectedAuthMethod);
+            expect(result.authMethod).toBe(testCase.expectedAuthMethod);
 
             if (testCase.expectedAuthMethod === 'api-key') {
               const expectedToken =
                 testCase.optionsApiKey || testCase.envApiKey;
-              expect(result?.token).toBe(expectedToken);
+              expect(result.token).toBe(expectedToken);
 
               // If we used options API key, OIDC should not be called
               if (testCase.optionsApiKey) {
                 expect(getVercelOidcToken).not.toHaveBeenCalled();
               }
             } else if (testCase.expectedAuthMethod === 'oidc') {
-              expect(result?.token).toBe(testCase.oidcTokenMock);
+              expect(result.token).toBe(testCase.oidcTokenMock);
               expect(getVercelOidcToken).toHaveBeenCalled();
             }
           } else {
-            // Test failure cases
-            const result = await getGatewayAuthToken(options);
-            expect(result).toBeNull();
+            // Test failure cases - should throw when OIDC fails
+            await expect(getGatewayAuthToken(options)).rejects.toThrow();
           }
         });
       });
@@ -680,15 +769,13 @@ describe('GatewayProvider', () => {
           AI_GATEWAY_API_KEY: '',
         };
 
-        vi.mocked(getVercelOidcToken).mockRejectedValue(
-          new GatewayAuthenticationError({
-            message: 'OIDC token not available',
-            statusCode: 401,
-          }),
-        );
+        const oidcError = new GatewayAuthenticationError({
+          message: 'OIDC token not available',
+          statusCode: 401,
+        });
+        vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
 
-        const result = await getGatewayAuthToken({});
-        expect(result).toBeNull();
+        await expect(getGatewayAuthToken({})).rejects.toThrow(oidcError);
       });
 
       it('should handle whitespace-only environment variables', async () => {
@@ -700,9 +787,8 @@ describe('GatewayProvider', () => {
 
         // The whitespace API key should still be used (it's treated as a valid value)
         const result = await getGatewayAuthToken({});
-        expect(result).not.toBeNull();
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe('\t\n ');
+        expect(result.authMethod).toBe('api-key');
+        expect(result.token).toBe('\t\n ');
       });
 
       it('should prioritize options.apiKey over all environment variables', async () => {
@@ -715,10 +801,55 @@ describe('GatewayProvider', () => {
         const optionsApiKey = 'options-api-key';
         const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
 
-        expect(result).not.toBeNull();
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe(optionsApiKey);
+        expect(result.authMethod).toBe('api-key');
+        expect(result.token).toBe(optionsApiKey);
         expect(getVercelOidcToken).not.toHaveBeenCalled();
+      });
+
+      it('should surface OIDC error as cause when authentication fails', async () => {
+        process.env = {
+          ...originalEnv,
+          VERCEL_OIDC_TOKEN: '',
+          AI_GATEWAY_API_KEY: '',
+        };
+
+        delete process.env.AI_GATEWAY_API_KEY;
+
+        const oidcError = new Error(
+          'OIDC token generation failed: project not linked',
+        );
+        vi.mocked(getVercelOidcToken).mockRejectedValue(oidcError);
+
+        vi.mocked(GatewayFetchMetadata).mockImplementation(
+          (config: any) =>
+            ({
+              getAvailableModels: async () => {
+                if (config.headers && typeof config.headers === 'function') {
+                  await config.headers();
+                }
+                return mockGetAvailableModels();
+              },
+              getCredits: async () => {
+                if (config.headers && typeof config.headers === 'function') {
+                  await config.headers();
+                }
+                return mockGetCredits();
+              },
+            }) as any,
+        );
+
+        const provider = createGatewayProvider();
+
+        try {
+          await provider.getAvailableModels();
+          fail('Expected an error to be thrown');
+        } catch (error) {
+          expect(GatewayAuthenticationError.isInstance(error)).toBe(true);
+          if (GatewayAuthenticationError.isInstance(error)) {
+            expect(error.cause).toBe(oidcError);
+            expect(error.message).toContain('No authentication provided');
+          }
+        }
       });
     });
 
@@ -732,8 +863,8 @@ describe('GatewayProvider', () => {
         const optionsApiKey = 'options-api-key';
         const result = await getGatewayAuthToken({ apiKey: optionsApiKey });
 
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe(optionsApiKey);
+        expect(result.authMethod).toBe('api-key');
+        expect(result.token).toBe(optionsApiKey);
         expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
 
@@ -746,8 +877,8 @@ describe('GatewayProvider', () => {
 
         const result = await getGatewayAuthToken({});
 
-        expect(result?.authMethod).toBe('api-key');
-        expect(result?.token).toBe('env-api-key');
+        expect(result.authMethod).toBe('api-key');
+        expect(result.token).toBe('env-api-key');
         expect(getVercelOidcToken).not.toHaveBeenCalled();
       });
 
@@ -761,8 +892,8 @@ describe('GatewayProvider', () => {
 
         const result = await getGatewayAuthToken({});
 
-        expect(result?.authMethod).toBe('oidc');
-        expect(result?.token).toBe('oidc-token');
+        expect(result.authMethod).toBe('oidc');
+        expect(result.token).toBe('oidc-token');
         expect(getVercelOidcToken).toHaveBeenCalled();
       });
     });
@@ -841,7 +972,7 @@ describe('GatewayProvider', () => {
       expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
@@ -856,7 +987,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v1/ai';
+      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
       const provider = createGatewayProvider({
         apiKey: 'test-key',
         baseURL: customBaseURL,

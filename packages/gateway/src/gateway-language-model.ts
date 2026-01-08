@@ -1,9 +1,11 @@
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3FilePart,
   LanguageModelV3StreamPart,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -39,7 +41,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
-  private async getArgs(options: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  private async getArgs(options: LanguageModelV3CallOptions) {
     const { abortSignal: _abortSignal, ...optionsWithoutSignal } = options;
 
     return {
@@ -49,8 +51,8 @@ export class GatewayLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
@@ -86,13 +88,13 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         warnings,
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
@@ -159,7 +161,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         response: { headers: responseHeaders },
       };
     } catch (error) {
-      throw asGatewayError(error, parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
     }
   }
 
@@ -202,7 +204,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
 
   private getModelConfigHeaders(modelId: string, streaming: boolean) {
     return {
-      'ai-language-model-specification-version': '2',
+      'ai-language-model-specification-version': '3',
       'ai-language-model-id': modelId,
       'ai-language-model-streaming': String(streaming),
     };

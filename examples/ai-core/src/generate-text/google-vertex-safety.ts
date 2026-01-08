@@ -1,12 +1,12 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: vertex('gemini-1.5-pro'),
+    model: vertex('gemini-2.5-flash'),
     providerOptions: {
-      google: {
+      vertex: {
         safetySettings: [
           {
             category: 'HARM_CATEGORY_UNSPECIFIED',
@@ -22,6 +22,6 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+  console.log();
+  console.log('Request body:', result.request?.body);
+});

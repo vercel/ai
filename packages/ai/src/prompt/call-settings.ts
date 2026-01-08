@@ -1,3 +1,46 @@
+/**
+Timeout configuration for API calls. Can be specified as:
+- A number representing milliseconds
+- An object with `totalMs` property for the total timeout in milliseconds
+- An object with `stepMs` property for the timeout of each step in milliseconds
+ */
+export type TimeoutConfiguration =
+  | number
+  | { totalMs?: number; stepMs?: number };
+
+/**
+Extracts the total timeout value in milliseconds from a TimeoutConfiguration.
+
+@param timeout - The timeout configuration.
+@returns The total timeout in milliseconds, or undefined if no timeout is configured.
+ */
+export function getTotalTimeoutMs(
+  timeout: TimeoutConfiguration | undefined,
+): number | undefined {
+  if (timeout == null) {
+    return undefined;
+  }
+  if (typeof timeout === 'number') {
+    return timeout;
+  }
+  return timeout.totalMs;
+}
+
+/**
+Extracts the step timeout value in milliseconds from a TimeoutConfiguration.
+
+@param timeout - The timeout configuration.
+@returns The step timeout in milliseconds, or undefined if no step timeout is configured.
+ */
+export function getStepTimeoutMs(
+  timeout: TimeoutConfiguration | undefined,
+): number | undefined {
+  if (timeout == null || typeof timeout === 'number') {
+    return undefined;
+  }
+  return timeout.stepMs;
+}
+
 export type CallSettings = {
   /**
 Maximum number of tokens to generate.
@@ -71,6 +114,14 @@ Maximum number of retries. Set to 0 to disable retries.
 Abort signal.
    */
   abortSignal?: AbortSignal;
+
+  /**
+Timeout in milliseconds. The call will be aborted if it takes longer
+than the specified timeout. Can be used alongside abortSignal.
+
+Can be specified as a number (milliseconds) or as an object with `totalMs`.
+   */
+  timeout?: TimeoutConfiguration;
 
   /**
 Additional HTTP headers to be sent with the request.

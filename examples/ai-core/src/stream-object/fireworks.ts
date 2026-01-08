@@ -1,9 +1,9 @@
 import { fireworks } from '@ai-sdk/fireworks';
 import { streamObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
     maxOutputTokens: 2000,
@@ -26,6 +26,4 @@ async function main() {
     console.clear();
     console.log(partialObject);
   }
-}
-
-main().catch(console.error);
+});

@@ -1,39 +1,61 @@
-import {
-  ImageModelV3CallWarning,
-  LanguageModelV3CallWarning,
-  SpeechModelV3CallWarning,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { Warning } from '../types';
 
-export type Warning =
-  | LanguageModelV3CallWarning
-  | ImageModelV3CallWarning
-  | SpeechModelV3CallWarning
-  | TranscriptionModelV3CallWarning;
+/**
+ * A function for logging warnings.
+ *
+ * You can assign it to the `AI_SDK_LOG_WARNINGS` global variable to use it as the default warning logger.
+ *
+ * @example
+ * ```ts
+ * globalThis.AI_SDK_LOG_WARNINGS = (options) => {
+ *   console.log('WARNINGS:', options.warnings, options.provider, options.model);
+ * };
+ * ```
+ */
+export type LogWarningsFunction = (options: {
+  /**
+   * The warnings returned by the model provider.
+   */
+  warnings: Warning[];
 
-export type LogWarningsFunction = (warnings: Warning[]) => void;
+  /**
+   * The provider id used for the call.
+   */
+  provider: string;
+
+  /**
+   * The model id used for the call.
+   */
+  model: string;
+}) => void;
 
 /**
  * Formats a warning object into a human-readable string with clear AI SDK branding
  */
-function formatWarning(warning: Warning): string {
-  const prefix = 'AI SDK Warning:';
+function formatWarning({
+  warning,
+  provider,
+  model,
+}: {
+  warning: Warning;
+  provider: string;
+  model: string;
+}): string {
+  const prefix = `AI SDK Warning (${provider} / ${model}):`;
 
   switch (warning.type) {
-    case 'unsupported-setting': {
-      let message = `${prefix} The "${warning.setting}" setting is not supported by this model`;
+    case 'unsupported': {
+      let message = `${prefix} The feature "${warning.feature}" is not supported.`;
       if (warning.details) {
-        message += ` - ${warning.details}`;
+        message += ` ${warning.details}`;
       }
       return message;
     }
 
-    case 'unsupported-tool': {
-      const toolName =
-        'name' in warning.tool ? warning.tool.name : 'unknown tool';
-      let message = `${prefix} The tool "${toolName}" is not supported by this model`;
+    case 'compatibility': {
+      let message = `${prefix} The feature "${warning.feature}" is used in a compatibility mode.`;
       if (warning.details) {
-        message += ` - ${warning.details}`;
+        message += ` ${warning.details}`;
       }
       return message;
     }
@@ -54,9 +76,9 @@ export const FIRST_WARNING_INFO_MESSAGE =
 
 let hasLoggedBefore = false;
 
-export const logWarnings: LogWarningsFunction = warnings => {
+export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing
-  if (warnings.length === 0) {
+  if (options.warnings.length === 0) {
     return;
   }
 
@@ -69,7 +91,7 @@ export const logWarnings: LogWarningsFunction = warnings => {
 
   // use the provided logger if it is a function
   if (typeof logger === 'function') {
-    logger(warnings);
+    logger(options);
     return;
   }
 
@@ -80,8 +102,14 @@ export const logWarnings: LogWarningsFunction = warnings => {
   }
 
   // default behavior: log warnings to the console
-  for (const warning of warnings) {
-    console.warn(formatWarning(warning));
+  for (const warning of options.warnings) {
+    console.warn(
+      formatWarning({
+        warning,
+        provider: options.provider,
+        model: options.model,
+      }),
+    );
   }
 };
 

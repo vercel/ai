@@ -1,11 +1,12 @@
 import { ModelMessage } from '@ai-sdk/provider-utils';
+import { describe, expect, it } from 'vitest';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { describe, it, expect } from 'vitest';
+import { UIMessage } from './ui-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
-    it('should convert a simple system message', () => {
-      const result = convertToModelMessages([
+    it('should convert a simple system message', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'system',
           parts: [{ text: 'System message', type: 'text' }],
@@ -15,8 +16,8 @@ describe('convertToModelMessages', () => {
       expect(result).toEqual([{ role: 'system', content: 'System message' }]);
     });
 
-    it('should convert a system message with provider metadata', () => {
-      const result = convertToModelMessages([
+    it('should convert a system message with provider metadata', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'system',
           parts: [
@@ -38,8 +39,8 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should merge provider metadata from multiple text parts in system message', () => {
-      const result = convertToModelMessages([
+    it('should merge provider metadata from multiple text parts in system message', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'system',
           parts: [
@@ -69,7 +70,7 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should convert a system message with Anthropic cache control metadata', () => {
+    it('should convert a system message with Anthropic cache control metadata', async () => {
       const SYSTEM_PROMPT = 'You are a helpful assistant.';
 
       const systemMessage = {
@@ -88,7 +89,7 @@ describe('convertToModelMessages', () => {
         ],
       };
 
-      const result = convertToModelMessages([systemMessage]);
+      const result = await convertToModelMessages([systemMessage]);
 
       expect(result).toEqual([
         {
@@ -105,8 +106,8 @@ describe('convertToModelMessages', () => {
   });
 
   describe('user message', () => {
-    it('should convert a simple user message', () => {
-      const result = convertToModelMessages([
+    it('should convert a simple user message', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [{ text: 'Hello, AI!', type: 'text' }],
@@ -128,8 +129,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert a simple user message with provider metadata', () => {
-      const result = convertToModelMessages([
+    it('should convert a simple user message with provider metadata', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [
@@ -162,8 +163,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle user message file parts', () => {
-      const result = convertToModelMessages([
+    it('should handle user message file parts', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [
@@ -192,8 +193,8 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should handle user message file parts with provider metadata', () => {
-      const result = convertToModelMessages([
+    it('should handle user message file parts with provider metadata', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [
@@ -224,8 +225,8 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should include filename for user file parts when provided', () => {
-      const result = convertToModelMessages([
+    it('should include filename for user file parts when provided', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [
@@ -255,8 +256,8 @@ describe('convertToModelMessages', () => {
     });
   });
 
-  it('should not include filename for user file parts when not provided', () => {
-    const result = convertToModelMessages([
+  it('should not include filename for user file parts when not provided', async () => {
+    const result = await convertToModelMessages([
       {
         role: 'user',
         parts: [
@@ -284,8 +285,8 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
-    it('should convert a simple assistant text message', () => {
-      const result = convertToModelMessages([
+    it('should convert a simple assistant text message', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [{ type: 'text', text: 'Hello, human!', state: 'done' }],
@@ -300,8 +301,8 @@ describe('convertToModelMessages', () => {
       ]);
     });
 
-    it('should convert a simple assistant text message with provider metadata', () => {
-      const result = convertToModelMessages([
+    it('should convert a simple assistant text message with provider metadata', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -335,8 +336,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert an assistant message with reasoning', () => {
-      const result = convertToModelMessages([
+    it('should convert an assistant message with reasoning', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -383,8 +384,8 @@ describe('convertToModelMessages', () => {
       ] satisfies ModelMessage[]);
     });
 
-    it('should convert an assistant message with file parts', () => {
-      const result = convertToModelMessages([
+    it('should convert an assistant message with file parts', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -411,8 +412,8 @@ describe('convertToModelMessages', () => {
       ] satisfies ModelMessage[]);
     });
 
-    it('should include filename for assistant file parts when provided', () => {
-      const result = convertToModelMessages([
+    it('should include filename for assistant file parts when provided', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -441,8 +442,8 @@ describe('convertToModelMessages', () => {
       ] as unknown as ModelMessage[]);
     });
 
-    it('should handle assistant message with tool output available', () => {
-      const result = convertToModelMessages([
+    it('should handle assistant message with tool output available', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -504,6 +505,11 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                   "value": "3",
                 },
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
                 "toolCallId": "call1",
                 "toolName": "calculator",
                 "type": "tool-result",
@@ -516,8 +522,8 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
-      it('should handle assistant message with tool output error that has raw input', () => {
-        const result = convertToModelMessages([
+      it('should handle assistant message with tool output error that has raw input', async () => {
+        const result = await convertToModelMessages([
           {
             role: 'assistant',
             parts: [
@@ -581,8 +587,8 @@ describe('convertToModelMessages', () => {
       `);
       });
 
-      it('should handle assistant message with tool output error that has no raw input', () => {
-        const result = convertToModelMessages([
+      it('should handle assistant message with tool output error that has no raw input', async () => {
+        const result = await convertToModelMessages([
           {
             role: 'assistant',
             parts: [
@@ -646,8 +652,8 @@ describe('convertToModelMessages', () => {
       });
     });
 
-    it('should handle assistant message with provider-executed tool output available', () => {
-      const result = convertToModelMessages([
+    it('should handle assistant message with provider-executed tool output available', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -706,8 +712,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle assistant message with provider-executed tool output error', () => {
-      const result = convertToModelMessages([
+    it('should handle assistant message with provider-executed tool output error', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -766,8 +772,74 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle assistant message with tool invocations that have multi-part responses', () => {
-      const result = convertToModelMessages([
+    it('should propagate provider metadata to provider-executed tool-result', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'multiply', numbers: [3, 4] },
+              output: '12',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  executionTime: 75,
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "numbers": [
+                    3,
+                    4,
+                  ],
+                  "operation": "multiply",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 75,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "12",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 75,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should handle assistant message with tool invocations that have multi-part responses', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -791,8 +863,8 @@ describe('convertToModelMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('should handle conversation with an assistant message that has empty tool invocations', () => {
-      const result = convertToModelMessages([
+    it('should handle conversation with an assistant message that has empty tool invocations', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [{ type: 'text', text: 'text1' }],
@@ -806,8 +878,8 @@ describe('convertToModelMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('should handle conversation with multiple tool invocations that have step information', () => {
-      const result = convertToModelMessages([
+    it('should handle conversation with multiple tool invocations that have step information', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -850,8 +922,8 @@ describe('convertToModelMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('should handle conversation with mix of tool invocations and text', () => {
-      const result = convertToModelMessages([
+    it('should handle conversation with mix of tool invocations and text', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -903,8 +975,8 @@ describe('convertToModelMessages', () => {
   });
 
   describe('multiple messages', () => {
-    it('should handle a conversation with multiple messages', () => {
-      const result = convertToModelMessages([
+    it('should handle a conversation with multiple messages', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'user',
           parts: [{ type: 'text', text: "What's the weather like?" }],
@@ -954,8 +1026,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should handle conversation with multiple tool invocations and user message at the end', () => {
-      const result = convertToModelMessages([
+    it('should handle conversation with multiple tool invocations and user message at the end', async () => {
+      const result = await convertToModelMessages([
         {
           role: 'assistant',
           parts: [
@@ -1005,21 +1077,21 @@ describe('convertToModelMessages', () => {
   });
 
   describe('error handling', () => {
-    it('should throw an error for unhandled roles', () => {
-      expect(() => {
-        convertToModelMessages([
+    it('should throw an error for unhandled roles', async () => {
+      expect(async () => {
+        await convertToModelMessages([
           {
             role: 'unknown' as any,
             parts: [{ text: 'unknown role message', type: 'text' }],
           },
         ]);
-      }).toThrow('Unsupported role: unknown');
+      }).rejects.toThrow('Unsupported role: unknown');
     });
   });
 
   describe('when ignoring incomplete tool calls', () => {
-    it('should handle conversation with multiple tool invocations and user message at the end', () => {
-      const result = convertToModelMessages(
+    it('should handle conversation with multiple tool invocations and user message at the end', async () => {
+      const result = await convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -1117,8 +1189,8 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when converting dynamic tool invocations', () => {
-    it('should convert a dynamic tool invocation', () => {
-      const result = convertToModelMessages(
+    it('should convert a dynamic tool invocation', async () => {
+      const result = await convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -1150,6 +1222,7 @@ describe('convertToModelMessages', () => {
                 "input": {
                   "value": "value-1",
                 },
+                "providerExecuted": undefined,
                 "toolCallId": "call-1",
                 "toolName": "screenshot",
                 "type": "tool-call",
@@ -1185,9 +1258,93 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('when converting provider-executed dynamic tool invocations', () => {
+    it('should convert a provider-executed dynamic tool invocation', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: 'result-1',
+                providerExecuted: true,
+                callProviderMetadata: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "value": "value-1",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result-1",
+                },
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                    "key-b": "test-value-2",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "screenshot",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('when converting tool approval request responses', () => {
-    it('should convert an approved tool approval request', () => {
-      const result = convertToModelMessages([
+    it('should convert an approved tool approval request (static tool)', async () => {
+      const result = await convertToModelMessages([
         {
           parts: [
             {
@@ -1255,6 +1412,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1265,8 +1423,89 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert a denied tool approval request and follow up text', () => {
-      const result = convertToModelMessages([
+    it('should convert an approved tool approval request (dynamic tool)', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                reason: undefined,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a denied tool approval request and follow up text (static tool)', async () => {
+      const result = await convertToModelMessages([
         {
           parts: [
             {
@@ -1340,6 +1579,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1359,8 +1599,104 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool output denied', () => {
-      const result = convertToModelMessages([
+    it('should convert a denied tool approval request and follow up text (dynamic tool)', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'I was not able to retrieve the weather.',
+              state: 'done',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": undefined,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "I was not able to retrieve the weather.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output denied (static tool)', async () => {
+      const result = await convertToModelMessages([
         {
           parts: [
             {
@@ -1428,6 +1764,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": false,
+                "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
@@ -1447,8 +1784,98 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool output result with approval and follow up text', () => {
-      const result = convertToModelMessages([
+    it('should convert tool output denied (dynamic tool)', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            {
+              type: 'step-start',
+            },
+            {
+              approval: {
+                approved: false,
+                id: 'approval-1',
+                reason: "I don't want to approve this",
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'output-denied',
+              toolCallId: 'call-1',
+              type: 'dynamic-tool',
+              toolName: 'weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": undefined,
+                "reason": "I don't want to approve this",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool output result with approval and follow up text (static tool)', async () => {
+      const result = await convertToModelMessages([
         {
           parts: [
             {
@@ -1523,6 +1950,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1554,8 +1982,8 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should convert tool error result with approval and follow up text', () => {
-      const result = convertToModelMessages([
+    it('should convert tool error result with approval and follow up text (static tool)', async () => {
+      const result = await convertToModelMessages([
         {
           parts: [
             {
@@ -1627,6 +2055,7 @@ describe('convertToModelMessages', () => {
               {
                 "approvalId": "approval-1",
                 "approved": true,
+                "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
               },
@@ -1653,6 +2082,694 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('data part conversion', () => {
+    describe('in user messages', () => {
+      it('should convert data parts to text when converter provided', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<unknown, { url: { url: string; content: string } }>
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', content: 'Article text' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `\n\n[${part.data.url}]\n${part.data.content}`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "
+
+        [https://example.com]
+        Article text",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should skip data parts when no converter provided', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'user',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              { type: 'data-url', data: { url: 'https://example.com' } },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should selectively convert data parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              url: { url: string };
+              'ui-state': { enabled: boolean };
+            }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'data-url', data: { url: 'https://example.com' } },
+                { type: 'data-ui-state', data: { enabled: true } },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              // Include URLs, skip UI state
+              if (part.type === 'data-url') {
+                return { type: 'text', text: part.data.url };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "https://example.com",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should convert data parts to file parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              attachment: { mediaType: string; filename: string; data: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Check this file' },
+                {
+                  type: 'data-attachment',
+                  data: {
+                    mediaType: 'application/pdf',
+                    filename: 'document.pdf',
+                    data: 'base64data',
+                  },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              if (part.type === 'data-attachment') {
+                return {
+                  type: 'file',
+                  mediaType: part.data.mediaType,
+                  filename: part.data.filename,
+                  data: part.data.data,
+                };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Check this file",
+                "type": "text",
+              },
+              {
+                "data": "base64data",
+                "filename": "document.pdf",
+                "mediaType": "application/pdf",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should handle multiple data parts of different types', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            never,
+            {
+              url: { url: string; title: string };
+              code: { code: string; language: string };
+              note: { text: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Review these:' },
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', title: 'Example' },
+                },
+                {
+                  type: 'data-code',
+                  data: { code: 'console.log("test")', language: 'javascript' },
+                },
+                {
+                  type: 'data-note',
+                  data: { text: 'Internal note' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              switch (part.type) {
+                case 'data-url':
+                  return {
+                    type: 'text',
+                    text: `[${part.data.title}](${part.data.url})`,
+                  };
+                case 'data-code':
+                  return {
+                    type: 'text',
+                    text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+                  };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Review these:",
+                "type": "text",
+              },
+              {
+                "text": "[Example](https://example.com)",
+                "type": "text",
+              },
+              {
+                "text": "\`\`\`javascript
+        console.log("test")
+        \`\`\`",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should work with messages that have no data parts', async () => {
+        const result = await convertToModelMessages(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'Hello' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: () => ({ type: 'text', text: 'converted' }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+              {
+                "data": "https://example.com/image.png",
+                "filename": undefined,
+                "mediaType": "image/png",
+                "type": "file",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+
+      it('should preserve order of parts including converted data parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<unknown, { tag: { value: string } }>
+        >(
+          [
+            {
+              role: 'user',
+              parts: [
+                { type: 'text', text: 'First' },
+                { type: 'data-tag', data: { value: 'tag1' } },
+                { type: 'text', text: 'Second' },
+                { type: 'data-tag', data: { value: 'tag2' } },
+                { type: 'text', text: 'Third' },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `[${part.data.value}]`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "First",
+                "type": "text",
+              },
+              {
+                "text": "[tag1]",
+                "type": "text",
+              },
+              {
+                "text": "Second",
+                "type": "text",
+              },
+              {
+                "text": "[tag2]",
+                "type": "text",
+              },
+              {
+                "text": "Third",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      });
+    });
+
+    describe('in assistant messages', () => {
+      it('should convert data parts to text when converter provided', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<unknown, { url: { url: string; content: string } }>
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', content: 'Article text' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `\n\n[${part.data.url}]\n${part.data.content}`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "
+
+          [https://example.com]
+          Article text",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should skip data parts when no converter provided', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'text', text: 'Hello' },
+              { type: 'data-url', data: { url: 'https://example.com' } },
+            ],
+          },
+        ]);
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should selectively convert data parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              url: { url: string };
+              'ui-state': { enabled: boolean };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'data-url', data: { url: 'https://example.com' } },
+                { type: 'data-ui-state', data: { enabled: true } },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              // Include URLs, skip UI state
+              if (part.type === 'data-url') {
+                return { type: 'text', text: part.data.url };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "https://example.com",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should convert data parts to file parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            unknown,
+            {
+              attachment: { mediaType: string; filename: string; data: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Check this file' },
+                {
+                  type: 'data-attachment',
+                  data: {
+                    mediaType: 'application/pdf',
+                    filename: 'document.pdf',
+                    data: 'base64data',
+                  },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              if (part.type === 'data-attachment') {
+                return {
+                  type: 'file',
+                  mediaType: part.data.mediaType,
+                  filename: part.data.filename,
+                  data: part.data.data,
+                };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Check this file",
+                  "type": "text",
+                },
+                {
+                  "data": "base64data",
+                  "filename": "document.pdf",
+                  "mediaType": "application/pdf",
+                  "type": "file",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should handle multiple data parts of different types', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<
+            never,
+            {
+              url: { url: string; title: string };
+              code: { code: string; language: string };
+              note: { text: string };
+            }
+          >
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Review these:' },
+                {
+                  type: 'data-url',
+                  data: { url: 'https://example.com', title: 'Example' },
+                },
+                {
+                  type: 'data-code',
+                  data: { code: 'console.log("test")', language: 'javascript' },
+                },
+                {
+                  type: 'data-note',
+                  data: { text: 'Internal note' },
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => {
+              switch (part.type) {
+                case 'data-url':
+                  return {
+                    type: 'text',
+                    text: `[${part.data.title}](${part.data.url})`,
+                  };
+                case 'data-code':
+                  return {
+                    type: 'text',
+                    text: `\`\`\`${part.data.language}\n${part.data.code}\n\`\`\``,
+                  };
+              }
+            },
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Review these:",
+                  "type": "text",
+                },
+                {
+                  "text": "[Example](https://example.com)",
+                  "type": "text",
+                },
+                {
+                  "text": "\`\`\`javascript
+          console.log("test")
+          \`\`\`",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should work with messages that have no data parts', async () => {
+        const result = await convertToModelMessages(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'Hello' },
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          ],
+          {
+            convertDataPart: () => ({ type: 'text', text: 'converted' }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+                {
+                  "data": "https://example.com/image.png",
+                  "filename": undefined,
+                  "mediaType": "image/png",
+                  "type": "file",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+
+      it('should preserve order of parts including converted data parts', async () => {
+        const result = await convertToModelMessages<
+          UIMessage<unknown, { tag: { value: string } }>
+        >(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                { type: 'text', text: 'First' },
+                { type: 'data-tag', data: { value: 'tag1' } },
+                { type: 'text', text: 'Second' },
+                { type: 'data-tag', data: { value: 'tag2' } },
+                { type: 'text', text: 'Third' },
+              ],
+            },
+          ],
+          {
+            convertDataPart: part => ({
+              type: 'text',
+              text: `[${part.data.value}]`,
+            }),
+          },
+        );
+
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "First",
+                  "type": "text",
+                },
+                {
+                  "text": "[tag1]",
+                  "type": "text",
+                },
+                {
+                  "text": "Second",
+                  "type": "text",
+                },
+                {
+                  "text": "[tag2]",
+                  "type": "text",
+                },
+                {
+                  "text": "Third",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
     });
   });
 });

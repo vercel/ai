@@ -63,12 +63,12 @@ export interface BasetenProviderSettings {
 
 export interface BasetenProvider extends ProviderV3 {
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   (modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation. 
+Creates a chat model for text generation.
 */
   chatModel(modelId?: BasetenChatModelId): LanguageModelV3;
 
@@ -78,11 +78,14 @@ Creates a language model for text generation. Alias for chatModel.
   languageModel(modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a text embedding model for text generation.
+Creates a embedding model for text generation.
 */
-  textEmbeddingModel(
-    modelId?: BasetenEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV3;
 }
 
 // by default, we use the Model APIs
@@ -160,7 +163,7 @@ export function createBaseten(
     });
   };
 
-  const createTextEmbeddingModel = (modelId?: BasetenEmbeddingModelId) => {
+  const createEmbeddingModel = (modelId?: BasetenEmbeddingModelId) => {
     // Use modelURL if provided
     const customURL = options.modelURL;
     if (!customURL) {
@@ -211,11 +214,12 @@ export function createBaseten(
         const embeddings = response.data.map((item: any) => item.embedding);
 
         return {
-          embeddings: embeddings,
+          embeddings,
           usage: response.usage
             ? { tokens: response.usage.total_tokens }
             : undefined,
           response: { headers: {}, body: response },
+          warnings: [],
         };
       };
 
@@ -228,12 +232,15 @@ export function createBaseten(
   };
 
   const provider = (modelId?: BasetenChatModelId) => createChatModel(modelId);
+
+  provider.specificationVersion = 'v3' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   return provider;
 }
 

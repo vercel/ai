@@ -4,11 +4,13 @@ import {
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
 } from '@ai-sdk/provider';
+import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { LanguageModelMiddleware } from '../types';
+import { ImageModelMiddleware, LanguageModelMiddleware } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 
 type ExtractLiteralUnion<T> = T extends string
@@ -30,14 +32,14 @@ export interface ProviderRegistryProvider<
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): LanguageModelV3;
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['embeddingModel']>>[0]>}`
       : never,
-  ): EmbeddingModelV3<string>;
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  ): EmbeddingModelV3;
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
-  ): EmbeddingModelV3<string>;
+  ): EmbeddingModelV3;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
@@ -65,6 +67,15 @@ export interface ProviderRegistryProvider<
   speechModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): SpeechModelV3;
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['rerankingModel']>>[0]>}`
+      : never,
+  ): RerankingModelV3;
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): RerankingModelV3;
 }
 
 /**
@@ -77,7 +88,8 @@ export interface ProviderRegistryProvider<
  * @param options - Configuration options for the provider registry.
  * @param options.separator - The separator used between provider ID and model ID in the combined identifier. Defaults to ':'.
  * @param options.languageModelMiddleware - Optional middleware to be applied to all language models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
- * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language models.
+ * @param options.imageModelMiddleware - Optional middleware to be applied to all image models from the registry. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
+ * @returns A new ProviderRegistryProvider instance that provides access to all registered providers with optional middleware applied to language and image models.
  */
 export function createProviderRegistry<
   PROVIDERS extends Record<string, ProviderV3>,
@@ -87,16 +99,19 @@ export function createProviderRegistry<
   {
     separator = ':' as SEPARATOR,
     languageModelMiddleware,
+    imageModelMiddleware,
   }: {
     separator?: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
 ): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
+    imageModelMiddleware,
   });
 
   for (const [id, provider] of Object.entries(providers)) {
@@ -124,18 +139,22 @@ class DefaultProviderRegistry<
   private languageModelMiddleware?:
     | LanguageModelMiddleware
     | LanguageModelMiddleware[];
+  private imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
 
   constructor({
     separator,
     languageModelMiddleware,
+    imageModelMiddleware,
   }: {
     separator: SEPARATOR;
     languageModelMiddleware?:
       | LanguageModelMiddleware
       | LanguageModelMiddleware[];
+    imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   }) {
     this.separator = separator;
     this.languageModelMiddleware = languageModelMiddleware;
+    this.imageModelMiddleware = imageModelMiddleware;
   }
 
   registerProvider<K extends keyof PROVIDERS>({
@@ -152,10 +171,11 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): ProviderV3 {
     const provider = this.providers[id as keyof PROVIDERS];
 
@@ -175,10 +195,11 @@ class DefaultProviderRegistry<
     id: string,
     modelType:
       | 'languageModel'
-      | 'textEmbeddingModel'
+      | 'embeddingModel'
       | 'imageModel'
       | 'transcriptionModel'
-      | 'speechModel',
+      | 'speechModel'
+      | 'rerankingModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -217,18 +238,18 @@ class DefaultProviderRegistry<
     return model;
   }
 
-  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+  embeddingModel<KEY extends keyof PROVIDERS>(
     id: `${KEY & string}${SEPARATOR}${string}`,
-  ): EmbeddingModelV3<string> {
-    const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
-    const provider = this.getProvider(providerId, 'textEmbeddingModel');
+  ): EmbeddingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'embeddingModel');
+    const provider = this.getProvider(providerId, 'embeddingModel');
 
-    const model = provider.textEmbeddingModel?.(modelId);
+    const model = provider.embeddingModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({
         modelId: id,
-        modelType: 'textEmbeddingModel',
+        modelType: 'embeddingModel',
       });
     }
 
@@ -241,10 +262,17 @@ class DefaultProviderRegistry<
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId, 'imageModel');
 
-    const model = provider.imageModel?.(modelId);
+    let model = provider.imageModel?.(modelId);
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'imageModel' });
+    }
+
+    if (this.imageModelMiddleware != null) {
+      model = wrapImageModel({
+        model,
+        middleware: this.imageModelMiddleware,
+      });
     }
 
     return model;
@@ -278,6 +306,21 @@ class DefaultProviderRegistry<
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'speechModel' });
+    }
+
+    return model;
+  }
+
+  rerankingModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): RerankingModelV3 {
+    const [providerId, modelId] = this.splitId(id, 'rerankingModel');
+    const provider = this.getProvider(providerId, 'rerankingModel');
+
+    const model = provider.rerankingModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'rerankingModel' });
     }
 
     return model;

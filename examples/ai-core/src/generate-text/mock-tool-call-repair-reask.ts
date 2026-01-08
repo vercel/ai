@@ -1,20 +1,28 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: new MockLanguageModelV3({
       doGenerate: async () => ({
         warnings: [],
         usage: {
-          inputTokens: 10,
-          outputTokens: 20,
-          totalTokens: 30,
+          inputTokens: {
+            total: 10,
+            noCache: 10,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 20,
+            text: 20,
+            reasoning: undefined,
+          },
         },
-        finishReason: 'tool-calls',
+        finishReason: { raw: undefined, unified: 'tool-calls' },
         content: [
           {
             type: 'tool-call',
@@ -90,6 +98,4 @@ async function main() {
 
   console.log('Repaired tool calls:');
   console.log(JSON.stringify(result.toolCalls, null, 2));
-}
-
-main().catch(console.error);
+});

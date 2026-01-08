@@ -1,8 +1,10 @@
+import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import {
   EmbeddingModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  RerankingModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,8 +14,6 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
-import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
@@ -22,9 +22,12 @@ import { BedrockImageModel } from './bedrock-image-model';
 import { BedrockImageModelId } from './bedrock-image-settings';
 import {
   BedrockCredentials,
-  createSigV4FetchFunction,
   createApiKeyFetchFunction,
+  createSigV4FetchFunction,
 } from './bedrock-sigv4-fetch';
+import { BedrockRerankingModel } from './reranking/bedrock-reranking-model';
+import { BedrockRerankingModelId } from './reranking/bedrock-reranking-options';
+import { VERSION } from './version';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -109,7 +112,25 @@ export interface AmazonBedrockProvider extends ProviderV3 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV3;
 
-  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: BedrockEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for image generation.
@@ -120,6 +141,16 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: BedrockImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: BedrockRerankingModelId): RerankingModelV3;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  rerankingModel(modelId: BedrockRerankingModelId): RerankingModelV3;
 
   /**
 Anthropic-specific tools that can be used with Anthropic models on Bedrock.
@@ -227,7 +258,12 @@ export function createAmazonBedrock(
         }
       }, options.fetch);
 
-  const getBaseUrl = (): string =>
+  const getHeaders = () => {
+    const baseHeaders = options.headers ?? {};
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
+  };
+
+  const getBedrockRuntimeBaseUrl = (): string =>
     withoutTrailingSlash(
       options.baseURL ??
         `https://bedrock-runtime.${loadSetting({
@@ -238,14 +274,20 @@ export function createAmazonBedrock(
         })}.amazonaws.com`,
     ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
 
-  const getHeaders = () => {
-    const baseHeaders = options.headers ?? {};
-    return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
-  };
+  const getBedrockAgentRuntimeBaseUrl = (): string =>
+    withoutTrailingSlash(
+      options.baseURL ??
+        `https://bedrock-agent-runtime.${loadSetting({
+          settingValue: options.region,
+          settingName: 'region',
+          environmentVariableName: 'AWS_REGION',
+          description: 'AWS region',
+        })}.amazonaws.com`,
+    ) ?? `https://bedrock-agent-runtime.us-west-2.amazonaws.com`;
 
   const createChatModel = (modelId: BedrockChatModelId) =>
     new BedrockChatLanguageModel(modelId, {
-      baseUrl: getBaseUrl,
+      baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
       generateId,
@@ -263,24 +305,41 @@ export function createAmazonBedrock(
 
   const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
     new BedrockEmbeddingModel(modelId, {
-      baseUrl: getBaseUrl,
+      baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
     });
 
   const createImageModel = (modelId: BedrockImageModelId) =>
     new BedrockImageModel(modelId, {
-      baseUrl: getBaseUrl,
+      baseUrl: getBedrockRuntimeBaseUrl,
       headers: getHeaders,
       fetch: fetchFunction,
     });
 
+  const createRerankingModel = (modelId: BedrockRerankingModelId) =>
+    new BedrockRerankingModel(modelId, {
+      baseUrl: getBedrockAgentRuntimeBaseUrl,
+      region: loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      }),
+      headers: getHeaders,
+      fetch: fetchFunction,
+    });
+
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.reranking = createRerankingModel;
+  provider.rerankingModel = createRerankingModel;
   provider.tools = anthropicTools;
 
   return provider;

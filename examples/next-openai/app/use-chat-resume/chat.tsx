@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, type UIMessage } from 'ai';
 import Link from 'next/link';
-import ChatInput from '@component/chat-input';
+import ChatInput from '@/components/chat-input';
 
 export function Chat({
   id,
@@ -25,7 +25,7 @@ export function Chat({
   });
 
   return (
-    <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
+    <div className="flex flex-col gap-8 py-24 mx-auto w-full max-w-md stretch">
       <Link href={`/use-chat-resume/${id}`} target="_noblank">
         Chat Id: {id}
       </Link>
@@ -56,7 +56,7 @@ export function Chat({
           {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={stop}
           >
             Stop
@@ -69,7 +69,7 @@ export function Chat({
           <div className="text-red-500">An error occurred.</div>
           <button
             type="button"
-            className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
+            className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
             onClick={() => regenerate()}
           >
             Retry

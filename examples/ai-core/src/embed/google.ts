@@ -1,15 +1,14 @@
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const { embedding, usage } = await embed({
-    model: google.textEmbeddingModel('gemini-embedding-001'),
+run(async () => {
+  const { embedding, usage, warnings } = await embed({
+    model: google.embeddingModel('gemini-embedding-001'),
     value: 'sunny day at the beach',
   });
 
   console.log(embedding);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});

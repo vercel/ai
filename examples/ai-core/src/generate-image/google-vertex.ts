@@ -2,13 +2,13 @@ import {
   GoogleVertexImageProviderOptions,
   vertex,
 } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
-import 'dotenv/config';
+import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
+import { run } from '../lib/run';
 
-async function main() {
-  const { image } = await generateImage({
-    model: vertex.image('imagen-3.0-generate-002'),
+run(async () => {
+  const result = await generateImage({
+    model: vertex.image('imagen-4.0-generate-001'),
     prompt: 'A burrito launched through a tunnel',
     aspectRatio: '1:1',
     providerOptions: {
@@ -18,7 +18,10 @@ async function main() {
     },
   });
 
-  await presentImages([image]);
-}
+  await presentImages(result.images);
 
-main().catch(console.error);
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
+});

@@ -1,8 +1,6 @@
-export type Resolvable<T> =
-  | T // Raw value
-  | Promise<T> // Promise of value
-  | (() => T) // Function returning value
-  | (() => Promise<T>); // Function returning promise of value
+import { MaybePromiseLike } from './maybe-promise-like';
+
+export type Resolvable<T> = MaybePromiseLike<T> | (() => MaybePromiseLike<T>);
 
 /**
  * Resolves a value that could be a raw value, a Promise, a function returning a value,
