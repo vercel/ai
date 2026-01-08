@@ -8,6 +8,11 @@ export interface AnthropicMessageMetadata {
   stopSequence: string | null;
 
   /**
+   * The request ID from the provider response.
+   */
+  requestId?: string;
+
+  /**
    * Information about the container used in this request.
    *
    * This will be non-null if a container tool (e.g., code execution) was used.

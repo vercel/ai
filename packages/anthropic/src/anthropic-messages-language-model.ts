@@ -1014,6 +1014,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       warnings,
       providerMetadata: {
         anthropic: {
+          requestId: response.id ?? undefined,
           usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
@@ -1109,6 +1110,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
+    let requestId: string | undefined = undefined;
 
     let blockType:
       | 'text'
@@ -1761,9 +1763,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 };
               }
 
+              requestId = value.message.id ?? undefined;
+
               controller.enqueue({
                 type: 'response-metadata',
-                id: value.message.id ?? undefined,
+                id: requestId,
                 modelId: value.message.model ?? undefined,
               });
 
@@ -1871,6 +1875,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage: convertAnthropicMessagesUsage(usage),
                 providerMetadata: {
                   anthropic: {
+                    requestId,
                     usage: (rawUsage as JSONObject) ?? null,
                     cacheCreationInputTokens,
                     stopSequence,
