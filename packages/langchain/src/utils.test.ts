@@ -225,7 +225,7 @@ describe('convertUserContent', () => {
     expect(result.content).toBe('Part 1 Part 2');
   });
 
-  it('should filter out non-text parts', () => {
+  it('should include image parts with binary data using OpenAI image_url format', () => {
     const content: UserContent = [
       { type: 'text', text: 'Describe this image' },
       {
@@ -237,7 +237,117 @@ describe('convertUserContent', () => {
 
     const result = convertUserContent(content);
 
-    expect(result.content).toBe('Describe this image');
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Describe this image' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,AQID' }, // base64 of [1, 2, 3]
+      },
+    ]);
+  });
+
+  it('should include image parts with URL using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image',
+        image: 'https://example.com/image.jpg',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'What is in this image?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/image.jpg' },
+      },
+    ]);
+  });
+
+  it('should include non-image file parts using file format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Summarize this document' },
+      {
+        type: 'file',
+        data: 'https://example.com/doc.pdf',
+        mediaType: 'application/pdf',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Summarize this document' },
+      {
+        type: 'file',
+        url: 'https://example.com/doc.pdf',
+        mimeType: 'application/pdf',
+        filename: 'file.pdf',
+      },
+    ]);
+  });
+
+  it('should handle URL objects for images using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Describe' },
+      {
+        type: 'image',
+        image: new URL('https://example.com/photo.png'),
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Describe' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.png' },
+      },
+    ]);
+  });
+
+  it('should handle data URLs for images using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'Analyze' },
+      {
+        type: 'image',
+        image: 'data:image/png;base64,abc123',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'Analyze' },
+      {
+        type: 'image_url',
+        image_url: { url: 'data:image/png;base64,abc123' },
+      },
+    ]);
+  });
+
+  it('should handle image files (file type with image mediaType) using OpenAI image_url format', () => {
+    const content: UserContent = [
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'file',
+        data: 'https://example.com/photo.jpg',
+        mediaType: 'image/jpeg',
+      },
+    ];
+
+    const result = convertUserContent(content);
+
+    expect(result.content).toEqual([
+      { type: 'text', text: 'What is this?' },
+      {
+        type: 'image_url',
+        image_url: { url: 'https://example.com/photo.jpg' },
+      },
+    ]);
   });
 });
 
