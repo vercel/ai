@@ -39,7 +39,6 @@ run(async () => {
         }),
       }),
     }),
-
     prompt: 'Say hello in Chinese!',
     experimental_transform: smoothStream({
       chunking: new Intl.Segmenter('zh', { granularity: 'word' }),
