@@ -21,12 +21,13 @@ run(async () => {
     output: Output.object({
       schema: z.object({
         recipe: z.object({
-          name: z.string(),
+          ingredients: z.array(z.string()),
+          quantities: z.array(z.string()),
           steps: z.array(z.string()),
         }),
       }),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt: 'Give me a detailed recipe for making oreo ice-cream.',
     onError: ({ error }) => {
       console.error(error);
     },
