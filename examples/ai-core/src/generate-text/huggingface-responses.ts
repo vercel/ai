@@ -1,8 +1,8 @@
 import { huggingface } from '@ai-sdk/huggingface';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
     prompt: 'Tell me a three sentence bedtime story about a unicorn.',
@@ -10,6 +10,4 @@ async function main() {
 
   console.log(result.text);
   console.log(result.usage);
-}
-
-main().catch(console.error);
+});

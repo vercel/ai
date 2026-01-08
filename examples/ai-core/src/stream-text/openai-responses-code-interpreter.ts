@@ -1,11 +1,10 @@
-import 'dotenv/config';
-import { openai } from '@ai-sdk/openai';
-import type {
-  OpenaiResponsesTextProviderMetadata,
-  OpenaiResponsesSourceDocumentProviderMetadata,
+import { openai,
+  type OpenaiResponsesSourceDocumentProviderMetadata,
+  type OpenaiResponsesTextProviderMetadata
 } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { z } from 'zod/v4';
+import { run } from '../lib/run';
 import { downloadOpenaiContainerFile } from '../lib/download-openai-container-file';
 
 const openaiResponsesTextProviderMetadataSchema =
@@ -13,7 +12,7 @@ const openaiResponsesTextProviderMetadataSchema =
 const openaiResponsesSourceDocumentProviderMetadataSchema =
   z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = streamText({
     model: openai.responses('gpt-4.1-mini'),
@@ -67,6 +66,4 @@ async function main() {
       containerFile.fileId,
     );
   }
-}
-
-main().catch(console.error);
+});

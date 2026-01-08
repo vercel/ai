@@ -1,8 +1,8 @@
 import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result1 = await generateText({
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -20,6 +20,4 @@ async function main() {
   });
 
   console.log(result2.text);
-}
-
-main().catch(console.error);
+});

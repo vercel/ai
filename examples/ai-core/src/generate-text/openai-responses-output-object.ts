@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs, Output, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { output } = await generateText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
@@ -31,6 +31,4 @@ async function main() {
 
   // { location: 'San Francisco', temperature: 81 }
   console.log(output);
-}
-
-main().catch(console.error);
+});

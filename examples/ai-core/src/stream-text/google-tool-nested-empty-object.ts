@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: google('gemini-3-flash-preview'),
     tools: {
@@ -26,6 +26,4 @@ async function main() {
       console.log('Tool call:', part.toolName, part.input);
     }
   }
-}
-
-main().catch(console.error);
+});

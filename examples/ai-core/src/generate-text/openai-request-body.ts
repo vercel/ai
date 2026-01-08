@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { request } = await generateText({
     model: openai('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -10,6 +10,4 @@ async function main() {
 
   console.log('REQUEST BODY');
   console.log(request.body);
-}
-
-main().catch(console.error);
+});

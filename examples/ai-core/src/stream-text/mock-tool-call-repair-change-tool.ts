@@ -1,9 +1,9 @@
 import { streamText, tool } from 'ai';
 import { convertArrayToReadableStream, MockLanguageModelV3 } from 'ai/test';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: new MockLanguageModelV3({
       doStream: async () => ({
@@ -62,6 +62,4 @@ async function main() {
 
   console.log('Repaired tool calls:');
   console.log(JSON.stringify(await result.toolCalls, null, 2));
-}
-
-main().catch(console.error);
+});

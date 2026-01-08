@@ -1,8 +1,8 @@
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: 'anthropic/claude-4-sonnet',
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -22,6 +22,4 @@ async function main() {
   console.log('Provider metadata:', await result.providerMetadata);
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

@@ -1,8 +1,8 @@
 import { mistral } from '@ai-sdk/mistral';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: mistral('ministral-8b-latest'),
     maxOutputTokens: 512,
@@ -18,6 +18,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

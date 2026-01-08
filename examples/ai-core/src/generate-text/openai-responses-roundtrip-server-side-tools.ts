@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const openai = createOpenAI({
   // Console log the API request body for debugging
@@ -13,7 +13,7 @@ const openai = createOpenAI({
   },
 });
 
-async function main() {
+run(async () => {
   const { content } = await generateText({
     model: openai.responses('gpt-4o-mini'),
     tools: {
@@ -47,6 +47,4 @@ async function main() {
       console.log(`Text: ${part.text.substring(0, 80)}...`);
     }
   }
-}
-
-main().catch(console.error);
+});

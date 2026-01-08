@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateObject({
     model: openai('gpt-5'),
     schema: z.object({
@@ -26,6 +26,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

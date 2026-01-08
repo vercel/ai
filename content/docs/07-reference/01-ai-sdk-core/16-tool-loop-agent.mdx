@@ -243,10 +243,10 @@ const result = await agent.generate({
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'number | { totalMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
   ]}
 />
@@ -290,10 +290,10 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'timeout',
-      type: 'number',
+      type: 'number | { totalMs?: number }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
     {
       name: 'experimental_transform',

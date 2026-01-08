@@ -1,5 +1,71 @@
 # @ai-sdk/langchain
 
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [f0d29de]
+  - ai@6.0.22
+
+## 2.0.25
+
+### Patch Changes
+
+- 3f81ea8: fix(langchain): emit finish and finish-step events for LangGraph streams
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [9667780]
+  - ai@6.0.21
+
+## 2.0.23
+
+### Patch Changes
+
+- 78683c1: fix(langchain): add multimodal support to convertUserContent
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [f748c46]
+  - ai@6.0.20
+
+## 2.0.21
+
+### Patch Changes
+
+- 75da969: fix(langchain): re-enable support for streamEvents in toUIMessageStream
+
+## 2.0.20
+
+### Patch Changes
+
+- ai@6.0.19
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
 ## 2.0.16
 
 ### Patch Changes

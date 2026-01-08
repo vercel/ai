@@ -17,7 +17,7 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -276,11 +276,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
-  _internal: {
-    now = originalNow,
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -429,9 +425,9 @@ Internal. For test use only. May change without notice.
     _internal?: {
       now?: () => number;
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -440,7 +436,7 @@ Internal. For test use only. May change without notice.
     maxRetries,
     abortSignal: mergeAbortSignals(
       abortSignal,
-      timeout != null ? AbortSignal.timeout(timeout) : undefined,
+      totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
     ),
     system,
     prompt,
@@ -461,7 +457,6 @@ Internal. For test use only. May change without notice.
     onAbort,
     onStepFinish,
     now,
-    currentDate,
     generateId,
     experimental_context,
     download,
@@ -623,7 +618,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep,
     includeRawChunks,
     now,
-    currentDate,
     generateId,
     onChunk,
     onError,
@@ -653,7 +647,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
     now: () => number;
-    currentDate: () => Date;
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
@@ -914,9 +907,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const error = new NoOutputGeneratedError({
-              message: 'No output generated. Check the stream for errors.',
-            });
+            const error = abortSignal?.aborted
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                  message: 'No output generated. Check the stream for errors.',
+                });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1402,7 +1397,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
-            timestamp: currentDate(),
+            timestamp: new Date(),
             modelId: model.modelId,
           };
 

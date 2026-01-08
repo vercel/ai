@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { jsonSchema, streamText, tool } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-3.5-turbo'),
     tools: {
@@ -99,6 +99,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

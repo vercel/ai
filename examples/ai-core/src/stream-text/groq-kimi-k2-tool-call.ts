@@ -1,11 +1,11 @@
 import { groq } from '@ai-sdk/groq';
 import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
-import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
@@ -72,6 +72,4 @@ async function main() {
 
   toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
-}
-
-main().catch(console.error);
+});

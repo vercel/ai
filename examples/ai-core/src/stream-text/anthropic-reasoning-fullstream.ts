@@ -7,10 +7,10 @@ import {
   ToolResultPart,
   wrapLanguageModel,
 } from 'ai';
-import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
       model: anthropic('claude-3-opus-20240229'),
@@ -84,6 +84,4 @@ async function main() {
       }
     }
   }
-}
-
-main().catch(console.error);
+});

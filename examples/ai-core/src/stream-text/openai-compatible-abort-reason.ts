@@ -1,8 +1,8 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const openaiCompatible = createOpenAICompatible({
     name: 'openai-compatible',
     baseURL: 'https://api.deepseek.com/v1',
@@ -43,6 +43,4 @@ async function main() {
       console.log('\n\nAbortError: The run was aborted.');
     }
   }
-}
-
-main().catch(console.error);
+});

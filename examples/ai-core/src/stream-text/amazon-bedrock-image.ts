@@ -1,9 +1,9 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
     maxOutputTokens: 512,
@@ -21,6 +21,4 @@ async function main() {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

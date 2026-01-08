@@ -1,8 +1,8 @@
 import { vercel } from '@ai-sdk/vercel';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: vercel('v0-1.5-md'),
     prompt: 'Implement Fibonacci in Lua.',
@@ -15,6 +15,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

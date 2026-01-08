@@ -1,8 +1,8 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const openaiCompatible = createOpenAICompatible({
     baseURL: 'https://api.openai.com/v1',
     name: 'openai-compatible',
@@ -46,6 +46,4 @@ async function main() {
   console.log('Raw chunks:', rawChunkCount);
   console.log('Other chunks:', otherChunkCount);
   console.log('Final text:', await result.text);
-}
-
-main().catch(console.error);
+});

@@ -1,11 +1,10 @@
-import 'dotenv/config';
-import { azure } from '@ai-sdk/azure';
-import type {
-  AzureResponsesTextProviderMetadata,
-  AzureResponsesSourceDocumentProviderMetadata,
+import { azure,
+  type AzureResponsesSourceDocumentProviderMetadata,
+  type AzureResponsesTextProviderMetadata
 } from '@ai-sdk/azure';
 import { streamText } from 'ai';
 import { z } from 'zod/v4';
+import { run } from '../lib/run';
 import { downloadAzureContainerFile } from '../lib/download-azure-container-file';
 
 /**
@@ -20,7 +19,8 @@ const azureResponsesTextProviderMetadataSchema =
 const azureResponsesSourceDocumentProviderMetadataSchema =
   z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
-async function main() {
+
+run(async () => {
   // Basic text generation
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'), // use your own deployment
@@ -74,6 +74,5 @@ async function main() {
       containerFile.fileId,
     );
   }
-}
 
-main().catch(console.error);
+});

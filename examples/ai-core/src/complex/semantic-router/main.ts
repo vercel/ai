@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
-import 'dotenv/config';
 import { SemanticRouter } from './semantic-router';
+import { run } from '../../lib/run';
 
-async function main() {
+run(async () => {
   const router = new SemanticRouter({
     embeddingModel: openai.embedding('text-embedding-3-small'),
     similarityThreshold: 0.2,
@@ -42,6 +42,4 @@ async function main() {
       console.log('no topic found');
       break;
   }
-}
-
-main().catch(console.error);
+});
