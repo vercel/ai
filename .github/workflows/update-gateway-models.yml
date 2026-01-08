@@ -62,6 +62,7 @@ jobs:
           echo "Fetching language models..."
           {
             echo "export type GatewayModelId ="
+            echo "  | 'test/fake-model-for-workflow-testing'"
             curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "language") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
             echo "  | (string & {});"
           } > packages/gateway/src/gateway-language-model-settings.ts
@@ -162,7 +163,7 @@ jobs:
               -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"$TITLE\", \"reviewer\": \"$REVIEWER\", \"url\": \"$URL\"}"
           else
             curl "$SLACK_PULL_REQUEST_REVIEW_URL" -X POST -H "Content-Type: application/json" \
-              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update completed. No changes detected.\"}"
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings update completed. No changes detected.\", \"reviewer\": \"$REVIEWER\"}"
           fi
         env:
           SLACK_PULL_REQUEST_REVIEW_URL: ${{ secrets.SLACK_PULL_REQUEST_REVIEW_URL }}
