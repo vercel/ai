@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
 ## 6.0.20
 
 ### Patch Changes
