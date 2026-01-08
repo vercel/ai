@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
 ## 6.0.21
 
 ### Patch Changes
