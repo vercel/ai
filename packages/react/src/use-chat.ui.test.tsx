@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -22,6 +22,7 @@ import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+
 function formatChunk(part: UIMessageChunk) {
   return `data: ${JSON.stringify(part)}\n\n`;
 }
@@ -29,6 +30,7 @@ function formatChunk(part: UIMessageChunk) {
 const server = createTestServer({
   '/api/chat': {},
   '/api/chat/123/stream': {},
+  '/api/chat/456/stream': {},
 });
 
 describe('initial messages', () => {
@@ -1973,6 +1975,72 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(requestMethod).toBe('GET');
       expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
     });
+  });
+});
+
+describe('resume should only call once in React StrictMode', () => {
+  beforeEach(() => {
+    server.urls['/api/chat/456/stream'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'text-start', id: '0' }),
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        formatChunk({ type: 'text-end', id: '0' }),
+      ],
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  it('should only make one resume request even when effects run twice', async () => {
+    function TestComponent() {
+      const { messages, status } = useChat({
+        id: '456',
+        messages: [
+          {
+            id: 'msg_456',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+      });
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    }
+
+    render(
+      <React.StrictMode>
+        <TestComponent />
+      </React.StrictMode>,
+    );
+
+    // Wait for the stream to complete
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+    });
+
+    // Verify only one request was made despite StrictMode double-invoking effects
+    const resumeCalls = server.calls.filter(
+      call => call.requestUrl === 'http://localhost:3000/api/chat/456/stream',
+    );
+    expect(resumeCalls.length).toBe(1);
   });
 });
 
