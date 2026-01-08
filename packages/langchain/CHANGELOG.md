@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 2.0.23
+
+### Patch Changes
+
+- 78683c1: fix(langchain): add multimodal support to convertUserContent
+
 ## 2.0.22
 
 ### Patch Changes
