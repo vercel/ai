@@ -100,39 +100,6 @@ const result = streamText({
 });
 ```
 
-#### Using RegExp (fallback for older runtimes)
-
-If you need to support older runtimes without `Intl.Segmenter`, you can use a custom regex:
-
-- Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
-- Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
-
-```tsx filename="Japanese example with RegExp"
-import { smoothStream, streamText } from 'ai';
-__PROVIDER_IMPORT__;
-
-const result = streamText({
-  model: __MODEL__,
-  prompt: 'Your prompt here',
-  experimental_transform: smoothStream({
-    chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
-  }),
-});
-```
-
-```tsx filename="Chinese example with RegExp"
-import { smoothStream, streamText } from 'ai';
-__PROVIDER_IMPORT__;
-
-const result = streamText({
-  model: __MODEL__,
-  prompt: 'Your prompt here',
-  experimental_transform: smoothStream({
-    chunking: /[\u4E00-\u9FFF]|\S+\s+/,
-  }),
-});
-```
-
 #### Regex based chunking
 
 To use regex based chunking, pass a `RegExp` to the `chunking` option.

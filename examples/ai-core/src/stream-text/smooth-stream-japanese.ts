@@ -3,9 +3,6 @@ import { MockLanguageModelV3 } from 'ai/test';
 import { run } from '../lib/run';
 
 run(async () => {
-  // Use Intl.Segmenter for proper Japanese word segmentation
-  const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
-
   const result = streamText({
     model: new MockLanguageModelV3({
       doStream: async () => ({
@@ -43,7 +40,7 @@ run(async () => {
 
     prompt: 'Say hello in Japanese!',
     experimental_transform: smoothStream({
-      chunking: segmenter,
+      chunking: new Intl.Segmenter('ja', { granularity: 'word' }),
     }),
   });
 
