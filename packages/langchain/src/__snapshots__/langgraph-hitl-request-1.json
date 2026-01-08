@@ -498,5 +498,11 @@
     "type": "tool-approval-request",
     "approvalId": "hitl-delete_file-1234567890",
     "toolCallId": "hitl-delete_file-1234567890"
+  },
+  {
+    "type": "finish-step"
+  },
+  {
+    "type": "finish"
   }
 ]
