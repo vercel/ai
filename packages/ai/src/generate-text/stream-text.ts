@@ -17,7 +17,11 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
+import {
+  CallSettings,
+  getStepTimeoutMs,
+  getTotalTimeoutMs,
+} from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -428,6 +432,9 @@ Internal. For test use only. May change without notice.
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
+  const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const stepAbortController =
+    stepTimeoutMs != null ? new AbortController() : undefined;
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -437,7 +444,10 @@ Internal. For test use only. May change without notice.
     abortSignal: mergeAbortSignals(
       abortSignal,
       totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+      stepAbortController?.signal,
     ),
+    stepTimeoutMs,
+    stepAbortController,
     system,
     prompt,
     messages,
@@ -604,6 +614,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings,
     maxRetries: maxRetriesArg,
     abortSignal,
+    stepTimeoutMs,
+    stepAbortController,
     system,
     prompt,
     messages,
@@ -633,6 +645,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
+    stepTimeoutMs: number | undefined;
+    stepAbortController: AbortController | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1263,6 +1277,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         }) {
           const includeRawChunks = self.includeRawChunks;
 
+          // Set up step timeout if configured
+          const stepTimeoutId =
+            stepTimeoutMs != null
+              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+              : undefined;
+
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -1361,7 +1381,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions: stepProviderOptions,
-                  abortSignal,
+                  abortSignal: abortSignal,
                   headers,
                   includeRawChunks,
                 }),
@@ -1377,7 +1397,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             system,
             messages: stepInputMessages,
             repairToolCall,
-            abortSignal,
+            abortSignal: abortSignal,
             experimental_context,
             generateId,
           });
@@ -1709,6 +1729,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     if (output.type === 'tool-result') {
                       pendingDeferredToolCalls.delete(output.toolCallId);
                     }
+                  }
+
+                  // Clear the step timeout before the next step is started
+                  if (stepTimeoutId != null) {
+                    clearTimeout(stepTimeoutId);
                   }
 
                   if (
