@@ -1,0 +1,366 @@
+---
+title: ScrapeGraph AI
+description: Learn how to use ScrapeGraph AI tools for web scraping with the AI SDK.
+---
+
+# ScrapeGraph AI Tools
+
+ScrapeGraph AI provides AI-powered web scraping tools that integrate seamlessly with the AI SDK. These tools enable your AI agents to gather, extract, and analyze web data automatically.
+
+## Installation
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-scrapegraphai-tools" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-scrapegraphai-tools" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-scrapegraphai-tools" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-scrapegraphai-tools" dark />
+  </Tab>
+</Tabs>
+
+## Setup
+
+<Note>
+  Get your API key from the [ScrapeGraph AI Dashboard](https://dashboard.scrapegraphai.com/).
+</Note>
+
+Set your ScrapeGraph API key as an environment variable:
+
+```bash
+export SGAI_APIKEY=your_api_key_here
+```
+
+Or add it to your `.env` file:
+
+```bash
+SGAI_APIKEY=your_api_key_here
+```
+
+## Available Tools
+
+ScrapeGraph AI provides multiple specialized tools for different web scraping needs:
+
+### Core Scraping Tools
+
+#### smartScraperTool
+
+Extract structured data from websites using AI (10 credits/page).
+
+```ts
+import { smartScraperTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Extract product information from https://example.com/product',
+  tools: {
+    smartScraper: smartScraperTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+#### scrapeTool
+
+Get raw HTML content from webpages (1 credit/page).
+
+```ts
+import { scrapeTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Get the HTML from https://example.com',
+  tools: {
+    scrape: scrapeTool,
+  },
+});
+
+console.log(text);
+```
+
+#### searchScraperTool
+
+Search the web and extract information from multiple sources (10 credits/website).
+
+```ts
+import { searchScraperTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Search for the latest AI news and summarize the findings',
+  tools: {
+    searchScraper: searchScraperTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+#### markdownifyTool
+
+Convert webpages to clean markdown format (2 credits/page).
+
+```ts
+import { markdownifyTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Convert https://docs.example.com to markdown',
+  tools: {
+    markdownify: markdownifyTool,
+  },
+});
+
+console.log(text);
+```
+
+### Advanced Tools
+
+#### crawlTool & getCrawlRequestTool
+
+Start multi-page crawl jobs and check their status (2-10 credits/page).
+
+```ts
+import { crawlTool, getCrawlRequestTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Crawl https://docs.example.com and extract all documentation',
+  tools: {
+    crawl: crawlTool,
+    getCrawlRequest: getCrawlRequestTool,
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);
+```
+
+#### agenticScraperTool
+
+Perform automated actions on webpages like form submissions and navigation (variable credits).
+
+```ts
+import { agenticScraperTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt:
+    'Go to https://example.com/search, search for "laptops", and extract the top 3 results',
+  tools: {
+    agenticScraper: agenticScraperTool,
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);
+```
+
+#### sitemapTool
+
+Extract all URLs from a website's sitemap (1 credit/request).
+
+```ts
+import { sitemapTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Get all URLs from https://example.com sitemap',
+  tools: {
+    sitemap: sitemapTool,
+  },
+});
+
+console.log(text);
+```
+
+### Utility Tools
+
+#### localScraperTool
+
+Extract structured data from local HTML content.
+
+```ts
+import { localScraperTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const htmlContent = '<html><body><h1>Product Name</h1></body></html>';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: `Extract product information from this HTML: ${htmlContent}`,
+  tools: {
+    localScraper: localScraperTool,
+  },
+});
+
+console.log(text);
+```
+
+#### getCreditsTool
+
+Check your API credits balance.
+
+```ts
+import { getCreditsTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Check my ScrapeGraph API credits balance',
+  tools: {
+    getCredits: getCreditsTool,
+  },
+});
+
+console.log(text);
+```
+
+#### healthzTool
+
+Check the health status of the ScrapeGraph API.
+
+```ts
+import { healthzTool } from 'ai-sdk-scrapegraphai-tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Check if ScrapeGraph API is healthy',
+  tools: {
+    healthz: healthzTool,
+  },
+});
+
+console.log(text);
+```
+
+## Use Cases
+
+ScrapeGraph AI tools are ideal for:
+
+- **Competitive Analysis**: Monitor competitor websites for pricing, features, and updates
+- **Market Research**: Gather data from multiple sources for trend analysis
+- **Content Aggregation**: Collect and summarize content from various websites
+- **Product Research**: Extract product information for comparison and analysis
+- **Documentation Crawling**: Build RAG systems with up-to-date documentation
+- **News Monitoring**: Track news articles and extract key information
+- **E-commerce Price Tracking**: Monitor product prices across multiple stores
+
+## Combining Multiple Tools
+
+You can combine multiple ScrapeGraph tools for complex workflows:
+
+```ts
+import {
+  searchScraperTool,
+  smartScraperTool,
+  markdownifyTool,
+} from 'ai-sdk-scrapegraphai-tools';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  prompt:
+    'Search for the latest AI research papers, extract key findings, and convert them to markdown',
+  tools: {
+    searchScraper: searchScraperTool,
+    smartScraper: smartScraperTool,
+    markdownify: markdownifyTool,
+  },
+  stopWhen: stepCountIs(10),
+});
+
+console.log(text);
+```
+
+## Best Practices
+
+### Rate Limiting
+
+Be mindful of API rate limits and credit usage:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Extract data from multiple pages',
+  tools: {
+    smartScraper: smartScraperTool,
+  },
+  stopWhen: stepCountIs(5), // Limit the number of tool calls
+});
+```
+
+### Error Handling
+
+Always implement proper error handling:
+
+```ts
+try {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Scrape https://example.com',
+    tools: {
+      smartScraper: smartScraperTool,
+    },
+  });
+  console.log(text);
+} catch (error) {
+  console.error('Scraping failed:', error);
+}
+```
+
+### Cost Management
+
+Monitor your credit usage with the `getCreditsTool`:
+
+```ts
+import { getCreditsTool } from 'ai-sdk-scrapegraphai-tools';
+
+// Check credits before expensive operations
+const { text: credits } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Check my credits balance',
+  tools: {
+    getCredits: getCreditsTool,
+  },
+});
+
+console.log('Available credits:', credits);
+```
+
+## Additional Resources
+
+- [ScrapeGraph AI Documentation](https://docs.scrapegraphai.com)
+- [ScrapeGraph AI Dashboard](https://dashboard.scrapegraphai.com/)
+- [npm Package](https://www.npmjs.com/package/ai-sdk-scrapegraphai-tools)
+- [Web Scraping Agent Cookbook](/docs/cookbook/node/web-scraping-agent)
+
