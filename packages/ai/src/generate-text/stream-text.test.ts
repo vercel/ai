@@ -59,7 +59,6 @@ const defaultSettings = () =>
     experimental_generateMessageId: mockId({ prefix: 'msg' }),
     _internal: {
       generateId: mockId({ prefix: 'id' }),
-      currentDate: () => new Date(0),
     },
     onError: () => {},
   }) as const;
@@ -351,12 +350,15 @@ describe('streamText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(0));
     logWarningsSpy = vitest
       .spyOn(logWarningsModule, 'logWarnings')
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     logWarningsSpy.mockRestore();
   });
 
@@ -1038,7 +1040,6 @@ describe('streamText', () => {
         }),
         prompt: 'test-input',
         _internal: {
-          currentDate: mockValues(new Date(2000)),
           generateId: mockValues('id-2000'),
         },
       });
@@ -1088,7 +1089,7 @@ describe('streamText', () => {
                 "headers": undefined,
                 "id": "id-2000",
                 "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:02.000Z,
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "type": "finish-step",
               "usage": {
@@ -12905,7 +12906,6 @@ describe('streamText', () => {
           },
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
         });
 
@@ -13801,7 +13801,6 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           _internal: {
-            currentDate: mockValues(new Date(2000)),
             generateId: mockId(),
           },
         });
@@ -13919,7 +13918,7 @@ describe('streamText', () => {
                   "headers": undefined,
                   "id": "id-0",
                   "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:02.000Z,
+                  "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "type": "finish-step",
                 "usage": {
@@ -14053,7 +14052,7 @@ describe('streamText', () => {
                   },
                 ],
                 "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:02.000Z,
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
                 "cachedInputTokens": undefined,
@@ -14894,7 +14893,6 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           _internal: {
-            currentDate: mockValues(new Date(2000)),
             generateId: mockId(),
           },
           tools: {
@@ -15038,7 +15036,7 @@ describe('streamText', () => {
                   "headers": undefined,
                   "id": "id-0",
                   "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:02.000Z,
+                  "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "type": "finish-step",
                 "usage": {
@@ -15176,7 +15174,6 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           _internal: {
-            currentDate: mockValues(new Date(2000)),
             generateId: mockId(),
           },
           tools: {
@@ -15277,7 +15274,7 @@ describe('streamText', () => {
                   "headers": undefined,
                   "id": "id-0",
                   "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:02.000Z,
+                  "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "type": "finish-step",
                 "usage": {
@@ -15486,7 +15483,7 @@ describe('streamText', () => {
                   },
                 ],
                 "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:02.000Z,
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "usage": {
                 "cachedInputTokens": undefined,
@@ -15582,7 +15579,6 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           _internal: {
-            currentDate: mockValues(new Date(2000)),
             generateId: mockId(),
           },
         });
@@ -15657,7 +15653,7 @@ describe('streamText', () => {
                   "headers": undefined,
                   "id": "id-0",
                   "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:02.000Z,
+                  "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "type": "finish-step",
                 "usage": {
@@ -17506,7 +17502,6 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           tools: {
             tool1: tool({
@@ -17750,7 +17745,6 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
         });
       });
@@ -18074,7 +18068,6 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -18379,7 +18372,6 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -18708,7 +18700,6 @@ describe('streamText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
-            currentDate: () => new Date(0),
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -18997,7 +18988,6 @@ describe('streamText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
           });
         });
@@ -19254,7 +19244,6 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
             messages: [
               {
@@ -19429,7 +19418,6 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
-              currentDate: () => new Date(0),
             },
             messages: [
               {

@@ -276,11 +276,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
-  _internal: {
-    now = originalNow,
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -429,7 +425,6 @@ Internal. For test use only. May change without notice.
     _internal?: {
       now?: () => number;
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -462,7 +457,6 @@ Internal. For test use only. May change without notice.
     onAbort,
     onStepFinish,
     now,
-    currentDate,
     generateId,
     experimental_context,
     download,
@@ -624,7 +618,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep,
     includeRawChunks,
     now,
-    currentDate,
     generateId,
     onChunk,
     onError,
@@ -654,7 +647,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
     now: () => number;
-    currentDate: () => Date;
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
@@ -1405,7 +1397,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
-            timestamp: currentDate(),
+            timestamp: new Date(),
             modelId: model.modelId,
           };
 
