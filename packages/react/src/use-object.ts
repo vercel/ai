@@ -5,6 +5,7 @@ import {
   isAbortError,
   Resolvable,
   resolve,
+  normalizeHeaders,
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { asSchema, DeepPartial, isDeepEqualData, parsePartialJson } from 'ai';
@@ -176,7 +177,7 @@ function useObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...resolvedHeaders,
+          ...normalizeHeaders(resolvedHeaders),
         },
         credentials,
         signal: abortController.signal,
