@@ -67,8 +67,17 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
 
   /**
    * Additional HTTP headers to be included in the request.
+   * Can be a static object, Headers instance, or an async function that returns headers.
+   * Using a function allows for dynamic header generation (e.g., fetching auth tokens)
+   * without causing the hook to re-render.
    */
-  headers?: Record<string, string> | Headers;
+  headers?:
+  | Record<string, string>
+  | Headers
+  | (() =>
+    | Record<string, string>
+    | Headers
+    | Promise<Record<string, string> | Headers>);
 
   /**
    * The credentials mode to be used for the fetch request.
@@ -164,12 +173,16 @@ function useObject<
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
+      // Resolve headers if it's a function (supports async functions for dynamic auth tokens)
+      const resolvedHeaders =
+        typeof headers === 'function' ? await headers() : headers;
+
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...headers,
+          ...resolvedHeaders,
         },
         credentials,
         signal: abortController.signal,
