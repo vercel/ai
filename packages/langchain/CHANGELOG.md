@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 2.0.25
+
+### Patch Changes
+
+- 3f81ea8: fix(langchain): emit finish and finish-step events for LangGraph streams
+
 ## 2.0.24
 
 ### Patch Changes

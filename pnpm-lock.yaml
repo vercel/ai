@@ -734,7 +734,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/langchain':
-        specifier: 2.0.24
+        specifier: 2.0.25
         version: link:../../packages/langchain
       '@ai-sdk/react':
         specifier: 3.0.21
