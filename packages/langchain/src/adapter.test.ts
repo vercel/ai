@@ -53,6 +53,9 @@ describe('toUIMessageStream', () => {
         {
           "type": "start",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -83,6 +86,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-1",
           "type": "tool-output-available",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -110,6 +116,9 @@ describe('toUIMessageStream', () => {
           "transient": true,
           "type": "data-custom",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -136,6 +145,9 @@ describe('toUIMessageStream', () => {
           "id": undefined,
           "transient": true,
           "type": "data-custom",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -197,6 +209,9 @@ describe('toUIMessageStream', () => {
         {
           "type": "start",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -237,6 +252,9 @@ describe('toUIMessageStream', () => {
           "id": "chatcmpl-123",
           "type": "text-end",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -268,6 +286,9 @@ describe('toUIMessageStream', () => {
           "output": "Tool result here",
           "toolCallId": "call-abc",
           "type": "tool-output-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -317,6 +338,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-123",
           "toolName": "get_weather",
           "type": "tool-input-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -370,6 +394,9 @@ describe('toUIMessageStream', () => {
           "toolCallId": "call-456",
           "toolName": "get_weather",
           "type": "tool-input-available",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -533,6 +560,9 @@ describe('toUIMessageStream', () => {
           "id": "msg-reason",
           "type": "reasoning-end",
         },
+        {
+          "type": "finish",
+        },
       ]
     `);
   });
@@ -576,6 +606,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-think",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -624,6 +657,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-reason",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -682,6 +718,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -749,6 +788,9 @@ describe('toUIMessageStream', () => {
         {
           "id": "msg-1",
           "type": "reasoning-end",
+        },
+        {
+          "type": "finish",
         },
       ]
     `);
@@ -1583,6 +1625,127 @@ describe('toUIMessageStream with streamEvents', () => {
         },
       ]
     `);
+  });
+});
+
+describe('toUIMessageStream LangGraph finish events', () => {
+  it('should emit finish event for LangGraph streams', async () => {
+    const valuesData = {
+      messages: [
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: 'Hello!',
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have finish event at the end
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishEvents).toHaveLength(1);
+    expect(result[result.length - 1]).toEqual({ type: 'finish' });
+  });
+
+  it('should emit finish-step and finish events for LangGraph streams with steps', async () => {
+    const chunk = new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk, { langgraph_step: 0 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have both start-step and finish-step
+    const startStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'start-step',
+    );
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+
+    expect(startStepEvents).toHaveLength(1);
+    expect(finishStepEvents).toHaveLength(1);
+    expect(finishEvents).toHaveLength(1);
+
+    // finish-step should come before finish
+    const finishStepIndex = result.findIndex(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    const finishIndex = result.findIndex(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishStepIndex).toBeLessThan(finishIndex);
+  });
+
+  it('should emit multiple finish-step events when steps change', async () => {
+    const chunk1 = new AIMessageChunk({ content: 'Step 0', id: 'msg-1' });
+    const chunk2 = new AIMessageChunk({ content: 'Step 1', id: 'msg-2' });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1, { langgraph_step: 0 }]],
+      ['messages', [chunk2, { langgraph_step: 1 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should have 2 start-step events (one for each step)
+    // Should have 2 finish-step events (one when changing to step 1, one at stream end)
+    const startStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'start-step',
+    );
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+
+    expect(startStepEvents).toHaveLength(2);
+    expect(finishStepEvents).toHaveLength(2);
+  });
+
+  it('should not emit finish-step if no step was started', async () => {
+    const valuesData = {
+      messages: [
+        {
+          id: 'ai-1',
+          type: 'ai',
+          content: 'Hello!',
+        },
+      ],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Should NOT have finish-step (no step was started)
+    const finishStepEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish-step',
+    );
+    expect(finishStepEvents).toHaveLength(0);
+
+    // But should still have finish
+    const finishEvents = result.filter(
+      (e: { type: string }) => e.type === 'finish',
+    );
+    expect(finishEvents).toHaveLength(1);
   });
 });
 
