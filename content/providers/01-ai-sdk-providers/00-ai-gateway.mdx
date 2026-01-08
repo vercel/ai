@@ -416,6 +416,10 @@ The following gateway provider options are available:
 
   Restricts routing requests to providers that have zero data retention policies.
 
+- **enforceNonPromptTrainingProviders** _boolean_
+
+  Restricts routing requests to providers that do not use prompts for model training.
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
@@ -475,6 +479,27 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Enforce Non-Prompt Training Providers Example
+
+Set `enforceNonPromptTrainingProviders` to true to ensure requests are only routed to providers
+that do not use prompts for model training. When `enforceNonPromptTrainingProviders` is `false` or not
+specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Analyze this proprietary business data...',
+  providerOptions: {
+    gateway: {
+      enforceNonPromptTrainingProviders: true,
     } satisfies GatewayProviderOptions,
   },
 });
