@@ -35,13 +35,13 @@ run(async () => {
               },
             },
           ],
-          chunkDelayInMs: 400,
         }),
       }),
     }),
     prompt: 'Say hello in Japanese!',
     experimental_transform: smoothStream({
       chunking: new Intl.Segmenter('ja', { granularity: 'word' }),
+      delayInMs: 100,
     }),
   });
 
