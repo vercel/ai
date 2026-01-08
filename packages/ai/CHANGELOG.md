@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
 ## 6.0.19
 
 ### Patch Changes
