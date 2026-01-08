@@ -344,7 +344,7 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 }
 
-const usageSchema = z.looseObject({
+const usageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
@@ -352,12 +352,12 @@ const usageSchema = z.looseObject({
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const openaiCompatibleCompletionResponseSchema = z.looseObject({
+const openaiCompatibleCompletionResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
   choices: z.array(
-    z.looseObject({
+    z.object({
       text: z.string(),
       finish_reason: z.string(),
     }),
@@ -373,12 +373,12 @@ const createOpenAICompatibleCompletionChunkSchema = <
   errorSchema: ERROR_SCHEMA,
 ) =>
   z.union([
-    z.looseObject({
+    z.object({
       id: z.string().nullish(),
       created: z.number().nullish(),
       model: z.string().nullish(),
       choices: z.array(
-        z.looseObject({
+        z.object({
           text: z.string(),
           finish_reason: z.string().nullish(),
           index: z.number(),
