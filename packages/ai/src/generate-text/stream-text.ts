@@ -1731,6 +1731,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
                   }
 
+                  // Clear the step timeout before the next step is started
+                  if (stepTimeoutId != null) {
+                    clearTimeout(stepTimeoutId);
+                  }
+
                   if (
                     // Continue if:
                     // 1. There are client tool calls that have all been executed, OR
@@ -1777,11 +1782,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     });
 
                     self.closeStream(); // close the stitchable stream
-                  }
-
-                  // Clear the step timeout
-                  if (stepTimeoutId != null) {
-                    clearTimeout(stepTimeoutId);
                   }
                 },
               }),
