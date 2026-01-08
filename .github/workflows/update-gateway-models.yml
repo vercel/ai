@@ -121,7 +121,7 @@ jobs:
       - name: Create branch and commit changes
         if: steps.check-changes.outputs.has-changes == 'true'
         run: |
-          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d)"
+          BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
           git checkout -b "$BRANCH_NAME"
           git add .
           git commit -m "chore(provider/gateway): update gateway model settings files"
@@ -160,14 +160,15 @@ jobs:
         run: |
           if [ "$HAS_CHANGES" == "true" ]; then
             curl "$SLACK_SEND_MESSAGE_URL" -X POST -H "Content-Type: application/json" \
-              -d "{\"channel_id\": \"$CHANNEL_ID\", \"message\": \"<$URL|$TITLE> <@U0A54KMV02E>\"}"
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"<$URL|$TITLE> <@U0A54KMV02E>\"}"
           else
             curl "$SLACK_SEND_MESSAGE_URL" -X POST -H "Content-Type: application/json" \
-              -d "{\"channel_id\": \"$CHANNEL_ID\", \"message\": \"Gateway model settings auto-update completed. No changes detected.\"}"
+              -d "{\"channel_id\": \"$CHANNEL_ID\", \"title\": \"Gateway model settings auto-update completed. No changes detected.\"}"
           fi
         env:
           SLACK_SEND_MESSAGE_URL: ${{ secrets.SLACK_SEND_MESSAGE_URL }}
           CHANNEL_ID: "C0A7TF81HS5"
           HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
+          NUMBER: ${{ steps.create-pr.outputs.pr-number }}
           TITLE: ${{ steps.create-pr.outputs.pr-title }}
           URL: ${{ steps.create-pr.outputs.pr-url }}
