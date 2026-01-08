@@ -1508,4 +1508,274 @@ describe('smoothStream', () => {
       `);
     });
   });
+
+  describe('Intl.Segmenter chunking', () => {
+    it('should segment English text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello, world!', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": ",",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "world",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "!",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should segment Japanese text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'こんにちは世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こんにちは",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should segment Chinese text using Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: '你好世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "你好",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should handle mixed CJK and Latin content', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello こんにちは World', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こんにちは",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "World",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should combine partial chunks with Intl.Segmenter', async () => {
+      const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'こんに', type: 'text-delta', id: '1' },
+        { text: 'ちは', type: 'text-delta', id: '1' },
+        { text: '世界', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          chunking: segmenter,
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // Note: Intl.Segmenter segments hiragana character-by-character when
+      // the full word isn't available in the buffer
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "こん",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "に",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "ち",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "は",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "世界",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+  });
 });

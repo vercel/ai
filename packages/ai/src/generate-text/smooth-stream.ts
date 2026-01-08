@@ -21,7 +21,7 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
  * Smooths text and reasoning streaming output.
  *
  * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
- * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
+ * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, provide a custom RegExp pattern for custom chunking, provide an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom ChunkDetector function.
  *
  * @returns A transform stream that smooths text streaming output.
  */
@@ -31,7 +31,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp | ChunkDetector;
+  chunking?: 'word' | 'line' | RegExp | ChunkDetector | Intl.Segmenter;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -43,7 +43,21 @@ export function smoothStream<TOOLS extends ToolSet>({
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
   let detectChunk: ChunkDetector;
 
-  if (typeof chunking === 'function') {
+  // Check if chunking is an Intl.Segmenter (duck-typing for segment method)
+  if (
+    chunking != null &&
+    typeof chunking === 'object' &&
+    'segment' in chunking &&
+    typeof chunking.segment === 'function'
+  ) {
+    const segmenter = chunking as Intl.Segmenter;
+    detectChunk = (buffer: string) => {
+      if (buffer.length === 0) return null;
+      const iterator = segmenter.segment(buffer)[Symbol.iterator]();
+      const first = iterator.next().value;
+      return first?.segment || null;
+    };
+  } else if (typeof chunking === 'function') {
     detectChunk = buffer => {
       const match = chunking(buffer);
 
@@ -65,12 +79,16 @@ export function smoothStream<TOOLS extends ToolSet>({
     };
   } else {
     const chunkingRegex =
-      typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+      typeof chunking === 'string'
+        ? CHUNKING_REGEXPS[chunking]
+        : chunking instanceof RegExp
+          ? chunking
+          : undefined;
 
     if (chunkingRegex == null) {
       throw new InvalidArgumentError({
         argument: 'chunking',
-        message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+        message: `Chunking must be "word", "line", a RegExp, an Intl.Segmenter, or a ChunkDetector function. Received: ${chunking}`,
       });
     }
 
