@@ -1090,6 +1090,35 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should preserve rawInput when state is output-error', async () => {
+      const inputMessages = [
+        {
+          id: '1',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-foo' as const,
+              toolCallId: '1',
+              state: 'output-error' as const,
+              input: undefined,
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool input validation failed',
+              providerExecuted: false,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when no tool schema is found', async () => {
       await expect(
         validateUIMessages<TestMessage>({

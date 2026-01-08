@@ -215,16 +215,27 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
+    const isOpenAIModel = this.modelId.startsWith('openai.');
+
     if (maxReasoningEffort != null && !isAnthropicModel) {
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
-          ...(bedrockOptions.reasoningConfig?.type != null && {
-            type: bedrockOptions.reasoningConfig.type,
-          }),
-          maxReasoningEffort,
-        },
-      };
+      if (isOpenAIModel) {
+        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          reasoning_effort: maxReasoningEffort,
+        };
+      } else {
+        // other models (such as Nova 2) use reasoningConfig format
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          reasoningConfig: {
+            ...(bedrockOptions.reasoningConfig?.type != null && {
+              type: bedrockOptions.reasoningConfig.type,
+            }),
+            maxReasoningEffort,
+          },
+        };
+      }
     } else if (maxReasoningEffort != null && isAnthropicModel) {
       warnings.push({
         type: 'unsupported',
