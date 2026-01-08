@@ -1826,8 +1826,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
             case 'message_delta': {
               if (
-                usage.input_tokens !== value.usage.input_tokens &&
-                (value.usage.input_tokens ?? 0) !== 0
+                value.usage.input_tokens != null &&
+                usage.input_tokens !== value.usage.input_tokens
               ) {
                 usage.input_tokens = value.usage.input_tokens;
               }
