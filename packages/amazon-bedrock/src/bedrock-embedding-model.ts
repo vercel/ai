@@ -67,11 +67,25 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       })) ?? {};
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
-    const args = {
-      inputText: values[0],
-      dimensions: bedrockOptions.dimensions,
-      normalize: bedrockOptions.normalize,
-    };
+    // Note: Different embedding model families expect different request/response
+    const args = this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embeddings')
+      ? {
+          taskType: 'SINGLE_EMBEDDING',
+          singleEmbeddingParams: {
+            embeddingPurpose: bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
+            embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
+            text: {
+              truncationMode: bedrockOptions.truncationMode ?? 'END',
+              value: values[0],
+            },
+          },
+        }
+      : {
+          inputText: values[0],
+          dimensions: bedrockOptions.dimensions,
+          normalize: bedrockOptions.normalize,
+        };
+
     const url = this.getUrl(this.modelId);
     const { value: response } = await postJsonToApi({
       url,
@@ -90,15 +104,34 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       abortSignal,
     });
 
+    const isNovaResponse = 'embeddings' in response;
+    const embedding = isNovaResponse
+      ? response.embeddings[0].embedding
+      : response.embedding;
+    const tokens = isNovaResponse
+      ? (response.inputTokenCount ?? 0)
+      : response.inputTextTokenCount;
+
     return {
+      embeddings: [embedding],
+      usage: { tokens },
       warnings: [],
-      embeddings: [response.embedding],
-      usage: { tokens: response.inputTextTokenCount },
     };
   }
 }
 
-const BedrockEmbeddingResponseSchema = z.object({
-  embedding: z.array(z.number()),
-  inputTextTokenCount: z.number(),
-});
+const BedrockEmbeddingResponseSchema = z.union([
+  z.object({
+    embeddings: z.array(
+      z.object({
+        embeddingType: z.string(),
+        embedding: z.array(z.number()),
+      }),
+    ),
+    inputTokenCount: z.number().optional(),
+  }),
+  z.object({
+    embedding: z.array(z.number()),
+    inputTextTokenCount: z.number(),
+  }),
+]);
