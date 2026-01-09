@@ -137,7 +137,9 @@ jobs:
             --title "$PR_TITLE" \
             --body "This is an automated weekly update of the gateway model settings files." \
             --base main \
-            --head "$BRANCH_NAME")
+            --head "$BRANCH_NAME" \
+            --reviewer R-Taneja \
+            --reviewer sylviezhang37)
 
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
           echo "pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
