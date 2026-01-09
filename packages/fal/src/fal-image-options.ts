@@ -26,7 +26,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
           .or(z.number().min(1).max(6))
           .nullish(),
         /**
-         * When true, converts multiple input images to `image_urls` array instead of `image_url` string. 
+         * When true, converts multiple input images to `image_urls` array instead of `image_url` string.
          */
         useMultipleImages: z.boolean().nullish(),
 
