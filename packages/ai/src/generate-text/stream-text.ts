@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV3,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -253,7 +254,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT extends Output = Output<string, string>,
+  OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
   tools,
@@ -484,7 +485,7 @@ Internal. For test use only. May change without notice.
   });
 }
 
-type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
+export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
@@ -2040,29 +2041,15 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
-    let publishedElements = 0;
+    const transform = this.outputSpecification?.createElementStreamTransform();
 
-    return createAsyncIterableStream(
-      this.teeStream().pipeThrough(
-        new TransformStream<
-          EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>,
-          InferElementOutput<OUTPUT>
-        >({
-          transform({ partialOutput }, controller) {
-            if (partialOutput != null && Array.isArray(partialOutput)) {
-              // Only enqueue new elements that haven't been published yet
-              for (
-                ;
-                publishedElements < partialOutput.length;
-                publishedElements++
-              ) {
-                controller.enqueue(partialOutput[publishedElements]);
-              }
-            }
-          },
-        }),
-      ),
-    );
+    if (transform == null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+      });
+    }
+
+    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
