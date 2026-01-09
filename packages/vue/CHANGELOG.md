@@ -1,5 +1,19 @@
 # @ai-sdk/vue
 
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [b64f256]
+  - ai@6.0.25
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
 ## 3.0.23
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # ai
 
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
 ## 6.0.23
 
 ### Patch Changes
