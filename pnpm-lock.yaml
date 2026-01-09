@@ -517,7 +517,7 @@ importers:
   examples/next:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
@@ -581,7 +581,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@vercel/blob':
         specifier: ^0.26.0
@@ -639,7 +639,7 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       ai:
         specifier: 6.0.26
@@ -737,7 +737,7 @@ importers:
         specifier: 2.0.31
         version: link:../../packages/langchain
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@langchain/core':
         specifier: ^1.1.5
@@ -807,7 +807,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.12
+        specifier: 4.0.13
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 3.0.9
@@ -849,7 +849,7 @@ importers:
         specifier: 4.0.4
         version: link:../../packages/provider-utils
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@ai-sdk/rsc':
         specifier: 2.0.26
@@ -958,7 +958,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@vercel/functions':
         specifier: ^3.1.0
@@ -1013,7 +1013,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       ai:
         specifier: 6.0.26
@@ -1065,7 +1065,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1129,7 +1129,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -1199,7 +1199,7 @@ importers:
         specifier: 3.0.7
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 3.0.27
+        specifier: 3.0.28
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -31494,7 +31494,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -31583,7 +31583,7 @@ snapshots:
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
       eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.3
       get-tsconfig: 4.8.1
       is-core-module: 2.16.1
@@ -31709,7 +31709,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
