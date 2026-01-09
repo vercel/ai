@@ -1,5 +1,25 @@
 # @ai-sdk/react
 
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- 000a0a6: Fix: ensure `useChat` uses the latest `onToolCall` (and other callbacks) to avoid stale closures.
+
+  Changes:
+
+  - Update `useChat` to use intermediary proxy callbacks that forward to refs, ensuring the latest callbacks are always used without recreating the chat instance.
+  - Add a regression test verifying the latest `onToolCall` is invoked after a prop change.
+
+  Related to: https://github.com/vercel/ai/issues/8148
+
 ## 3.0.23
 
 ### Patch Changes
