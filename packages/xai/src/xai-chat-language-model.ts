@@ -448,6 +448,19 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
             if (delta.content != null && delta.content.length > 0) {
               const textContent = delta.content;
 
+              // end active reasoning block when text content arrives
+              if (
+                activeReasoningBlockId != null &&
+                !contentBlocks[activeReasoningBlockId].ended
+              ) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: activeReasoningBlockId,
+                });
+                contentBlocks[activeReasoningBlockId].ended = true;
+                activeReasoningBlockId = undefined;
+              }
+
               // skip if this content duplicates the last assistant message
               const lastMessage = body.messages[body.messages.length - 1];
               if (
@@ -460,19 +473,6 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               const blockId = `text-${value.id || choiceIndex}`;
 
               if (contentBlocks[blockId] == null) {
-                // end active reasoning block before text starts
-                if (
-                  activeReasoningBlockId != null &&
-                  !contentBlocks[activeReasoningBlockId].ended
-                ) {
-                  controller.enqueue({
-                    type: 'reasoning-end',
-                    id: activeReasoningBlockId,
-                  });
-                  contentBlocks[activeReasoningBlockId].ended = true;
-                  activeReasoningBlockId = undefined;
-                }
-
                 contentBlocks[blockId] = { type: 'text', ended: false };
                 controller.enqueue({
                   type: 'text-start',
