@@ -368,8 +368,12 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     };
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' | 'reasoning' }> = {};
+    const contentBlocks: Record<
+      string,
+      { type: 'text' | 'reasoning'; ended: boolean }
+    > = {};
     const lastReasoningDeltas: Record<string, string> = {};
+    let activeReasoningBlockId: string | undefined = undefined;
 
     const self = this;
 
@@ -456,7 +460,20 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               const blockId = `text-${value.id || choiceIndex}`;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                // end active reasoning block before text starts
+                if (
+                  activeReasoningBlockId != null &&
+                  !contentBlocks[activeReasoningBlockId].ended
+                ) {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: activeReasoningBlockId,
+                  });
+                  contentBlocks[activeReasoningBlockId].ended = true;
+                  activeReasoningBlockId = undefined;
+                }
+
+                contentBlocks[blockId] = { type: 'text', ended: false };
                 controller.enqueue({
                   type: 'text-start',
                   id: blockId,
@@ -484,7 +501,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
               lastReasoningDeltas[blockId] = delta.reasoning_content;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'reasoning' };
+                contentBlocks[blockId] = { type: 'reasoning', ended: false };
+                activeReasoningBlockId = blockId;
                 controller.enqueue({
                   type: 'reasoning-start',
                   id: blockId,
@@ -500,6 +518,19 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
             // process tool calls
             if (delta.tool_calls != null) {
+              // end active reasoning block before tool calls start
+              if (
+                activeReasoningBlockId != null &&
+                !contentBlocks[activeReasoningBlockId].ended
+              ) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: activeReasoningBlockId,
+                });
+                contentBlocks[activeReasoningBlockId].ended = true;
+                activeReasoningBlockId = undefined;
+              }
+
               for (const toolCall of delta.tool_calls) {
                 // xai tool calls come in one piece (like mistral)
                 const toolCallId = toolCall.id;
@@ -532,11 +563,14 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            // end any blocks that haven't been ended yet
             for (const [blockId, block] of Object.entries(contentBlocks)) {
-              controller.enqueue({
-                type: block.type === 'text' ? 'text-end' : 'reasoning-end',
-                id: blockId,
-              });
+              if (!block.ended) {
+                controller.enqueue({
+                  type: block.type === 'text' ? 'text-end' : 'reasoning-end',
+                  id: blockId,
+                });
+              }
             }
 
             controller.enqueue({ type: 'finish', finishReason, usage: usage! });
