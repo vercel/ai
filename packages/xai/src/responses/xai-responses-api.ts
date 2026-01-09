@@ -351,9 +351,27 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.code_interpreter_call.interpreting'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_interpreter_call.completed'),
     item_id: z.string(),
     output_index: z.number(),
+  }),
+  // Code interpreter code streaming events
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    code: z.string(),
   }),
   z.object({
     type: z.literal('response.done'),
