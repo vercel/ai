@@ -668,7 +668,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.x_search',
               name: 'x_search',
               args: {},
