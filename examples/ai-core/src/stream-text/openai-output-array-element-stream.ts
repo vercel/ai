@@ -31,4 +31,6 @@ run(async () => {
   for await (const element of result.elementStream) {
     console.log('New element:', element);
   }
+
+  console.log('Usage:', await result.usage);
 });
