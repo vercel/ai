@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.45
+
+### Patch Changes
+
+- 9d16e4e: fix (provider/xai): use correct format for function tools
+
 ## 2.0.44
 
 ### Patch Changes
