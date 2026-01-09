@@ -6,12 +6,9 @@ import { print } from '../lib/print';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-5'),
     prompt: 'Write a short poem about the ocean.',
-    // Per-chunk timeout: abort if no chunk is received for 5 seconds
-    // This is useful for detecting stalled streams where the connection
-    // is open but no data is flowing.
-    timeout: { chunkMs: 5000 },
+    timeout: { chunkMs: 5 },
   });
 
   printFullStream({ result });
