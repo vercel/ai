@@ -1,5 +1,12 @@
 # @ai-sdk/xai
 
+## 2.0.48
+
+### Patch Changes
+
+- c7d45b4: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+- 547e0c2: fix (provider/xai): no duplicate text delta in responses api
+
 ## 2.0.47
 
 ### Patch Changes
