@@ -7,9 +7,47 @@ import { z } from 'zod';
 
 /**
  * Configuration options for the Perplexity Search tool.
+ * These settings become defaults for all tool invocations.
  * Note: API key is not needed here - the gateway uses system credentials.
  */
-export type PerplexitySearchConfig = Record<string, never>;
+export interface PerplexitySearchConfig {
+    /**
+     * Default maximum number of search results to return (1-20, default: 10).
+     * The LLM can override this per-invocation.
+     */
+    maxResults?: number;
+
+    /**
+     * Default maximum tokens to extract per search result page (256-2048, default: 1024).
+     * The LLM can override this per-invocation.
+     */
+    maxTokensPerPage?: number;
+
+    /**
+     * Default two-letter ISO 3166-1 alpha-2 country code for regional search results.
+     * Examples: 'US', 'GB', 'FR'
+     */
+    country?: string;
+
+    /**
+     * Default list of domains to include or exclude from search results (max 20).
+     * To include: ['nature.com', 'science.org']
+     * To exclude: ['-example.com', '-spam.net']
+     */
+    searchDomainFilter?: string[];
+
+    /**
+     * Default list of ISO 639-1 language codes to filter results (max 10, lowercase).
+     * Examples: ['en', 'fr', 'de']
+     */
+    searchLanguageFilter?: string[];
+
+    /**
+     * Default recency filter for results.
+     * Cannot be combined with searchAfterDate/searchBeforeDate at runtime.
+     */
+    searchRecencyFilter?: 'day' | 'week' | 'month' | 'year';
+}
 
 /**
  * Individual search result from Perplexity Search API.
@@ -264,7 +302,7 @@ export const perplexitySearchToolFactory =
  *
  * Must have name `perplexity_search`.
  *
- * @example
+ * @example Basic usage (no config)
  * ```ts
  * import { generateText } from 'ai';
  * import { gateway } from '@ai-sdk/gateway';
@@ -278,9 +316,38 @@ export const perplexitySearchToolFactory =
  * });
  * ```
  *
- * @param config - Configuration options (currently reserved for future use)
+ * @example With config options
+ * ```ts
+ * import { streamText } from 'ai';
+ * import { gateway } from '@ai-sdk/gateway';
+ *
+ * const result = await streamText({
+ *   model: gateway('anthropic/claude-sonnet-4-20250514'),
+ *   prompt: 'Find recent AI research papers',
+ *   tools: {
+ *     search: gateway.tools.perplexitySearch({
+ *       // Limit to 5 results per search
+ *       maxResults: 5,
+ *       // Only search academic/scientific domains
+ *       searchDomainFilter: ['arxiv.org', 'nature.com', 'science.org'],
+ *       // Only English results
+ *       searchLanguageFilter: ['en'],
+ *       // Only results from the past week
+ *       searchRecencyFilter: 'week',
+ *     }),
+ *   },
+ * });
+ * ```
+ *
+ * @param config - Configuration options for search defaults
+ * @param config.maxResults - Default max results (1-20, default: 10)
+ * @param config.maxTokensPerPage - Default tokens per page (256-2048, default: 1024)
+ * @param config.country - Default country code for regional results (e.g., 'US')
+ * @param config.searchDomainFilter - Default domain include/exclude list
+ * @param config.searchLanguageFilter - Default language codes (e.g., ['en', 'fr'])
+ * @param config.searchRecencyFilter - Default recency filter ('day'|'week'|'month'|'year')
  * @returns A provider-defined tool for Perplexity Search
  */
 export const perplexitySearch = (
-    config: PerplexitySearchConfig = {}, // default empty config
+    config: PerplexitySearchConfig = {},
 ) => perplexitySearchToolFactory(config);
