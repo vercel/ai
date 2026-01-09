@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
 ## 6.0.25
 
 ### Patch Changes
