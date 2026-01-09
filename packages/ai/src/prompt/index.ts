@@ -1,5 +1,4 @@
 export type { CallSettings, TimeoutConfiguration } from './call-settings';
-export { getStepTimeoutMs, getTotalTimeoutMs } from './call-settings';
 export {
   assistantModelMessageSchema,
   modelMessageSchema,

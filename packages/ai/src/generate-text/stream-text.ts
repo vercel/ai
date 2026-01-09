@@ -19,6 +19,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
   CallSettings,
+  getChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
 } from '../prompt/call-settings';
@@ -433,8 +434,11 @@ Internal. For test use only. May change without notice.
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
+  const chunkAbortController =
+    chunkTimeoutMs != null ? new AbortController() : undefined;
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -445,9 +449,12 @@ Internal. For test use only. May change without notice.
       abortSignal,
       totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
       stepAbortController?.signal,
+      chunkAbortController?.signal,
     ),
     stepTimeoutMs,
     stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -616,6 +623,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -647,6 +656,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
+    chunkTimeoutMs: number | undefined;
+    chunkAbortController: AbortController | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1283,6 +1294,29 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
               : undefined;
 
+          // Set up chunk timeout tracking (will be reset on each chunk)
+          let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+            undefined;
+
+          function resetChunkTimeout() {
+            if (chunkTimeoutMs != null) {
+              if (chunkTimeoutId != null) {
+                clearTimeout(chunkTimeoutId);
+              }
+              chunkTimeoutId = setTimeout(
+                () => chunkAbortController!.abort(),
+                chunkTimeoutMs,
+              );
+            }
+          }
+
+          function clearChunkTimeout() {
+            if (chunkTimeoutId != null) {
+              clearTimeout(chunkTimeoutId);
+              chunkTimeoutId = undefined;
+            }
+          }
+
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -1429,12 +1463,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
-              >({
+              >              ({
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
+
+                  // Reset chunk timeout on each received chunk
+                  resetChunkTimeout();
 
                   if (stepFirstChunk) {
                     // Telemetry for first chunk:
@@ -1731,10 +1768,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
                   }
 
-                  // Clear the step timeout before the next step is started
+                  // Clear the step and chunk timeouts before the next step is started
                   if (stepTimeoutId != null) {
                     clearTimeout(stepTimeoutId);
                   }
+                  clearChunkTimeout();
 
                   if (
                     // Continue if:
