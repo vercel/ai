@@ -1459,6 +1459,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-start",
           },
@@ -1466,10 +1470,6 @@ describe('XaiChatLanguageModel', () => {
             "delta": "The answer is 303.",
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-delta",
-          },
-          {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-end",
           },
           {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
@@ -1567,6 +1567,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-grok-4-test",
             "type": "text-start",
           },
@@ -1574,10 +1578,6 @@ describe('XaiChatLanguageModel', () => {
             "delta": "The answer is 42.",
             "id": "text-grok-4-test",
             "type": "text-delta",
-          },
-          {
-            "id": "reasoning-grok-4-test",
-            "type": "reasoning-end",
           },
           {
             "id": "text-grok-4-test",
