@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
 ## 6.0.23
 
 ### Patch Changes
