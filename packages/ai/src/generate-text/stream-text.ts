@@ -1317,6 +1317,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             }
           }
 
+          function clearStepTimeout() {
+            if (stepTimeoutId != null) {
+              clearTimeout(stepTimeoutId);
+            }
+          }
+
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -1415,7 +1421,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions: stepProviderOptions,
-                  abortSignal: abortSignal,
+                  abortSignal,
                   headers,
                   includeRawChunks,
                 }),
@@ -1431,7 +1437,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             system,
             messages: stepInputMessages,
             repairToolCall,
-            abortSignal: abortSignal,
+            abortSignal,
             experimental_context,
             generateId,
           });
@@ -1465,13 +1471,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
+                  resetChunkTimeout();
+
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
-
-                  // Reset chunk timeout on each received chunk
-                  resetChunkTimeout();
 
                   if (stepFirstChunk) {
                     // Telemetry for first chunk:
@@ -1769,9 +1774,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   }
 
                   // Clear the step and chunk timeouts before the next step is started
-                  if (stepTimeoutId != null) {
-                    clearTimeout(stepTimeoutId);
-                  }
+                  clearStepTimeout();
                   clearChunkTimeout();
 
                   if (
