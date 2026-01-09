@@ -493,6 +493,14 @@ export function toUIMessageStream(
             });
           }
           controller.enqueue({ type: 'finish' });
+        } else if (streamType === 'langgraph') {
+          /**
+           * Emit finish-step if a step was started
+           */
+          if (langGraphState.currentStep !== null) {
+            controller.enqueue({ type: 'finish-step' });
+          }
+          controller.enqueue({ type: 'finish' });
         }
 
         /**

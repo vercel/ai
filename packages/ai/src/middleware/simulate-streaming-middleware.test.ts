@@ -4,7 +4,15 @@ import {
   convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { streamText } from '../generate-text';
 import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
@@ -16,7 +24,6 @@ const DEFAULT_SETTINGs = {
   experimental_generateMessageId: mockId({ prefix: 'msg' }),
   _internal: {
     generateId: mockId({ prefix: 'id' }),
-    currentDate: () => new Date('2025-01-01'),
   },
 };
 
@@ -38,12 +45,15 @@ describe('simulateStreamingMiddleware', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01'));
     logWarningsSpy = vitest
       .spyOn(logWarningsModule, 'logWarnings')
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     logWarningsSpy.mockRestore();
   });
 
