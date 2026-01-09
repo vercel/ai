@@ -559,13 +559,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                         type: 'text-start',
                         id: blockId,
                       });
-                    }
 
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: blockId,
-                      delta: contentPart.text,
-                    });
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: blockId,
+                        delta: contentPart.text,
+                      });
+                    }
                   }
 
                   if (contentPart.annotations) {

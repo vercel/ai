@@ -660,6 +660,124 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(parts).toMatchSnapshot();
       });
+<<<<<<< HEAD
+=======
+
+      it('should stream x_search tool call', async () => {
+        prepareChunksFixtureResponse('xai-x-search-tool');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
+      });
+
+      it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          // Message item added - should emit text-start
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [],
+            },
+            output_index: 0,
+          }),
+          // Stream text deltas
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: ' ',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'world',
+          }),
+          // Message item done - should NOT emit text-delta with full text
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello world', // Full accumulated text
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Count text-delta events
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        // Should only have 3 text-deltas from streaming, NOT 4 (with duplicate full text)
+        expect(textDeltas).toHaveLength(3);
+        expect(textDeltas.map(d => d.delta)).toEqual(['Hello', ' ', 'world']);
+
+        // Verify there's no text-delta with the full accumulated text
+        const fullTextDelta = textDeltas.find(d => d.delta === 'Hello world');
+        expect(fullTextDelta).toBeUndefined();
+      });
+>>>>>>> 9a53f5983 (fix (provider/xai): no duplicate text delta in responses api (#11658))
     });
 
     describe('tool call streaming', () => {
