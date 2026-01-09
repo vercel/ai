@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
 ## 6.0.24
 
 ### Patch Changes
