@@ -57,14 +57,14 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
       lastMessage?.role === 'assistant'
         ? lastMessage
         : ({
-          id: messageId,
-          metadata: undefined,
-          role: 'assistant',
-          parts: [] as UIMessagePart<
-            InferUIMessageData<UI_MESSAGE>,
-            InferUIMessageTools<UI_MESSAGE>
-          >[],
-        } as UI_MESSAGE),
+            id: messageId,
+            metadata: undefined,
+            role: 'assistant',
+            parts: [] as UIMessagePart<
+              InferUIMessageData<UI_MESSAGE>,
+              InferUIMessageTools<UI_MESSAGE>
+            >[],
+          } as UI_MESSAGE),
     activeTextParts: {},
     activeReasoningParts: {},
     partialToolCalls: {},
@@ -123,25 +123,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               providerExecuted?: boolean;
               title?: string;
             } & (
-                | {
+              | {
                   state: 'input-streaming';
                   input: unknown;
                   providerExecuted?: boolean;
                 }
-                | {
+              | {
                   state: 'input-available';
                   input: unknown;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
-                | {
+              | {
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
                   providerExecuted?: boolean;
                   preliminary?: boolean;
                 }
-                | {
+              | {
                   state: 'output-error';
                   input: unknown;
                   rawInput?: unknown;
@@ -149,7 +149,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
-              ),
+            ),
           ) {
             const part = state.message.parts.find(
               part =>
@@ -206,28 +206,28 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               providerExecuted?: boolean;
               title?: string;
             } & (
-                | {
+              | {
                   state: 'input-streaming';
                   input: unknown;
                 }
-                | {
+              | {
                   state: 'input-available';
                   input: unknown;
                   providerMetadata?: ProviderMetadata;
                 }
-                | {
+              | {
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
                   preliminary: boolean | undefined;
                 }
-                | {
+              | {
                   state: 'output-error';
                   input: unknown;
                   errorText: string;
                   providerMetadata?: ProviderMetadata;
                 }
-              ),
+            ),
           ) {
             const part = state.message.parts.find(
               part =>
@@ -316,7 +316,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (textPart == null) {
                 throw new Error(
                   `Received text-delta for missing text part with ID "${chunk.id}". ` +
-                  `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
+                    `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 );
               }
               textPart.text += chunk.delta;
@@ -331,7 +331,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (textPart == null) {
                 throw new Error(
                   `Received text-end for missing text part with ID "${chunk.id}". ` +
-                  `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
+                    `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
                 );
               }
               textPart.state = 'done';
@@ -360,7 +360,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (reasoningPart == null) {
                 throw new Error(
                   `Received reasoning-delta for missing reasoning part with ID "${chunk.id}". ` +
-                  `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
+                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 );
               }
               reasoningPart.text += chunk.delta;
@@ -375,7 +375,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (reasoningPart == null) {
                 throw new Error(
                   `Received reasoning-end for missing reasoning part with ID "${chunk.id}". ` +
-                  `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
+                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
                 );
               }
               reasoningPart.providerMetadata =
@@ -467,7 +467,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (partialToolCall == null) {
                 throw new Error(
                   `Received tool-input-delta for missing tool call with ID "${chunk.toolCallId}". ` +
-                  `Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.`,
+                    `Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.`,
                 );
               }
 
@@ -714,12 +714,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 const existingUIPart =
                   dataChunk.id != null
                     ? (state.message.parts.find(
-                      chunkArg =>
-                        dataChunk.type === chunkArg.type &&
-                        dataChunk.id === chunkArg.id,
-                    ) as
-                      | DataUIPart<InferUIMessageData<UI_MESSAGE>>
-                      | undefined)
+                        chunkArg =>
+                          dataChunk.type === chunkArg.type &&
+                          dataChunk.id === chunkArg.id,
+                      ) as
+                        | DataUIPart<InferUIMessageData<UI_MESSAGE>>
+                        | undefined)
                     : undefined;
 
                 if (existingUIPart != null) {
