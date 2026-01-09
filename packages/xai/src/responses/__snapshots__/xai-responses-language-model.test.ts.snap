@@ -11842,37 +11842,11 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "finishReason": "stop",
     "type": "finish",
     "usage": {
-<<<<<<< HEAD
       "cachedInputTokens": 1578,
       "inputTokens": 1875,
       "outputTokens": 695,
       "reasoningTokens": 397,
       "totalTokens": 2570,
-=======
-      "inputTokens": {
-        "cacheRead": 1578,
-        "cacheWrite": undefined,
-        "noCache": 297,
-        "total": 1875,
-      },
-      "outputTokens": {
-        "reasoning": 397,
-        "text": 298,
-        "total": 695,
-      },
-      "raw": {
-        "input_tokens": 1875,
-        "input_tokens_details": {
-          "cached_tokens": 1578,
-        },
-        "num_server_side_tools_used": 1,
-        "num_sources_used": 0,
-        "output_tokens": 695,
-        "output_tokens_details": {
-          "reasoning_tokens": 397,
-        },
-        "total_tokens": 2570,
-      },
     },
   },
 ]
@@ -20855,37 +20829,14 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "type": "text-end",
   },
   {
-    "finishReason": {
-      "raw": "completed",
-      "unified": "stop",
-    },
+    "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": {
-        "cacheRead": 4585,
-        "cacheWrite": undefined,
-        "noCache": 22651,
-        "total": 27236,
-      },
-      "outputTokens": {
-        "reasoning": 1091,
-        "text": 1986,
-        "total": 3077,
-      },
-      "raw": {
-        "input_tokens": 27236,
-        "input_tokens_details": {
-          "cached_tokens": 4585,
-        },
-        "num_server_side_tools_used": 6,
-        "num_sources_used": 0,
-        "output_tokens": 3077,
-        "output_tokens_details": {
-          "reasoning_tokens": 1091,
-        },
-        "total_tokens": 30313,
-      },
->>>>>>> 9a53f5983 (fix (provider/xai): no duplicate text delta in responses api (#11658))
+      "cachedInputTokens": 4585,
+      "inputTokens": 27236,
+      "outputTokens": 3077,
+      "reasoningTokens": 1091,
+      "totalTokens": 30313,
     },
   },
 ]
