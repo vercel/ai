@@ -624,7 +624,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -666,7 +666,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.x_search',
               name: 'x_search',
               args: {},
@@ -708,7 +708,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -750,7 +750,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -792,7 +792,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'my_custom_search',
               args: {},
@@ -976,7 +976,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'web_search',
               args: {},
@@ -1035,7 +1035,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.x_search',
               name: 'x_search',
               args: {},
@@ -1094,7 +1094,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -1153,7 +1153,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.code_execution',
               name: 'code_execution',
               args: {},
@@ -1212,7 +1212,7 @@ describe('XaiResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider',
+              type: 'provider-defined',
               id: 'xai.web_search',
               name: 'my_custom_search',
               args: {},
