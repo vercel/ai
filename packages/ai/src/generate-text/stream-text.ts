@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV3,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -79,7 +80,11 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
+import {
+  InferCompleteOutput,
+  InferElementOutput,
+  InferPartialOutput,
+} from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -249,7 +254,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT extends Output = Output<string, string>,
+  OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
   tools,
@@ -480,7 +485,7 @@ Internal. For test use only. May change without notice.
   });
 }
 
-type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
+export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
@@ -2033,6 +2038,18 @@ However, the LLM results are expected to be small enough to not cause issues.
         }),
       ),
     );
+  }
+
+  get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
+    const transform = this.outputSpecification?.createElementStreamTransform();
+
+    if (transform == null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+      });
+    }
+
+    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {

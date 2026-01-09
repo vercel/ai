@@ -201,6 +201,35 @@ const { output } = await generateText({
 // ]
 ```
 
+When streaming arrays with `streamText`, you can use `elementStream` to receive each completed element as it is generated:
+
+```ts
+import { streamText, Output } from 'ai';
+import { z } from 'zod';
+
+const { elementStream } = streamText({
+  // ...
+  output: Output.array({
+    element: z.object({
+      name: z.string(),
+      class: z.string(),
+      description: z.string(),
+    }),
+  }),
+  prompt: 'Generate 3 hero descriptions for a fantasy role playing game.',
+});
+
+for await (const hero of elementStream) {
+  console.log(hero); // Each hero is complete and validated
+}
+```
+
+<Note>
+  Each element emitted by `elementStream` is complete and validated against your
+  element schema. This differs from `partialOutputStream`, which streams the
+  entire partial array including incomplete elements.
+</Note>
+
 ### `Output.choice()`
 
 Use `Output.choice({ options })` when you expect the model to choose from a specific set of string options, such as for classification or fixed-enum answers.
