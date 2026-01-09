@@ -2,6 +2,7 @@ import {
   getErrorMessage,
   LanguageModelV3,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -19,6 +20,7 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
   CallSettings,
+  getChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
 } from '../prompt/call-settings';
@@ -78,7 +80,11 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
+import {
+  InferCompleteOutput,
+  InferElementOutput,
+  InferPartialOutput,
+} from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -248,7 +254,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT extends Output = Output<string, string>,
+  OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
   tools,
@@ -433,8 +439,11 @@ Internal. For test use only. May change without notice.
   }): StreamTextResult<TOOLS, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const chunkTimeoutMs = getChunkTimeoutMs(timeout);
   const stepAbortController =
     stepTimeoutMs != null ? new AbortController() : undefined;
+  const chunkAbortController =
+    chunkTimeoutMs != null ? new AbortController() : undefined;
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
@@ -445,9 +454,12 @@ Internal. For test use only. May change without notice.
       abortSignal,
       totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
       stepAbortController?.signal,
+      chunkAbortController?.signal,
     ),
     stepTimeoutMs,
     stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -473,7 +485,7 @@ Internal. For test use only. May change without notice.
   });
 }
 
-type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
+export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
@@ -616,6 +628,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     abortSignal,
     stepTimeoutMs,
     stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -647,6 +661,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
     stepAbortController: AbortController | undefined;
+    chunkTimeoutMs: number | undefined;
+    chunkAbortController: AbortController | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -1283,6 +1299,35 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
               : undefined;
 
+          // Set up chunk timeout tracking (will be reset on each chunk)
+          let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+            undefined;
+
+          function resetChunkTimeout() {
+            if (chunkTimeoutMs != null) {
+              if (chunkTimeoutId != null) {
+                clearTimeout(chunkTimeoutId);
+              }
+              chunkTimeoutId = setTimeout(
+                () => chunkAbortController!.abort(),
+                chunkTimeoutMs,
+              );
+            }
+          }
+
+          function clearChunkTimeout() {
+            if (chunkTimeoutId != null) {
+              clearTimeout(chunkTimeoutId);
+              chunkTimeoutId = undefined;
+            }
+          }
+
+          function clearStepTimeout() {
+            if (stepTimeoutId != null) {
+              clearTimeout(stepTimeoutId);
+            }
+          }
+
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
@@ -1381,7 +1426,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   responseFormat: await output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions: stepProviderOptions,
-                  abortSignal: abortSignal,
+                  abortSignal,
                   headers,
                   includeRawChunks,
                 }),
@@ -1397,7 +1442,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             system,
             messages: stepInputMessages,
             repairToolCall,
-            abortSignal: abortSignal,
+            abortSignal,
             experimental_context,
             generateId,
           });
@@ -1431,6 +1476,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
+                  resetChunkTimeout();
+
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
@@ -1731,10 +1778,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
                   }
 
-                  // Clear the step timeout before the next step is started
-                  if (stepTimeoutId != null) {
-                    clearTimeout(stepTimeoutId);
-                  }
+                  // Clear the step and chunk timeouts before the next step is started
+                  clearStepTimeout();
+                  clearChunkTimeout();
 
                   if (
                     // Continue if:
@@ -1992,6 +2038,18 @@ However, the LLM results are expected to be small enough to not cause issues.
         }),
       ),
     );
+  }
+
+  get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
+    const transform = this.outputSpecification?.createElementStreamTransform();
+
+    if (transform == null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+      });
+    }
+
+    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
   get output(): Promise<InferCompleteOutput<OUTPUT>> {

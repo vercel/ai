@@ -10365,6 +10365,155 @@ describe('streamText', () => {
 
       expect(receivedAbortSignal).toBeDefined();
     });
+
+    it('should forward chunkMs as abort signal to model', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { chunkMs: 5000 },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should complete successfully when chunks arrive within chunkMs timeout', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ' World' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { chunkMs: 5000 }, // generous chunk timeout
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      // Stream should complete successfully without abort
+      expect(receivedAbortSignal?.aborted).toBeFalsy();
+    });
+
+    it('should abort when chunk timeout expires', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+      const delayedPromise = new DelayedPromise<void>();
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: new ReadableStream({
+                async start(controller) {
+                  // Send first chunk immediately
+                  controller.enqueue({ type: 'text-start', id: '1' });
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello',
+                  });
+
+                  // Wait for the stream to stall (will be resolved after timeout fires)
+                  await delayedPromise.promise;
+
+                  controller.enqueue({ type: 'text-end', id: '1' });
+                  controller.enqueue({
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  });
+                  controller.close();
+                },
+              }),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { chunkMs: 50 }, // 50ms chunk timeout
+        onError: () => {},
+      });
+
+      // Start consuming the stream (won't complete until delayedPromise resolves)
+      const consumePromise = result.consumeStream();
+
+      // Advance time past the chunk timeout
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Resolve the delayed promise to allow the stream to finish
+      delayedPromise.resolve(undefined);
+
+      await consumePromise;
+
+      // The abort signal should have been triggered due to chunk timeout
+      expect(receivedAbortSignal?.aborted).toBe(true);
+    });
+
+    it('should support chunkMs alongside totalMs and stepMs', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 30000, stepMs: 10000, chunkMs: 5000 },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
   });
 
   describe('telemetry', () => {
@@ -13260,6 +13409,23 @@ describe('streamText', () => {
           `);
         });
 
+        it('should stream individual elements in elementStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.elementStream))
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "content": "element 1",
+              },
+              {
+                "content": "element 2",
+              },
+              {
+                "content": "element 3",
+              },
+            ]
+          `);
+        });
+
         it('should resolve output promise with the correct content', async () => {
           expect(await result!.output).toStrictEqual([
             { content: 'element 1' },
@@ -13323,6 +13489,20 @@ describe('streamText', () => {
                   "content": "element 2",
                 },
               ],
+            ]
+          `);
+        });
+
+        it('should stream individual elements in elementStream', async () => {
+          expect(await convertAsyncIterableToArray(result!.elementStream))
+            .toMatchInlineSnapshot(`
+            [
+              {
+                "content": "element 1",
+              },
+              {
+                "content": "element 2",
+              },
             ]
           `);
         });
