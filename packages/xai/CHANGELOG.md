@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.47
+
+### Patch Changes
+
+- 6e3beb1: added support for streaming custom tool input chunks in xAI
+
 ## 2.0.46
 
 ### Patch Changes
