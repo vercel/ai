@@ -139,7 +139,9 @@ describe('anthropic provider - supportedUrls', () => {
     const supportedUrls = await model.supportedUrls;
 
     expect(supportedUrls['image/*']).toBeDefined();
-    expect(supportedUrls['image/*']![0]!.test('https://example.com/image.png')).toBe(true);
+    expect(
+      supportedUrls['image/*']![0]!.test('https://example.com/image.png'),
+    ).toBe(true);
   });
 
   it('should support application/pdf URLs', async () => {
@@ -151,6 +153,10 @@ describe('anthropic provider - supportedUrls', () => {
     const supportedUrls = await model.supportedUrls;
 
     expect(supportedUrls['application/pdf']).toBeDefined();
-    expect(supportedUrls['application/pdf']![0]!.test('https://arxiv.org/pdf/2401.00001')).toBe(true);
+    expect(
+      supportedUrls['application/pdf']![0]!.test(
+        'https://arxiv.org/pdf/2401.00001',
+      ),
+    ).toBe(true);
   });
 });
