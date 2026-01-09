@@ -18,7 +18,11 @@ import { ErrorHandler } from '../util/error-handler';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
+import {
+  InferCompleteOutput,
+  InferElementOutput,
+  InferPartialOutput,
+} from './output-utils';
 import { ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
@@ -296,6 +300,12 @@ enables provider-specific results that can be fully encapsulated in the provider
    * A stream of partial parsed outputs. It uses the `output` specification.
    */
   readonly partialOutputStream: AsyncIterableStream<InferPartialOutput<OUTPUT>>;
+
+  /**
+   * A stream of individual array elements as they complete.
+   * Only available when using `output: Output.array()`.
+   */
+  readonly elementStream: AsyncIterableStream<InferElementOutput<OUTPUT>>;
 
   /**
    * The complete parsed output. It uses the `output` specification.

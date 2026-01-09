@@ -55,6 +55,7 @@ const wrappedLanguageModel = wrapLanguageModel({
 The AI SDK comes with several built-in middlewares that you can use to configure language models:
 
 - `extractReasoningMiddleware`: Extracts reasoning information from the generated text and exposes it as a `reasoning` property on the result.
+- `extractJsonMiddleware`: Extracts JSON from text content by stripping markdown code fences. Useful when using `Output.object()` with models that wrap JSON responses in code blocks.
 - `simulateStreamingMiddleware`: Simulates streaming behavior with responses from non-streaming language models.
 - `defaultSettingsMiddleware`: Applies default settings to a language model.
 - `addToolInputExamplesMiddleware`: Adds tool input examples to tool descriptions for providers that don't natively support the `inputExamples` property.
@@ -81,6 +82,44 @@ The `extractReasoningMiddleware` function also includes a `startWithReasoning` o
 When set to `true`, the reasoning tag will be prepended to the generated text.
 This is useful for models that do not include the reasoning tag at the beginning of the response.
 For more details, see the [DeepSeek R1 guide](/docs/guides/r1#deepseek-r1-middleware).
+
+### Extract JSON
+
+Some models wrap JSON responses in markdown code fences (e.g., ` ```json ... ``` `) even when you request structured output.
+
+The `extractJsonMiddleware` function strips these code fences from the response, making it compatible with `Output.object()`.
+
+```ts
+import { wrapLanguageModel, extractJsonMiddleware, Output } from 'ai';
+import { z } from 'zod';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: extractJsonMiddleware(),
+});
+
+const result = await generateText({
+  model,
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      ingredients: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a recipe.',
+});
+```
+
+You can also provide a custom transform function for models that use different formatting:
+
+```ts
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: extractJsonMiddleware({
+    transform: text => text.replace(/^PREFIX/, '').replace(/SUFFIX$/, ''),
+  }),
+});
+```
 
 ### Simulate Streaming
 
