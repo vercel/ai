@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "4.0.12",
+    "@ai-sdk/amazon-bedrock": "4.0.13",
     "@ai-sdk/anthropic": "3.0.9",
     "@ai-sdk/azure": "3.0.7",
     "@ai-sdk/cohere": "3.0.4",
@@ -23,7 +23,7 @@
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/perplexity": "3.0.4",
     "@ai-sdk/provider-utils": "4.0.4",
-    "@ai-sdk/react": "3.0.27",
+    "@ai-sdk/react": "3.0.28",
     "@ai-sdk/rsc": "2.0.26",
     "@ai-sdk/valibot": "2.0.4",
     "@ai-sdk/xai": "3.0.13",
