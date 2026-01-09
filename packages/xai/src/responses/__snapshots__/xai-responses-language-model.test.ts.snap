@@ -20957,36 +20957,14 @@ These accompany the same Grok 4.1 Fast announcement thread. They are benchmark c
     "type": "text-end",
   },
   {
-    "finishReason": {
-      "raw": "completed",
-      "unified": "stop",
-    },
+    "finishReason": "stop",
     "type": "finish",
     "usage": {
-      "inputTokens": {
-        "cacheRead": 4585,
-        "cacheWrite": undefined,
-        "noCache": 22651,
-        "total": 27236,
-      },
-      "outputTokens": {
-        "reasoning": 1091,
-        "text": 1986,
-        "total": 3077,
-      },
-      "raw": {
-        "input_tokens": 27236,
-        "input_tokens_details": {
-          "cached_tokens": 4585,
-        },
-        "num_server_side_tools_used": 6,
-        "num_sources_used": 0,
-        "output_tokens": 3077,
-        "output_tokens_details": {
-          "reasoning_tokens": 1091,
-        },
-        "total_tokens": 30313,
-      },
+      "cachedInputTokens": 4585,
+      "inputTokens": 27236,
+      "outputTokens": 3077,
+      "reasoningTokens": 1091,
+      "totalTokens": 30313,
     },
   },
 ]
