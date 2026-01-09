@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-feat(ai): per-step timeouts for streamText
+feat(ai): per-chunk timeouts for streamText
