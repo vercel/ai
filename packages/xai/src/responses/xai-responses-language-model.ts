@@ -202,11 +202,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         part.type === 'custom_tool_call'
       ) {
         let toolName = part.name ?? '';
-        if (webSearchSubTools.includes(part.name ?? '')) {
+        if (
+          webSearchSubTools.includes(part.name ?? '') ||
+          part.type === 'web_search_call'
+        ) {
           toolName = webSearchToolName ?? 'web_search';
-        } else if (xSearchSubTools.includes(part.name ?? '')) {
+        } else if (
+          xSearchSubTools.includes(part.name ?? '') ||
+          part.type === 'x_search_call'
+        ) {
           toolName = xSearchToolName ?? 'x_search';
-        } else if (part.name === 'code_execution') {
+        } else if (
+          part.name === 'code_execution' ||
+          part.type === 'code_interpreter_call' ||
+          part.type === 'code_execution_call'
+        ) {
           toolName = codeExecutionToolName ?? 'code_execution';
         }
 
@@ -505,11 +515,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   ];
 
                   let toolName = part.name ?? '';
-                  if (webSearchSubTools.includes(part.name ?? '')) {
+                  if (
+                    webSearchSubTools.includes(part.name ?? '') ||
+                    part.type === 'web_search_call'
+                  ) {
                     toolName = webSearchToolName ?? 'web_search';
-                  } else if (xSearchSubTools.includes(part.name ?? '')) {
+                  } else if (
+                    xSearchSubTools.includes(part.name ?? '') ||
+                    part.type === 'x_search_call'
+                  ) {
                     toolName = xSearchToolName ?? 'x_search';
-                  } else if (part.name === 'code_execution') {
+                  } else if (
+                    part.name === 'code_execution' ||
+                    part.type === 'code_interpreter_call' ||
+                    part.type === 'code_execution_call'
+                  ) {
                     toolName = codeExecutionToolName ?? 'code_execution';
                   }
 
