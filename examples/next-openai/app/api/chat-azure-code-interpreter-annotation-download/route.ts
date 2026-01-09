@@ -1,5 +1,8 @@
-import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
-
+import {
+  azure,
+  type AzureResponsesSourceDocumentProviderMetadata,
+  type OpenAIResponsesProviderOptions,
+} from '@ai-sdk/azure';
 import {
   convertToModelMessages,
   InferUITools,
@@ -9,6 +12,10 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
+import { z } from 'zod/v4';
+
+const azureResponsesSourceDocumentProviderMetadataSchema =
+  z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: azure.tools.codeInterpreter(),
@@ -27,7 +34,8 @@ export type AzureOpenAICodeInterpreterMessage = UIMessage<
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
+  const uiMessages =
+    await validateUIMessages<AzureOpenAICodeInterpreterMessage>({ messages });
 
   // Collect sources with container file citations as they're generated
   const containerFileSources: Array<{
@@ -37,7 +45,7 @@ export async function POST(req: Request) {
   }> = [];
 
   const result = streamText({
-    model: azure('gpt-5-mini'),
+    model: azure('gpt-4.1-mini'),
     tools,
     messages: await convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
@@ -45,23 +53,24 @@ export async function POST(req: Request) {
 
       // Collect container file citations from sources
       for (const source of sources) {
-        if (
-          source.sourceType === 'document' &&
-          source.providerMetadata?.azure?.containerId &&
-          source.providerMetadata?.azure?.fileId
-        ) {
-          const containerId = String(
-            source.providerMetadata.azure.containerId || '',
-          );
-          const fileId = String(source.providerMetadata.azure.fileId || '');
-          const filename = source.filename || source.title || 'file';
-
-          // Avoid duplicates
-          const exists = containerFileSources.some(
-            s => s.containerId === containerId && s.fileId === fileId,
-          );
-          if (!exists) {
-            containerFileSources.push({ containerId, fileId, filename });
+        if (source.sourceType === 'document') {
+          const providerMetadataParsed =
+            azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
+              source.providerMetadata,
+            );
+          const filename = source.filename || source.title;
+          if (providerMetadataParsed.success) {
+            const { azure } = providerMetadataParsed.data;
+            if (azure.type === 'container_file_citation') {
+              const { containerId, fileId } = azure;
+              // Avoid duplicates
+              const exists = containerFileSources.some(
+                s => s.containerId === containerId && s.fileId === fileId,
+              );
+              if (!exists) {
+                containerFileSources.push({ containerId, fileId, filename });
+              }
+            }
           }
         }
       }

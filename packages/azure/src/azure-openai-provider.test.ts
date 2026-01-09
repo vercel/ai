@@ -1634,6 +1634,8 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1647,6 +1649,8 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
