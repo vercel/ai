@@ -26,9 +26,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
           .or(z.number().min(1).max(6))
           .nullish(),
         /**
-         * When true, converts multiple input images to `image_urls` array
-         * instead of `image_url` string. Use this for models like
-         * `fal-ai/flux-2/edit` that support multiple input images.
+         * When true, converts multiple input images to `image_urls` array instead of `image_url` string. 
          */
         useMultipleImages: z.boolean().nullish(),
 
