@@ -1463,7 +1463,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               new TransformStream<
                 SingleRequestTextStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
-              >              ({
+              >({
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
