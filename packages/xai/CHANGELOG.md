@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.46
+
+### Patch Changes
+
+- eed2ef1: fix(xai): add missing stream response schema and provider tool name parsing
+
 ## 2.0.45
 
 ### Patch Changes
