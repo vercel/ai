@@ -1515,7 +1515,7 @@ describe('smoothStream', () => {
         { type: 'reasoning-start', id: '1' },
         { text: 'I am', type: 'reasoning-delta', id: '1' },
         { text: ' thinking...', type: 'reasoning-delta', id: '1' },
-        // Signature comes as an empty delta with providerMetadata
+        // signature as an empty delta with providerMetadata
         {
           text: '',
           type: 'reasoning-delta',
@@ -1537,8 +1537,7 @@ describe('smoothStream', () => {
 
       await consumeStream(stream);
 
-      // Find the last reasoning-delta chunk (flushed before reasoning-end)
-      // It should contain the providerMetadata with the signature
+      // Find the last reasoning-delta chunk
       const reasoningDeltas = events.filter(
         (e: any) => e.type === 'reasoning-delta',
       );
@@ -1551,7 +1550,6 @@ describe('smoothStream', () => {
     });
 
     it('should preserve providerMetadata on reasoning-start for redacted thinking', async () => {
-      // Redacted thinking blocks have providerMetadata on reasoning-start
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         {
           type: 'reasoning-start',
