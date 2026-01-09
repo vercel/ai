@@ -1,0 +1,24 @@
+import { ProdiaImageProviderOptions, prodia } from '@ai-sdk/prodia';
+import { experimental_generateImage as generateImage } from 'ai';
+import { presentImages } from '../lib/present-image';
+import { run } from '../lib/run';
+import 'dotenv/config';
+
+run(async () => {
+  const { images, providerMetadata } = await generateImage({
+    model: prodia.image('inference.flux-fast.schnell.txt2img.v2'),
+    prompt:
+      'A cat wearing an intricate robe while gesticulating wildly, in the style of 80s pop art',
+    providerOptions: {
+      prodia: {
+        width: 1024,
+        height: 1024,
+        steps: 4,
+      } satisfies ProdiaImageProviderOptions,
+    },
+  });
+
+  await presentImages(images);
+
+  console.log('providerMetadata', JSON.stringify(providerMetadata, null, 2));
+});
