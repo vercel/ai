@@ -80,7 +80,7 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   /**
-   * Calls the API with the provided input as JSON body.
+   * Calls the API with the provided input as JSON body or FormData.
    */
   submit: (input: INPUT) => void;
 
@@ -164,16 +164,20 @@ function useObject<
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
+      // Detect if input is FormData
+      const isFormData = input instanceof FormData;
+
       const actualFetch = fetch ?? getOriginalFetch();
       const response = await actualFetch(api, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          // Only set Content-Type for JSON; FormData sets its own boundary
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           ...headers,
         },
         credentials,
         signal: abortController.signal,
-        body: JSON.stringify(input),
+        body: isFormData ? input : JSON.stringify(input),
       });
 
       if (!response.ok) {
