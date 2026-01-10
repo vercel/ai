@@ -166,6 +166,64 @@ const { image } = await generateImage({
 });
 ```
 
+### URL-Based Image Responses
+
+Some image-generation endpoints return images as URLs instead of base64-encoded strings. The `generateImage` function automatically detects URLs in the response and downloads them, converting them to `GeneratedFile` format.
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+});
+
+// Works seamlessly whether the provider returns base64 or URLs
+console.log(image.base64); // Always available
+console.log(image.uint8Array); // Always available
+```
+
+#### Custom Download Function (Experimental)
+
+You can provide a custom download function via the `experimental_download` parameter to control how URLs are fetched. This is useful for implementing authentication, retries, caching, or other custom download logic.
+
+```ts highlight={"7-18"}
+import { generateImage } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { image } = await generateImage({
+  model: openai.image('dall-e-3'),
+  prompt: 'Santa Claus driving a Cadillac',
+  experimental_download: async (
+    requestedDownloads: Array<{
+      url: URL;
+      isUrlSupportedByModel: boolean;
+    }>,
+  ): Promise<
+    Array<{
+      data: Uint8Array;
+      mediaType: string | undefined;
+    } | null>
+  > => {
+    // Custom download logic with authentication, retries, etc.
+    return await Promise.all(
+      requestedDownloads.map(async ({ url }) => {
+        const response = await fetch(url, {
+          headers: { Authorization: 'Bearer token' },
+        });
+        return {
+          data: new Uint8Array(await response.arrayBuffer()),
+          mediaType: response.headers.get('content-type') ?? undefined,
+        };
+      }),
+    );
+  },
+});
+```
+
+<Note>
+  The `experimental_download` option is experimental and may change in future
+  releases.
+</Note>
+
 ### Warnings
 
 If the model returns warnings, e.g. for unsupported parameters, they will be available in the `warnings` property of the response.

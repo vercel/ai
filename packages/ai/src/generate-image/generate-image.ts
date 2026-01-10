@@ -30,6 +30,10 @@ import { VERSION } from '../version';
 import { GenerateImageResult } from './generate-image-result';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { splitDataUrl } from '../prompt/split-data-url';
+import {
+  DownloadFunction,
+  createDefaultDownloadFunction,
+} from '../util/download/download-function';
 
 export type GenerateImagePrompt =
   | string
@@ -68,6 +72,7 @@ export async function generateImage({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  experimental_download: download,
 }: {
   /**
 The image model to use.
@@ -137,8 +142,18 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+Custom download function to control how URLs are fetched when they appear in image results.
+By default, files are downloaded automatically. Experimental feature.
+Return null to pass the URL directly (when supported), or return downloaded content with data and media type.
+   */
+  experimental_download?: DownloadFunction;
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
+
+  const downloadFunction =
+    download ?? createDefaultDownloadFunction();
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -198,19 +213,58 @@ Only applicable for HTTP-based providers.
     totalTokens: undefined,
   };
   for (const result of results) {
-    images.push(
-      ...result.images.map(
-        image =>
-          new DefaultGeneratedFile({
-            data: image,
+    // Process images: detect URLs and download them if needed
+    const processedImages = await Promise.all(
+      result.images.map(async image => {
+        // Check if image is a URL (string starting with http)
+        if (typeof image === 'string' && image.startsWith('http')) {
+          // Download the image using the download function
+          const downloadedFiles = await downloadFunction([
+            {
+              url: new URL(image),
+              isUrlSupportedByModel: false, // Image models don't support URLs natively
+            },
+          ]);
+
+          const downloadedFile = downloadedFiles[0];
+          if (downloadedFile == null) {
+            // Download function returned null, treat as base64 (shouldn't happen for images)
+            return new DefaultGeneratedFile({
+              data: image,
+              mediaType:
+                detectMediaType({
+                  data: image,
+                  signatures: imageMediaTypeSignatures,
+                }) ?? 'image/png',
+            });
+          }
+
+          // Convert downloaded data to GeneratedFile
+          return new DefaultGeneratedFile({
+            data: downloadedFile.data,
             mediaType:
+              downloadedFile.mediaType ??
               detectMediaType({
-                data: image,
+                data: downloadedFile.data,
                 signatures: imageMediaTypeSignatures,
-              }) ?? 'image/png',
-          }),
-      ),
+              }) ??
+              'image/png',
+          });
+        }
+
+        // Not a URL, treat as base64 string or Uint8Array
+        return new DefaultGeneratedFile({
+          data: image,
+          mediaType:
+            detectMediaType({
+              data: image,
+              signatures: imageMediaTypeSignatures,
+            }) ?? 'image/png',
+        });
+      }),
     );
+
+    images.push(...processedImages);
     warnings.push(...result.warnings);
 
     if (result.usage != null) {
