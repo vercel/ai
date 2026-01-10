@@ -50,6 +50,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { splitDataUrl } from './split-data-url';
 export * from './uint8-utils';
 export * from './validate-types';
 export { VERSION } from './version';
