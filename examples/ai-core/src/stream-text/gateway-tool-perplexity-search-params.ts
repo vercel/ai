@@ -8,13 +8,9 @@ async function main() {
 
   const result = streamText({
     model: gateway('openai/gpt-5-nano'),
-    prompt: `Search for news about AI regulations from the first week of January 2025. 
-Use the perplexitySearch tool with specific date filtering:
-- Use search_after_date: "1/1/2025" to get results from January 1st onwards
-- Use search_before_date: "1/8/2025" to limit to the first week
-Tell me what you found about AI policy changes in that period.`,
+    prompt: `Search for news about AI regulations from the first week of January 2025.`,
     tools: {
-      perplexitySearch: gateway.tools.perplexitySearch({
+      perplexity_search: gateway.tools.perplexitySearch({
         maxResults: 5,
         searchLanguageFilter: ['en'],
         country: 'US',
@@ -40,13 +36,15 @@ Tell me what you found about AI policy changes in that period.`,
       case 'tool-error':
         console.log('\nTool error:', JSON.stringify(part, null, 2));
         break;
-      case 'finish':
-        break;
-      default:
-        console.log('\nEvent:', JSON.stringify(part, null, 2));
     }
   }
 
+  console.log();
+  console.log('Tool calls:', JSON.stringify(await result.toolCalls, null, 2));
+  console.log(
+    'Tool results:',
+    JSON.stringify(await result.toolResults, null, 2),
+  );
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
