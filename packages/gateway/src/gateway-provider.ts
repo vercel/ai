@@ -18,6 +18,7 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -58,6 +59,11 @@ Creates a model for generating text embeddings.
 Creates a model for generating images.
 */
   imageModel(modelId: GatewayImageModelId): ImageModelV2;
+
+  /**
+Gateway-specific tools executed server-side.
+*/
+  tools: typeof gatewayTools;
 }
 
 export interface GatewayProviderSettings {
@@ -241,6 +247,7 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  provider.tools = gatewayTools;
 
   return provider;
 }
