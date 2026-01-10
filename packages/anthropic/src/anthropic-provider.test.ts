@@ -128,3 +128,35 @@ describe('anthropic provider - custom provider name', () => {
     expect(model.provider).toBe('anthropic.messages');
   });
 });
+
+describe('anthropic provider - supportedUrls', () => {
+  it('should support image/* URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['image/*']).toBeDefined();
+    expect(
+      supportedUrls['image/*']![0]!.test('https://example.com/image.png'),
+    ).toBe(true);
+  });
+
+  it('should support application/pdf URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['application/pdf']).toBeDefined();
+    expect(
+      supportedUrls['application/pdf']![0]!.test(
+        'https://arxiv.org/pdf/2401.00001',
+      ),
+    ).toBe(true);
+  });
+});

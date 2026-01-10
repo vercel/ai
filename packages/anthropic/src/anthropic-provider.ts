@@ -114,6 +114,7 @@ export function createAnthropic(
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         'image/*': [/^https?:\/\/.*$/],
+        'application/pdf': [/^https?:\/\/.*$/],
       }),
     });
 
