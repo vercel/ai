@@ -1644,4 +1644,34 @@ describe('doStream with raw chunks', () => {
       ]
     `);
   });
+
+  describe('error handling', () => {
+    it('should throw APICallError when xai returns error with 200 status (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+
+    it('should throw APICallError when xai returns error with 200 status (doStream)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+  });
 });
