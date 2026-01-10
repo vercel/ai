@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.13
+
+### Patch Changes
+
+- e89fc99: Correct input token calculation logic
+
+## 4.0.12
+
+### Patch Changes
+
+- eff1cb6: fix(bedrock): map reasoningConfig to reasoning_effort for openai models
+
 ## 4.0.11
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 3.0.11
+
+### Patch Changes
+
+- 891a60a: feat (provider/gateway): add provider-defined perplexity search
+
+## 3.0.10
+
+### Patch Changes
+
+- 2696fd2: chore(provider/gateway): Update gateway model settings files
+
 ## 3.0.9
 
 ### Patch Changes
