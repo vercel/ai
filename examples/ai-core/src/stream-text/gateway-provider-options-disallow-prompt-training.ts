@@ -8,7 +8,7 @@ run(async () => {
     prompt: 'Tell me the history of the tenrec in a few sentences.',
     providerOptions: {
       gateway: {
-        enforceNonPromptTrainingProviders: true,
+        disallowPromptTraining: true,
       } satisfies GatewayProviderOptions,
     },
   });

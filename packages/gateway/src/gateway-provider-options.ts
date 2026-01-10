@@ -64,7 +64,7 @@ const gatewayProviderOptions = lazySchema(() =>
        * When enabled, only providers that have agreements with Vercel AI Gateway
        * to not use prompts for model training will be used.
        */
-      enforceNonPromptTrainingProviders: z.boolean().optional(),
+      disallowPromptTraining: z.boolean().optional(),
     }),
   ),
 );

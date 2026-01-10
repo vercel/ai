@@ -416,7 +416,7 @@ The following gateway provider options are available:
 
   Restricts routing requests to providers that have zero data retention policies.
 
-- **enforceNonPromptTrainingProviders** _boolean_
+- **disallowPromptTraining** _boolean_
 
   Restricts routing requests to providers that do not use prompts for model training.
 
@@ -484,10 +484,10 @@ const { text } = await generateText({
 });
 ```
 
-#### Enforce Non-Prompt Training Providers Example
+#### Disallow Prompt Training Example
 
-Set `enforceNonPromptTrainingProviders` to true to ensure requests are only routed to providers
-that do not use prompts for model training. When `enforceNonPromptTrainingProviders` is `false` or not
+Set `disallowPromptTraining` to true to ensure requests are only routed to providers
+that do not use prompts for model training. When `disallowPromptTraining` is `false` or not
 specified, there is no enforcement of restricting routing.
 
 ```ts
@@ -499,7 +499,7 @@ const { text } = await generateText({
   prompt: 'Analyze this proprietary business data...',
   providerOptions: {
     gateway: {
-      enforceNonPromptTrainingProviders: true,
+      disallowPromptTraining: true,
     } satisfies GatewayProviderOptions,
   },
 });
