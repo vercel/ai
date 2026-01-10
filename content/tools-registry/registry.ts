@@ -352,6 +352,38 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
   },
   {
+    slug: 'tako-search',
+    name: 'Tako Search',
+    description:
+      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+    packageName: '@takoviz/ai-sdk',
+    installCommand: {
+      pnpm: 'pnpm add @takoviz/ai-sdk',
+      npm: 'npm install @takoviz/ai-sdk',
+      yarn: 'yarn add @takoviz/ai-sdk',
+      bun: 'bun add @takoviz/ai-sdk',
+    },
+    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
+  import { generateText } from 'ai';
+  
+  const { text } = await generateText({
+    model: 'openai/gpt-4o-mini',
+    prompt: 'What is the stock price of Nvidia?',
+    tools: {
+      takoSearch: takoSearch(),
+    },
+    maxSteps: 5,
+  });
+  
+  console.log(text);`,
+    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
+    websiteUrl: 'https://tako.com',
+    apiKeyEnvName: 'TAKO_API_KEY',
+    apiKeyUrl: 'https://tako.com',
+    tags: ['search', 'data', 'visualization', 'analytics'],
+  },
+  {
     slug: 'valyu',
     name: 'Valyu',
     description:
