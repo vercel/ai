@@ -1,4 +1,5 @@
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
+import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
 import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
@@ -107,13 +108,20 @@ export function smoothStream<TOOLS extends ToolSet>({
     let buffer = '';
     let id = '';
     let type: 'text-delta' | 'reasoning-delta' | undefined = undefined;
+    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
 
     function flushBuffer(
       controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
     ) {
       if (buffer.length > 0 && type !== undefined) {
-        controller.enqueue({ type, text: buffer, id });
+        controller.enqueue({
+          type,
+          text: buffer,
+          id,
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        });
         buffer = '';
+        providerMetadata = undefined;
       }
     }
 
@@ -134,6 +142,11 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.text;
         id = chunk.id;
         type = chunk.type;
+
+        // Preserve providerMetadata (e.g., Anthropic thinking signatures)
+        if (chunk.providerMetadata != null) {
+          providerMetadata = chunk.providerMetadata;
+        }
 
         let match;
 
