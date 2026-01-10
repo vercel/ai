@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.25
+
+### Patch Changes
+
+- f6b46d2: feat (provider/gateway): add provider-defined perplexity search
+
 ## 2.0.24
 
 ### Patch Changes
