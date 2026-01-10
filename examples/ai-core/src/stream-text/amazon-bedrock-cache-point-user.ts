@@ -1,11 +1,11 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
     messages: [
@@ -43,6 +43,4 @@ async function main() {
   );
   console.log('Finish reason:', await result.finishReason);
   console.log('Response headers:', (await result.response).headers);
-}
-
-main().catch(console.error);
+});

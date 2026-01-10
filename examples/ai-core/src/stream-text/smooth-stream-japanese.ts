@@ -1,17 +1,20 @@
 import { simulateReadableStream, smoothStream, streamText } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: new MockLanguageModelV3({
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
             { type: 'text-start', id: '0' },
-            { type: 'text-delta', id: '0', delta: 'こんにちは' },
-            { type: 'text-delta', id: '0', delta: 'こんにちは' },
-            { type: 'text-delta', id: '0', delta: 'こんにちは' },
-            { type: 'text-delta', id: '0', delta: 'こんにちは' },
+            {
+              type: 'text-delta',
+              id: '0',
+              delta:
+                '東京は日本の首都です。人口は約1400万人で、世界最大の都市圏の一つです。美しい桜の季節には多くの観光客が訪れます。',
+            },
             { type: 'text-end', id: '0' },
             {
               type: 'finish',
@@ -32,20 +35,17 @@ async function main() {
               },
             },
           ],
-          chunkDelayInMs: 400,
         }),
       }),
     }),
-
     prompt: 'Say hello in Japanese!',
     experimental_transform: smoothStream({
-      chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
+      chunking: new Intl.Segmenter('ja', { granularity: 'word' }),
+      delayInMs: 100,
     }),
   });
 
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
-}
-
-main().catch(console.error);
+});

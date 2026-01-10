@@ -1,9 +1,9 @@
 import { huggingface } from '@ai-sdk/huggingface';
 import { generateText, stepCountIs, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod/v4';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, usage } = await generateText({
     model: huggingface.responses('deepseek-ai/DeepSeek-V3-0324'),
     tools: {
@@ -69,6 +69,4 @@ async function main() {
   console.log('Final response:', text);
   console.log();
   console.log('Total usage:', usage);
-}
-
-main().catch(console.error);
+});

@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const retrieveInformation = tool({
   description: 'Retrieve information from the database',
@@ -17,7 +17,7 @@ const retrieveInformation = tool({
   },
 });
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'How many "r"s are in the word "strawberry"?',
@@ -37,6 +37,4 @@ async function main() {
   await result.consumeStream();
 
   console.log(JSON.stringify(await result.steps, null, 2));
-}
-
-main().catch(console.error);
+});

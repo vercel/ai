@@ -1,9 +1,9 @@
 import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import fs from 'fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: perplexity('sonar-pro'),
     messages: [
@@ -26,6 +26,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

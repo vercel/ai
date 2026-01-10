@@ -1,12 +1,12 @@
 import { xai } from '@ai-sdk/xai';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
-    model: xai('grok-3-beta'),
+    model: xai('grok-4-1-fast-reasoning'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
@@ -63,6 +63,4 @@ async function main() {
   console.log('Text:', result.text);
   console.log('Tool Calls:', JSON.stringify(result.toolCalls, null, 2));
   console.log('Tool Results:', JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

@@ -6,12 +6,12 @@ import {
   ToolResultPart,
   tool,
 } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const messages: ModelMessage[] = [];
 
-async function main() {
+run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
@@ -84,6 +84,4 @@ async function main() {
   }
 
   toolResponseAvailable = toolCalls.length > 0;
-}
-
-main().catch(console.error);
+});

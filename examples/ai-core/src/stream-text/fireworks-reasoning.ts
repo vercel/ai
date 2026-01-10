@@ -1,8 +1,8 @@
 import { fireworks } from '@ai-sdk/fireworks';
 import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: wrapLanguageModel({
       model: fireworks('accounts/fireworks/models/qwq-32b'),
@@ -31,6 +31,4 @@ async function main() {
       process.stdout.write(part.text);
     }
   }
-}
-
-main().catch(console.error);
+});

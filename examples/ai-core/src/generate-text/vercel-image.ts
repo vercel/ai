@@ -1,9 +1,9 @@
 import { vercel } from '@ai-sdk/vercel';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vercel('v0-1.0-md'),
     messages: [
@@ -18,6 +18,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

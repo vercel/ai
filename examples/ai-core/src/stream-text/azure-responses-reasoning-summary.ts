@@ -1,15 +1,15 @@
-import 'dotenv/config';
 import { azure } from '@ai-sdk/azure';
 import { streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: azure.responses('gpt-5-mini'), // use your own deployment
     system: 'You are a helpful assistant.',
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {
-      openai: {
+      azure: {
         // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
         // reasoningSummary: 'auto', // 'detailed'
         reasoningSummary: 'auto',
@@ -29,6 +29,4 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
   console.log('Provider metadata:', await result.providerMetadata);
-}
-
-main().catch(console.error);
+});

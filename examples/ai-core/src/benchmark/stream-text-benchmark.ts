@@ -1,6 +1,7 @@
 import { streamText, simulateReadableStream } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { LanguageModelV3StreamPart } from '@ai-sdk/provider';
+import { run } from '../lib/run';
 
 const generateLongContent = (tokens: number, includeTools = false) => {
   const chunks: LanguageModelV3StreamPart[] = [
@@ -222,7 +223,7 @@ async function benchmarkStreamWithToolCalls() {
   );
 }
 
-async function main() {
+run(async () => {
   console.log('Running streamText benchmarks...\n');
 
   await benchmarkSingleStream();
@@ -230,6 +231,4 @@ async function main() {
   await benchmarkStreamWithToolCalls();
 
   console.log('\nBenchmark complete!');
-}
-
-main().catch(console.error);
+});

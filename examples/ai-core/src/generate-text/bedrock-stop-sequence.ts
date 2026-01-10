@@ -1,8 +1,8 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: bedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
     prompt: 'Write a short story and end it with the word END.',
@@ -14,6 +14,4 @@ async function main() {
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Stop sequence:', result.providerMetadata?.bedrock?.stopSequence);
-}
-
-main().catch(console.error);
+});

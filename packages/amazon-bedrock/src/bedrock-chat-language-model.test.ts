@@ -87,6 +87,11 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const openaiModelId = 'openai.gpt-oss-120b-1:0';
+const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  openaiModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -98,6 +103,7 @@ const server = createTestServer({
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [openaiGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -145,6 +151,13 @@ const model = new BedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new BedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -1376,8 +1389,8 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": 2,
               "cacheWrite": 3,
-              "noCache": 2,
-              "total": 4,
+              "noCache": 4,
+              "total": 9,
             },
             "outputTokens": {
               "reasoning": undefined,
@@ -3462,8 +3475,8 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 2,
           "cacheWrite": 3,
-          "noCache": 2,
-          "total": 4,
+          "noCache": 4,
+          "total": 9,
         },
         "outputTokens": {
           "reasoning": undefined,
@@ -3592,6 +3605,41 @@ describe('doGenerate', () => {
         },
       },
     });
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoning_effort: 'medium',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 

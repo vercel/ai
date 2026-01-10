@@ -1,8 +1,8 @@
 import { azure } from '@ai-sdk/azure';
 import { smoothStream, streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: azure('gpt-4.1-mini'), // use your own deployment
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -16,6 +16,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const prompt = 'A blue cream Persian cat in Kyoto in the style of ukiyo-e';
   const result = await generateImage({
     model: openai.image('gpt-image-1.5'),
@@ -17,6 +17,4 @@ async function main() {
     'Provider metadata:',
     JSON.stringify(result.providerMetadata, null, 2),
   );
-}
-
-main().catch(console.error);
+});

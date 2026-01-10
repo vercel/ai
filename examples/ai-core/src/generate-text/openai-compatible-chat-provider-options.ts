@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const openai = createOpenAICompatible({
     baseURL: 'https://api.openai.com/v1',
     name: 'openai',
@@ -25,6 +25,4 @@ async function main() {
   });
   console.log(result.text);
   console.log(result.request.body);
-}
-
-main().catch(console.error);
+});

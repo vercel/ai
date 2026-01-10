@@ -1,9 +1,9 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   let headers;
   const openai = createOpenAI({
     fetch: (url, init) => {
@@ -34,6 +34,4 @@ async function main() {
 
   console.log('REQUEST HEADERS');
   console.log(headers);
-}
-
-main().catch(console.error);
+});
