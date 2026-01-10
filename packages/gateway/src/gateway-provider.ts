@@ -18,6 +18,7 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -57,7 +58,16 @@ Creates a model for generating text embeddings.
   /**
 Creates a model for generating images.
 */
+<<<<<<< HEAD
   imageModel(modelId: GatewayImageModelId): ImageModelV2;
+=======
+  imageModel(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+Gateway-specific tools executed server-side.
+*/
+  tools: typeof gatewayTools;
+>>>>>>> 891a60ab3 (feat (provider/gateway): add provider-defined perplexity search (#11694))
 }
 
 export interface GatewayProviderSettings {
@@ -241,6 +251,12 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+<<<<<<< HEAD
+=======
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.tools = gatewayTools;
+>>>>>>> 891a60ab3 (feat (provider/gateway): add provider-defined perplexity search (#11694))
 
   return provider;
 }
