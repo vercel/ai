@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderDefinedToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -235,12 +235,13 @@ const perplexitySearchOutputSchema = lazySchema(() =>
 );
 
 export const perplexitySearchToolFactory =
-  createProviderToolFactoryWithOutputSchema<
+  createProviderDefinedToolFactoryWithOutputSchema<
     PerplexitySearchInput,
     PerplexitySearchOutput,
     PerplexitySearchConfig
   >({
     id: 'gateway.perplexity_search',
+    name: 'perplexity_search',
     inputSchema: perplexitySearchInputSchema,
     outputSchema: perplexitySearchOutputSchema,
   });
