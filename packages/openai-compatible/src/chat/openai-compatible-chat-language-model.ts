@@ -651,7 +651,7 @@ const openaiCompatibleTokenUsageSchema = z
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
-const OpenAICompatibleChatResponseSchema = z.object({
+const OpenAICompatibleChatResponseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
@@ -680,7 +680,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
   usage: openaiCompatibleTokenUsageSchema,
 });
 
-const chunkBaseSchema = z.object({
+const chunkBaseSchema = z.looseObject({
   id: z.string().nullish(),
   created: z.number().nullish(),
   model: z.string().nullish(),
