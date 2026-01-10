@@ -18,6 +18,12 @@ export const openaiCompatibleProviderOptions = z.object({
    * Controls the verbosity of the generated text. Defaults to `medium`.
    */
   textVerbosity: z.string().optional(),
+
+  /**
+   * Whether to send reasoning content back to the model in multi-turn
+   * tool-calling conversations. Defaults to `false`.
+   */
+  sendReasoning: z.boolean().optional(),
 });
 
 export type OpenAICompatibleProviderOptions = z.infer<
