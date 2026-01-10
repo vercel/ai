@@ -32,7 +32,12 @@ export { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assi
 export { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 export { TextStreamChatTransport } from './text-stream-chat-transport';
 export {
+  createStreamingUIMessageState,
   getStaticToolName,
+  processUIMessageStream,
+  type StreamingUIMessageState,
+} from './process-ui-message-stream';
+export {
   getToolName,
   getToolOrDynamicToolName,
   isDataUIPart,
