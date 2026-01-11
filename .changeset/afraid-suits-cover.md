@@ -2,4 +2,4 @@
 '@ai-sdk/xai': patch
 ---
 
-pass response format to xai responses api
+fix (provider/xai): set response format to allow object generation
