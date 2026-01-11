@@ -342,6 +342,136 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      describe('responseFormat', () => {
+        it('should send response format json schema', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              name: 'recipe',
+              description: 'A recipe object',
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  ingredients: { type: 'array', items: { type: 'string' } },
+                },
+                required: ['name', 'ingredients'],
+                additionalProperties: false,
+              },
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": "hello",
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "description": "A recipe object",
+                  "name": "recipe",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingredients": {
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "name": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "name",
+                      "ingredients",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                  "type": "json_schema",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should send response format json object when no schema provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": "hello",
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "type": "json_object",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should use default name when responseFormat.name is not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              schema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.text.format.name).toBe('response');
+        });
+      });
     });
 
     describe('web_search tool', () => {
