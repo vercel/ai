@@ -8,6 +8,26 @@ import { convertToModelMessages } from './convert-to-model-messages';
 import { InferUITools, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 
+export type DirectPrepareSendMessagesRequest<
+  CALL_OPTIONS,
+  UI_MESSAGE extends UIMessage,
+> = (options: {
+  id: string;
+  messages: UI_MESSAGE[];
+  requestMetadata: unknown;
+  agentOptions: CALL_OPTIONS | undefined;
+  trigger: 'submit-message' | 'regenerate-message';
+  messageId: string | undefined;
+}) =>
+  | {
+      messages?: UI_MESSAGE[];
+      agentOptions?: CALL_OPTIONS;
+    }
+  | PromiseLike<{
+      messages?: UI_MESSAGE[];
+      agentOptions?: CALL_OPTIONS;
+    }>;
+
 /**
  * Options for the `DirectChatTransport` class.
  */
@@ -26,6 +46,23 @@ export type DirectChatTransportOptions<
    * Options to pass to the agent when calling it.
    */
   options?: CALL_OPTIONS;
+
+  /**
+   * When a function is provided, it will be used
+   * to prepare the request before calling the agent. This can be useful for
+   * customizing the messages or agent options based on context.
+   *
+   * @param id The id of the chat.
+   * @param messages The current messages in the chat.
+   * @param requestMetadata The metadata passed with the request.
+   * @param agentOptions The current agent options.
+   * @param trigger The trigger for this request.
+   * @param messageId The id of the message being regenerated (if applicable).
+   */
+  prepareSendMessagesRequest?: DirectPrepareSendMessagesRequest<
+    CALL_OPTIONS,
+    UI_MESSAGE
+  >;
 } & Omit<UIMessageStreamOptions<UI_MESSAGE>, 'onFinish'>;
 
 /**
@@ -59,6 +96,9 @@ export class DirectChatTransport<
 {
   private readonly agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
+  private readonly prepareSendMessagesRequest:
+    | DirectPrepareSendMessagesRequest<CALL_OPTIONS, UI_MESSAGE>
+    | undefined;
   private readonly uiMessageStreamOptions: Omit<
     UIMessageStreamOptions<UI_MESSAGE>,
     'onFinish'
@@ -67,22 +107,41 @@ export class DirectChatTransport<
   constructor({
     agent,
     options,
+    prepareSendMessagesRequest,
     ...uiMessageStreamOptions
   }: DirectChatTransportOptions<CALL_OPTIONS, TOOLS, OUTPUT, UI_MESSAGE>) {
     this.agent = agent;
     this.agentOptions = options;
+    this.prepareSendMessagesRequest = prepareSendMessagesRequest;
     this.uiMessageStreamOptions = uiMessageStreamOptions;
   }
 
   async sendMessages({
     messages,
     abortSignal,
+    chatId,
+    metadata,
+    trigger,
+    messageId,
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]): Promise<
     ReadableStream<UIMessageChunk>
   > {
+    // Allow customization of messages and agent options
+    const preparedRequest = await this.prepareSendMessagesRequest?.({
+      id: chatId,
+      messages,
+      requestMetadata: metadata,
+      agentOptions: this.agentOptions,
+      trigger,
+      messageId,
+    });
+
+    const finalMessages = preparedRequest?.messages ?? messages;
+    const finalAgentOptions = preparedRequest?.agentOptions ?? this.agentOptions;
+
     // Validate the incoming UI messages
     const validatedMessages = await validateUIMessages<UI_MESSAGE>({
-      messages,
+      messages: finalMessages,
       tools: this.agent.tools,
     });
 
@@ -91,14 +150,14 @@ export class DirectChatTransport<
       tools: this.agent.tools,
     });
 
-    // Stream from the agent
-    const result = await this.agent.stream({
+    // Stream options for agent
+    const streamOptions = {
       prompt: modelMessages,
       abortSignal,
-      ...(this.agentOptions !== undefined
-        ? { options: this.agentOptions }
-        : {}),
-    } as Parameters<Agent<CALL_OPTIONS, TOOLS, OUTPUT>['stream']>[0]);
+      ...(finalAgentOptions && { options: finalAgentOptions }),
+    };
+
+    const result = await this.agent.stream(streamOptions);
 
     // Return the UI message stream
     return result.toUIMessageStream(this.uiMessageStreamOptions);

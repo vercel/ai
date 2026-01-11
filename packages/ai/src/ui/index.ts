@@ -21,6 +21,7 @@ export { DefaultChatTransport } from './default-chat-transport';
 export {
   DirectChatTransport,
   type DirectChatTransportOptions,
+  type DirectPrepareSendMessagesRequest,
 } from './direct-chat-transport';
 export {
   HttpChatTransport,

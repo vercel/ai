@@ -57,6 +57,62 @@ export default function Chat() {
         'Options to pass to the agent when calling it. These are agent-specific options defined when creating the agent.',
     },
     {
+      name: 'prepareSendMessagesRequest',
+      type: 'DirectPrepareSendMessagesRequest',
+      isOptional: true,
+      description:
+        'A function to customize the request before calling the agent. Can modify messages or agent options based on context.',
+      properties: [
+        {
+          type: 'DirectPrepareSendMessagesRequest',
+          parameters: [
+            {
+              name: 'options',
+              type: 'DirectPrepareSendMessagesRequestOptions',
+              description: 'Options for preparing the request',
+              properties: [
+                {
+                  type: 'DirectPrepareSendMessagesRequestOptions',
+                  parameters: [
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The chat ID',
+                    },
+                    {
+                      name: 'messages',
+                      type: 'UIMessage[]',
+                      description: 'Current messages in the chat',
+                    },
+                    {
+                      name: 'requestMetadata',
+                      type: 'unknown',
+                      description: 'The request metadata',
+                    },
+                    {
+                      name: 'agentOptions',
+                      type: 'CALL_OPTIONS | undefined',
+                      description: 'The current agent options',
+                    },
+                    {
+                      name: 'trigger',
+                      type: "'submit-message' | 'regenerate-message'",
+                      description: 'The trigger for the request',
+                    },
+                    {
+                      name: 'messageId',
+                      type: 'string | undefined',
+                      description: 'The message ID if applicable',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'originalMessages',
       type: 'UIMessage[]',
       isOptional: true,
@@ -175,7 +231,7 @@ const stream = await transport.sendMessages({
       name: 'metadata',
       type: 'unknown',
       isOptional: true,
-      description: 'Custom metadata (ignored by DirectChatTransport).',
+      description: 'Custom metadata passed to `prepareSendMessagesRequest` as `requestMetadata`.',
     },
   ]}
 />
@@ -329,5 +385,45 @@ export default function Chat() {
       ))}
     </div>
   );
+}
+```
+
+### With Request Preparation
+
+Use `prepareSendMessagesRequest` to customize messages or agent options before each request:
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const agent = new ToolLoopAgent<{ userId: string }>({
+  model: openai('gpt-4o'),
+  prepareCall: ({ options, ...rest }) => ({
+    ...rest,
+    providerOptions: {
+      openai: { user: options.userId },
+    },
+  }),
+});
+
+export default function Chat({ userId }: { userId: string }) {
+  const { messages, sendMessage } = useChat({
+    transport: new DirectChatTransport({
+      agent,
+      prepareSendMessagesRequest: ({ messages, trigger }) => {
+        // Only send the last 10 messages to reduce context
+        const recentMessages = messages.slice(-10);
+
+        // Dynamically set agent options based on context
+        return {
+          messages: recentMessages,
+          agentOptions: { userId },
+        };
+      },
+    }),
+  });
+
+  // ... render chat UI
 }
 ```
