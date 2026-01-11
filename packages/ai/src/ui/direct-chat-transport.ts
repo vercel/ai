@@ -154,7 +154,7 @@ export class DirectChatTransport<
     const streamOptions = {
       prompt: modelMessages,
       abortSignal,
-      ...(finalAgentOptions && { options: finalAgentOptions }),
+      ...(finalAgentOptions !== undefined ? { options: finalAgentOptions } : {}),
     };
 
     const result = await this.agent.stream(streamOptions);
