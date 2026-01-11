@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.50
+
+### Patch Changes
+
+- 13a913c: fix(provider/xai): send reasoning-end before text-start in streaming
+
 ## 2.0.49
 
 ### Patch Changes
