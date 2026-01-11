@@ -1,5 +1,12 @@
 # ai
 
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
 ## 6.0.22
 
 ### Patch Changes

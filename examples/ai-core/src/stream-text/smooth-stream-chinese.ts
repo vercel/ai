@@ -9,11 +9,12 @@ run(async () => {
         stream: simulateReadableStream({
           chunks: [
             { type: 'text-start', id: '0' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
-            { type: 'text-delta', id: '0', delta: '你好你好你好你好你好' },
+            {
+              type: 'text-delta',
+              id: '0',
+              delta:
+                '今天天气很好，我们一起去公园散步吧。春天的花朵非常美丽，阳光温暖而舒适。这是一个完美的周末。',
+            },
             { type: 'text-end', id: '0' },
             {
               type: 'finish',
@@ -34,14 +35,13 @@ run(async () => {
               },
             },
           ],
-          chunkDelayInMs: 400,
         }),
       }),
     }),
-
     prompt: 'Say hello in Chinese!',
     experimental_transform: smoothStream({
-      chunking: /[\u4E00-\u9FFF]|\S+\s+/,
+      chunking: new Intl.Segmenter('zh', { granularity: 'word' }),
+      delayInMs: 100,
     }),
   });
 

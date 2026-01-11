@@ -1,5 +1,19 @@
 # @ai-sdk/langchain
 
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
+## 2.0.27
+
+### Patch Changes
+
+- 6251282: fix(langchain): ensure message id consistency
+
 ## 2.0.26
 
 ### Patch Changes

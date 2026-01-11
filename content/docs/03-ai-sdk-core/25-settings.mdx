@@ -111,7 +111,10 @@ An optional timeout in milliseconds. The call will be aborted if it takes longer
 
 This is a convenience parameter that creates an abort signal internally. It can be used alongside `abortSignal` - if both are provided, the call will abort when either condition is met.
 
-You can specify the timeout either as a number (milliseconds) or as an object with a `totalMs` property.
+You can specify the timeout either as a number (milliseconds) or as an object with `totalMs` and/or `stepMs` properties:
+
+- `totalMs`: The total timeout for the entire call including all steps.
+- `stepMs`: The timeout for each individual step (LLM call). This is useful for multi-step generations where you want to limit the time spent on each step independently.
 
 #### Example: 5 second timeout (number format)
 
@@ -123,13 +126,36 @@ const result = await generateText({
 });
 ```
 
-#### Example: 5 second timeout (object format)
+#### Example: 5 second total timeout (object format)
 
 ```ts
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Invent a new holiday and describe its traditions.',
   timeout: { totalMs: 5000 }, // 5 seconds
+});
+```
+
+#### Example: 10 second step timeout
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Invent a new holiday and describe its traditions.',
+  timeout: { stepMs: 10000 }, // 10 seconds per step
+});
+```
+
+#### Example: Combined total and step timeout
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Invent a new holiday and describe its traditions.',
+  timeout: {
+    totalMs: 60000, // 60 seconds total
+    stepMs: 10000, // 10 seconds per step
+  },
 });
 ```
 
