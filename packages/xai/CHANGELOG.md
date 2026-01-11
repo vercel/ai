@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.51
+
+### Patch Changes
+
+- c635580: fix (provider/xai): set response format to allow object generation
+
 ## 2.0.50
 
 ### Patch Changes
