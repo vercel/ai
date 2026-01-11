@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.49
+
+### Patch Changes
+
+- 0c419f8: fix(provider/xai): handle error responses returned with 200 status
+
 ## 2.0.48
 
 ### Patch Changes
