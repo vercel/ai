@@ -235,7 +235,19 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         isRetryable: response.code === 'The service is currently unavailable',
       });
     }
-    const choice = response.choices![0];
+
+    if (!response.choices || response.choices.length === 0) {
+      throw new APICallError({
+        message: 'No choices returned from the API',
+        url,
+        requestBodyValues: body,
+        statusCode: 200,
+        responseHeaders,
+        responseBody: JSON.stringify(rawResponse),
+      });
+    }
+
+    const choice = response.choices[0];
     const content: Array<LanguageModelV2Content> = [];
 
     // extract text content
