@@ -2426,6 +2426,128 @@ describe('generateText', () => {
 
       expect(receivedAbortSignal).toBeUndefined();
     });
+
+    it('should forward stepMs as abort signal to each step', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { stepMs: 5000 },
+      });
+
+      expect(receivedAbortSignals.length).toBe(1);
+      expect(receivedAbortSignals[0]).toBeDefined();
+    });
+
+    it('should reuse the same abort signal for all steps when stepMs is set', async () => {
+      const receivedAbortSignals: (AbortSignal | undefined)[] = [];
+      let stepCount = 0;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignals.push(abortSignal);
+            stepCount++;
+            if (stepCount === 1) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "test" }`,
+                  },
+                ],
+              };
+            }
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Final response' }],
+            };
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'tool result',
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 5000 },
+        stopWhen: stepCountIs(2),
+      });
+
+      expect(receivedAbortSignals.length).toBe(2);
+      // The same abort signal is reused for all steps (timeout is reset per step)
+      expect(receivedAbortSignals[0]).toBeDefined();
+      expect(receivedAbortSignals[1]).toBeDefined();
+      expect(receivedAbortSignals[0]).toBe(receivedAbortSignals[1]);
+    });
+
+    it('should forward stepMs abort signal to tool execution', async () => {
+      let toolAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (_args, { abortSignal }) => {
+              toolAbortSignal = abortSignal;
+              return 'tool result';
+            },
+          },
+        },
+        prompt: 'test-input',
+        timeout: { stepMs: 5000 },
+      });
+
+      expect(toolAbortSignal).toBeDefined();
+    });
+
+    it('should support both totalMs and stepMs together', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 10000, stepMs: 5000 },
+      });
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
   });
 
   describe('options.activeTools', () => {

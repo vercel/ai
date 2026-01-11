@@ -1,5 +1,63 @@
 # @ai-sdk/react
 
+## 3.0.29
+
+### Patch Changes
+
+- ai@6.0.27
+
+## 3.0.28
+
+### Patch Changes
+
+- 3219eab: feat(react): support async/function headers in useObject
+
+  The `useObject` hook now accepts headers as an async function, enabling dynamic header generation (e.g., fetching auth tokens) without causing the hook to re-render.
+
+  This provides parity with `useChat` and resolves issues with infinite loops when using state-based headers with `useEffect`.
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [40d4997]
+  - ai@6.0.26
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [b64f256]
+  - ai@6.0.25
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- 000a0a6: Fix: ensure `useChat` uses the latest `onToolCall` (and other callbacks) to avoid stale closures.
+
+  Changes:
+
+  - Update `useChat` to use intermediary proxy callbacks that forward to refs, ensuring the latest callbacks are always used without recreating the chat instance.
+  - Add a regression test verifying the latest `onToolCall` is invoked after a prop change.
+
+  Related to: https://github.com/vercel/ai/issues/8148
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
 ## 3.0.22
 
 ### Patch Changes

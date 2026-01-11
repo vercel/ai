@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.13
+
+### Patch Changes
+
+- e89fc99: Correct input token calculation logic
+
 ## 4.0.12
 
 ### Patch Changes

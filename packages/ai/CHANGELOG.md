@@ -1,5 +1,37 @@
 # ai
 
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
 ## 6.0.22
 
 ### Patch Changes
