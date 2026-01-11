@@ -1,23 +1,11 @@
 import {
-<<<<<<< HEAD
+  APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-=======
-  APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
->>>>>>> e7bdbc784 (fix(provider/xai): handle error responses returned with 200 status (#11671))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -155,48 +143,48 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         responseFormat?.type === 'json'
           ? responseFormat.schema != null
             ? {
-                type: 'json_schema',
-                json_schema: {
-                  name: responseFormat.name ?? 'response',
-                  schema: responseFormat.schema,
-                  strict: true,
-                },
-              }
+              type: 'json_schema',
+              json_schema: {
+                name: responseFormat.name ?? 'response',
+                schema: responseFormat.schema,
+                strict: true,
+              },
+            }
             : { type: 'json_object' }
           : undefined,
 
       // search parameters
       search_parameters: options.searchParameters
         ? {
-            mode: options.searchParameters.mode,
-            return_citations: options.searchParameters.returnCitations,
-            from_date: options.searchParameters.fromDate,
-            to_date: options.searchParameters.toDate,
-            max_search_results: options.searchParameters.maxSearchResults,
-            sources: options.searchParameters.sources?.map(source => ({
-              type: source.type,
-              ...(source.type === 'web' && {
-                country: source.country,
-                excluded_websites: source.excludedWebsites,
-                allowed_websites: source.allowedWebsites,
-                safe_search: source.safeSearch,
-              }),
-              ...(source.type === 'x' && {
-                excluded_x_handles: source.excludedXHandles,
-                included_x_handles: source.includedXHandles ?? source.xHandles,
-                post_favorite_count: source.postFavoriteCount,
-                post_view_count: source.postViewCount,
-              }),
-              ...(source.type === 'news' && {
-                country: source.country,
-                excluded_websites: source.excludedWebsites,
-                safe_search: source.safeSearch,
-              }),
-              ...(source.type === 'rss' && {
-                links: source.links,
-              }),
-            })),
-          }
+          mode: options.searchParameters.mode,
+          return_citations: options.searchParameters.returnCitations,
+          from_date: options.searchParameters.fromDate,
+          to_date: options.searchParameters.toDate,
+          max_search_results: options.searchParameters.maxSearchResults,
+          sources: options.searchParameters.sources?.map(source => ({
+            type: source.type,
+            ...(source.type === 'web' && {
+              country: source.country,
+              excluded_websites: source.excludedWebsites,
+              allowed_websites: source.allowedWebsites,
+              safe_search: source.safeSearch,
+            }),
+            ...(source.type === 'x' && {
+              excluded_x_handles: source.excludedXHandles,
+              included_x_handles: source.includedXHandles ?? source.xHandles,
+              post_favorite_count: source.postFavoriteCount,
+              post_view_count: source.postViewCount,
+            }),
+            ...(source.type === 'news' && {
+              country: source.country,
+              excluded_websites: source.excludedWebsites,
+              safe_search: source.safeSearch,
+            }),
+            ...(source.type === 'rss' && {
+              links: source.links,
+            }),
+          })),
+        }
         : undefined,
 
       // messages in xai format
@@ -236,10 +224,6 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
-    const choice = response.choices[0];
-    const content: Array<LanguageModelV2Content> = [];
-=======
     if (response.error != null) {
       throw new APICallError({
         message: response.error,
@@ -251,10 +235,8 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         isRetryable: response.code === 'The service is currently unavailable',
       });
     }
-
     const choice = response.choices![0];
-    const content: Array<LanguageModelV3Content> = [];
->>>>>>> e7bdbc784 (fix(provider/xai): handle error responses returned with 200 status (#11671))
+    const content: Array<LanguageModelV2Content> = [];
 
     // extract text content
     if (choice.message.content != null && choice.message.content.length > 0) {
@@ -310,19 +292,15 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
       content,
       finishReason: mapXaiFinishReason(choice.finish_reason),
       usage: {
-        inputTokens: response.usage.prompt_tokens,
-        outputTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
+        inputTokens: response.usage?.prompt_tokens,
+        outputTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens,
         reasoningTokens:
-          response.usage.completion_tokens_details?.reasoning_tokens ??
+          response.usage?.completion_tokens_details?.reasoning_tokens ??
           undefined,
         cachedInputTokens:
-          response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
+          response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
-<<<<<<< HEAD
-=======
-      usage: convertXaiChatUsage(response.usage!), // defined when there is no error
->>>>>>> e7bdbc784 (fix(provider/xai): handle error responses returned with 200 status (#11671))
       request: { body },
       response: {
         ...getResponseMetadata(response),
