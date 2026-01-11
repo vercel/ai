@@ -143,48 +143,48 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
         responseFormat?.type === 'json'
           ? responseFormat.schema != null
             ? {
-              type: 'json_schema',
-              json_schema: {
-                name: responseFormat.name ?? 'response',
-                schema: responseFormat.schema,
-                strict: true,
-              },
-            }
+                type: 'json_schema',
+                json_schema: {
+                  name: responseFormat.name ?? 'response',
+                  schema: responseFormat.schema,
+                  strict: true,
+                },
+              }
             : { type: 'json_object' }
           : undefined,
 
       // search parameters
       search_parameters: options.searchParameters
         ? {
-          mode: options.searchParameters.mode,
-          return_citations: options.searchParameters.returnCitations,
-          from_date: options.searchParameters.fromDate,
-          to_date: options.searchParameters.toDate,
-          max_search_results: options.searchParameters.maxSearchResults,
-          sources: options.searchParameters.sources?.map(source => ({
-            type: source.type,
-            ...(source.type === 'web' && {
-              country: source.country,
-              excluded_websites: source.excludedWebsites,
-              allowed_websites: source.allowedWebsites,
-              safe_search: source.safeSearch,
-            }),
-            ...(source.type === 'x' && {
-              excluded_x_handles: source.excludedXHandles,
-              included_x_handles: source.includedXHandles ?? source.xHandles,
-              post_favorite_count: source.postFavoriteCount,
-              post_view_count: source.postViewCount,
-            }),
-            ...(source.type === 'news' && {
-              country: source.country,
-              excluded_websites: source.excludedWebsites,
-              safe_search: source.safeSearch,
-            }),
-            ...(source.type === 'rss' && {
-              links: source.links,
-            }),
-          })),
-        }
+            mode: options.searchParameters.mode,
+            return_citations: options.searchParameters.returnCitations,
+            from_date: options.searchParameters.fromDate,
+            to_date: options.searchParameters.toDate,
+            max_search_results: options.searchParameters.maxSearchResults,
+            sources: options.searchParameters.sources?.map(source => ({
+              type: source.type,
+              ...(source.type === 'web' && {
+                country: source.country,
+                excluded_websites: source.excludedWebsites,
+                allowed_websites: source.allowedWebsites,
+                safe_search: source.safeSearch,
+              }),
+              ...(source.type === 'x' && {
+                excluded_x_handles: source.excludedXHandles,
+                included_x_handles: source.includedXHandles ?? source.xHandles,
+                post_favorite_count: source.postFavoriteCount,
+                post_view_count: source.postViewCount,
+              }),
+              ...(source.type === 'news' && {
+                country: source.country,
+                excluded_websites: source.excludedWebsites,
+                safe_search: source.safeSearch,
+              }),
+              ...(source.type === 'rss' && {
+                links: source.links,
+              }),
+            })),
+          }
         : undefined,
 
       // messages in xai format
