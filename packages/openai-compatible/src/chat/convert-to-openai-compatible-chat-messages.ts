@@ -79,6 +79,11 @@ export function convertToOpenAICompatibleChatMessages(
           id: string;
           type: 'function';
           function: { name: string; arguments: string };
+          extra_content?: {
+            google?: {
+              thought_signature?: string;
+            };
+          };
         }> = [];
 
         for (const part of content) {
@@ -89,6 +94,8 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             }
             case 'tool-call': {
+              const thoughtSignature =
+                part.providerOptions?.google?.thoughtSignature;
               toolCalls.push({
                 id: part.toolCallId,
                 type: 'function',
@@ -97,6 +104,16 @@ export function convertToOpenAICompatibleChatMessages(
                   arguments: JSON.stringify(part.input),
                 },
                 ...partMetadata,
+                // Include extra_content for Google Gemini thought signatures
+                ...(thoughtSignature
+                  ? {
+                      extra_content: {
+                        google: {
+                          thought_signature: String(thoughtSignature),
+                        },
+                      },
+                    }
+                  : {}),
               });
               break;
             }

@@ -259,11 +259,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
+        const thoughtSignature =
+          toolCall.extra_content?.google?.thought_signature;
         content.push({
           type: 'tool-call',
           toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
+          ...(thoughtSignature
+            ? {
+                providerMetadata: {
+                  [this.providerOptionsName]: { thoughtSignature },
+                },
+              }
+            : {}),
         });
       }
     }
@@ -345,6 +354,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         arguments: string;
       };
       hasFinished: boolean;
+      thoughtSignature?: string;
     }> = [];
 
     let finishReason: LanguageModelV3FinishReason = {
@@ -458,7 +468,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
+                const index = toolCallDelta.index ?? toolCalls.length;
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
@@ -489,6 +499,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                       arguments: toolCallDelta.function.arguments ?? '',
                     },
                     hasFinished: false,
+                    thoughtSignature:
+                      toolCallDelta.extra_content?.google?.thought_signature ??
+                      undefined,
                   };
 
                   const toolCall = toolCalls[index];
@@ -519,6 +532,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
                         input: toolCall.function.arguments,
+                        ...(toolCall.thoughtSignature
+                          ? {
+                              providerMetadata: {
+                                [providerOptionsName]: {
+                                  thoughtSignature: toolCall.thoughtSignature,
+                                },
+                              },
+                            }
+                          : {}),
                       });
                       toolCall.hasFinished = true;
                     }
@@ -562,6 +584,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
                     input: toolCall.function.arguments,
+                    ...(toolCall.thoughtSignature
+                      ? {
+                          providerMetadata: {
+                            [providerOptionsName]: {
+                              thoughtSignature: toolCall.thoughtSignature,
+                            },
+                          },
+                        }
+                      : {}),
                   });
                   toolCall.hasFinished = true;
                 }
@@ -592,6 +623,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                 toolCallId: toolCall.id ?? generateId(),
                 toolName: toolCall.function.name,
                 input: toolCall.function.arguments,
+                ...(toolCall.thoughtSignature
+                  ? {
+                      providerMetadata: {
+                        [providerOptionsName]: {
+                          thoughtSignature: toolCall.thoughtSignature,
+                        },
+                      },
+                    }
+                  : {}),
               });
             }
 
@@ -670,6 +710,16 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
                 name: z.string(),
                 arguments: z.string(),
               }),
+              // Support for Google Gemini thought signatures via OpenAI compatibility
+              extra_content: z
+                .object({
+                  google: z
+                    .object({
+                      thought_signature: z.string().nullish(),
+                    })
+                    .nullish(),
+                })
+                .nullish(),
             }),
           )
           .nullish(),
@@ -697,12 +747,22 @@ const chunkBaseSchema = z.looseObject({
           tool_calls: z
             .array(
               z.object({
-                index: z.number(),
+                index: z.number().nullish(), //google does not send index
                 id: z.string().nullish(),
                 function: z.object({
                   name: z.string().nullish(),
                   arguments: z.string().nullish(),
                 }),
+                // Support for Google Gemini thought signatures via OpenAI compatibility
+                extra_content: z
+                  .object({
+                    google: z
+                      .object({
+                        thought_signature: z.string().nullish(),
+                      })
+                      .nullish(),
+                  })
+                  .nullish(),
               }),
             )
             .nullish(),
