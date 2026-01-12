@@ -94,7 +94,7 @@ export class ImageRouterImageModel implements ImageModelV3 {
           model: this.modelId,
           prompt,
           image: await Promise.all(files.map(file => fileToBlob(file))),
-          ...(mask != null ? { mask: await fileToBlob(mask) } : {}),
+          mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
           response_format: 'b64_json',
