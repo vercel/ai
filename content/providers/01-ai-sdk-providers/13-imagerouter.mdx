@@ -1,0 +1,257 @@
+---
+title: ImageRouter
+description: Learn how to use ImageRouter with the AI SDK.
+---
+
+# ImageRouter Provider
+
+[ImageRouter](https://imagerouter.io/) is a unified API gateway that provides access to multiple AI image generation models through an OpenAI-compatible interface.
+
+## Setup
+
+The ImageRouter provider is available via the `@ai-sdk/imagerouter` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/imagerouter" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/imagerouter" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/imagerouter" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/imagerouter" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `imagerouter` from `@ai-sdk/imagerouter`:
+
+```ts
+import { imagerouter } from '@ai-sdk/imagerouter';
+```
+
+If you need a customized setup, you can import `createImageRouter` and create a provider instance with your settings:
+
+```ts
+import { createImageRouter } from '@ai-sdk/imagerouter';
+
+const imagerouter = createImageRouter({
+  apiKey: 'your-api-key', // optional, defaults to IMAGEROUTER_API_KEY environment variable
+  baseURL: 'https://api.imagerouter.io', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can use the following optional settings to customize the ImageRouter provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.imagerouter.io`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `IMAGEROUTER_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Image Models
+
+You can create ImageRouter image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+### Basic Usage
+
+```ts
+import { imagerouter } from '@ai-sdk/imagerouter';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const { image } = await generateImage({
+  model: imagerouter.image('test/test'),
+  prompt: 'A cat wearing an intricate robe',
+});
+
+const filename = `image-${Date.now()}.webp`;
+fs.writeFileSync(filename, image.uint8Array);
+console.log(`Image saved to ${filename}`);
+```
+
+### Image Size and Quality
+
+Control the output image size and quality:
+
+```ts
+const { image } = await generateImage({
+  model: imagerouter.image('test/test'),
+  prompt: 'A majestic mountain landscape',
+  size: '1024x1024',
+  providerOptions: {
+    imagerouter: {
+      quality: 'high',
+      output_format: 'png',
+    },
+  },
+});
+```
+
+### Image-to-Image Editing
+
+ImageRouter supports image-to-image editing for certain models. Simply provide input images using the `files` parameter:
+
+```ts
+import { imagerouter } from '@ai-sdk/imagerouter';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const inputImage = fs.readFileSync('input.png');
+
+const { image } = await generateImage({
+  model: imagerouter.image('openai/gpt-image-1.5'),
+  prompt: 'Make the cat wear a wizard hat',
+  files: [
+    {
+      type: 'file',
+      data: inputImage,
+      mediaType: 'image/png',
+    },
+  ],
+});
+
+fs.writeFileSync('edited-image.webp', image.uint8Array);
+```
+
+You can also provide multiple images and an optional mask for selective editing (some old models require it):
+
+```ts
+const { image } = await generateImage({
+  model: imagerouter.image('openai/gpt-image-1.5'),
+  prompt: 'Replace the background with a forest scene',
+  files: [
+    {
+      type: 'file',
+      data: inputImage,
+      mediaType: 'image/png',
+    },
+    {
+      type: 'file',
+      data: maskImage, // Optional mask for selective editing
+      mediaType: 'image/png',
+    },
+  ],
+});
+```
+
+### Model Capabilities
+
+ImageRouter provides access to a wide variety of image generation models from different providers. Models are referenced using the format `provider/model-name`.
+
+#### Popular Models
+
+| Model                  | Description                           |
+| ---------------------- | ------------------------------------- |
+| `test/test`            | [Free test model for development](https://imagerouter.io/models/test%2Ftest)       |
+| `google/gemini-3-pro`   | [Gemini 3 Pro (Nano Banana Pro)](https://imagerouter.io/models/google%2Fgemini-3-pro)      |
+| `openai/gpt-image-1.5`   | [OpenAI's GPT Image 1.5](https://imagerouter.io/models/openai%2Fgpt-image-1.5)      |
+| `black-forest-labs/FLUX-2-pro`   | [Flux 2 Pro](https://imagerouter.io/models/black-forest-labs%2FFLUX-2-pro)      |
+| `bytedance/seedream-4.5`   | [Seedream 4.5](https://imagerouter.io/models/bytedance%2Fseedream-4.5)       |
+| `Tongyi-MAI/Z-Image-Turbo`  | [Z-Image Turbo](https://imagerouter.io/models/Tongyi-MAI%2FZ-Image-Turbo)                   |
+| `qwen/qwen-image`  | [Qwen Image](https://imagerouter.io/models/qwen%2Fqwen-image)                   |
+| `black-forest-labs/FLUX-1-schnell`         | [Flux Schnell, a fast image generation model](https://imagerouter.io/models/black-forest-labs%2FFLUX-1-schnell)      |
+| 130+ more...         | For a complete list of available models, visit:<br />[ImageRouter Models (Web)](https://imagerouter.io/models)<br />[List Models API](https://docs.imagerouter.io/api-reference/models)      |
+
+
+
+### Provider Options
+
+ImageRouter image models support flexible provider options through the `providerOptions.imagerouter` object:
+
+```ts
+const { image } = await generateImage({
+  model: imagerouter.image('test/test'),
+  prompt: 'A cat wearing an intricate robe',
+  size: '1024x1024',
+  providerOptions: {
+    imagerouter: {
+      quality: 'high',
+      output_format: 'webp',
+      response_format: 'b64_json',
+    },
+  },
+});
+```
+
+Available options:
+
+- **quality** _'auto' | 'low' | 'medium' | 'high'_
+
+  Image quality setting. Not all models support this feature.
+
+- **size** _'auto' | string_
+
+  Image dimensions in `WIDTHxHEIGHT` format (e.g., `'1024x1024'`, `'512x768'`). Use `'auto'` for model default.
+
+- **output_format** _'webp' | 'jpeg' | 'png'_
+
+  Output image file format.
+
+- **response_format** _'url' | 'b64_json' | 'b64_ephemeral'_
+
+  How the image data is returned from the API.
+
+<Note>
+  Model support for these options varies. See the [models page](https://imagerouter.io/models) for model-specific capabilities.
+</Note>
+
+### Limitations
+
+- **Aspect Ratio**: Not directly supported. Use the `size` option instead to specify exact dimensions.
+- **Seed**: Not supported at the moment.
+
+## Advanced Features
+
+### Multiple Provider Access
+
+One of ImageRouter's key advantages is providing access to multiple image generation providers through a single, unified API. This eliminates the need to:
+
+- Manage multiple API keys and integrations
+- Learn different API formats for each provider
+- Handle different rate limits and billing systems
+- Switch between provider SDKs
+
+### Model Discovery
+
+You can programmatically discover available models using the ImageRouter API:
+
+```ts
+// Fetch available models
+const response = await fetch('https://api.imagerouter.io/v1/models');
+const models = await response.json();
+console.log('Available models:', models);
+```
+
+### Cost Optimization
+
+ImageRouter's unified interface allows you to:
+
+- Compare costs across different providers
+- Route requests to the most cost-effective model for your use case
+- Use the free `test/test` model for development and testing
+
+For more details about ImageRouter's capabilities and features, visit the [ImageRouter](https://imagerouter.io/).
