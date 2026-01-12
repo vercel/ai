@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@6.0.30
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [fdce123]
   - ai@6.0.29
 
