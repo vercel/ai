@@ -2,4 +2,4 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-fix(provider-utils): add additionalProperty field for standard schema function
+fix(provider-utils): add additionalProperties field for standard schema function
