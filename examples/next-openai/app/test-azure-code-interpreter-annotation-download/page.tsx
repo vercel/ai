@@ -5,6 +5,7 @@ import { DefaultChatTransport } from 'ai';
 import ChatInput from '@/components/chat-input';
 import { AzureOpenAICodeInterpreterMessage } from '@/app/api/chat-azure-code-interpreter-annotation-download/route';
 import CodeInterpreterView from '@/components/tool/openai-code-interpreter-view';
+import { ResponsesText } from '@/components/tool/responses-text';
 
 export default function TestAzureOpenAICodeInterpreter() {
   const { status, sendMessage, messages } =
@@ -26,7 +27,7 @@ export default function TestAzureOpenAICodeInterpreter() {
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return <div key={index}>{part.text}</div>;
+                return <ResponsesText key={index} part={part} />;
               case 'tool-code_interpreter':
                 return <CodeInterpreterView key={index} invocation={part} />;
             }
