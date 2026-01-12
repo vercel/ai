@@ -144,6 +144,28 @@ The Responses API provides server-side tools that the model can autonomously exe
 - **x_search**: Search X (Twitter) posts, users, and threads
 - **code_execution**: Execute Python code for calculations and data analysis
 
+### Vision
+
+The Responses API supports image input with vision models:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: xai.responses('grok-2-vision-1212'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What do you see in this image?' },
+        { type: 'image', image: fs.readFileSync('./image.png') },
+      ],
+    },
+  ],
+});
+```
+
 ### Web Search Tool
 
 The web search tool enables autonomous web research with optional domain filtering and image understanding:
