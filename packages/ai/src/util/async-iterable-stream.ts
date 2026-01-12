@@ -68,7 +68,7 @@ export function createAsyncIterableStream<T>(
       },
 
       /**
-       * Called on early exit (e.g., break from for-await).
+       * May be called on early exit (e.g., break from for-await) or after completion.
        * Ensures the stream is cancelled and resources are released.
        * @returns A promise resolving to a completed IteratorResult.
        */
