@@ -26,7 +26,7 @@
     "@ai-sdk/react": "3.0.30",
     "@ai-sdk/rsc": "2.0.28",
     "@ai-sdk/valibot": "2.0.4",
-    "@ai-sdk/xai": "3.0.14",
+    "@ai-sdk/xai": "3.0.15",
     "@modelcontextprotocol/sdk": "^1.10.2",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
