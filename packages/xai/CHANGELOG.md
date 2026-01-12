@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.16
+
+### Patch Changes
+
+- f446e23: fix(provider/xai): make streaming providerMetadata structure consistent with non-streaming
+
 ## 3.0.15
 
 ### Patch Changes
