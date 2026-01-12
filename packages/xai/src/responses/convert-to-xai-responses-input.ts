@@ -1,20 +1,13 @@
 import {
-<<<<<<< HEAD
-  LanguageModelV2CallWarning,
-  LanguageModelV2Message,
-} from '@ai-sdk/provider';
-import { XaiResponsesInput } from './xai-responses-api';
-=======
-  SharedV3Warning,
-  LanguageModelV3Message,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2Message,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
-import {
+import type {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
 } from './xai-responses-api';
->>>>>>> 9ed771c7c (feat(provider/xai): add image support to responses api (#11736))
 
 export async function convertToXaiResponsesInput({
   prompt,
