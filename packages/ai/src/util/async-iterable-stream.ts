@@ -33,6 +33,8 @@ export function createAsyncIterableStream<T>(
      * Cleans up the reader by cancelling and releasing the lock.
      */
     async function cleanup(cancelStream: boolean) {
+      if (finished) return;
+
       finished = true;
       try {
         if (cancelStream) {
