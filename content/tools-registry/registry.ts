@@ -451,4 +451,41 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'scrapegraph',
+    name: 'ScrapeGraph',
+    description:
+      'ScrapeGraphAI is a powerful suite of LLM-driven web scraping tools designed to extract structured data from any website. Provides SmartScraper for AI-powered extraction, SearchScraper for web search and extraction, Markdownify for clean markdown conversion, Scrape for raw HTML, SmartCrawler for website crawling, and Sitemap extraction.',
+    packageName: '@scrapegraph/ai-sdk',
+    tags: ['scraping', 'web', 'extraction', 'crawling', 'search'],
+    apiKeyEnvName: 'SCRAPEGRAPH_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm install @scrapegraph/ai-sdk',
+      npm: 'npm install @scrapegraph/ai-sdk',
+      yarn: 'yarn add @scrapegraph/ai-sdk',
+      bun: 'bun add @scrapegraph/ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { smartScraper, searchScraper, markdownify, scrape, crawl, sitemap } from '@scrapegraph/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Extract the main content from https://example.com and summarize it',
+  tools: {
+    smartScraper: smartScraper(),
+    searchScraper: searchScraper(),
+    markdownify: markdownify(),
+    scrape: scrape(),
+    crawl: crawl(),
+    sitemap: sitemap(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.scrapegraphai.com/introduction',
+    apiKeyUrl: 'https://scrapegraphai.com',
+    websiteUrl: 'https://scrapegraphai.com',
+    npmUrl: 'https://www.npmjs.com/package/@scrapegraph/ai-sdk',
+  },
 ];
