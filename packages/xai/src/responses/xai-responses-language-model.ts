@@ -290,6 +290,42 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           break;
         }
 
+        case 'reasoning': {
+          // Extract summary text (consolidate all summary parts)
+          const summaryTexts = part.summary
+            .map(s => s.text)
+            .filter(text => text && text.length > 0);
+
+          if (summaryTexts.length > 0) {
+            const reasoningText = summaryTexts.join('');
+
+            // Build provider metadata if we have encrypted content or itemId
+            const hasMetadata = part.encrypted_content || part.id;
+
+            if (hasMetadata) {
+              content.push({
+                type: 'reasoning',
+                text: reasoningText,
+                providerMetadata: {
+                  xai: {
+                    ...(part.encrypted_content && {
+                      reasoningEncryptedContent: part.encrypted_content,
+                    }),
+                    ...(part.id && { itemId: part.id }),
+                  },
+                },
+              });
+            } else {
+              // Plain text reasoning without metadata
+              content.push({
+                type: 'reasoning',
+                text: reasoningText,
+              });
+            }
+          }
+          break;
+        }
+
         default: {
           break;
         }
@@ -349,6 +385,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
 
+    // Track active reasoning items
+    const activeReasoning: Record<
+      string,
+      { encryptedContent?: string | null; canConclude?: boolean }
+    > = {};
+
     const self = this;
 
     return {
@@ -393,6 +435,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'reasoning-start',
                 id: blockId,
+                providerMetadata: {
+                  xai: {
+                    itemId: event.item_id,
+                  },
+                },
               });
             }
 
@@ -403,18 +450,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 type: 'reasoning-delta',
                 id: blockId,
                 delta: event.delta,
+                providerMetadata: {
+                  xai: {
+                    itemId: event.item_id,
+                  },
+                },
               });
 
               return;
             }
 
             if (event.type === 'response.reasoning_summary_text.done') {
-              const blockId = `reasoning-${event.item_id}`;
-
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: blockId,
-              });
+              // Mark summary as can-conclude, but don't emit reasoning-end yet
+              // We'll emit it when we get response.output_item.done with encrypted_content
+              if (!activeReasoning[event.item_id]) {
+                activeReasoning[event.item_id] = {};
+              }
+              activeReasoning[event.item_id]!.canConclude = true;
+              return; // Don't emit reasoning-end here
             }
 
             if (event.type === 'response.output_text.delta') {
@@ -498,6 +551,33 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               event.type === 'response.output_item.done'
             ) {
               const part = event.item;
+
+              // Handle reasoning items
+              if (part.type === 'reasoning') {
+                // encrypted_content is only available in the .done event
+                if (event.type === 'response.output_item.done') {
+                  const blockId = `reasoning-${part.id}`;
+
+                  // Emit reasoning-end with encrypted content
+                  if (activeReasoning[part.id]?.canConclude) {
+                    controller.enqueue({
+                      type: 'reasoning-end',
+                      id: blockId,
+                      providerMetadata: {
+                        xai: {
+                          itemId: part.id,
+                          reasoningEncryptedContent:
+                            part.encrypted_content ?? null,
+                        },
+                      },
+                    });
+                  }
+
+                  delete activeReasoning[part.id];
+                }
+                return;
+              }
+
               if (
                 part.type === 'web_search_call' ||
                 part.type === 'x_search_call' ||
