@@ -14,7 +14,8 @@ async function main() {
           { type: 'text', text: 'What do you see in this image?' },
           {
             type: 'image',
-            image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg',
+            image:
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg',
           },
         ],
       },
