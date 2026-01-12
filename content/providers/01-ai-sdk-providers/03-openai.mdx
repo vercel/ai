@@ -1961,7 +1961,7 @@ The first argument is the model id e.g. `tts-1`.
 const model = openai.speech('tts-1');
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
+The `voice` argument can be set to one of OpenAI's available voices: `alloy`, `ash`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, or `shimmer`.
 
 ```ts highlight="6"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
@@ -1970,7 +1970,25 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello, world!',
-  providerOptions: { openai: {} },
+  voice: 'alloy', // OpenAI voice ID
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts highlight="7-9"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateSpeech({
+  model: openai.speech('tts-1'),
+  text: 'Hello, world!',
+  voice: 'alloy',
+  providerOptions: {
+    openai: {
+      speed: 1.2,
+    },
+  },
 });
 ```
 
