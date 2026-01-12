@@ -69,6 +69,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     topP,
     stopSequences,
     seed,
+    responseFormat,
     providerOptions,
     tools,
     toolChoice,
@@ -121,6 +122,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       seed,
+      ...(responseFormat?.type === 'json' && {
+        text: {
+          format:
+            responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: responseFormat.schema,
+                }
+              : { type: 'json_object' },
+        },
+      }),
       ...(options.reasoningEffort != null && {
         reasoning: { effort: options.reasoningEffort },
       }),

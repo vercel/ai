@@ -1389,8 +1389,8 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": 2,
               "cacheWrite": 3,
-              "noCache": 2,
-              "total": 4,
+              "noCache": 4,
+              "total": 9,
             },
             "outputTokens": {
               "reasoning": undefined,
@@ -3475,8 +3475,8 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 2,
           "cacheWrite": 3,
-          "noCache": 2,
-          "total": 4,
+          "noCache": 4,
+          "total": 9,
         },
         "outputTokens": {
           "reasoning": undefined,
