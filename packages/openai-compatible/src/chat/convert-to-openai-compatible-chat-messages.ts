@@ -94,6 +94,7 @@ export function convertToOpenAICompatibleChatMessages(
               break;
             }
             case 'tool-call': {
+              // TODO: thoughtSignature should be abstracted once we add support for other providers
               const thoughtSignature =
                 part.providerOptions?.google?.thoughtSignature;
               toolCalls.push({
