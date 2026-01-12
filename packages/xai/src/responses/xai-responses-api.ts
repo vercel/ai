@@ -168,6 +168,7 @@ const outputItemSchema = z.discriminatedUnion('type', [
     id: z.string(),
     summary: z.array(reasoningSummaryPartSchema),
     status: z.string(),
+    encrypted_content: z.string().nullish(),
   }),
 ]);
 
