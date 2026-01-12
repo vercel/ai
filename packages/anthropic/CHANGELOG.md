@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.11
+
+### Patch Changes
+
+- 8c1c6e3: fix(anthropic): add application/json type regex matching
+
 ## 3.0.10
 
 ### Patch Changes
