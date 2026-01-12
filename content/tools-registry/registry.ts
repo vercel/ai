@@ -455,7 +455,7 @@ console.log(text);`,
     slug: 'scrapegraph',
     name: 'ScrapeGraph',
     description:
-      'ScrapeGraphAI is a powerful suite of LLM-driven web scraping tools designed to extract structured data from any website. Provides SmartScraper for AI-powered extraction, SearchScraper for web search and extraction, Markdownify for clean markdown conversion, Scrape for raw HTML, SmartCrawler for website crawling, and Sitemap extraction.',
+      'ScrapeGraphAI is a powerful suite of LLM-driven web scraping tools designed to extract structured data from any website. Provides SmartScraper for AI-powered extraction, SearchScraper for web search and extraction, Markdownify for clean markdown conversion, Scrape for raw HTML, Crawl for website crawling, and Sitemap extraction.',
     packageName: '@scrapegraph/ai-sdk',
     tags: ['scraping', 'web', 'extraction', 'crawling', 'search'],
     apiKeyEnvName: 'SCRAPEGRAPH_API_KEY',
