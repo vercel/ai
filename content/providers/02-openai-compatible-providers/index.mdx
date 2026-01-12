@@ -298,6 +298,40 @@ const { text } = await generateText({
 
 The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
 
+## Reasoning Content
+
+Some OpenAI-compatible providers support reasoning/thinking modes that allow models to express their internal reasoning process during multi-turn conversations and tool calls.
+The OpenAI Compatible provider supports sending reasoning content through the `sendReasoning` option:
+
+```ts highlight="8"
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const provider = createOpenAICompatible({
+  name: 'provider-name',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+});
+
+const { text } = await generateText({
+  model: provider('model-id'),
+  prompt: 'Solve this math problem: 2 + 2',
+  providerOptions: {
+    'provider-name': {
+      sendReasoning: true,
+    },
+  },
+});
+```
+
+When `sendReasoning` is enabled, the provider will include reasoning content in the `reasoning_content` field of assistant messages sent to the model. This allows models that support reasoning to show their thought process.
+
+<Note>
+  This feature defaults to `false` and should only be enabled when using a
+  provider that explicitly supports reasoning content. Enabling it with
+  providers that don't support reasoning may cause API errors.
+</Note>
+
 ## Custom Metadata Extraction
 
 The OpenAI Compatible provider supports extracting provider-specific metadata from API responses through metadata extractors.
