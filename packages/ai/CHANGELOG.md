@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
 ## 6.0.28
 
 ### Patch Changes
