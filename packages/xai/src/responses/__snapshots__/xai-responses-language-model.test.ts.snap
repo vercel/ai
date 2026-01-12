@@ -884,7 +884,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "providerMetadata": {
       "xai": {
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
-        "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
@@ -8404,7 +8403,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "providerMetadata": {
       "xai": {
         "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
-        "reasoningEncryptedContent": null,
       },
     },
     "type": "reasoning-end",
