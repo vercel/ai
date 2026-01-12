@@ -4742,6 +4742,31 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should use input_tokens from message_delta when different from message_start', async () => {
+      // Fixture has message_start.usage.input_tokens=43, message_delta.usage.input_tokens=61
+      // The final usage should use the value from message_delta (61)
+      prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: {
+            total: 61,
+          },
+          outputTokens: {
+            total: 2,
+          },
+        },
+      });
+    });
+
     it('should stream reasoning deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',

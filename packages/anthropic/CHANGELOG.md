@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.10
+
+### Patch Changes
+
+- 02d9b68: fix `input_tokens` compatibility
+
 ## 3.0.9
 
 ### Patch Changes

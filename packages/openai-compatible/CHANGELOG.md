@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.5
+
+### Patch Changes
+
+- d54c380: Change some response schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
 ## 2.0.4
 
 ### Patch Changes
