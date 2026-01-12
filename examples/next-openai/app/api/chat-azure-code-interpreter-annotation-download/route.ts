@@ -12,10 +12,6 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
-import { z } from 'zod/v4';
-
-const azureResponsesSourceDocumentProviderMetadataSchema =
-  z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: azure.tools.codeInterpreter(),
@@ -54,22 +50,20 @@ export async function POST(req: Request) {
       // Collect container file citations from sources
       for (const source of sources) {
         if (source.sourceType === 'document') {
-          const providerMetadataParsed =
-            azureResponsesSourceDocumentProviderMetadataSchema.safeParse(
-              source.providerMetadata,
+          const providerMetadata = source.providerMetadata as
+            | AzureResponsesSourceDocumentProviderMetadata
+            | undefined;
+          if (!providerMetadata) continue;
+          const { azure } = providerMetadata;
+          if (azure.type === 'container_file_citation') {
+            const { containerId, fileId } = azure;
+            const filename = source.filename || source.title;
+            // Avoid duplicates
+            const exists = containerFileSources.some(
+              s => s.containerId === containerId && s.fileId === fileId,
             );
-          const filename = source.filename || source.title;
-          if (providerMetadataParsed.success) {
-            const { azure } = providerMetadataParsed.data;
-            if (azure.type === 'container_file_citation') {
-              const { containerId, fileId } = azure;
-              // Avoid duplicates
-              const exists = containerFileSources.some(
-                s => s.containerId === containerId && s.fileId === fileId,
-              );
-              if (!exists) {
-                containerFileSources.push({ containerId, fileId, filename });
-              }
+            if (!exists) {
+              containerFileSources.push({ containerId, fileId, filename });
             }
           }
         }

@@ -4,7 +4,6 @@ import {
   type AzureResponsesTextProviderMetadata,
 } from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import { z } from 'zod/v4';
 import { run } from '../lib/run';
 import { downloadAzureContainerFile } from '../lib/download-azure-container-file';
 
@@ -14,11 +13,6 @@ import { downloadAzureContainerFile } from '../lib/download-azure-container-file
  * AZURE_RESOURCE_NAME="<your_resource_name>"
  * AZURE_API_KEY="<your_api_key>"
  */
-
-const azureResponsesTextProviderMetadataSchema =
-  z.custom<AzureResponsesTextProviderMetadata>();
-const azureResponsesSourceDocumentProviderMetadataSchema =
-  z.custom<AzureResponsesSourceDocumentProviderMetadata>();
 
 run(async () => {
   // Basic text generation
@@ -46,17 +40,20 @@ run(async () => {
   }[] = [];
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
-      const { azure } = azureResponsesTextProviderMetadataSchema.parse(
-        part.providerMetadata,
-      );
+      const providerMetadata = part.providerMetadata as
+        | AzureResponsesTextProviderMetadata
+        | undefined;
+      if (!providerMetadata) continue;
+      const { azure } = providerMetadata;
       console.log('-- text-part-- ');
       console.dir({ azure }, { depth: Infinity });
     } else if (part.type === 'source') {
       if (part.sourceType === 'document') {
-        const { azure } =
-          azureResponsesSourceDocumentProviderMetadataSchema.parse(
-            part.providerMetadata,
-          );
+        const providerMetadata = part.providerMetadata as
+          | AzureResponsesSourceDocumentProviderMetadata
+          | undefined;
+        if (!providerMetadata) continue;
+        const { azure } = providerMetadata;
         console.log('-- source-document-part-- ');
         console.dir({ azure }, { depth: Infinity });
         if (azure.type === 'container_file_citation') {

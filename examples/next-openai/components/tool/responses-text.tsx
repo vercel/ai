@@ -4,14 +4,13 @@ import { Response } from '@/components/ai-elements/response';
 import type { OpenaiResponsesTextProviderMetadata } from '@ai-sdk/openai';
 import type { AzureResponsesTextProviderMetadata } from '@ai-sdk/azure';
 import { TextUIPart } from 'ai';
-import { z } from 'zod/v4';
 
-const responsesOutputTextProviderMetadataSchema = z.custom<
-  OpenaiResponsesTextProviderMetadata | AzureResponsesTextProviderMetadata
->();
+type ResponsesOutputTextProviderMetadata =
+  | OpenaiResponsesTextProviderMetadata
+  | AzureResponsesTextProviderMetadata;
 
 function extractProviderAndAnnotations(
-  providerMetadata: z.infer<typeof responsesOutputTextProviderMetadataSchema>,
+  providerMetadata: ResponsesOutputTextProviderMetadata,
 ) {
   if ('openai' in providerMetadata) {
     return {
@@ -35,16 +34,17 @@ function extractProviderAndAnnotations(
 export function ResponsesText({ part }: { part: TextUIPart }) {
   if (!part.providerMetadata) return <Response>{part.text}</Response>;
 
-  const providerMetadataParsed =
-    responsesOutputTextProviderMetadataSchema.safeParse(part.providerMetadata);
+  const providerMetadata = part.providerMetadata as
+    | ResponsesOutputTextProviderMetadata
+    | undefined;
 
-  if (!providerMetadataParsed.success) return <Response>{part.text}</Response>;
+  if (!providerMetadata) return <Response>{part.text}</Response>;
 
   const {
     provider, // 'openai' or 'azure'
     itemId: _,
     annotations,
-  } = extractProviderAndAnnotations(providerMetadataParsed.data);
+  } = extractProviderAndAnnotations(providerMetadata);
 
   if (!annotations) return <Response>{part.text}</Response>;
 

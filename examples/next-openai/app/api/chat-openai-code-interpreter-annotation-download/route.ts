@@ -12,10 +12,6 @@ import {
   UIMessage,
   validateUIMessages,
 } from 'ai';
-import { z } from 'zod/v4';
-
-const openaiResponsesSourceDocumentProviderMetadataSchema =
-  z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
 const tools = {
   code_interpreter: openai.tools.codeInterpreter(),
@@ -55,22 +51,20 @@ export async function POST(req: Request) {
       // Collect container file citations from sources
       for (const source of sources) {
         if (source.sourceType === 'document') {
-          const providerMetadataParsed =
-            openaiResponsesSourceDocumentProviderMetadataSchema.safeParse(
-              source.providerMetadata,
+          const providerMetadata = source.providerMetadata as
+            | OpenaiResponsesSourceDocumentProviderMetadata
+            | undefined;
+          if (!providerMetadata) continue;
+          const { openai } = providerMetadata;
+          if (openai.type === 'container_file_citation') {
+            const { containerId, fileId } = openai;
+            const filename = source.filename || source.title;
+            // Avoid duplicates
+            const exists = containerFileSources.some(
+              s => s.containerId === containerId && s.fileId === fileId,
             );
-          const filename = source.filename || source.title;
-          if (providerMetadataParsed.success) {
-            const { openai } = providerMetadataParsed.data;
-            if (openai.type === 'container_file_citation') {
-              const { containerId, fileId } = openai;
-              // Avoid duplicates
-              const exists = containerFileSources.some(
-                s => s.containerId === containerId && s.fileId === fileId,
-              );
-              if (!exists) {
-                containerFileSources.push({ containerId, fileId, filename });
-              }
+            if (!exists) {
+              containerFileSources.push({ containerId, fileId, filename });
             }
           }
         }

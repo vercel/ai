@@ -4,14 +4,8 @@ import {
   type OpenaiResponsesTextProviderMetadata,
 } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import { z } from 'zod/v4';
 import { run } from '../lib/run';
 import { downloadOpenaiContainerFile } from '../lib/download-openai-container-file';
-
-const openaiResponsesTextProviderMetadataSchema =
-  z.custom<OpenaiResponsesTextProviderMetadata>();
-const openaiResponsesSourceDocumentProviderMetadataSchema =
-  z.custom<OpenaiResponsesSourceDocumentProviderMetadata>();
 
 run(async () => {
   // Basic text generation
@@ -37,17 +31,20 @@ run(async () => {
   }[] = [];
   for (const part of basicResult.content) {
     if (part.type === 'text') {
-      const { openai } = openaiResponsesTextProviderMetadataSchema.parse(
-        part.providerMetadata,
-      );
+      const providerMetadata = part.providerMetadata as
+        | OpenaiResponsesTextProviderMetadata
+        | undefined;
+      if (!providerMetadata) continue;
+      const { openai } = providerMetadata;
       console.log('-- text-part-- ');
       console.dir({ openai }, { depth: Infinity });
     } else if (part.type === 'source') {
       if (part.sourceType === 'document') {
-        const { openai } =
-          openaiResponsesSourceDocumentProviderMetadataSchema.parse(
-            part.providerMetadata,
-          );
+        const providerMetadata = part.providerMetadata as
+          | OpenaiResponsesSourceDocumentProviderMetadata
+          | undefined;
+        if (!providerMetadata) continue;
+        const { openai } = providerMetadata;
         console.log('-- source-document-part-- ');
         console.dir({ openai }, { depth: Infinity });
         if (openai.type === 'container_file_citation') {
