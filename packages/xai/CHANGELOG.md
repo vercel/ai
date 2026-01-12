@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.52
+
+### Patch Changes
+
+- a2b5824: feat (provider/xai): add support for encrypted reasoning content
+
 ## 2.0.51
 
 ### Patch Changes
