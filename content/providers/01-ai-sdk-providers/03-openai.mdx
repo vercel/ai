@@ -865,13 +865,13 @@ import {
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4.1-mini'),
+  model: openai('gpt-4.1-mini'),
   prompt:
     'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
   tools: {
     code_interpreter: openai.tools.codeInterpreter(),
     web_search: openai.tools.webSearch(),
-    file_search: openai.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }),
+    file_search: openai.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }), // requires a configured vector store
   },
 });
 
@@ -881,7 +881,7 @@ for (const part of result.content) {
       | OpenaiResponsesTextProviderMetadata
       | undefined;
     if (!providerMetadata) continue;
-    const { itemId, annotations } = providerMetadata.openai;
+    const { itemId: _itemId, annotations } = providerMetadata.openai;
 
     if (!annotations) continue;
     for (const annotation of annotations) {
@@ -942,13 +942,13 @@ import {
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4.1-mini'),
+  model: openai('gpt-4.1-mini'),
   prompt:
     'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
   tools: {
     code_interpreter: openai.tools.codeInterpreter(),
     web_search: openai.tools.webSearch(),
-    file_search: openai.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }),
+    file_search: openai.tools.fileSearch({ vectorStoreIds: ['vs_1234'] }), // requires a configured vector store
   },
 });
 
