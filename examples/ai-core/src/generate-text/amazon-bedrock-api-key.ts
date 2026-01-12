@@ -1,8 +1,8 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   console.log('=== Amazon Bedrock API Key Authentication Example ===\n');
 
   // Example 1: Using API key via environment variable (AWS_BEARER_TOKEN_BEDROCK)
@@ -105,6 +105,4 @@ API Key authentication is ideal for:
       'Make sure either AWS_BEARER_TOKEN_BEDROCK or AWS credentials are configured',
     );
   }
-}
-
-main().catch(console.error);
+});

@@ -1,10 +1,10 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { ModelMessage, streamText, ToolCallPart, ToolResultPart } from 'ai';
-import 'dotenv/config';
 import * as process from 'process';
+import { run } from '../lib/run';
 
 const messages: ModelMessage[] = [];
-async function main() {
+run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
@@ -65,6 +65,4 @@ async function main() {
 
   toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
-}
-
-main().catch(console.error);
+});

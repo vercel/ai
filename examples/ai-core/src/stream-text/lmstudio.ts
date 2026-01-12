@@ -1,13 +1,13 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
   baseURL: 'http://localhost:1234/v1',
 });
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: lmstudio('bartowski/gemma-2-9b-it-GGUF'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -21,6 +21,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

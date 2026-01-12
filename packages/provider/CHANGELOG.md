@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.2
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+
+## 3.0.1
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+
 ## 3.0.0
 
 ### Major Changes

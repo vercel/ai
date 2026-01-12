@@ -1,10 +1,10 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: vertex('gemini-1.5-pro'),
     tools: {
@@ -81,6 +81,4 @@ async function main() {
         break;
     }
   }
-}
-
-main().catch(console.error);
+});

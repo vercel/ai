@@ -4,6 +4,168 @@
 
 ### Patch Changes
 
+- ai@6.0.27
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [40d4997]
+  - ai@6.0.26
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [b64f256]
+  - ai@6.0.25
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [f0d29de]
+  - ai@6.0.22
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [9667780]
+  - ai@6.0.21
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [f748c46]
+  - ai@6.0.20
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.19
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [3a73fb3]
+  - ai@6.0.15
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [3f9453f]
+  - ai@6.0.14
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [e2c445d]
+  - ai@6.0.13
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - ai@6.0.12
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.11
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [ae26f95]
+  - ai@6.0.10
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [4e90233]
+  - ai@6.0.9
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.8
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.7
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@6.0.4
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [29264a3]
   - ai@6.0.3
 

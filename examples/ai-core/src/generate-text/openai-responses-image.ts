@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import fs from 'node:fs';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: openai.responses('gpt-4o-mini'),
     messages: [
@@ -30,6 +30,4 @@ async function main() {
 
   console.log('Request:', JSON.stringify(result.request, null, 2));
   console.log('Response:', JSON.stringify(result.response, null, 2));
-}
-
-main().catch(console.error);
+});

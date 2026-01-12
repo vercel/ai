@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-3-flash-preview'),
     tools: {
@@ -25,6 +25,4 @@ async function main() {
   for (const toolCall of result.toolCalls) {
     console.log(`  ${toolCall.toolName}:`, toolCall.input);
   }
-}
-
-main().catch(console.error);
+});

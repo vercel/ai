@@ -1,5 +1,92 @@
 # @ai-sdk/xai
 
+## 3.0.14
+
+### Patch Changes
+
+- 0a081cb: fix (provider/xai): set response format to allow object generation
+
+## 3.0.13
+
+### Patch Changes
+
+- 7ac2437: fix(provider/xai): send reasoning-end before text-start in streaming
+
+## 3.0.12
+
+### Patch Changes
+
+- e7bdbc7: fix(provider/xai): handle error responses returned with 200 status
+
+## 3.0.11
+
+### Patch Changes
+
+- 9a53f59: fix (provider/xai): no duplicate text delta in responses api
+
+## 3.0.10
+
+### Patch Changes
+
+- 659c53d: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+
+## 3.0.9
+
+### Patch Changes
+
+- 173dcfd: added support for streaming custom tool input chunks in xAI
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/openai-compatible@2.0.4
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.7
+
+### Patch Changes
+
+- 23179aa: fix (provider/xai): use correct format for function tools
+
+## 3.0.6
+
+### Patch Changes
+
+- 77012ef: fix(xai): correct token counting for reasoning models to prevent negative text_output_tokens
+
+## 3.0.5
+
+### Patch Changes
+
+- e7f0a6f: fix(xai): add missing stream response schema and provider tool name parsing
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/openai-compatible@2.0.3
+
+## 3.0.3
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/openai-compatible@2.0.2
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 3.0.2
+
+### Patch Changes
+
+- 2761f04: feat (provider/xai): fix chat usage output token computation
+
 ## 3.0.1
 
 ### Patch Changes

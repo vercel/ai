@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
-import 'dotenv/config';
 
 if (!process.env.GOOGLE_TEMP_OAUTH_KEY) {
   console.log('Access token not found!');

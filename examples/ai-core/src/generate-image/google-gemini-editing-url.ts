@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import fs from 'node:fs';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function editImage() {
+run(async () => {
   const editResult = await generateText({
     model: google('gemini-2.5-flash-image-preview'),
     prompt: [
@@ -39,6 +39,4 @@ async function editImage() {
       console.log(`Saved edited image: output/edited-${timestamp}.png`);
     }
   }
-}
-
-editImage().catch(console.error);
+});

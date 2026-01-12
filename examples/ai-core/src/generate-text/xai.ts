@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: xai('grok-3-beta'),
     prompt: 'Invent a new holiday and describe its traditions.',
@@ -12,6 +12,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

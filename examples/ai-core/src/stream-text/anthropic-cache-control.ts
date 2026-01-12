@@ -1,11 +1,11 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: anthropic('claude-3-5-sonnet-20240620'),
     messages: [
@@ -46,6 +46,4 @@ async function main() {
   console.log('=== providerMetadata Promise ===');
   console.log((await result.providerMetadata)?.anthropic);
   // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
-}
-
-main().catch(console.error);
+});

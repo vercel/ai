@@ -145,7 +145,7 @@ it('should add warnings for file search on unsupported models', () => {
   expect(result.toolWarnings).toMatchInlineSnapshot(`
     [
       {
-        "details": "The file search tool is only supported with Gemini 2.5 models.",
+        "details": "The file search tool is only supported with Gemini 2.5 models and Gemini 3 models.",
         "feature": "provider-defined tool google.file_search",
         "type": "unsupported",
       },
@@ -153,7 +153,7 @@ it('should add warnings for file search on unsupported models', () => {
   `);
 });
 
-it('should correctly prepare file search tool', () => {
+it('should correctly prepare file search tool for gemini-2.5 models', () => {
   const result = prepareTools({
     tools: [
       {
@@ -168,6 +168,35 @@ it('should correctly prepare file search tool', () => {
       },
     ],
     modelId: 'gemini-2.5-pro',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      fileSearch: {
+        fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+        metadataFilter: 'author=Robert Graves',
+        topK: 5,
+      },
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should correctly prepare file search tool for gemini-3 models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.file_search',
+        name: 'file_search',
+        args: {
+          fileSearchStoreNames: ['projects/foo/fileSearchStores/bar'],
+          metadataFilter: 'author=Robert Graves',
+          topK: 5,
+        },
+      },
+    ],
+    modelId: 'gemini-3-pro-preview',
   });
 
   expect(result.tools).toEqual([

@@ -1,9 +1,9 @@
 import { createAzure } from '@ai-sdk/azure';
 import { experimental_transcribe as transcribe } from 'ai';
-import 'dotenv/config';
 import { readFile } from 'fs/promises';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const azure = createAzure({
     useDeploymentBasedUrls: true,
     apiVersion: '2025-04-01-preview',
@@ -20,6 +20,4 @@ async function main() {
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
-}
-
-main().catch(console.error);
+});

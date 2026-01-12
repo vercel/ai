@@ -1,9 +1,9 @@
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import 'dotenv/config';
 import { saveAudioFile } from '../lib/save-audio';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateSpeech({
     model: elevenlabs.speech('eleven_multilingual_v2'),
     text: 'This sentence uses context for better prosody.',
@@ -23,6 +23,4 @@ async function main() {
   console.log('Used context for improved prosody and consistency');
 
   await saveAudioFile(result.audio);
-}
-
-main().catch(console.error);
+});

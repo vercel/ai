@@ -3,7 +3,6 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
-import 'dotenv/config';
 
 // Create an OpenAI-compatible provider (using OpenAI's API as an example)
 const provider = createOpenAICompatible({

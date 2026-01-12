@@ -5,10 +5,10 @@ import {
   tool,
   wrapLanguageModel,
 } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
@@ -36,6 +36,4 @@ async function main() {
   });
 
   console.log(JSON.stringify(result.request.body, null, 2));
-}
-
-main().catch(console.error);
+});

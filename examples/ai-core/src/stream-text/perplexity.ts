@@ -1,8 +1,8 @@
 import { perplexity } from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: perplexity('sonar-pro'),
     prompt: 'What has happened in San Francisco recently?',
@@ -25,6 +25,4 @@ async function main() {
     'Metadata:',
     JSON.stringify(await result.providerMetadata, null, 2),
   );
-}
-
-main().catch(console.error);
+});

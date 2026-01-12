@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const code = `
 /// <summary>
@@ -25,7 +25,7 @@ public class User
 }
 `;
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     messages: [
@@ -63,6 +63,4 @@ async function main() {
     rejectedPredictionTokens: openaiMetadata?.rejectedPredictionTokens,
   });
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

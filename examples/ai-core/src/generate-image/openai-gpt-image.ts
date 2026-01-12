@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { image } = await generateImage({
     model: openai.image('gpt-image-1.5'),
     prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
@@ -13,6 +13,4 @@ async function main() {
   });
 
   await presentImages([image]);
-}
-
-main().catch(console.error);
+});

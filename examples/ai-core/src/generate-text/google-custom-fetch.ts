@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const google = createGoogleGenerativeAI({
   // example fetch wrapper that logs the input to the API call:
@@ -14,13 +14,11 @@ const google = createGoogleGenerativeAI({
   },
 });
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-1.5-pro-latest'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

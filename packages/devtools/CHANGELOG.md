@@ -1,5 +1,20 @@
 # @ai-sdk/devtools
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 0.0.3
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+
 ## 0.0.2
 
 ### Patch Changes

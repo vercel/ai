@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   // See ../../../litellm/README.md for instructions on how to run a LiteLLM
   // proxy locally configured to interface with Anthropic.
   const litellmAnthropic = createOpenAICompatible({
@@ -43,6 +43,4 @@ async function main() {
   // `providerMetadata` field in the future.
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});
