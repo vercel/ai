@@ -381,7 +381,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     const activeReasoning: Record<
       string,
-      { encryptedContent?: string | null; canConclude?: boolean }
+      { encryptedContent?: string | null }
     > = {};
 
     const self = this;
@@ -454,12 +454,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             }
 
             if (event.type === 'response.reasoning_summary_text.done') {
-              if (!activeReasoning[event.item_id]) {
-                activeReasoning[event.item_id] = {};
-              }
-              if (activeReasoning[event.item_id]) {
-                activeReasoning[event.item_id].canConclude = true;
-              }
               return;
             }
 
@@ -546,19 +540,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const part = event.item;
               if (part.type === 'reasoning') {
                 if (event.type === 'response.output_item.done') {
-                  if (activeReasoning[part.id]?.canConclude) {
-                    controller.enqueue({
-                      type: 'reasoning-end',
-                      id: `reasoning-${part.id}`,
-                      providerMetadata: {
-                        xai: {
-                          itemId: part.id,
-                          reasoningEncryptedContent:
-                            part.encrypted_content ?? null,
-                        },
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: `reasoning-${part.id}`,
+                    providerMetadata: {
+                      xai: {
+                        itemId: part.id,
+                        reasoningEncryptedContent:
+                          part.encrypted_content ?? null,
                       },
-                    });
-                  }
+                    },
+                  });
                   delete activeReasoning[part.id];
                 }
                 return;
