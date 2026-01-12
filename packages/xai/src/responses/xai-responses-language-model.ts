@@ -545,9 +545,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     id: `reasoning-${part.id}`,
                     providerMetadata: {
                       xai: {
-                        itemId: part.id,
-                        reasoningEncryptedContent:
-                          part.encrypted_content ?? null,
+                        ...(part.encrypted_content && {
+                          reasoningEncryptedContent: part.encrypted_content,
+                        }),
+                        ...(part.id && { itemId: part.id }),
                       },
                     },
                   });
