@@ -3,57 +3,49 @@ import { streamText } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
-  console.log('Testing encrypted reasoning with streamText...\n');
-
   const models = ['grok-code-fast-1', 'grok-4-1-fast-reasoning'];
 
   for (const modelId of models) {
-    console.log(`\n=== ${modelId} ===\n`);
+    console.log(`\n=> ${modelId}`);
 
     const result = streamText({
-      model: xai.responses(modelId as any),
+      model: xai.responses(modelId),
       prompt: 'What is 2+2? Think carefully.',
       providerOptions: {
         xai: {
-          store: false, // Required to get encrypted_content
+          store: false,
         },
       },
     });
 
     let textContent = '';
     let reasoningSummary = '';
-    let encryptedContent: string | null = null;
+    let encryptedContent: string | undefined;
     let itemId: string | undefined;
 
     for await (const part of result.fullStream) {
-      // Collect text content
       if (part.type === 'text-delta') {
-        textContent += (part as any).text || '';
+        textContent += part.text || '';
       }
 
-      // Collect reasoning summary and encrypted content from providerMetadata
       if (part.type === 'reasoning-delta') {
-        reasoningSummary += (part as any).text || '';
+        reasoningSummary += part.text || '';
       }
 
-      // Extract encrypted content from reasoning-end event
       if (part.type === 'reasoning-end') {
-        const xaiMetadata = (part as any).providerMetadata?.xai;
+        const xaiMetadata = part.providerMetadata?.xai as {
+          itemId?: string;
+          reasoningEncryptedContent?: string;
+        };
         if (xaiMetadata) {
-          encryptedContent = xaiMetadata.reasoningEncryptedContent;
+          encryptedContent = xaiMetadata?.reasoningEncryptedContent;
           itemId = xaiMetadata.itemId;
         }
       }
     }
 
     console.log('Text:', textContent);
-
-    const usage = await result.usage;
-    console.log('\nUsage:');
-    console.log('  - Input tokens:', usage.inputTokens);
-    console.log('  - Output tokens:', usage.outputTokens);
-    console.log('  - Reasoning tokens:', usage.reasoningTokens);
-
+    console.log('\nUsage:', await result.usage);
     console.log('\nReasoning:');
     console.log('  - Summary length:', reasoningSummary.length);
     console.log('  - Item ID:', itemId);
@@ -67,6 +59,4 @@ run(async () => {
       );
     }
   }
-
-  console.log('\n✓ Successfully retrieved encrypted reasoning content!');
 });

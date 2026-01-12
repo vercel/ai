@@ -291,18 +291,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'reasoning': {
-          // Extract summary text (consolidate all summary parts)
           const summaryTexts = part.summary
             .map(s => s.text)
             .filter(text => text && text.length > 0);
 
           if (summaryTexts.length > 0) {
             const reasoningText = summaryTexts.join('');
-
-            // Build provider metadata if we have encrypted content or itemId
-            const hasMetadata = part.encrypted_content || part.id;
-
-            if (hasMetadata) {
+            if (part.encrypted_content || part.id) {
               content.push({
                 type: 'reasoning',
                 text: reasoningText,
@@ -316,7 +311,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
               });
             } else {
-              // Plain text reasoning without metadata
               content.push({
                 type: 'reasoning',
                 text: reasoningText,
@@ -385,7 +379,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
 
-    // Track active reasoning items
     const activeReasoning: Record<
       string,
       { encryptedContent?: string | null; canConclude?: boolean }
@@ -461,13 +454,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             }
 
             if (event.type === 'response.reasoning_summary_text.done') {
-              // Mark summary as can-conclude, but don't emit reasoning-end yet
-              // We'll emit it when we get response.output_item.done with encrypted_content
               if (!activeReasoning[event.item_id]) {
                 activeReasoning[event.item_id] = {};
               }
-              activeReasoning[event.item_id]!.canConclude = true;
-              return; // Don't emit reasoning-end here
+              if (activeReasoning[event.item_id]) {
+                activeReasoning[event.item_id].canConclude = true;
+              }
+              return;
             }
 
             if (event.type === 'response.output_text.delta') {
@@ -551,18 +544,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               event.type === 'response.output_item.done'
             ) {
               const part = event.item;
-
-              // Handle reasoning items
               if (part.type === 'reasoning') {
-                // encrypted_content is only available in the .done event
                 if (event.type === 'response.output_item.done') {
-                  const blockId = `reasoning-${part.id}`;
-
-                  // Emit reasoning-end with encrypted content
                   if (activeReasoning[part.id]?.canConclude) {
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: blockId,
+                      id: `reasoning-${part.id}`,
                       providerMetadata: {
                         xai: {
                           itemId: part.id,
@@ -572,7 +559,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                       },
                     });
                   }
-
                   delete activeReasoning[part.id];
                 }
                 return;
