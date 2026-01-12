@@ -321,7 +321,12 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "system",
               },
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
@@ -489,7 +494,12 @@ describe('XaiResponsesLanguageModel', () => {
             {
               "input": [
                 {
-                  "content": "hello",
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
                   "role": "user",
                 },
               ],
@@ -546,7 +556,12 @@ describe('XaiResponsesLanguageModel', () => {
             {
               "input": [
                 {
-                  "content": "hello",
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
                   "role": "user",
                 },
               ],
@@ -641,7 +656,12 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "input": [
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
