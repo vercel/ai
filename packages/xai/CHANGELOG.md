@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.53
+
+### Patch Changes
+
+- c23ae93: feat(provider/xai): add image support to responses api
+
 ## 2.0.52
 
 ### Patch Changes
