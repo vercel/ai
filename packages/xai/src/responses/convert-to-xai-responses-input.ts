@@ -44,7 +44,9 @@ export async function convertToXaiResponsesInput({
             case 'file': {
               if (block.mediaType.startsWith('image/')) {
                 const mediaType =
-                  block.mediaType === 'image/*' ? 'image/jpeg' : block.mediaType;
+                  block.mediaType === 'image/*'
+                    ? 'image/jpeg'
+                    : block.mediaType;
 
                 const imageUrl =
                   block.data instanceof URL
