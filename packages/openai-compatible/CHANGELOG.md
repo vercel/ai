@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.7
+
+### Patch Changes
+
+- cd7bb0e: feat(openai-compat): add thoughtSignature handling for google models
+
 ## 2.0.6
 
 ### Patch Changes
