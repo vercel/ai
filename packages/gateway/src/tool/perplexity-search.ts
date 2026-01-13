@@ -8,15 +8,18 @@ import { z } from 'zod';
 export interface PerplexitySearchConfig {
   /**
    * Default maximum number of search results to return (1-20, default: 10).
-   * The LLM can override this per-invocation.
    */
   maxResults?: number;
 
   /**
-   * Default maximum tokens to extract per search result page (256-2048, default: 1024).
-   * The LLM can override this per-invocation.
+   * Default maximum tokens to extract per search result page (256-2048, default: 2048).
    */
   maxTokensPerPage?: number;
+
+  /**
+   * Default maximum total tokens across all search results (default: 25000, max: 1000000).
+   */
+  maxTokens?: number;
 
   /**
    * Default two-letter ISO 3166-1 alpha-2 country code for regional search results.
@@ -86,9 +89,14 @@ export interface PerplexitySearchInput {
   max_results?: number;
 
   /**
-   * Maximum number of tokens to extract per search result page (256-2048, default: 1024).
+   * Maximum number of tokens to extract per search result page (256-2048, default: 2048).
    */
   max_tokens_per_page?: number;
+
+  /**
+   * Maximum total tokens across all search results (default: 25000, max: 1000000).
+   */
+  max_tokens?: number;
 
   /**
    * Two-letter ISO 3166-1 alpha-2 country code for regional search results.
@@ -124,6 +132,20 @@ export interface PerplexitySearchInput {
   search_before_date?: string;
 
   /**
+   * Include only results last updated after this date.
+   * Format: 'MM/DD/YYYY' (e.g., '3/1/2025')
+   * Cannot be used with search_recency_filter.
+   */
+  last_updated_after_filter?: string;
+
+  /**
+   * Include only results last updated before this date.
+   * Format: 'MM/DD/YYYY' (e.g., '3/15/2025')
+   * Cannot be used with search_recency_filter.
+   */
+  last_updated_before_filter?: string;
+
+  /**
    * Filter results by relative time period.
    * Cannot be used with search_after_date or search_before_date.
    */
@@ -154,7 +176,14 @@ const perplexitySearchInputSchema = lazySchema(() =>
         .number()
         .optional()
         .describe(
-          'Maximum number of tokens to extract per search result page (256-2048, default: 1024)',
+          'Maximum number of tokens to extract per search result page (256-2048, default: 2048)',
+        ),
+
+      max_tokens: z
+        .number()
+        .optional()
+        .describe(
+          'Maximum total tokens across all search results (default: 25000, max: 1000000)',
         ),
 
       country: z
@@ -190,6 +219,20 @@ const perplexitySearchInputSchema = lazySchema(() =>
         .optional()
         .describe(
           "Include only results published before this date. Format: 'MM/DD/YYYY' (e.g., '3/15/2025'). Cannot be used with search_recency_filter.",
+        ),
+
+      last_updated_after_filter: z
+        .string()
+        .optional()
+        .describe(
+          "Include only results last updated after this date. Format: 'MM/DD/YYYY' (e.g., '3/1/2025'). Cannot be used with search_recency_filter.",
+        ),
+
+      last_updated_before_filter: z
+        .string()
+        .optional()
+        .describe(
+          "Include only results last updated before this date. Format: 'MM/DD/YYYY' (e.g., '3/15/2025'). Cannot be used with search_recency_filter.",
         ),
 
       search_recency_filter: z
