@@ -104,9 +104,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
       });
 
       return {
-        images: response.data.map(
-          item => item.url ?? item.b64_json ?? '',
-        ),
+        images: response.data.map(item => item.url ?? item.b64_json ?? ''),
         warnings,
         response: {
           timestamp: currentDate,
@@ -142,9 +140,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     });
 
     return {
-      images: response.data.map(
-        item => item.url ?? item.b64_json ?? '',
-      ),
+      images: response.data.map(item => item.url ?? item.b64_json ?? ''),
       warnings,
       response: {
         timestamp: currentDate,
