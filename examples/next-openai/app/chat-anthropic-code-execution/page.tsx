@@ -13,20 +13,9 @@ export default function TestAnthropicCodeExecution() {
       transport: new DefaultChatTransport({
         api: '/api/chat-anthropic-code-execution',
       }),
-      onError: err => {
-        console.error('useChat error:', err);
-        console.error('Error stack:', err.stack);
-      },
     });
 
   console.log(structuredClone(messages));
-
-  // Log error details when error changes
-  if (error) {
-    console.error('Current error state:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-  }
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
