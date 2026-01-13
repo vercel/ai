@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { LanguageModelV3Middleware } from '@ai-sdk/provider';
 import { generateText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 const logProviderMetadataMiddleware: LanguageModelV3Middleware = {
   specificationVersion: 'v3',
@@ -13,7 +13,7 @@ const logProviderMetadataMiddleware: LanguageModelV3Middleware = {
   },
 };
 
-async function main() {
+run(async () => {
   const { text } = await generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
@@ -28,6 +28,4 @@ async function main() {
   });
 
   console.log(text);
-}
-
-main().catch(console.error);
+});

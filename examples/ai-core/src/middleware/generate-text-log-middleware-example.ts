@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
 import { yourLogMiddleware } from './your-log-middleware';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
@@ -11,6 +11,4 @@ async function main() {
     }),
     prompt: 'What cities are in the United States?',
   });
-}
-
-main().catch(console.error);
+});

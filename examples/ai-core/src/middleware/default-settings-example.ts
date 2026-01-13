@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { defaultSettingsMiddleware, generateText, wrapLanguageModel } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: wrapLanguageModel({
       model: openai.responses('gpt-4o'),
@@ -21,6 +21,4 @@ async function main() {
   });
 
   console.log(result.response.body);
-}
-
-main().catch(console.error);
+});

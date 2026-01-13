@@ -1,11 +1,11 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
-import 'dotenv/config';
 import fs from 'node:fs';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
     messages: [
@@ -41,6 +41,4 @@ async function main() {
   console.log('Cache token usage:', result.providerMetadata?.bedrock?.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Response headers:', result.response.headers);
-}
-
-main().catch(console.error);
+});

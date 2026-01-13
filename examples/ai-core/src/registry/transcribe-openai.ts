@@ -1,8 +1,9 @@
 import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { registry } from './setup-registry';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await transcribe({
     model: registry.transcriptionModel('openai:whisper-1'),
     audio: await readFile('../data/galileo.mp3'),
@@ -12,6 +13,4 @@ async function main() {
   console.log('Language:', result.language);
   console.log('Duration:', result.durationInSeconds);
   console.log('Segments:', result.segments);
-}
-
-main().catch(console.error);
+});

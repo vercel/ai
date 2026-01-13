@@ -1,7 +1,7 @@
 import { azure } from '@ai-sdk/azure';
 import { experimental_transcribe as transcribe } from 'ai';
-import 'dotenv/config';
 import { readFile } from 'fs/promises';
+import { run } from '../lib/run';
 
 /**
  *
@@ -13,7 +13,7 @@ import { readFile } from 'fs/promises';
  *
  */
 
-async function main() {
+run(async () => {
   const result = await transcribe({
     model: azure.transcription('whisper-1'), // use your own deployment
     audio: await readFile('data/galileo.mp3'),
@@ -25,6 +25,4 @@ async function main() {
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
-}
-
-main().catch(console.error);
+});

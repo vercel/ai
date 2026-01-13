@@ -1,7 +1,7 @@
 import { embed } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await embed({
     model: 'openai/text-embedding-3-small',
     value: 'sunny day at the beach',
@@ -15,6 +15,4 @@ async function main() {
     console.log('\nProvider Metadata:');
     console.log(JSON.stringify(result.providerMetadata, null, 2));
   }
-}
-
-main().catch(console.error);
+});

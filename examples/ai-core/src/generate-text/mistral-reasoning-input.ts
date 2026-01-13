@@ -1,8 +1,8 @@
 import { mistral } from '@ai-sdk/mistral';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: mistral('magistral-small-2507'),
     messages: [
@@ -37,6 +37,4 @@ async function main() {
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);
-}
-
-main().catch(console.error);
+});

@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     tools: {
@@ -25,6 +25,4 @@ async function main() {
   // consume the text stream
   for await (const textPart of result.textStream) {
   }
-}
-
-main().catch(console.error);
+});

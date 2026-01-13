@@ -1,15 +1,20 @@
-import { openai } from '@ai-sdk/openai';
+import {
+  openai,
+  type OpenaiResponsesSourceDocumentProviderMetadata,
+  type OpenaiResponsesTextProviderMetadata,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
+import { downloadOpenaiContainerFile } from '../lib/download-openai-container-file';
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = streamText({
     model: openai.responses('gpt-4.1-mini'),
     prompt:
       'Create a program that generates five random numbers between 1 and 100 with two decimal places, and show me the execution results. Also save the result to a file.',
     tools: {
-      code_interpreter: openai.tools.codeInterpreter({}),
+      code_interpreter: openai.tools.codeInterpreter(),
     },
   });
 
@@ -21,14 +26,42 @@ async function main() {
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
   console.log('\n=== Code Interpreter Annotations ===');
+
+  const containerfileList: {
+    containerId: string;
+    fileId: string;
+  }[] = [];
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
-      const annotations = part.providerMetadata?.openai?.annotations;
-      if (annotations) {
-        console.dir(annotations);
+      const providerMetadata = part.providerMetadata as
+        | OpenaiResponsesTextProviderMetadata
+        | undefined;
+      if (!providerMetadata) continue;
+      const { openai } = providerMetadata;
+      console.log('-- text-part-- ');
+      console.dir({ openai }, { depth: Infinity });
+    } else if (part.type === 'source') {
+      if (part.sourceType === 'document') {
+        const providerMetadata = part.providerMetadata as
+          | OpenaiResponsesSourceDocumentProviderMetadata
+          | undefined;
+        if (!providerMetadata) continue;
+        const { openai } = providerMetadata;
+        console.log('-- source-document-part-- ');
+        console.dir({ openai }, { depth: Infinity });
+        if (openai.type === 'container_file_citation') {
+          containerfileList.push({
+            containerId: openai.containerId,
+            fileId: openai.fileId,
+          });
+        }
       }
     }
   }
-}
-
-main().catch(console.error);
+  for await (const containerFile of containerfileList) {
+    await downloadOpenaiContainerFile(
+      containerFile.containerId,
+      containerFile.fileId,
+    );
+  }
+});

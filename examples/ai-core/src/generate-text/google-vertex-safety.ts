@@ -1,8 +1,8 @@
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertex('gemini-2.5-flash'),
     providerOptions: {
@@ -24,6 +24,4 @@ async function main() {
   console.log('Finish reason:', result.finishReason);
   console.log();
   console.log('Request body:', result.request?.body);
-}
-
-main().catch(console.error);
+});

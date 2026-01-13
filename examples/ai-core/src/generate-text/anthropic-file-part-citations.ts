@@ -2,9 +2,9 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const pdfPath = resolve(process.cwd(), 'data', 'ai.pdf');
   const pdfBase64 = readFileSync(pdfPath).toString('base64');
 
@@ -48,6 +48,4 @@ async function main() {
       );
     }
   });
-}
-
-main().catch(console.error);
+});

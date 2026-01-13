@@ -1,8 +1,8 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, stepCountIs } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
@@ -26,6 +26,4 @@ async function main() {
   });
 
   console.log(result.text);
-}
-
-main().catch(console.error);
+});

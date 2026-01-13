@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateObject, generateText, Output } from 'ai';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-sonnet-4-5@20250929'),
     output: Output.object({
@@ -27,6 +27,4 @@ async function main() {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
-}
-
-main().catch(console.error);
+});

@@ -1,12 +1,12 @@
-import 'dotenv/config';
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import fs from 'node:fs';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
 const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
-async function main() {
+run(async () => {
   const result1 = await generateObject({
     model: google('gemini-2.5-flash'),
     prompt: errorMessage,
@@ -54,6 +54,4 @@ async function main() {
   //     totalTokenCount: 5248
   //   }
   // }
-}
-
-main().catch(console.error);
+});

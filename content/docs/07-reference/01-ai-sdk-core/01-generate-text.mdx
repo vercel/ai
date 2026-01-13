@@ -436,6 +436,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number; stepMs?: number }',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+    },
+    {
       name: 'headers',
       type: 'Record<string, string>',
       isOptional: true,

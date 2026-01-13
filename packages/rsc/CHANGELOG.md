@@ -1,5 +1,216 @@
 # @ai-sdk/rsc
 
+## 2.0.33
+
+### Patch Changes
+
+- Updated dependencies [0ca078c]
+  - ai@6.0.33
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [ec24401]
+  - ai@6.0.32
+
+## 2.0.31
+
+### Patch Changes
+
+- ai@6.0.31
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - ai@6.0.30
+
+## 2.0.29
+
+### Patch Changes
+
+- Updated dependencies [fdce123]
+  - ai@6.0.29
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [d4486d2]
+  - ai@6.0.28
+
+## 2.0.27
+
+### Patch Changes
+
+- ai@6.0.27
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [40d4997]
+  - ai@6.0.26
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [b64f256]
+  - ai@6.0.25
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [f0d29de]
+  - ai@6.0.22
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [9667780]
+  - ai@6.0.21
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [f748c46]
+  - ai@6.0.20
+
+## 2.0.19
+
+### Patch Changes
+
+- ai@6.0.19
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [3a73fb3]
+  - ai@6.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [3f9453f]
+  - ai@6.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [e2c445d]
+  - ai@6.0.13
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - ai@6.0.12
+  - @ai-sdk/provider-utils@4.0.4
+
+## 2.0.11
+
+### Patch Changes
+
+- ai@6.0.11
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [ae26f95]
+  - ai@6.0.10
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [4e90233]
+  - ai@6.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - ai@6.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- ai@6.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- ai@6.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - ai@6.0.5
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 2.0.4
+
+### Patch Changes
+
+- ai@6.0.4
+
 ## 2.0.3
 
 ### Patch Changes

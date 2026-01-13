@@ -553,8 +553,106 @@ describe('FalImageModel', () => {
       expect(result.warnings).toHaveLength(1);
       expect(result.warnings[0]).toMatchObject({
         type: 'other',
-        message: expect.stringContaining('only supports a single input image'),
+        message: expect.stringContaining('useMultipleImages is not enabled'),
       });
+    });
+
+    it('should send image_urls when useMultipleImages is true', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createBasicModel().doGenerate({
+        prompt: 'Edit these images',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            useMultipleImages: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        image_urls: [
+          'data:image/png;base64,iVBORw==',
+          'data:image/png;base64,iVBORw==',
+        ],
+        num_images: 1,
+        prompt: 'Edit these images',
+      });
+      expect(requestBody.image_url).toBeUndefined();
+    });
+
+    it('should not warn when multiple files provided with useMultipleImages', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      const result = await createBasicModel().doGenerate({
+        prompt: 'Edit images',
+        files: [
+          { type: 'file', data: imageData, mediaType: 'image/png' },
+          { type: 'file', data: imageData, mediaType: 'image/png' },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            useMultipleImages: true,
+          },
+        },
+      });
+
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('should send single image as image_urls array when useMultipleImages is true', async () => {
+      const imageData = new Uint8Array([137, 80, 78, 71]);
+
+      await createBasicModel().doGenerate({
+        prompt: 'Edit this image',
+        files: [
+          {
+            type: 'file',
+            data: imageData,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {
+          fal: {
+            useMultipleImages: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        image_urls: ['data:image/png;base64,iVBORw=='],
+        num_images: 1,
+        prompt: 'Edit this image',
+      });
+      expect(requestBody.image_url).toBeUndefined();
     });
 
     it('should allow imageUrl via provider options', async () => {

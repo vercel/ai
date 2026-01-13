@@ -1,8 +1,8 @@
 import { google, GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { text, sources, providerMetadata } = await generateText({
     model: google('gemini-2.5-flash'),
     tools: {
@@ -27,6 +27,4 @@ async function main() {
   console.log('Generated Text:', text);
   console.dir({ sources }, { depth: null });
   console.dir({ groundingMetadata }, { depth: null });
-}
-
-main().catch(console.error);
+});

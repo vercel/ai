@@ -1,14 +1,14 @@
 ---
 title: smoothStream
-description: Stream transformer for smoothing text output
+description: Stream transformer for smoothing text and reasoning output
 ---
 
 # `smoothStream()`
 
 `smoothStream` is a utility function that creates a TransformStream
 for the `streamText` `transform` option
-to smooth out text streaming by buffering and releasing complete words with configurable delays.
-This creates a more natural reading experience when streaming text responses.
+to smooth out text and reasoning streaming by buffering and releasing complete chunks with configurable delays.
+This creates a more natural reading experience when streaming text and reasoning responses.
 
 ```ts highlight={"6-9"}
 import { smoothStream, streamText } from 'ai';
@@ -42,10 +42,10 @@ const result = streamText({
     },
     {
       name: 'chunking',
-      type: '"word" | "line" | RegExp | (buffer: string) => string | undefined | null',
+      type: '"word" | "line" | RegExp | Intl.Segmenter | (buffer: string) => string | undefined | null',
       isOptional: true,
       description:
-        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom callback or RegExp pattern for custom chunking.',
+        'Controls how text and reasoning content is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, an Intl.Segmenter for locale-aware word segmentation (recommended for CJK languages), or provide a custom callback or RegExp pattern for custom chunking.',
     },
   ]}
 />
@@ -54,42 +54,51 @@ const result = streamText({
 
 The word based chunking **does not work well** with the following languages that do not delimit words with spaces:
 
-For these languages we recommend using a custom regex, like the following:
-
-- Chinese - `/[\u4E00-\u9FFF]|\S+\s+/`
-- Japanese - `/[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/`
-
-```tsx filename="Japanese example"
-import { smoothStream, streamText } from 'ai';
-__PROVIDER_IMPORT__;
-
-const result = streamText({
-  model: __MODEL__,
-  prompt: 'Your prompt here',
-  experimental_transform: smoothStream({
-    chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
-  }),
-});
-```
-
-```tsx filename="Chinese example"
-import { smoothStream, streamText } from 'ai';
-__PROVIDER_IMPORT__;
-
-const result = streamText({
-  model: __MODEL__,
-  prompt: 'Your prompt here',
-  experimental_transform: smoothStream({
-    chunking: /[\u4E00-\u9FFF]|\S+\s+/,
-  }),
-});
-```
-
-For these languages you could pass your own language aware chunking function:
-
+- Chinese
+- Japanese
+- Korean
 - Vietnamese
 - Thai
-- Javanese (Aksara Jawa)
+
+#### Using Intl.Segmenter (recommended)
+
+For these languages, we recommend using `Intl.Segmenter` for proper locale-aware word segmentation.
+This is the preferred approach as it provides accurate word boundaries for CJK and other languages.
+
+<Note>
+  `Intl.Segmenter` is available in Node.js 16+ and all modern browsers (Chrome
+  87+, Firefox 125+, Safari 14.1+).
+</Note>
+
+```tsx filename="Japanese example with Intl.Segmenter"
+import { smoothStream, streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const segmenter = new Intl.Segmenter('ja', { granularity: 'word' });
+
+const result = streamText({
+  model: __MODEL__,
+  prompt: 'Your prompt here',
+  experimental_transform: smoothStream({
+    chunking: segmenter,
+  }),
+});
+```
+
+```tsx filename="Chinese example with Intl.Segmenter"
+import { smoothStream, streamText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+
+const result = streamText({
+  model: __MODEL__,
+  prompt: 'Your prompt here',
+  experimental_transform: smoothStream({
+    chunking: segmenter,
+  }),
+});
+```
 
 #### Regex based chunking
 
@@ -130,7 +139,7 @@ smoothStream({
 
 Returns a `TransformStream` that:
 
-- Buffers incoming text chunks
-- Releases text when the chunking pattern is encountered
+- Buffers incoming text and reasoning chunks
+- Releases content when the chunking pattern is encountered
 - Adds configurable delays between chunks for smooth output
-- Passes through non-text chunks (like step-finish events) immediately
+- Passes through non-text/reasoning chunks (like tool calls, step-finish events) immediately

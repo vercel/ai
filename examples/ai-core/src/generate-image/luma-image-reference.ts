@@ -1,9 +1,9 @@
 import { luma, LumaImageProviderOptions } from '@ai-sdk/luma';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateImage({
     model: luma.image('photon-flash-1'),
     prompt: {
@@ -22,6 +22,4 @@ async function main() {
   });
 
   await presentImages(result.images);
-}
-
-main().catch(console.error);
+});

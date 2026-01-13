@@ -1153,6 +1153,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             .nullish(),
         }),
         usage: z.looseObject({
+          input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
         }),

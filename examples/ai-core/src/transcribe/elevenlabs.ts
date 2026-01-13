@@ -1,9 +1,9 @@
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { experimental_transcribe as transcribe } from 'ai';
-import 'dotenv/config';
 import { readFile } from 'fs/promises';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await transcribe({
     model: elevenlabs.transcription('scribe_v1'),
     audio: await readFile('data/galileo.mp3'),
@@ -15,6 +15,4 @@ async function main() {
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
-}
-
-main().catch(console.error);
+});

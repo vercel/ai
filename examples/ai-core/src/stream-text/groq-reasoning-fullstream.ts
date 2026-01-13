@@ -1,8 +1,8 @@
 import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = streamText({
     model: groq('deepseek-r1-distill-llama-70b'),
     providerOptions: {
@@ -28,6 +28,4 @@ async function main() {
       process.stdout.write(part.text);
     }
   }
-}
-
-main().catch(console.error);
+});

@@ -502,7 +502,7 @@ const mistralContentSchema = z
         }),
         z.object({
           type: z.literal('reference'),
-          reference_ids: z.array(z.number()),
+          reference_ids: z.array(z.union([z.string(), z.number()])),
         }),
         z.object({
           type: z.literal('thinking'),
