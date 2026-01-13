@@ -822,7 +822,7 @@ importers:
         specifier: 2.0.5
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.7
+        specifier: 2.0.8
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 3.0.7
@@ -831,7 +831,7 @@ importers:
         specifier: 4.0.14
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.5
+        specifier: 3.0.6
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.6
@@ -858,7 +858,7 @@ importers:
         specifier: 2.0.5
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.20
+        specifier: 3.0.21
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
