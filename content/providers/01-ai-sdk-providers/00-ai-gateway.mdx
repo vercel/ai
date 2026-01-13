@@ -370,7 +370,15 @@ The Perplexity Search tool supports the following optional configuration options
 
 - **maxResults** _number_
 
-  The maximum number of search results to return. Defaults to the Perplexity API default.
+  The maximum number of search results to return (1-20, default: 10).
+
+- **maxTokensPerPage** _number_
+
+  The maximum number of tokens to extract per search result page (256-2048, default: 2048).
+
+- **maxTokens** _number_
+
+  The maximum total tokens across all search results (default: 25000, max: 1000000).
 
 - **searchLanguageFilter** _string[]_
 
@@ -383,6 +391,10 @@ The Perplexity Search tool supports the following optional configuration options
 - **searchDomainFilter** _string[]_
 
   Limit search results to specific domains (e.g., `['reuters.com', 'bbc.com']`). This is useful for restricting results to trusted sources.
+
+- **searchRecencyFilter** _'day' | 'week' | 'month' | 'year'_
+
+  Filter search results by relative time period. Useful for always getting recent results (e.g., 'week' for results from the last week).
 
 The tool works with both `generateText` and `streamText`:
 
