@@ -1,3 +1,4 @@
+import { copyFileSync } from 'node:fs';
 import { defineConfig } from 'tsup';
 
 export default defineConfig([
@@ -15,6 +16,10 @@ export default defineConfig([
         (await import('./package.json', { with: { type: 'json' } })).default
           .version,
       ),
+    },
+    onSuccess: async () => {
+      // Copy USAGE-AGENTS.md to AGENTS.md for inclusion in the published package
+      copyFileSync('USAGE-AGENTS.md', 'AGENTS.md');
     },
   },
   // Internal APIs

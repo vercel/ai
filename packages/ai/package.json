@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "AGENTS.md",
     "CHANGELOG.md",
     "internal.d.ts",
     "README.md",

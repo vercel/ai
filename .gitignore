@@ -16,3 +16,6 @@ tsconfig.vitest-temp.json
 *.log
 *.local
 *.tsbuildinfo
+
+# Generated files
+packages/ai/AGENTS.md
