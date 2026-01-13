@@ -1126,6 +1126,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | 'mcp_tool_result'
       | undefined = undefined;
 
+    // Track the current block index from content_block_start.
+    let currentBlockIndex: number | undefined = undefined;
+
     const generateId = this.generateId;
 
     const transformedStream = response.pipeThrough(
@@ -1158,6 +1161,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               const part = value.content_block;
               const contentBlockType = part.type;
               blockType = contentBlockType;
+              currentBlockIndex = value.index;
 
               switch (contentBlockType) {
                 case 'text': {
@@ -1525,15 +1529,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'content_block_stop': {
+              // Use currentBlockIndex from content_block_start to handle
+              // Anthropic API index mismatches after tool results
+              const blockIndex = currentBlockIndex ?? value.index;
+
               // when finishing a tool call block, send the full tool call:
-              if (contentBlocks[value.index] != null) {
-                const contentBlock = contentBlocks[value.index];
+              if (contentBlocks[blockIndex] != null) {
+                const contentBlock = contentBlocks[blockIndex];
 
                 switch (contentBlock.type) {
                   case 'text': {
                     controller.enqueue({
                       type: 'text-end',
-                      id: String(value.index),
+                      id: String(blockIndex),
                     });
                     break;
                   }
@@ -1541,7 +1549,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   case 'reasoning': {
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: String(value.index),
+                      id: String(blockIndex),
                     });
                     break;
                   }
@@ -1599,15 +1607,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     break;
                 }
 
-                delete contentBlocks[value.index];
+                delete contentBlocks[blockIndex];
               }
 
               blockType = undefined; // reset block type
+              currentBlockIndex = undefined; // reset current block index
 
               return;
             }
 
             case 'content_block_delta': {
+              // Use currentBlockIndex from content_block_start to handle
+              // Anthropic API index mismatches after tool results
+              const blockIndex = currentBlockIndex ?? value.index;
               const deltaType = value.delta.type;
 
               switch (deltaType) {
@@ -1620,7 +1632,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                   controller.enqueue({
                     type: 'text-delta',
-                    id: String(value.index),
+                    id: String(blockIndex),
                     delta: value.delta.text,
                   });
 
@@ -1630,7 +1642,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 case 'thinking_delta': {
                   controller.enqueue({
                     type: 'reasoning-delta',
-                    id: String(value.index),
+                    id: String(blockIndex),
                     delta: value.delta.thinking,
                   });
 
@@ -1642,7 +1654,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                   if (blockType === 'thinking') {
                     controller.enqueue({
                       type: 'reasoning-delta',
-                      id: String(value.index),
+                      id: String(blockIndex),
                       delta: '',
                       providerMetadata: {
                         anthropic: {
@@ -1656,7 +1668,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 }
 
                 case 'input_json_delta': {
-                  const contentBlock = contentBlocks[value.index];
+                  const contentBlock = contentBlocks[blockIndex];
                   let delta = value.delta.partial_json;
 
                   // skip empty deltas to enable replacing the first character
@@ -1672,7 +1684,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                     controller.enqueue({
                       type: 'text-delta',
-                      id: String(value.index),
+                      id: String(blockIndex),
                       delta,
                     });
                   } else {
