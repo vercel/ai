@@ -84,6 +84,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
+    const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -134,6 +135,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
