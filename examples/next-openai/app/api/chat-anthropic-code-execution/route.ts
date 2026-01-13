@@ -20,6 +20,25 @@ export async function POST(request: Request) {
     agent: anthropicCodeExecutionAgent,
     uiMessages: messages,
     messageMetadata({ part }) {
+      // LOG ALL PARTS TO DEBUG THE STREAM
+      const partAny = part as any;
+      if (
+        part.type === 'text-start' ||
+        part.type === 'text-delta' ||
+        part.type === 'text-end'
+      ) {
+        console.log(`[STREAM] ${part.type} id=${partAny.id}`);
+      } else if (
+        part.type === 'tool-input-start' ||
+        part.type === 'tool-call'
+      ) {
+        console.log(`[STREAM] ${part.type} toolName=${partAny.toolName}`);
+      } else if (part.type === 'tool-result') {
+        console.log(`[STREAM] ${part.type} toolCallId=${partAny.toolCallId}`);
+      } else {
+        console.log(`[STREAM] ${part.type}`);
+      }
+
       // store the anthropic container id if a container was used
       if (part.type === 'finish-step') {
         const anthropicContainer = (

@@ -13,9 +13,20 @@ export default function TestAnthropicCodeExecution() {
       transport: new DefaultChatTransport({
         api: '/api/chat-anthropic-code-execution',
       }),
+      onError: err => {
+        console.error('useChat error:', err);
+        console.error('Error stack:', err.stack);
+      },
     });
 
   console.log(structuredClone(messages));
+
+  // Log error details when error changes
+  if (error) {
+    console.error('Current error state:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+  }
 
   return (
     <div className="flex flex-col py-24 mx-auto w-full max-w-md stretch">
@@ -40,8 +51,23 @@ export default function TestAnthropicCodeExecution() {
       ))}
 
       {error && (
-        <div className="mt-4">
-          <div className="text-red-500">An error occurred.</div>
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-red-600 font-semibold mb-2">
+            An error occurred:
+          </div>
+          <div className="text-red-700 text-sm mb-2 font-mono whitespace-pre-wrap break-all">
+            {error.message}
+          </div>
+          {error.stack && (
+            <details className="mt-2">
+              <summary className="text-red-500 cursor-pointer text-sm">
+                Show stack trace
+              </summary>
+              <pre className="text-xs text-red-400 mt-2 overflow-auto max-h-48 bg-red-100 p-2 rounded">
+                {error.stack}
+              </pre>
+            </details>
+          )}
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 rounded-md border border-blue-500"
