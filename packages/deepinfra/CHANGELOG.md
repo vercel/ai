@@ -1,5 +1,12 @@
 # @ai-sdk/deepinfra
 
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [78fcb18]
+  - @ai-sdk/openai-compatible@2.0.8
+
 ## 2.0.7
 
 ### Patch Changes
