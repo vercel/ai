@@ -1,5 +1,26 @@
 # ai
 
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
 ## 6.0.28
 
 ### Patch Changes

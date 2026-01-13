@@ -1,5 +1,24 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.7
+
+### Patch Changes
+
+- cd7bb0e: feat(openai-compat): add thoughtSignature handling for google models
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- d54c380: Change some response schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
 ## 2.0.4
 
 ### Patch Changes

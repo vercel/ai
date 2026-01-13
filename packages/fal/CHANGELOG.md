@@ -1,5 +1,18 @@
 # @ai-sdk/fal
 
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- e3419db: feat(fal): add support for multiple image urls as input
+
 ## 2.0.4
 
 ### Patch Changes

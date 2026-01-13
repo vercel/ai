@@ -73,17 +73,28 @@ export class FalImageModel implements ImageModelV3 {
       num_images: n,
     };
 
-    // Handle image editing: convert files to image_url
+    // Handle image editing: convert files to image_url or image_urls
     if (files != null && files.length > 0) {
-      // Use first file as the primary image_url
-      requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+      const useMultipleImages = falOptions?.useMultipleImages === true;
 
-      if (files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'fal.ai only supports a single input image. Additional images are ignored.',
-        });
+      if (useMultipleImages) {
+        // Use image_urls array for models that support multiple images (e.g., flux-2/edit)
+        requestBody.image_urls = files.map(file =>
+          convertImageModelFileToDataUri(file),
+        );
+      } else {
+        // Use single image_url for standard image editing models
+        requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+
+        if (files.length > 1) {
+          warnings.push({
+            type: 'other',
+            message:
+              'Multiple input images provided but useMultipleImages is not enabled. ' +
+              'Only the first image will be used. Set providerOptions.fal.useMultipleImages ' +
+              'to true for models that support multiple images (e.g., fal-ai/flux-2/edit).',
+          });
+        }
       }
     }
 
@@ -125,6 +136,7 @@ export class FalImageModel implements ImageModelV3 {
 
       for (const [key, value] of Object.entries(falOptions)) {
         if (key === '__deprecatedKeys') continue;
+        if (key === 'useMultipleImages') continue; // Don't send to API
         const apiKey = fieldMapping[key] ?? key;
 
         if (value !== undefined) {
