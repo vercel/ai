@@ -6988,5 +6988,46 @@ describe('AnthropicMessagesLanguageModel', () => {
         ]
       `);
     });
+
+    describe('code execution with pdf skill (index mismatch bug)', () => {
+      it('should handle text blocks after tool results with consistent IDs', async () => {
+        prepareChunksFixtureResponse('anthropic-code-execution-pdf-skill.1');
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pdf' }],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        // Find all text-start and text-delta parts
+        const textStarts = result.filter(
+          p => p.type === 'text-start',
+        ) as Array<{ type: 'text-start'; id: string }>;
+        const textDeltas = result.filter(
+          p => p.type === 'text-delta',
+        ) as Array<{ type: 'text-delta'; id: string; delta: string }>;
+
+        // Each text-delta should have a matching text-start with the same ID
+        for (const delta of textDeltas) {
+          const matchingStart = textStarts.find(start => start.id === delta.id);
+          expect(matchingStart).toBeDefined();
+        }
+      });
+    });
   });
 });
