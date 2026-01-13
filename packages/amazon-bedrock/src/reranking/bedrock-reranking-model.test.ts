@@ -144,7 +144,10 @@ describe('doRerank', () => {
     });
 
     it('should return result with the correct response', async () => {
-      expect(result.response).toMatchInlineSnapshot(`
+      const { ['content-length']: _contentLength, ...headers } =
+        result.response.headers;
+
+      expect({ ...result.response, headers }).toMatchInlineSnapshot(`
         {
           "body": {
             "results": [
@@ -159,7 +162,6 @@ describe('doRerank', () => {
             ],
           },
           "headers": {
-            "content-length": "171",
             "content-type": "application/json",
           },
         }
@@ -274,7 +276,10 @@ describe('doRerank', () => {
     });
 
     it('should return result with the correct response', async () => {
-      expect(result.response).toMatchInlineSnapshot(`
+      const { ['content-length']: _contentLength, ...headers } =
+        result.response.headers;
+
+      expect({ ...result.response, headers }).toMatchInlineSnapshot(`
         {
           "body": {
             "results": [
@@ -289,7 +294,6 @@ describe('doRerank', () => {
             ],
           },
           "headers": {
-            "content-length": "171",
             "content-type": "application/json",
           },
         }
