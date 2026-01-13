@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.7
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
 ## 3.0.6
 
 ### Patch Changes
