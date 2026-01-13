@@ -8,6 +8,7 @@ import {
 } from './process-ui-message-stream';
 import { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -381,6 +382,86 @@ describe('processUIMessageStream', () => {
       ).rejects.toThrow(
         'Received reasoning-end for missing reasoning part with ID "reasoning-1". ' +
           'Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.',
+      );
+    });
+
+    it('should throw UIMessageStreamError with correct properties for text-delta without text-start', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-delta', id: 'missing-id', delta: 'Hello' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      let caughtError: unknown;
+      try {
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        });
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(UIMessageStreamError.isInstance(caughtError)).toBe(true);
+      expect((caughtError as UIMessageStreamError).chunkType).toBe(
+        'text-delta',
+      );
+      expect((caughtError as UIMessageStreamError).chunkId).toBe('missing-id');
+    });
+
+    it('should throw UIMessageStreamError with correct properties for tool-input-delta without tool-input-start', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'missing-tool-id',
+          inputTextDelta: '{"key":',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      let caughtError: unknown;
+      try {
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          onError: error => {
+            throw error;
+          },
+        });
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(UIMessageStreamError.isInstance(caughtError)).toBe(true);
+      expect((caughtError as UIMessageStreamError).chunkType).toBe(
+        'tool-input-delta',
+      );
+      expect((caughtError as UIMessageStreamError).chunkId).toBe(
+        'missing-tool-id',
       );
     });
   });
