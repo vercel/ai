@@ -15,6 +15,9 @@
     "README.md",
     "test.d.ts"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json && cp -r ../../content/docs ./docs",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
