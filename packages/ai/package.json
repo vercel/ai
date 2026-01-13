@@ -11,6 +11,7 @@
     "dist/**/*",
     "AGENTS.md",
     "CHANGELOG.md",
+    "CLAUDE.md",
     "internal.d.ts",
     "README.md",
     "test.d.ts"

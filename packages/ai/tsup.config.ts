@@ -18,8 +18,9 @@ export default defineConfig([
       ),
     },
     onSuccess: async () => {
-      // Copy USAGE-AGENTS.md to AGENTS.md for inclusion in the published package
+      // Copy USAGE-AGENTS.md to AGENTS.md and CLAUDE.md for inclusion in the published package
       copyFileSync('USAGE-AGENTS.md', 'AGENTS.md');
+      copyFileSync('USAGE-AGENTS.md', 'CLAUDE.md');
     },
   },
   // Internal APIs
