@@ -2,7 +2,6 @@ import { ProdiaImageProviderOptions, prodia } from '@ai-sdk/prodia';
 import { generateImage } from 'ai';
 import { presentImages } from '../lib/present-image';
 import { run } from '../lib/run';
-import 'dotenv/config';
 
 run(async () => {
   const { images, providerMetadata } = await generateImage({

@@ -179,6 +179,135 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
 
+    describe('reasoning content', () => {
+      it('should extract reasoning with encrypted content when store=false', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'First, analyze the question carefully.',
+                },
+              ],
+              encrypted_content: 'abc123encryptedcontent',
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 42.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            output_tokens_details: {
+              reasoning_tokens: 15,
+            },
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                  "reasoningEncryptedContent": "abc123encryptedcontent",
+                },
+              },
+              "text": "First, analyze the question carefully.",
+              "type": "reasoning",
+            },
+            {
+              "text": "The answer is 42.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle reasoning without encrypted content', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking through the problem.',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Solution found.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                },
+              },
+              "text": "Thinking through the problem.",
+              "type": "reasoning",
+            },
+            {
+              "text": "Solution found.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('settings and options', () => {
       it('should send model id and settings', async () => {
         prepareJsonResponse({
@@ -208,7 +337,12 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "system",
               },
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
@@ -342,6 +476,146 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      describe('responseFormat', () => {
+        it('should send response format json schema', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              name: 'recipe',
+              description: 'A recipe object',
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  ingredients: { type: 'array', items: { type: 'string' } },
+                },
+                required: ['name', 'ingredients'],
+                additionalProperties: false,
+              },
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "description": "A recipe object",
+                  "name": "recipe",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingredients": {
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "name": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "name",
+                      "ingredients",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                  "type": "json_schema",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should send response format json object when no schema provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "type": "json_object",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should use default name when responseFormat.name is not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              schema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.text.format.name).toBe('response');
+        });
+      });
     });
 
     describe('web_search tool', () => {
@@ -398,7 +672,12 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "input": [
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
@@ -889,6 +1168,111 @@ describe('XaiResponsesLanguageModel', () => {
         expect(parts).toMatchSnapshot();
       });
 
+      it('should include encrypted content in reasoning-end providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_part.added',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            part: { type: 'summary_text', text: '' },
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            delta: 'Analyzing...',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.done',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            text: 'Analyzing...',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [{ type: 'summary_text', text: 'Analyzing...' }],
+              encrypted_content: 'encrypted_data_abc123',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'Result.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_data_abc123",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+      });
+
       it('should stream x_search tool call', async () => {
         prepareChunksFixtureResponse('xai-x-search-tool');
 
@@ -907,6 +1291,101 @@ describe('XaiResponsesLanguageModel', () => {
         const parts = await convertReadableStreamToArray(stream);
 
         expect(parts).toMatchSnapshot();
+      });
+
+      it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          // Message item added - should emit text-start
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [],
+            },
+            output_index: 0,
+          }),
+          // Stream text deltas
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: ' ',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'world',
+          }),
+          // Message item done - should NOT emit text-delta with full text
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello world', // Full accumulated text
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Count text-delta events
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        // Should only have 3 text-deltas from streaming, NOT 4 (with duplicate full text)
+        expect(textDeltas).toHaveLength(3);
+        expect(textDeltas.map(d => d.delta)).toEqual(['Hello', ' ', 'world']);
+
+        // Verify there's no text-delta with the full accumulated text
+        const fullTextDelta = textDeltas.find(d => d.delta === 'Hello world');
+        expect(fullTextDelta).toBeUndefined();
       });
     });
 

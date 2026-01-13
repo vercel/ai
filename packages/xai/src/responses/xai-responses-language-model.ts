@@ -69,6 +69,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     topP,
     stopSequences,
     seed,
+    responseFormat,
     providerOptions,
     tools,
     toolChoice,
@@ -121,6 +122,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       seed,
+      ...(responseFormat?.type === 'json' && {
+        text: {
+          format:
+            responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: responseFormat.schema,
+                }
+              : { type: 'json_object' },
+        },
+      }),
       ...(options.reasoningEffort != null && {
         reasoning: { effort: options.reasoningEffort },
       }),
@@ -275,6 +290,36 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           break;
         }
 
+        case 'reasoning': {
+          const summaryTexts = part.summary
+            .map(s => s.text)
+            .filter(text => text && text.length > 0);
+
+          if (summaryTexts.length > 0) {
+            const reasoningText = summaryTexts.join('');
+            if (part.encrypted_content || part.id) {
+              content.push({
+                type: 'reasoning',
+                text: reasoningText,
+                providerMetadata: {
+                  xai: {
+                    ...(part.encrypted_content && {
+                      reasoningEncryptedContent: part.encrypted_content,
+                    }),
+                    ...(part.id && { itemId: part.id }),
+                  },
+                },
+              });
+            } else {
+              content.push({
+                type: 'reasoning',
+                text: reasoningText,
+              });
+            }
+          }
+          break;
+        }
+
         default: {
           break;
         }
@@ -334,6 +379,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
 
+    const activeReasoning: Record<
+      string,
+      { encryptedContent?: string | null }
+    > = {};
+
     const self = this;
 
     return {
@@ -378,6 +428,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'reasoning-start',
                 id: blockId,
+                providerMetadata: {
+                  xai: {
+                    itemId: event.item_id,
+                  },
+                },
               });
             }
 
@@ -388,18 +443,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 type: 'reasoning-delta',
                 id: blockId,
                 delta: event.delta,
+                providerMetadata: {
+                  xai: {
+                    itemId: event.item_id,
+                  },
+                },
               });
 
               return;
             }
 
             if (event.type === 'response.reasoning_summary_text.done') {
-              const blockId = `reasoning-${event.item_id}`;
-
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: blockId,
-              });
+              return;
             }
 
             if (event.type === 'response.output_text.delta') {
@@ -483,6 +538,25 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               event.type === 'response.output_item.done'
             ) {
               const part = event.item;
+              if (part.type === 'reasoning') {
+                if (event.type === 'response.output_item.done') {
+                  controller.enqueue({
+                    type: 'reasoning-end',
+                    id: `reasoning-${part.id}`,
+                    providerMetadata: {
+                      xai: {
+                        ...(part.encrypted_content && {
+                          reasoningEncryptedContent: part.encrypted_content,
+                        }),
+                        ...(part.id && { itemId: part.id }),
+                      },
+                    },
+                  });
+                  delete activeReasoning[part.id];
+                }
+                return;
+              }
+
               if (
                 part.type === 'web_search_call' ||
                 part.type === 'x_search_call' ||
@@ -579,13 +653,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                         type: 'text-start',
                         id: blockId,
                       });
-                    }
 
-                    controller.enqueue({
-                      type: 'text-delta',
-                      id: blockId,
-                      delta: contentPart.text,
-                    });
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: blockId,
+                        delta: contentPart.text,
+                      });
+                    }
                   }
 
                   if (contentPart.annotations) {

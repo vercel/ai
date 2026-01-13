@@ -1,9 +1,9 @@
 import { generateObject, NoObjectGeneratedError } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import 'dotenv/config';
 import { z } from 'zod';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   try {
     await generateObject({
       model: new MockLanguageModelV3({
@@ -43,6 +43,4 @@ async function main() {
       console.log('Usage:', error.usage);
     }
   }
-}
-
-main().catch(console.error);
+});

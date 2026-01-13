@@ -1,5 +1,46 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.16
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/anthropic@3.0.12
+
+## 4.0.15
+
+### Patch Changes
+
+- Updated dependencies [8c1c6e3]
+  - @ai-sdk/anthropic@3.0.11
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [02d9b68]
+  - @ai-sdk/anthropic@3.0.10
+
+## 4.0.13
+
+### Patch Changes
+
+- e89fc99: Correct input token calculation logic
+
+## 4.0.12
+
+### Patch Changes
+
+- eff1cb6: fix(bedrock): map reasoningConfig to reasoning_effort for openai models
+
+## 4.0.11
+
+### Patch Changes
+
+- Updated dependencies [de2399b]
+  - @ai-sdk/anthropic@3.0.9
+
 ## 4.0.10
 
 ### Patch Changes

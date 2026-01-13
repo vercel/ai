@@ -1,8 +1,8 @@
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import 'dotenv/config';
 import { registry } from './setup-registry';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { audio } = await generateSpeech({
     model: registry.speechModel('elevenlabs:eleven_multilingual_v2'),
     text: 'Hello, this is a test of ElevenLabs speech synthesis using the provider registry!',
@@ -10,6 +10,4 @@ async function main() {
   });
 
   console.log('Generated audio:', audio);
-}
-
-main().catch(console.error);
+});

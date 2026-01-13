@@ -688,3 +688,253 @@ describe('provider-specific metadata merging', () => {
     ]);
   });
 });
+
+describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+  it('should serialize thought signature to extra_content for single tool call', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            input: { flight: 'AA100' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'function-call-1',
+            type: 'function',
+            function: {
+              name: 'check_flight',
+              arguments: JSON.stringify({ flight: 'AA100' }),
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should handle sequential tool calls with separate signatures (Turn 1 Step 3 scenario)', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Check flight status for AA100 and book a taxi 2 hours before if delayed.',
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            input: { flight: 'AA100' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'function-call-1',
+            toolName: 'check_flight',
+            output: {
+              type: 'json',
+              value: { status: 'delayed', departure_time: '12 PM' },
+            },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-2',
+            toolName: 'book_taxi',
+            input: { time: '10 AM' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature B>',
+              },
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'function-call-2',
+            toolName: 'book_taxi',
+            output: { type: 'json', value: { booking_status: 'success' } },
+          },
+        ],
+      },
+    ]);
+
+    // Verify both signatures are preserved
+    expect(result[1]).toEqual({
+      role: 'assistant',
+      content: '',
+      tool_calls: [
+        {
+          id: 'function-call-1',
+          type: 'function',
+          function: {
+            name: 'check_flight',
+            arguments: JSON.stringify({ flight: 'AA100' }),
+          },
+          extra_content: {
+            google: {
+              thought_signature: '<Signature A>',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(result[3]).toEqual({
+      role: 'assistant',
+      content: '',
+      tool_calls: [
+        {
+          id: 'function-call-2',
+          type: 'function',
+          function: {
+            name: 'book_taxi',
+            arguments: JSON.stringify({ time: '10 AM' }),
+          },
+          extra_content: {
+            google: {
+              thought_signature: '<Signature B>',
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it('should handle parallel tool calls with signature only on first call', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-paris',
+            toolName: 'get_current_temperature',
+            input: { location: 'Paris' },
+            providerOptions: {
+              google: {
+                thoughtSignature: '<Signature A>',
+              },
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'function-call-london',
+            toolName: 'get_current_temperature',
+            input: { location: 'London' },
+            // No signature on parallel function call
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'function-call-paris',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: JSON.stringify({ location: 'Paris' }),
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+          {
+            id: 'function-call-london',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: JSON.stringify({ location: 'London' }),
+            },
+            // No extra_content for second parallel call
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should not include extra_content when no thought signature is present', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'some_tool',
+            input: { param: 'value' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'some_tool',
+              arguments: JSON.stringify({ param: 'value' }),
+            },
+            // No extra_content field
+          },
+        ],
+      },
+    ]);
+  });
+});

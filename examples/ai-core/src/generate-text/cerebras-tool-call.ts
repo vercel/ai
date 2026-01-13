@@ -1,10 +1,10 @@
 import { cerebras } from '@ai-sdk/cerebras';
 import { generateText, tool } from 'ai';
-import 'dotenv/config';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: cerebras('llama3.1-8b'),
     maxOutputTokens: 512,
@@ -63,6 +63,4 @@ async function main() {
   console.log('Text:', result.text);
   console.log('Tool Calls:', JSON.stringify(result.toolCalls, null, 2));
   console.log('Tool Results:', JSON.stringify(result.toolResults, null, 2));
-}
-
-main().catch(console.error);
+});

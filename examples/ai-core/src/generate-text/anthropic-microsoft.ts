@@ -1,7 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
-import 'dotenv/config';
 
 run(async () => {
   const resourceName = process.env.ANTHROPIC_MICROSOFT_RESOURCE_NAME;

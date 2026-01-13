@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
 /**
  * prepare
@@ -11,7 +11,7 @@ import 'dotenv/config';
 
 const VectorStoreId = 'vs_xxxxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id.
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = await streamText({
     model: openai.responses('gpt-4.1-mini'),
@@ -37,6 +37,4 @@ async function main() {
   console.log('\n=== Other Outputs ===');
   console.dir(await result.toolCalls, { depth: null });
   console.dir(await result.toolResults, { depth: null });
-}
-
-main().catch(console.error);
+});

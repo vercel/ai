@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const deepseek = createOpenAICompatible({
     baseURL: 'https://api.deepseek.com/v1',
     name: 'deepseek',
@@ -25,6 +25,4 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+});

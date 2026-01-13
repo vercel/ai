@@ -1,6 +1,11 @@
-import { azure } from '@ai-sdk/azure';
+import {
+  azure,
+  type AzureResponsesSourceDocumentProviderMetadata,
+  type AzureResponsesTextProviderMetadata,
+} from '@ai-sdk/azure';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
+import { downloadAzureContainerFile } from '../lib/download-azure-container-file';
 
 /**
  * prepare
@@ -9,7 +14,7 @@ import 'dotenv/config';
  * AZURE_API_KEY="<your_api_key>"
  */
 
-async function main() {
+run(async () => {
   // Basic text generation
   const result = streamText({
     model: azure.responses('gpt-4.1-mini'), // use your own deployment
@@ -28,14 +33,42 @@ async function main() {
   console.log(await result.toolCalls);
   console.log(await result.toolResults);
   console.log('\n=== Code Interpreter Annotations ===');
+
+  const containerfileList: {
+    containerId: string;
+    fileId: string;
+  }[] = [];
   for await (const part of result.fullStream) {
     if (part.type === 'text-end') {
-      const annotations = part.providerMetadata?.azure?.annotations;
-      if (annotations) {
-        console.dir(annotations);
+      const providerMetadata = part.providerMetadata as
+        | AzureResponsesTextProviderMetadata
+        | undefined;
+      if (!providerMetadata) continue;
+      const { azure } = providerMetadata;
+      console.log('-- text-part-- ');
+      console.dir({ azure }, { depth: Infinity });
+    } else if (part.type === 'source') {
+      if (part.sourceType === 'document') {
+        const providerMetadata = part.providerMetadata as
+          | AzureResponsesSourceDocumentProviderMetadata
+          | undefined;
+        if (!providerMetadata) continue;
+        const { azure } = providerMetadata;
+        console.log('-- source-document-part-- ');
+        console.dir({ azure }, { depth: Infinity });
+        if (azure.type === 'container_file_citation') {
+          containerfileList.push({
+            containerId: azure.containerId,
+            fileId: azure.fileId,
+          });
+        }
       }
     }
   }
-}
-
-main().catch(console.error);
+  for await (const containerFile of containerfileList) {
+    await downloadAzureContainerFile(
+      containerFile.containerId,
+      containerFile.fileId,
+    );
+  }
+});

@@ -1,5 +1,96 @@
 # ai
 
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
+## 6.0.19
+
+### Patch Changes
+
+- Updated dependencies [2696fd2]
+  - @ai-sdk/gateway@3.0.10
+
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
 ## 6.0.16
 
 ### Patch Changes

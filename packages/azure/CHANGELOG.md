@@ -1,5 +1,30 @@
 # @ai-sdk/azure
 
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai@3.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
+
+  - Align Responses API `code_interpreter` annotation types with the official spec.
+  - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
+  - Export the following types for use in client code:
+    - `OpenaiResponsesTextProviderMetadata`
+    - `OpenaiResponsesSourceDocumentProviderMetadata`
+    - `AzureResponsesTextProviderMetadata`
+    - `AzureResponsesSourceDocumentProviderMetadata`
+
+- Updated dependencies [330bd92]
+  - @ai-sdk/openai@3.0.8
+
 ## 3.0.7
 
 ### Patch Changes

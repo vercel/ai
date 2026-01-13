@@ -1,9 +1,9 @@
 import { google } from '@ai-sdk/google';
 import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
-import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { run } from '../lib/run';
 
 async function fileToBase64(filePath: string): Promise<string> {
   const fileBuffer = await fs.promises.readFile(filePath);
@@ -45,7 +45,7 @@ const imageAnalysisTool = tool({
   },
 });
 
-async function main() {
+run(async () => {
   console.log(
     '🔍 Testing Google model image analysis with tool-returned images...\n',
   );
@@ -77,6 +77,4 @@ async function main() {
   console.log(`Input tokens: ${result.usage.inputTokens}`);
   console.log(`Output tokens: ${result.usage.outputTokens}`);
   console.log(`Total tokens: ${result.usage.totalTokens}`);
-}
-
-main().catch(console.error);
+});

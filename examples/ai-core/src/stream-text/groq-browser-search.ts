@@ -1,8 +1,8 @@
 import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   try {
     const result = streamText({
       model: groq('openai/gpt-oss-120b'),
@@ -52,13 +52,11 @@ async function main() {
       console.error('- openai/gpt-oss-120b');
     }
   }
-}
 
-// Example showing what happens with unsupported model
-async function exampleWithUnsupportedModel() {
+  // Example showing what happens with unsupported model
   console.log('\n=== Example with unsupported model ===');
 
-  const result = streamText({
+  const unsupportedResult = streamText({
     model: groq('gemma2-9b-it'), // Unsupported model
     prompt: 'Search for AI news',
     tools: {
@@ -66,8 +64,6 @@ async function exampleWithUnsupportedModel() {
     },
   });
 
-  const warnings = await result.warnings;
+  const warnings = await unsupportedResult.warnings;
   console.log('Warnings for unsupported model:', warnings);
-}
-
-main().catch(console.error);
+});

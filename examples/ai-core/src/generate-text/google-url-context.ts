@@ -1,8 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const result = await generateText({
     model: google('gemini-2.5-flash'),
     messages: [
@@ -28,6 +28,4 @@ async function main() {
   console.log();
   console.log('PROVIDER METADATA');
   console.log(result.providerMetadata?.google);
-}
-
-main().catch(console.error);
+});

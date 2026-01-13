@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { cosineSimilarity, embedMany } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const { embeddings, warnings } = await embedMany({
     model: openai.embedding('text-embedding-3-small'),
     values: ['sunny day at the beach', 'rainy afternoon in the city'],
@@ -12,6 +12,4 @@ async function main() {
     `cosine similarity: ${cosineSimilarity(embeddings[0], embeddings[1])}`,
   );
   console.log(warnings);
-}
-
-main().catch(console.error);
+});

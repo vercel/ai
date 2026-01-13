@@ -15,9 +15,13 @@ export type XaiResponsesSystemMessage = {
   content: string;
 };
 
+export type XaiResponsesUserMessageContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; image_url: string };
+
 export type XaiResponsesUserMessage = {
   role: 'user';
-  content: string;
+  content: Array<XaiResponsesUserMessageContentPart>;
 };
 
 export type XaiResponsesAssistantMessage = {
@@ -168,6 +172,7 @@ const outputItemSchema = z.discriminatedUnion('type', [
     id: z.string(),
     summary: z.array(reasoningSummaryPartSchema),
     status: z.string(),
+    encrypted_content: z.string().nullish(),
   }),
 ]);
 
