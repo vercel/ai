@@ -81,6 +81,7 @@ export class ToolLoopAgent<
    */
   async generate({
     abortSignal,
+    timeout,
     ...options
   }: AgentCallParameters<CALL_OPTIONS>): Promise<
     GenerateTextResult<TOOLS, OUTPUT>
@@ -88,6 +89,7 @@ export class ToolLoopAgent<
     return generateText({
       ...(await this.prepareCall(options)),
       abortSignal,
+      timeout,
     });
   }
 
@@ -96,6 +98,7 @@ export class ToolLoopAgent<
    */
   async stream({
     abortSignal,
+    timeout,
     experimental_transform,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
@@ -104,6 +107,7 @@ export class ToolLoopAgent<
     return streamText({
       ...(await this.prepareCall(options)),
       abortSignal,
+      timeout,
       experimental_transform,
     });
   }

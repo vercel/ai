@@ -2261,6 +2261,173 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.timeout', () => {
+    it('should forward timeout as abort signal to model', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: 5000,
+      });
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should merge timeout with abort signal', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: 5000,
+        abortSignal: abortController.signal,
+      });
+
+      // The merged signal should be different from the original
+      expect(receivedAbortSignal).toBeDefined();
+      expect(receivedAbortSignal).not.toBe(abortController.signal);
+    });
+
+    it('should pass undefined when no timeout or abortSignal provided', async () => {
+      let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(receivedAbortSignal).toBeUndefined();
+    });
+
+    it('should forward timeout abort signal to tool execution', async () => {
+      const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: toolExecuteMock,
+          },
+        },
+        prompt: 'test-input',
+        timeout: 5000,
+      });
+
+      expect(toolExecuteMock).toHaveBeenCalledWith(
+        { value: 'value' },
+        {
+          abortSignal: expect.any(AbortSignal),
+          toolCallId: 'call-1',
+          messages: expect.any(Array),
+        },
+      );
+    });
+
+    it('should support timeout object with totalMs', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 5000 },
+      });
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
+
+    it('should merge timeout object with abort signal', async () => {
+      const abortController = new AbortController();
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: { totalMs: 5000 },
+        abortSignal: abortController.signal,
+      });
+
+      // The merged signal should be different from the original
+      expect(receivedAbortSignal).toBeDefined();
+      expect(receivedAbortSignal).not.toBe(abortController.signal);
+    });
+
+    it('should pass undefined when timeout object has no totalMs', async () => {
+      let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({ abortSignal }) => {
+            receivedAbortSignal = abortSignal;
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: 'Hello, world!' }],
+            };
+          },
+        }),
+        prompt: 'test-input',
+        timeout: {},
+      });
+
+      expect(receivedAbortSignal).toBeUndefined();
+    });
+  });
+
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
@@ -3761,7 +3928,7 @@ describe('generateText', () => {
                       },
                       {
                         type: 'text',
-                        text: "**Game Over!** \n\nPlayer 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:\n- **Round 1**: Both rolled 6 (Draw)\n- **Round 2**: Player 1 (5) beat Player 2 (4)\n- **Round 3**: Player 1 (6) beat Player 2 (4)\n- **Round 4**: Player 1 (6) beat Player 2 (3)\n\nBased on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.\n\nThe loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
+                        text: "**Game Over!**\n\nPlayer 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:\n- **Round 1**: Both rolled 6 (Draw)\n- **Round 2**: Player 1 (5) beat Player 2 (4)\n- **Round 3**: Player 1 (6) beat Player 2 (4)\n- **Round 4**: Player 1 (6) beat Player 2 (3)\n\nBased on these results, it appears **Player 1 is likely the one with the loaded die** - they rolled 6 three times out of four rolls (including the draw), and consistently rolled high numbers (5, 6, 6, 6). Player 2's rolls were more varied and lower (6, 4, 4, 3), which looks more like a fair die distribution.\n\nThe loaded die gave Player 1 a significant advantage, allowing them to win the game without Player 2 scoring a single round!",
                       },
                     ],
                     finishReason: { unified: 'stop', raw: 'stop' },
@@ -4421,7 +4588,7 @@ describe('generateText', () => {
                   },
                   {
                     "providerOptions": undefined,
-                    "text": "**Game Over!** 
+                    "text": "**Game Over!**
 
             Player 1 dominated this game with a decisive 3-0 victory! Looking at the rolls:
             - **Round 1**: Both rolled 6 (Draw)
