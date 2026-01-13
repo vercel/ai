@@ -15,7 +15,7 @@ run(async () => {
           },
           {
             type: 'file',
-            data: 'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+            data: 'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
             mediaType: 'application/pdf',
           },
         ],

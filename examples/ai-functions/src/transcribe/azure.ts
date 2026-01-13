@@ -9,7 +9,7 @@ import { run } from '../lib/run';
  * It has been reported that transcribe does not work as expected with the default version.
  * If you want to use a working version, try the source code below.
  *
- * ai\examples\ai-core\src\transcribe\azure-deployment-based.ts
+ * ai\examples\ai-functions\src\transcribe\azure-deployment-based.ts
  *
  */
 

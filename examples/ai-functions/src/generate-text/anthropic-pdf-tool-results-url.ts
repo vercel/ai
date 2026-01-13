@@ -13,7 +13,7 @@ run(async () => {
           success: true,
           description: 'Successfully loaded PDF document',
           pdfUrl:
-            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
         };
       } catch (error) {
         throw new Error(`Failed to analyze PDF: ${error}`);

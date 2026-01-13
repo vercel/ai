@@ -22,7 +22,7 @@ pnpm install
 pnpm build
 ```
 
-3. Run any example (from the `examples/ai-core` directory) with the following command:
+3. Run any example (from the `examples/ai-functions` directory) with the following command:
 
 ```sh
 pnpm tsx src/path/to/example.ts

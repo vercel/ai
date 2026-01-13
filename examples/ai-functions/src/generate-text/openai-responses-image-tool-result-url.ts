@@ -13,7 +13,7 @@ run(async () => {
           success: true,
           description: 'Successfully loaded image',
           imageUrl:
-            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         };
       } catch (error) {
         throw new Error(`Failed to analyze image: ${error}`);

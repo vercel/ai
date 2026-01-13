@@ -10,7 +10,7 @@ run(async () => {
   const result = await transcribe({
     model: azure.transcription('whisper-1'), // use your own deployment
     audio: new URL(
-      'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+      'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
     ),
   });
 

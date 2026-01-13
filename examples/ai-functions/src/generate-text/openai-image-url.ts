@@ -13,7 +13,7 @@ run(async () => {
           {
             type: 'image',
             image:
-              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+              'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
 
             // OpenAI specific option - image detail:
             providerOptions: {

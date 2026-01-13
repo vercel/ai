@@ -17,7 +17,7 @@ run(async () => {
           {
             type: 'image',
             image: new URL(
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-core/data/comic-cat.png',
+              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
             ),
             mediaType: 'image/jpeg',
           },
