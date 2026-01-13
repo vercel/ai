@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.32
+
+### Patch Changes
+
+- ec24401: chore(ai): include docs in npm package
+
 ## 6.0.31
 
 ### Patch Changes
