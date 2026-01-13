@@ -54,6 +54,15 @@ export interface OpenAICompatibleMessageToolCall extends JsonRecord {
     arguments: string;
     name: string;
   };
+  /**
+   * Additional content for provider-specific features.
+   * Used by Google Gemini for thought signatures via OpenAI compatibility.
+   */
+  extra_content?: {
+    google?: {
+      thought_signature?: string;
+    };
+  };
 }
 
 export interface OpenAICompatibleToolMessage extends JsonRecord {

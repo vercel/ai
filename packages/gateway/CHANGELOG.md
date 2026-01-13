@@ -1,5 +1,24 @@
 # @ai-sdk/gateway
 
+## 3.0.13
+
+### Patch Changes
+
+- 92b339b: feat (provider/gateway): add'l perplexity search tool params
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.11
+
+### Patch Changes
+
+- 891a60a: feat (provider/gateway): add provider-defined perplexity search
+
 ## 3.0.10
 
 ### Patch Changes

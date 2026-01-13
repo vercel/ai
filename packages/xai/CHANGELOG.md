@@ -1,5 +1,57 @@
 # @ai-sdk/xai
 
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [cd7bb0e]
+  - @ai-sdk/openai-compatible@2.0.7
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai-compatible@2.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 9ed771c: feat(provider/xai): add image support to responses api
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [d54c380]
+  - @ai-sdk/openai-compatible@2.0.5
+
+## 3.0.16
+
+### Patch Changes
+
+- f446e23: fix(provider/xai): make streaming providerMetadata structure consistent with non-streaming
+
+## 3.0.15
+
+### Patch Changes
+
+- ed1587d: feat (provider/xai): add support for encrypted reasoning content
+
+## 3.0.14
+
+### Patch Changes
+
+- 0a081cb: fix (provider/xai): set response format to allow object generation
+
+## 3.0.13
+
+### Patch Changes
+
+- 7ac2437: fix(provider/xai): send reasoning-end before text-start in streaming
+
 ## 3.0.12
 
 ### Patch Changes

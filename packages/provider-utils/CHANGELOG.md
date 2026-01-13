@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.5
+
+### Patch Changes
+
+- 34d1c8a: fix(provider-utils): add additionalProperties field for standard schema function
+
 ## 4.0.4
 
 ### Patch Changes

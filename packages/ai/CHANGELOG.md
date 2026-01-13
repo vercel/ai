@@ -1,5 +1,51 @@
 # ai
 
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
 ## 6.0.24
 
 ### Patch Changes

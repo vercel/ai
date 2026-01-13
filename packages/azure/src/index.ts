@@ -8,4 +8,8 @@ export type {
   AzureOpenAIProvider,
   AzureOpenAIProviderSettings,
 } from './azure-openai-provider';
+export type {
+  AzureResponsesTextProviderMetadata,
+  AzureResponsesSourceDocumentProviderMetadata,
+} from './azure-openai-provider-metadata';
 export { VERSION } from './version';

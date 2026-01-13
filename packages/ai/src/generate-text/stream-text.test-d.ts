@@ -148,4 +148,53 @@ describe('streamText types', () => {
       >();
     });
   });
+
+  describe('elementStream', () => {
+    it('should infer element type for array output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.array({ element: z.object({ value: z.string() }) }),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<{ value: string }>
+      >();
+    });
+
+    it('should infer never for text output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.text(),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
+      >();
+    });
+
+    it('should infer never for object output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.object({ schema: z.object({ value: z.string() }) }),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
+      >();
+    });
+
+    it('should infer never for default output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
+      >();
+    });
+  });
 });

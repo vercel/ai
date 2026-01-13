@@ -1,5 +1,24 @@
 # @ai-sdk/anthropic
 
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.11
+
+### Patch Changes
+
+- 8c1c6e3: fix(anthropic): add application/json type regex matching
+
+## 3.0.10
+
+### Patch Changes
+
+- 02d9b68: fix `input_tokens` compatibility
+
 ## 3.0.9
 
 ### Patch Changes
