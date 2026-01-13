@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.6
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
 ## 3.0.5
 
 ### Patch Changes
