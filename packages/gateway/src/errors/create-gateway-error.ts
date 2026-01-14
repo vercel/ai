@@ -36,18 +36,26 @@ export async function createGatewayErrorFromResponse({
   });
 
   if (!parseResult.success) {
+    // Try to extract generationId even if validation failed
+    const rawGenerationId =
+      typeof response === 'object' && response !== null && 'generationId' in response
+        ? (response as { generationId?: string }).generationId
+        : undefined;
+
     return new GatewayResponseError({
       message: `Invalid error response format: ${defaultMessage}`,
       statusCode,
       response,
       validationError: parseResult.error,
       cause,
+      generationId: rawGenerationId,
     });
   }
 
   const validatedResponse: GatewayErrorResponse = parseResult.value;
   const errorType = validatedResponse.error.type;
   const message = validatedResponse.error.message;
+  const generationId = validatedResponse.generationId ?? undefined;
 
   switch (errorType) {
     case 'authentication_error':
@@ -56,11 +64,12 @@ export async function createGatewayErrorFromResponse({
         oidcTokenProvided: authMethod === 'oidc',
         statusCode,
         cause,
+        generationId,
       });
     case 'invalid_request_error':
-      return new GatewayInvalidRequestError({ message, statusCode, cause });
+      return new GatewayInvalidRequestError({ message, statusCode, cause, generationId });
     case 'rate_limit_exceeded':
-      return new GatewayRateLimitError({ message, statusCode, cause });
+      return new GatewayRateLimitError({ message, statusCode, cause, generationId });
     case 'model_not_found': {
       const modelResult = await safeValidateTypes({
         value: validatedResponse.error.param,
@@ -72,12 +81,13 @@ export async function createGatewayErrorFromResponse({
         statusCode,
         modelId: modelResult.success ? modelResult.value.modelId : undefined,
         cause,
+        generationId,
       });
     }
     case 'internal_server_error':
-      return new GatewayInternalServerError({ message, statusCode, cause });
+      return new GatewayInternalServerError({ message, statusCode, cause, generationId });
     default:
-      return new GatewayInternalServerError({ message, statusCode, cause });
+      return new GatewayInternalServerError({ message, statusCode, cause, generationId });
   }
 }
 
@@ -90,6 +100,7 @@ const gatewayErrorResponseSchema = lazySchema(() =>
         param: z.unknown().nullish(),
         code: z.union([z.string(), z.number()]).nullish(),
       }),
+      generationId: z.string().nullish(),
     }),
   ),
 );
