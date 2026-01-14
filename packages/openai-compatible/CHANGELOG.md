@@ -1,5 +1,17 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.9
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 2.0.8
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
 ## 2.0.7
 
 ### Patch Changes
