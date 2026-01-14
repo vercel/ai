@@ -28,7 +28,7 @@ Here are the key strategies for effective prompting:
 
 **1. Agentic Workflow Control**
 
-- Adjust the `reasoning_effort` parameter to calibrate model autonomy
+- Adjust the `reasoningEffort` parameter to calibrate model autonomy
 - Set clear stop conditions and define explicit tool call budgets
 - Provide guidance on exploration depth and persistence
 
@@ -39,7 +39,7 @@ const result = await generateText({
   prompt: 'Analyze this complex dataset and provide insights.',
   providerOptions: {
     openai: {
-      reasoning_effort: 'high', // Increases autonomous exploration
+      reasoningEffort: 'high', // Increases autonomous exploration
     },
   },
 });

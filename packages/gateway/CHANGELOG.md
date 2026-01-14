@@ -1,5 +1,125 @@
 # @ai-sdk/gateway
 
+## 2.0.27
+
+### Patch Changes
+
+- 74676fa: feat (provider/gateway): add'l perplexity search tool params
+
+## 2.0.26
+
+### Patch Changes
+
+- 655377e: fix(gateway): bump `@vercel/oidc` to 3.1.0
+
+## 2.0.25
+
+### Patch Changes
+
+- f6b46d2: feat (provider/gateway): add provider-defined perplexity search
+
+## 2.0.24
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.23
+
+### Patch Changes
+
+- e3de981: feat (provider/gateway): add zero data retention provider option
+
+## 2.0.22
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+
+## 2.0.21
+
+### Patch Changes
+
+- 041a4fc: feat(openai): add gpt-5.2 models
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+
+## 2.0.19
+
+### Patch Changes
+
+- 51bbaa1: feat (provider/gateway): add support for request-scoped byok
+
+## 2.0.18
+
+### Patch Changes
+
+- 667f74c: feat (provider/gateway): add trinity-mini model id
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+
+## 2.0.16
+
+### Patch Changes
+
+- e609736: feat (provider/gateway): add intellect-3 model id
+
+## 2.0.15
+
+### Patch Changes
+
+- c5a42ec: feat(provider/gateway): Server-side image request splitting
+
+## 2.0.14
+
+### Patch Changes
+
+- c9520e5: fix(provider/gateway): Fix Gateway image model provider options not passing through
+- 2382c89: feat(provider/gateway): Change default maxImagesPerCall per-provider
+
+## 2.0.13
+
+### Patch Changes
+
+- 8c54c71: feat(provider/gateway): update gateway model string autocomplete
+
+## 2.0.12
+
+### Patch Changes
+
+- 6465dc3: bump `@vercel/oidc` to 3.0.5
+
+## 2.0.11
+
+### Patch Changes
+
+- a20e687: feat(provider/gateway): add support for image models
+
+## 2.0.10
+
+### Patch Changes
+
+- 646dc54: feat(provider/gateway): Add Gemini 3 Pro to Gateway autocomplete
+
+## 2.0.9
+
+### Patch Changes
+
+- 29fbd2d: feat(provider/gateway): Add Kimi K2 Thinking models to Gateway model string autocomplete
+
 ## 2.0.8
 
 ### Patch Changes

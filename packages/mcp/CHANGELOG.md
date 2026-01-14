@@ -1,5 +1,40 @@
 # @ai-sdk/mcp
 
+## 0.0.13
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+
+## 0.0.10
+
+### Patch Changes
+
+- 638de7b: feat(mcp): add the possibility to define client version in mcp client definition
+
+## 0.0.9
+
+### Patch Changes
+
+- 89b59d7: feat(mcp): add client elicitation support
+
 ## 0.0.8
 
 ### Patch Changes

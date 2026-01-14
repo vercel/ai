@@ -191,6 +191,7 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+          "cachedInputTokens": undefined,
           "inputTokens": 20,
           "outputTokens": 5,
           "reasoningTokens": undefined,
@@ -382,7 +383,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -720,6 +721,64 @@ describe('XaiChatLanguageModel', () => {
         ]
       `);
     });
+
+    it('should support json schema response format without warnings', async () => {
+      prepareJsonResponse({ content: '{"name":"john doe"}' });
+
+      const { warnings } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      expect(warnings).toEqual([]);
+    });
+
+    it('should send json schema in response format', async () => {
+      prepareJsonResponse({ content: '{"name":"john"}' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          name: 'person',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        model: 'grok-beta',
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            name: 'person',
+            schema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+              required: ['name'],
+            },
+            strict: true,
+          },
+        },
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -800,6 +859,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 32,
               "reasoningTokens": undefined,
@@ -863,6 +923,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 32,
               "reasoningTokens": undefined,
@@ -941,6 +1002,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "tool-calls",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 183,
               "outputTokens": 133,
               "reasoningTokens": undefined,
@@ -1031,7 +1093,7 @@ describe('XaiChatLanguageModel', () => {
       expect(request).toMatchInlineSnapshot(`
         {
           "body": {
-            "max_tokens": undefined,
+            "max_completion_tokens": undefined,
             "messages": [
               {
                 "content": "Hello",
@@ -1127,6 +1189,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 4,
               "outputTokens": 30,
               "reasoningTokens": undefined,
@@ -1253,6 +1316,7 @@ describe('XaiChatLanguageModel', () => {
 
       expect(usage).toMatchInlineSnapshot(`
         {
+          "cachedInputTokens": undefined,
           "inputTokens": 15,
           "outputTokens": 20,
           "reasoningTokens": 10,
@@ -1315,6 +1379,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-start",
           },
@@ -1324,10 +1392,6 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-b7f32e89-8d6c-4a1e-9f5b-2c8e7a9d4f6b",
             "type": "text-end",
           },
@@ -1335,6 +1399,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
@@ -1405,6 +1470,10 @@ describe('XaiChatLanguageModel', () => {
             "type": "reasoning-delta",
           },
           {
+            "id": "reasoning-grok-4-test",
+            "type": "reasoning-end",
+          },
+          {
             "id": "text-grok-4-test",
             "type": "text-start",
           },
@@ -1414,10 +1483,6 @@ describe('XaiChatLanguageModel', () => {
             "type": "text-delta",
           },
           {
-            "id": "reasoning-grok-4-test",
-            "type": "reasoning-end",
-          },
-          {
             "id": "text-grok-4-test",
             "type": "text-end",
           },
@@ -1425,6 +1490,7 @@ describe('XaiChatLanguageModel', () => {
             "finishReason": "stop",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
               "reasoningTokens": 10,
@@ -1568,6 +1634,7 @@ describe('doStream with raw chunks', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 10,
             "outputTokens": 5,
             "reasoningTokens": undefined,
@@ -1576,5 +1643,71 @@ describe('doStream with raw chunks', () => {
         },
       ]
     `);
+  });
+
+  describe('error handling', () => {
+    it('should throw APICallError when xai returns error with 200 status (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+
+    it('should throw APICallError when xai returns error with 200 status (doStream)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          code: 'The service is currently unavailable',
+          error: 'Timed out waiting for first token',
+        },
+      };
+
+      await expect(model.doStream({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'Timed out waiting for first token',
+      );
+    });
+
+    it('should throw APICallError when response has null choices (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-null-choices',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: null,
+          usage: { prompt_tokens: 4, total_tokens: 4, completion_tokens: 0 },
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'No choices returned from the API',
+      );
+    });
+
+    it('should throw APICallError when response has empty choices array (doGenerate)', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-empty-choices',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [],
+          usage: { prompt_tokens: 4, total_tokens: 4, completion_tokens: 0 },
+        },
+      };
+
+      await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow(
+        'No choices returned from the API',
+      );
+    });
   });
 });

@@ -3040,6 +3040,7 @@ describe('generateText', () => {
                 "cities": "San Francisco",
               },
               "invalid": true,
+              "providerMetadata": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",

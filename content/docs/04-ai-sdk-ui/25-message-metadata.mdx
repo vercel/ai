@@ -41,15 +41,15 @@ export type MyUIMessage = UIMessage<MessageMetadata>;
 Use the `messageMetadata` callback in `toUIMessageStreamResponse` to send metadata at different streaming stages:
 
 ```ts filename="app/api/chat/route.ts" highlight="11-20"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText } from 'ai';
+__PROVIDER_IMPORT__;
 import type { MyUIMessage } from '@/types';
 
 export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: __MODEL__,
     messages: convertToModelMessages(messages),
   });
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       if (part.type === 'start') {
         return {
           createdAt: Date.now(),
-          model: 'gpt-4o',
+          model: 'your-model-id',
         };
       }
 

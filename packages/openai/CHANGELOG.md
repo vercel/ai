@@ -1,5 +1,154 @@
 # @ai-sdk/openai
 
+## 2.0.89
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.88
+
+### Patch Changes
+
+- 2352cdf: feat (provider/openai): add gpt-image-1.5 model support
+
+## 2.0.87
+
+### Patch Changes
+
+- 72d76cc: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+
+## 2.0.86
+
+### Patch Changes
+
+- a909bcf: fix(openai); fix url_citation schema in chat api
+
+## 2.0.85
+
+### Patch Changes
+
+- e79430b: fix(openai): change find action type to find_in_page action type
+
+## 2.0.84
+
+### Patch Changes
+
+- 041a4fc: feat(openai): add gpt-5.2 models
+
+## 2.0.83
+
+### Patch Changes
+
+- edc807f: feat(provider/openai): add GPT 5.1 Codex Max to OpenAI Responses model IDs list
+
+## 2.0.82
+
+### Patch Changes
+
+- e31dfa4: feat(provider/openai): add support for OpenAI xhigh reasoning effort
+
+## 2.0.81
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+
+## 2.0.80
+
+### Patch Changes
+
+- 707a163: feat(openai): additional settings for file search tool
+
+## 2.0.79
+
+### Patch Changes
+
+- 5b6aa88: fix(openai): fix parameter exclusion logic
+
+## 2.0.78
+
+### Patch Changes
+
+- e245b61: fix(openai): allow temperature etc setting when reasoning effort is none for gpt-5.1
+
+## 2.0.77
+
+### Patch Changes
+
+- 31f6c20: fix(openai): allow open_page action type url to be nullish
+
+## 2.0.76
+
+### Patch Changes
+
+- 61545c4: feat (provider/openai): include more image generation response metadata
+
+## 2.0.75
+
+### Patch Changes
+
+- 1c7ff4a: distinguish between OpenAI and Azure in Responses API providerMetadata
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+
+## 2.0.73
+
+### Patch Changes
+
+- 2e2fd83: refactoring(provider/openai): simplify code
+
+## 2.0.72
+
+### Patch Changes
+
+- 53d2fcc: added support for external_web_access parameter on web_search tool
+
+## 2.0.71
+
+### Patch Changes
+
+- 29a5595: Azure OpenAI enabled web-search-preview
+
+## 2.0.70
+
+### Patch Changes
+
+- dafda29: Set the annotations from the Responses API to doStream
+
+## 2.0.69
+
+### Patch Changes
+
+- 38a9f48: fix: error schema for Responses API
+
+## 2.0.68
+
+### Patch Changes
+
+- a4c6a12: feat(provider/openai): support conversations api
+
+## 2.0.67
+
+### Patch Changes
+
+- 3735f5a: feat(openai): Add support for 'promptCacheRetention: 24h' for gpt5.1 series
+
+## 2.0.66
+
+### Patch Changes
+
+- 73f9178: feat(openai): add 'gpt-5.1' modelID
+
 ## 2.0.65
 
 ### Patch Changes

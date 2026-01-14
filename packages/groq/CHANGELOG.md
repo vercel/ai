@@ -1,5 +1,40 @@
 # @ai-sdk/groq
 
+## 2.0.34
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.33
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+
+## 2.0.31
+
+### Patch Changes
+
+- c5679f4: Restrict reasoningEffort to allowed enum values in Groq provider options
+
+## 2.0.30
+
+### Patch Changes
+
+- 31cc064: fix(groq): remove decomissioned `moonshotai/kimi-k2-instruct`, add `moonshotai/kimi-k2-instruct-0905`
+
 ## 2.0.29
 
 ### Patch Changes

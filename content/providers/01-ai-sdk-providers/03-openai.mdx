@@ -172,6 +172,12 @@ The following provider options are available:
 - **metadata** _Record&lt;string, string&gt;_
   Additional metadata to store with the generation.
 
+- **conversation** _string_
+  The ID of the OpenAI Conversation to continue.
+  You must create a conversation first via the [OpenAI API](https://platform.openai.com/docs/api-reference/conversations/create).
+  Cannot be used in conjunction with `previousResponseId`.
+  Defaults to `undefined`.
+
 - **previousResponseId** _string_
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
 
@@ -183,8 +189,15 @@ The following provider options are available:
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
+
+<Note>
+  The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
+  models. Also, the 'xhigh' type for `reasoningEffort` is only available for
+  OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or
+  'xhigh' with unsupported models will result in an error.
+</Note>
 
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
@@ -217,6 +230,9 @@ The following provider options are available:
 
 - **promptCacheKey** _string_
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **promptCacheRetention** _'in_memory' | '24h'_
+  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
 
 - **safetyIdentifier** _string_
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
@@ -325,6 +341,7 @@ const result = await generateText({
   tools: {
     web_search: openai.tools.webSearch({
       // optional configuration:
+      externalWebAccess: true,
       searchContextSize: 'high',
       userLocation: {
         type: 'approximate',
@@ -340,6 +357,8 @@ const result = await generateText({
 // URL sources
 const sources = result.sources;
 ```
+
+For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
 #### File Search Tool
 
@@ -712,7 +731,7 @@ The following optional provider options are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
 
-- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high'_
+- **reasoningEffort** _'minimal' | 'low' | 'medium' | 'high' | 'xhigh'_
 
   Reasoning effort for reasoning models. Defaults to `medium`. If you use
   `providerOptions` to set the `reasoningEffort` option, this
@@ -761,6 +780,10 @@ The following optional provider options are available for OpenAI chat models:
 - **promptCacheKey** _string_
 
   A cache key for manual prompt caching control. Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+
+- **promptCacheRetention** _'in_memory' | '24h'_
+
+  The retention policy for the prompt cache. Set to `'24h'` to enable extended prompt caching, which keeps cached prefixes active for up to 24 hours. Defaults to `'in_memory'` for standard prompt caching. Note: `'24h'` is currently only available for the 5.1 series of models.
 
 - **safetyIdentifier** _string_
 
@@ -1147,6 +1170,29 @@ console.log(`usage:`, {
 });
 ```
 
+For GPT-5.1 models, you can enable extended prompt caching that keeps cached prefixes active for up to 24 hours:
+
+```ts highlight="7-12"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text, usage, providerMetadata } = await generateText({
+  model: openai.chat('gpt-5.1'),
+  prompt: `A 1024-token or longer prompt...`,
+  providerOptions: {
+    openai: {
+      promptCacheKey: 'my-custom-cache-key-123',
+      promptCacheRetention: '24h', // Extended caching for GPT-5.1
+    },
+  },
+});
+
+console.log(`usage:`, {
+  ...usage,
+  cachedPromptTokens: providerMetadata?.openai?.cachedPromptTokens,
+});
+```
+
 #### Audio Input
 
 With the `gpt-4o-audio-preview` model, you can pass audio files to the model.
@@ -1253,19 +1299,26 @@ The following optional provider options are available for OpenAI completion mode
 
 ### Model Capabilities
 
-| Model               | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-5-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-5-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4.1`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-mini`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4.1-nano`      | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`            | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
+| --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.2`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-codex-mini`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-codex`       | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-pro`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-nano`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-codex`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-chat-latest`   | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4.1`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -1340,6 +1393,7 @@ const model = openai.image('dall-e-3');
 
 | Model              | Sizes                           |
 | ------------------ | ------------------------------- |
+| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
 | `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
 | `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
@@ -1349,7 +1403,7 @@ You can pass optional `providerOptions` to the image model. These are prone to c
 
 ```ts
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-1'),
+  model: openai.image('gpt-image-1.5'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },
@@ -1359,7 +1413,20 @@ const { image, providerMetadata } = await generateImage({
 
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
 
-OpenAI's image models may return a revised prompt for each image. It can be access at `providerMetadata.openai.images[0]?.revisedPrompt`.
+OpenAI's image models return additional metadata in the response that can be
+accessed via `providerMetadata.openai`. The following OpenAI-specific metadata
+is available:
+
+- **images** _Array&lt;object&gt;_
+
+  Array of image-specific metadata. Each image object may contain:
+
+  - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
+  - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
+  - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
+  - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 
 For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 

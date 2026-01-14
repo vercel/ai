@@ -619,7 +619,7 @@ describe('doGenerate', () => {
         '{"recipe":{"name":"Spaghetti Aglio e Olio","ingredients":["spaghetti","garlic","olive oil","parmesan"],"instructions":["Boil pasta","Sauté garlic","Combine"]}}',
     });
 
-    const kimiModel = provider('moonshotai/kimi-k2-instruct');
+    const kimiModel = provider('moonshotai/kimi-k2-instruct-0905');
 
     const result = await kimiModel.doGenerate({
       providerOptions: {
@@ -665,7 +665,7 @@ describe('doGenerate', () => {
             "role": "user",
           },
         ],
-        "model": "moonshotai/kimi-k2-instruct",
+        "model": "moonshotai/kimi-k2-instruct-0905",
         "response_format": {
           "json_schema": {
             "description": "A recipe with ingredients and instructions",

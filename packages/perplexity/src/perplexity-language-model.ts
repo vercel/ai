@@ -167,6 +167,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
         totalTokens: response.usage?.total_tokens ?? undefined,
+        reasoningTokens: response.usage?.reasoning_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -220,6 +221,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+      reasoningTokens: undefined,
     };
 
     const providerMetadata: {
@@ -293,6 +295,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens;
               usage.outputTokens = value.usage.completion_tokens;
+              usage.reasoningTokens = value.usage.reasoning_tokens ?? undefined;
 
               providerMetadata.perplexity.usage = {
                 citationTokens: value.usage.citation_tokens ?? null,
@@ -377,6 +380,7 @@ const perplexityUsageSchema = z.object({
   total_tokens: z.number().nullish(),
   citation_tokens: z.number().nullish(),
   num_search_queries: z.number().nullish(),
+  reasoning_tokens: z.number().nullish(),
 });
 
 export const perplexityImageSchema = z.object({

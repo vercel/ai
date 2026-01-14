@@ -1,7 +1,7 @@
-import { experimental_createMCPClient } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 
 async function main() {
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8083/sse',

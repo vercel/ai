@@ -85,6 +85,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       dynamic: true,
       invalid: true,
       error,
+      providerMetadata: toolCall.providerMetadata,
     };
   }
 }

@@ -327,25 +327,25 @@ describe('generateObject', () => {
         ]
       `);
         expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
-        {
-          "description": undefined,
-          "name": undefined,
-          "schema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "content": {
-                "type": "number",
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "content",
+              ],
+              "type": "object",
             },
-            "required": [
-              "content",
-            ],
-            "type": "object",
-          },
-          "type": "json",
-        }
-      `);
+            "type": "json",
+          }
+        `);
       });
 
       it('should generate object when using zod prePreprocess', async () => {

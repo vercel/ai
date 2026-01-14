@@ -220,6 +220,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
+                      ...(part.callProviderMetadata != null
+                        ? { providerOptions: part.callProviderMetadata }
+                        : {}),
                     });
                   }
                 }
@@ -278,6 +281,9 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                                 ? 'text'
                                 : 'none',
                           }),
+                          ...(toolPart.callProviderMetadata != null
+                            ? { providerOptions: toolPart.callProviderMetadata }
+                            : {}),
                         };
                       }
                       default: {

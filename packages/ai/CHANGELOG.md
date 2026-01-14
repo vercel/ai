@@ -1,5 +1,206 @@
 # ai
 
+## 5.0.121
+
+### Patch Changes
+
+- Updated dependencies [74676fa]
+  - @ai-sdk/gateway@2.0.27
+
+## 5.0.120
+
+### Patch Changes
+
+- Updated dependencies [655377e]
+  - @ai-sdk/gateway@2.0.26
+
+## 5.0.119
+
+### Patch Changes
+
+- Updated dependencies [f6b46d2]
+  - @ai-sdk/gateway@2.0.25
+
+## 5.0.118
+
+### Patch Changes
+
+- 42bad72: `https://ai-sdk.dev` -> `https://v5.ai-sdk.dev`
+
+## 5.0.117
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/gateway@2.0.24
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 5.0.116
+
+### Patch Changes
+
+- Updated dependencies [e3de981]
+  - @ai-sdk/gateway@2.0.23
+
+## 5.0.115
+
+### Patch Changes
+
+- Updated dependencies [1bcc2d7]
+  - @ai-sdk/gateway@2.0.22
+
+## 5.0.114
+
+### Patch Changes
+
+- fc633bd: fix header loss when statusText is undefined in writeHead
+
+## 5.0.113
+
+### Patch Changes
+
+- 7e6fb4d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
+## 5.0.112
+
+### Patch Changes
+
+- Updated dependencies [041a4fc]
+  - @ai-sdk/gateway@2.0.21
+
+## 5.0.111
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/gateway@2.0.20
+
+## 5.0.110
+
+### Patch Changes
+
+- Updated dependencies [51bbaa1]
+  - @ai-sdk/gateway@2.0.19
+
+## 5.0.109
+
+### Patch Changes
+
+- 427547a: Improve ai gateway error message when api key is not present
+
+## 5.0.108
+
+### Patch Changes
+
+- 03cafbc: chore(ai): export ContentPart type
+
+## 5.0.107
+
+### Patch Changes
+
+- 21c9f90: fix(ai): remove unused mode setting from generateObject and streamObject
+
+## 5.0.106
+
+### Patch Changes
+
+- Updated dependencies [667f74c]
+  - @ai-sdk/gateway@2.0.18
+
+## 5.0.105
+
+### Patch Changes
+
+- 1063aca: fix(ai): Preverse providerMetadata in tool-call and tool-result parts
+
+## 5.0.104
+
+### Patch Changes
+
+- d1dbe5d: move DelayedPromise into provider utils
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - @ai-sdk/gateway@2.0.17
+
+## 5.0.103
+
+### Patch Changes
+
+- Updated dependencies [e609736]
+  - @ai-sdk/gateway@2.0.16
+
+## 5.0.102
+
+### Patch Changes
+
+- 83b2c4b: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [c5a42ec]
+  - @ai-sdk/gateway@2.0.15
+
+## 5.0.100
+
+### Patch Changes
+
+- Updated dependencies [c9520e5]
+- Updated dependencies [2382c89]
+  - @ai-sdk/gateway@2.0.14
+
+## 5.0.99
+
+### Patch Changes
+
+- 15cfac8: feat: export GatewayModelId and use to type LanguageModel
+
+## 5.0.98
+
+### Patch Changes
+
+- Updated dependencies [8c54c71]
+  - @ai-sdk/gateway@2.0.13
+
+## 5.0.97
+
+### Patch Changes
+
+- Updated dependencies [6465dc3]
+  - @ai-sdk/gateway@2.0.12
+
+## 5.0.96
+
+### Patch Changes
+
+- c89268c: fix(provider/google): preserve thoughtSignature through tool execution
+
+## 5.0.95
+
+### Patch Changes
+
+- a20e687: feat(provider/gateway): add support for image models
+- Updated dependencies [a20e687]
+  - @ai-sdk/gateway@2.0.11
+
+## 5.0.94
+
+### Patch Changes
+
+- Updated dependencies [646dc54]
+  - @ai-sdk/gateway@2.0.10
+
+## 5.0.93
+
+### Patch Changes
+
+- Updated dependencies [29fbd2d]
+  - @ai-sdk/gateway@2.0.9
+
 ## 5.0.92
 
 ### Patch Changes

@@ -69,7 +69,6 @@ export default function Chat() {
 On the backend, create a route handler (API Route) that returns a `UIMessageStreamResponse`. Within the execute function of `createUIMessageStream`, call `streamText` and pass in the converted `messages` (sent from the client). Finally, merge the resulting generation into the `UIMessageStream`.
 
 ```ts filename="api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
     originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -137,7 +136,6 @@ At a high level, you will:
 To implement HITL functionality, you start by omitting the `execute` function from the tool definition. This allows the frontend to intercept the tool call and handle the responsibility of adding the final tool result to the tool call.
 
 ```ts filename="api/chat/route.ts" highlight="19"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -155,7 +153,7 @@ export async function POST(req: Request) {
     originalMessages: messages,
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -290,7 +288,6 @@ export default function Chat() {
 Adding a tool result and sending the message will trigger another call to your route handler. Before sending the new messages to the language model, you pull out the last message and map through the message parts to see if the tool requiring confirmation was called and whether it's in a "result" state. If those conditions are met, you check the confirmation state (the tool result state that you set on the frontend with the `addToolOutput` function).
 
 ```ts filename="api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -363,7 +360,7 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(messages),
         tools: {
           getWeatherInformation: tool({
@@ -593,7 +590,6 @@ Finally, you declare a function called `getToolsRequiringConfirmation` that take
 Update your route handler to use the `processToolCalls` utility function.
 
 ```ts filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import {
   createUIMessageStreamResponse,
   createUIMessageStream,
@@ -635,7 +631,7 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         messages: convertToModelMessages(processedMessages),
         tools,
         stopWhen: stepCountIs(5),

@@ -6,7 +6,6 @@ import {
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
-import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
 import {
   DefaultGeneratedFile,
   GeneratedFile,
@@ -16,6 +15,8 @@ import { ImageModelResponseMetadata } from '../types/image-model-response-metada
 import { GenerateImageResult } from './generate-image-result';
 import { logWarnings } from '../logger/log-warnings';
 import { VERSION } from '../version';
+import { resolveImageModel } from '../model/resolve-model';
+import type { ImageModel } from '../types/image-model';
 
 /**
 Generates images using an image model.
@@ -35,7 +36,7 @@ as body parameters.
 @returns A result object that contains the generated images.
  */
 export async function generateImage({
-  model,
+  model: modelArg,
   prompt,
   n = 1,
   maxImagesPerCall,
@@ -50,7 +51,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV2;
+  model: ImageModel;
 
   /**
 The prompt that should be used to generate the image.
@@ -116,13 +117,7 @@ Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
-  if (model.specificationVersion !== 'v2') {
-    throw new UnsupportedModelVersionError({
-      version: model.specificationVersion,
-      provider: model.provider,
-      modelId: model.modelId,
-    });
-  }
+  const model = resolveImageModel(modelArg);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -192,10 +187,30 @@ Only applicable for HTTP-based providers.
       for (const [providerName, metadata] of Object.entries<{
         images: unknown;
       }>(result.providerMetadata)) {
-        providerMetadata[providerName] ??= { images: [] };
-        providerMetadata[providerName].images.push(
-          ...result.providerMetadata[providerName].images,
-        );
+        if (providerName === 'gateway') {
+          const currentEntry = providerMetadata[providerName];
+          if (currentEntry != null && typeof currentEntry === 'object') {
+            providerMetadata[providerName] = {
+              ...(currentEntry as object),
+              ...metadata,
+            } as ImageModelV2ProviderMetadata[string];
+          } else {
+            providerMetadata[providerName] =
+              metadata as ImageModelV2ProviderMetadata[string];
+          }
+          const imagesValue = (
+            providerMetadata[providerName] as { images?: unknown }
+          ).images;
+          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
+            delete (providerMetadata[providerName] as { images?: unknown })
+              .images;
+          }
+        } else {
+          providerMetadata[providerName] ??= { images: [] };
+          providerMetadata[providerName].images.push(
+            ...result.providerMetadata[providerName].images,
+          );
+        }
       }
     }
 

@@ -205,7 +205,6 @@ export default function Chat() {
 ## Server
 
 ```tsx filename='api/chat.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   type InferUITools,
   type ToolSet,
@@ -261,7 +260,7 @@ export async function POST(request: Request) {
   const { messages }: { messages: ChatMessage[] } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
+    model: 'openai/gpt-4.1',
     messages: convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(5),

@@ -1,5 +1,209 @@
 # @ai-sdk/react
 
+## 2.0.123
+
+### Patch Changes
+
+- ai@5.0.121
+
+## 2.0.122
+
+### Patch Changes
+
+- ai@5.0.120
+
+## 2.0.121
+
+### Patch Changes
+
+- ai@5.0.119
+
+## 2.0.120
+
+### Patch Changes
+
+- Updated dependencies [42bad72]
+  - ai@5.0.118
+
+## 2.0.119
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.118
+
+### Patch Changes
+
+- ai@5.0.116
+
+## 2.0.117
+
+### Patch Changes
+
+- ai@5.0.115
+
+## 2.0.116
+
+### Patch Changes
+
+- Updated dependencies [fc633bd]
+  - ai@5.0.114
+
+## 2.0.115
+
+### Patch Changes
+
+- Updated dependencies [7e6fb4d]
+  - ai@5.0.113
+
+## 2.0.114
+
+### Patch Changes
+
+- ai@5.0.112
+
+## 2.0.113
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - ai@5.0.111
+
+## 2.0.112
+
+### Patch Changes
+
+- ai@5.0.110
+
+## 2.0.111
+
+### Patch Changes
+
+- Updated dependencies [427547a]
+  - ai@5.0.109
+
+## 2.0.110
+
+### Patch Changes
+
+- 52e8efe: Require minimal versions for RSC to address CVE-2025-55182
+
+## 2.0.109
+
+### Patch Changes
+
+- 4520a7f: Fix subscribeToMessages callback dependency in useChat
+
+## 2.0.108
+
+### Patch Changes
+
+- Updated dependencies [03cafbc]
+  - ai@5.0.108
+
+## 2.0.107
+
+### Patch Changes
+
+- Updated dependencies [21c9f90]
+  - ai@5.0.107
+
+## 2.0.106
+
+### Patch Changes
+
+- ai@5.0.106
+
+## 2.0.105
+
+### Patch Changes
+
+- Updated dependencies [1063aca]
+  - ai@5.0.105
+
+## 2.0.104
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - ai@5.0.104
+
+## 2.0.103
+
+### Patch Changes
+
+- ai@5.0.103
+
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [83b2c4b]
+  - ai@5.0.102
+
+## 2.0.101
+
+### Patch Changes
+
+- ai@5.0.101
+
+## 2.0.100
+
+### Patch Changes
+
+- ai@5.0.100
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [15cfac8]
+  - ai@5.0.99
+
+## 2.0.98
+
+### Patch Changes
+
+- ai@5.0.98
+
+## 2.0.97
+
+### Patch Changes
+
+- ai@5.0.97
+
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [c89268c]
+  - ai@5.0.96
+
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [a20e687]
+  - ai@5.0.95
+
+## 2.0.94
+
+### Patch Changes
+
+- ai@5.0.94
+
+## 2.0.93
+
+### Patch Changes
+
+- ai@5.0.93
+
 ## 2.0.92
 
 ### Patch Changes

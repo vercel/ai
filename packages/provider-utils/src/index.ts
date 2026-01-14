@@ -1,6 +1,7 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export * from './delay';
+export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';

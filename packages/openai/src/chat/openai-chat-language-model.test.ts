@@ -168,10 +168,12 @@ describe('doGenerate', () => {
     };
     annotations?: Array<{
       type: 'url_citation';
-      start_index: number;
-      end_index: number;
-      url: string;
-      title: string;
+      url_citation: {
+        start_index: number;
+        end_index: number;
+        url: string;
+        title: string;
+      };
     }>;
     logprobs?: {
       content:
@@ -293,6 +295,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,
@@ -521,6 +524,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass reasoningEffort xhigh setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.1-codex-max');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'xhigh' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.1-codex-max',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'xhigh',
+    });
+  });
+
   it('should pass textVerbosity setting from provider options', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -690,10 +712,12 @@ describe('doGenerate', () => {
       annotations: [
         {
           type: 'url_citation',
-          start_index: 24,
-          end_index: 29,
-          url: 'https://example.com/doc1.pdf',
-          title: 'Document 1',
+          url_citation: {
+            start_index: 24,
+            end_index: 29,
+            url: 'https://example.com/doc1.pdf',
+            title: 'Document 1',
+          },
         },
       ],
     });
@@ -1433,6 +1457,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheRetention extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_retention: '24h',
+    });
+  });
+
   it('should send safetyIdentifier extension value', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -1924,7 +1967,7 @@ describe('doStream', () => {
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","url_citation":{"start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}}]},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
@@ -2584,6 +2627,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
           "safety_identifier": undefined,

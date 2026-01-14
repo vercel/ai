@@ -1,6 +1,6 @@
-import { prepareTools } from './google-prepare-tools';
-import { it, expect } from 'vitest';
 import { LanguageModelV2ProviderDefinedTool } from '@ai-sdk/provider';
+import { expect, it } from 'vitest';
+import { prepareTools } from './google-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
   const result = prepareTools({
@@ -35,15 +35,17 @@ it('should correctly prepare function tools', () => {
     ],
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual({
-    functionDeclarations: [
-      {
-        name: 'testFunction',
-        description: 'A test function',
-        parameters: undefined,
-      },
-    ],
-  });
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+  ]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
@@ -243,15 +245,17 @@ it('should handle tool choice "none"', () => {
     toolChoice: { type: 'none' },
     modelId: 'gemini-2.5-flash',
   });
-  expect(result.tools).toEqual({
-    functionDeclarations: [
-      {
-        name: 'testFunction',
-        description: 'Test',
-        parameters: {},
-      },
-    ],
-  });
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'Test',
+          parameters: {},
+        },
+      ],
+    },
+  ]);
   expect(result.toolConfig).toEqual({
     functionCallingConfig: { mode: 'NONE' },
   });
@@ -311,7 +315,7 @@ it('should warn when mixing function and provider-defined tools', () => {
         inputSchema: { type: 'object', properties: {} },
       },
       details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
 
@@ -355,7 +359,7 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
         inputSchema: { type: 'object', properties: {} },
       },
       details:
-        'Cannot mix function tools with provider-defined tools in the same request. Please use either function tools or provider-defined tools, but not both.',
+        'Cannot mix function tools with provider-defined tools in the same request. Falling back to provider-defined tools only. The following function tools will be ignored: testFunction. Please use either function tools or provider-defined tools, but not both.',
     },
   ]);
 });
@@ -372,7 +376,24 @@ it('should handle latest modelId for provider-defined tools correctly', () => {
     ],
     modelId: 'gemini-flash-latest',
   });
-  expect(result.tools).toEqual([{ googleSearchRetrieval: {} }]);
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle gemini-3 modelId for provider-defined tools correctly', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-pro-preview',
+  });
+  expect(result.tools).toEqual([{ googleSearch: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
@@ -409,4 +430,50 @@ it('should handle url context tool alone', () => {
   expect(result.tools).toEqual([{ urlContext: {} }]);
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle google maps tool', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+  expect(result.tools).toEqual([{ googleMaps: {} }]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should add warnings for google maps on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.",
+        "tool": {
+          "args": {},
+          "id": "google.google_maps",
+          "name": "google_maps",
+          "type": "provider-defined",
+        },
+        "type": "unsupported-tool",
+      },
+    ]
+  `);
 });

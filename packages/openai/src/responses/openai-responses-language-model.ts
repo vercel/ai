@@ -46,6 +46,7 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -84,7 +85,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     responseFormat,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const modelConfig = getResponsesModelConfig(this.modelId);
+    const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -118,10 +119,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       schema: openaiResponsesProviderOptionsSchema,
     });
 
+    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'conversation',
+        details: 'conversation and previousResponseId cannot be used together',
+      });
+    }
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
-        systemMessageMode: modelConfig.systemMessageMode,
+        systemMessageMode: modelCapabilities.systemMessageMode,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
@@ -183,7 +192,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const store = openaiOptions?.store;
 
     // store defaults to true in the OpenAI responses API, so check for false exactly:
-    if (store === false && modelConfig.isReasoningModel) {
+    if (store === false && modelCapabilities.isReasoningModel) {
       addInclude('reasoning.encrypted_content');
     }
 
@@ -215,6 +224,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
 
       // provider options:
+      conversation: openaiOptions?.conversation,
       max_tool_calls: openaiOptions?.maxToolCalls,
       metadata: openaiOptions?.metadata,
       parallel_tool_calls: openaiOptions?.parallelToolCalls,
@@ -225,12 +235,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,
 
       // model-specific settings:
-      ...(modelConfig.isReasoningModel &&
+      ...(modelCapabilities.isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
@@ -244,25 +255,34 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }),
     };
 
-    if (modelConfig.isReasoningModel) {
-      // remove unsupported settings for reasoning models
-      // see https://platform.openai.com/docs/guides/reasoning#limitations
-      if (baseArgs.temperature != null) {
-        baseArgs.temperature = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'temperature',
-          details: 'temperature is not supported for reasoning models',
-        });
-      }
+    // remove unsupported settings for reasoning models
+    // see https://platform.openai.com/docs/guides/reasoning#limitations
+    if (modelCapabilities.isReasoningModel) {
+      // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
+      //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
+      if (
+        !(
+          openaiOptions?.reasoningEffort === 'none' &&
+          modelCapabilities.supportsNonReasoningParameters
+        )
+      ) {
+        if (baseArgs.temperature != null) {
+          baseArgs.temperature = undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'temperature',
+            details: 'temperature is not supported for reasoning models',
+          });
+        }
 
-      if (baseArgs.top_p != null) {
-        baseArgs.top_p = undefined;
-        warnings.push({
-          type: 'unsupported-setting',
-          setting: 'topP',
-          details: 'topP is not supported for reasoning models',
-        });
+        if (baseArgs.top_p != null) {
+          baseArgs.top_p = undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'topP',
+            details: 'topP is not supported for reasoning models',
+          });
+        }
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
@@ -285,7 +305,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate flex processing support
     if (
       openaiOptions?.serviceTier === 'flex' &&
-      !modelConfig.supportsFlexProcessing
+      !modelCapabilities.supportsFlexProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -300,7 +320,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // Validate priority processing support
     if (
       openaiOptions?.serviceTier === 'priority' &&
-      !modelConfig.supportsPriorityProcessing
+      !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -347,6 +367,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       modelId: this.modelId,
     });
 
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
+
     const {
       responseHeaders,
       value: response,
@@ -381,8 +403,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
-    // map response content to content array
-    for (const part of response.output) {
+    // map response content to content array (defined when there is no error)
+    for (const part of response.output!) {
       switch (part.type) {
         case 'reasoning': {
           // when there are no summary parts, we need to add an empty reasoning part:
@@ -395,7 +417,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               type: 'reasoning' as const,
               text: summary.text,
               providerMetadata: {
-                openai: {
+                [providerKey]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
                 },
@@ -436,7 +458,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               action: part.action,
             } satisfies InferValidator<typeof localShellInputSchema>),
             providerMetadata: {
-              openai: {
+              [providerKey]: {
                 itemId: part.id,
               },
             },
@@ -458,7 +480,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               type: 'text',
               text: contentPart.text,
               providerMetadata: {
-                openai: {
+                [providerKey]: {
                   itemId: part.id,
                 },
               },
@@ -484,12 +506,48 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   ...(annotation.file_id
                     ? {
                         providerMetadata: {
-                          openai: {
+                          [providerKey]: {
                             fileId: annotation.file_id,
                           },
                         },
                       }
                     : {}),
+                });
+              } else if (annotation.type === 'container_file_citation') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'text/plain',
+                  title:
+                    annotation.filename ?? annotation.file_id ?? 'Document',
+                  filename: annotation.filename ?? annotation.file_id,
+                  providerMetadata: {
+                    [providerKey]: {
+                      fileId: annotation.file_id,
+                      containerId: annotation.container_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
+                });
+              } else if (annotation.type === 'file_path') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'document',
+                  id: this.config.generateId?.() ?? generateId(),
+                  mediaType: 'application/octet-stream',
+                  title: annotation.file_id,
+                  filename: annotation.file_id,
+                  providerMetadata: {
+                    [providerKey]: {
+                      fileId: annotation.file_id,
+                      ...(annotation.index != null
+                        ? { index: annotation.index }
+                        : {}),
+                    },
+                  },
                 });
               }
             }
@@ -507,7 +565,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             toolName: part.name,
             input: part.arguments,
             providerMetadata: {
-              openai: {
+              [providerKey]: {
                 itemId: part.id,
               },
             },
@@ -613,16 +671,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     const providerMetadata: SharedV2ProviderMetadata = {
-      openai: { responseId: response.id },
+      [providerKey]: {
+        ...(response.id != null ? { responseId: response.id } : {}),
+      },
     };
 
     if (logprobs.length > 0) {
-      providerMetadata.openai.logprobs = logprobs;
+      providerMetadata[providerKey].logprobs = logprobs;
     }
 
     if (typeof response.service_tier === 'string') {
-      providerMetadata.openai.serviceTier = response.service_tier;
+      providerMetadata[providerKey].serviceTier = response.service_tier;
     }
+
+    const usage = response.usage!; // defined when there is no error
 
     return {
       content,
@@ -631,18 +693,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         hasFunctionCall,
       }),
       usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        inputTokens: usage.input_tokens,
+        outputTokens: usage.output_tokens,
+        totalTokens: usage.input_tokens + usage.output_tokens,
         reasoningTokens:
-          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
+          usage.output_tokens_details?.reasoning_tokens ?? undefined,
         cachedInputTokens:
-          response.usage.input_tokens_details?.cached_tokens ?? undefined,
+          usage.input_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
         id: response.id,
-        timestamp: new Date(response.created_at * 1000),
+        timestamp: new Date(response.created_at! * 1000),
         modelId: response.model,
         headers: responseHeaders,
         body: rawResponse,
@@ -681,6 +743,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     });
 
     const self = this;
+    const providerKey = this.config.provider.replace('.responses', ''); // can be 'openai' or 'azure'. provider is 'openai.responses' or 'azure.responses'.
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: LanguageModelV2Usage = {
@@ -701,6 +764,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
       | undefined
     > = {};
+
+    // set annotations in 'text-end' part providerMetadata.
+    const ongoingAnnotations: Array<
+      Extract<
+        OpenAIResponsesChunk,
+        { type: 'response.output_text.annotation.added' }
+      >['annotation']
+    > = [];
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -773,7 +844,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-call',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   input: JSON.stringify({}),
                   providerExecuted: true,
                 });
@@ -827,11 +898,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
+                ongoingAnnotations.splice(0, ongoingAnnotations.length);
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                     },
                   },
@@ -849,7 +921,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'reasoning-start',
                   id: `${value.item.id}:0`,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
@@ -858,7 +930,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
-              if (value.item.type === 'function_call') {
+              if (value.item.type === 'message') {
+                controller.enqueue({
+                  type: 'text-end',
+                  id: value.item.id,
+                  providerMetadata: {
+                    [providerKey]: {
+                      itemId: value.item.id,
+                      ...(ongoingAnnotations.length > 0 && {
+                        annotations: ongoingAnnotations,
+                      }),
+                    },
+                  },
+                });
+              } else if (value.item.type === 'function_call') {
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -873,7 +958,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   toolName: value.item.name,
                   input: value.item.arguments,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item.id,
                     },
                   },
@@ -884,7 +969,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 controller.enqueue({
                   type: 'tool-result',
                   toolCallId: value.item.id,
-                  toolName: 'web_search',
+                  toolName: webSearchToolName ?? 'web_search',
                   result: mapWebSearchOutput(value.item.action),
                   providerExecuted: true,
                 });
@@ -978,13 +1063,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     },
                   } satisfies InferValidator<typeof localShellInputSchema>),
                   providerMetadata: {
-                    openai: { itemId: value.item.id },
+                    [providerKey]: { itemId: value.item.id },
                   },
-                });
-              } else if (value.item.type === 'message') {
-                controller.enqueue({
-                  type: 'text-end',
-                  id: value.item.id,
                 });
               } else if (value.item.type === 'reasoning') {
                 const activeReasoningPart = activeReasoning[value.item.id];
@@ -1005,7 +1085,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     type: 'reasoning-end',
                     id: `${value.item.id}:${summaryIndex}`,
                     providerMetadata: {
-                      openai: {
+                      [providerKey]: {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
@@ -1104,7 +1184,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
-                      providerMetadata: { openai: { itemId: value.item_id } },
+                      providerMetadata: {
+                        [providerKey]: { itemId: value.item_id },
+                      },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
                       'concluded';
@@ -1115,7 +1197,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'reasoning-start',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    openai: {
+                    [providerKey]: {
                       itemId: value.item_id,
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
@@ -1130,7 +1212,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 id: `${value.item_id}:${value.summary_index}`,
                 delta: value.delta,
                 providerMetadata: {
-                  openai: {
+                  [providerKey]: {
                     itemId: value.item_id,
                   },
                 },
@@ -1143,7 +1225,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    openai: { itemId: value.item_id },
+                    [providerKey]: { itemId: value.item_id },
                   },
                 });
 
@@ -1178,6 +1260,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 serviceTier = value.response.service_tier;
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
+              ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
                 controller.enqueue({
                   type: 'source',
@@ -1201,7 +1284,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   ...(value.annotation.file_id
                     ? {
                         providerMetadata: {
-                          openai: {
+                          [providerKey]: {
                             fileId: value.annotation.file_id,
                           },
                         },
@@ -1216,17 +1299,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
           flush(controller) {
             const providerMetadata: SharedV2ProviderMetadata = {
-              openai: {
+              [providerKey]: {
                 responseId,
               },
             };
 
             if (logprobs.length > 0) {
-              providerMetadata.openai.logprobs = logprobs;
+              providerMetadata[providerKey].logprobs = logprobs;
             }
 
             if (serviceTier !== undefined) {
-              providerMetadata.openai.serviceTier = serviceTier;
+              providerMetadata[providerKey].serviceTier = serviceTier;
             }
 
             controller.enqueue({
@@ -1316,61 +1399,6 @@ function isErrorChunk(
   return chunk.type === 'error';
 }
 
-type ResponsesModelConfig = {
-  isReasoningModel: boolean;
-  systemMessageMode: 'remove' | 'system' | 'developer';
-  supportsFlexProcessing: boolean;
-  supportsPriorityProcessing: boolean;
-};
-
-function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
-  const supportsFlexProcessing =
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini') ||
-    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
-  const supportsPriorityProcessing =
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
-    (modelId.startsWith('gpt-5') &&
-      !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
-    modelId.startsWith('o3') ||
-    modelId.startsWith('o4-mini');
-  const defaults = {
-    systemMessageMode: 'system' as const,
-    supportsFlexProcessing,
-    supportsPriorityProcessing,
-  };
-
-  // gpt-5-chat models are non-reasoning
-  if (modelId.startsWith('gpt-5-chat')) {
-    return {
-      ...defaults,
-      isReasoningModel: false,
-    };
-  }
-
-  // o series reasoning models:
-  if (
-    modelId.startsWith('o') ||
-    modelId.startsWith('gpt-5') ||
-    modelId.startsWith('codex-') ||
-    modelId.startsWith('computer-use')
-  ) {
-    return {
-      ...defaults,
-      isReasoningModel: true,
-      systemMessageMode: 'developer',
-    };
-  }
-
-  // gpt models:
-  return {
-    ...defaults,
-    isReasoningModel: false,
-  };
-}
-
 function mapWebSearchOutput(
   action: OpenAIResponsesWebSearchAction,
 ): InferValidator<typeof webSearchOutputSchema> {
@@ -1383,9 +1411,13 @@ function mapWebSearchOutput(
       };
     case 'open_page':
       return { action: { type: 'openPage', url: action.url } };
-    case 'find':
+    case 'find_in_page':
       return {
-        action: { type: 'find', url: action.url, pattern: action.pattern },
+        action: {
+          type: 'findInPage',
+          url: action.url,
+          pattern: action.pattern,
+        },
       };
   }
 }

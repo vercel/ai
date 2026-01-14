@@ -22,9 +22,9 @@ We'll build this agent using OpenAI's GPT-4o, but the same code works seamlessly
 To follow this quickstart, you'll need:
 
 - Node.js 18+ and pnpm installed on your local development machine.
-- An OpenAI API key.
+- A Vercel AI Gateway API key.
 
-If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
+If you haven't obtained your Vercel AI Gateway API key, you can do so by [signing up](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai&title=Go+to+AI+Gateway) on the Vercel website.
 
 ## Create Your Application
 
@@ -46,7 +46,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+Install `ai` and `@ai-sdk/react`, the AI SDK package and the AI SDK's React package respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -58,39 +58,41 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [ OpenAI 
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="pnpm add ai @ai-sdk/react" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="npm install ai @ai-sdk/react" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="yarn add ai @ai-sdk/react" dark />
     </Tab>
 
     <Tab>
-      <Snippet text="bun add ai @ai-sdk/react @ai-sdk/openai" dark />
+      <Snippet text="bun add ai @ai-sdk/react" dark />
     </Tab>
 
   </Tabs>
 </div>
 
-### Configure OpenAI API key
+### Configure your Vercel AI Gateway API key
 
-Create a `.env.local` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+Create a `.env.local` file in your project root and add your Vercel AI Gateway API key. This key authenticates your application with Vercel AI Gateway.
 
 <Snippet text="touch .env.local" />
 
 Edit the `.env.local` file:
 
 ```env filename=".env.local"
-OPENAI_API_KEY=xxxxxxxxx
+AI_GATEWAY_API_KEY=your_api_key_here
 ```
 
-Replace `xxxxxxxxx` with your actual OpenAI API key.
+Replace `your_api_key_here` with your actual Vercel AI Gateway API key.
 
 <Note className="mb-4">
-  The AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
-  environment variable.
+  The AI SDK's Vercel AI Gateway Provider is the default global provider, so you
+  can access models using a simple string in the model configuration. If you
+  prefer to use a specific provider like OpenAI directly, see the [provider
+  management](/docs/ai-sdk-core/provider-management) documentation.
 </Note>
 
 ## Implementation Plan
@@ -106,7 +108,6 @@ To build a multi-modal agent, you will need to:
 Create a route handler, `app/api/chat/route.ts` and add the following code:
 
 ```tsx filename="app/api/chat/route.ts"
-import { openai } from '@ai-sdk/openai';
 import { streamText, convertToModelMessages, type UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     messages: convertToModelMessages(messages),
   });
 
@@ -128,7 +129,7 @@ Let's take a look at what is happening in this code:
 
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the agent and provides the agent with the necessary context to make the next generation.
 2. Convert the UI messages to model messages using `convertToModelMessages`, which transforms the UI-focused message format to the format expected by the language model.
-3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (converted in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider and `messages` (converted in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
 4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
 5. Finally, return the result to the client to stream the response.
 
@@ -362,16 +363,14 @@ With the AI SDK's unified provider interface you can easily switch to other prov
 
 ```tsx filename="app/api/chat/route.ts"
 // Using Anthropic
-import { anthropic } from '@ai-sdk/anthropic';
 const result = streamText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: 'anthropic/claude-sonnet-4-20250514',
   messages: convertToModelMessages(messages),
 });
 
 // Using Google
-import { google } from '@ai-sdk/google';
 const result = streamText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   messages: convertToModelMessages(messages),
 });
 ```

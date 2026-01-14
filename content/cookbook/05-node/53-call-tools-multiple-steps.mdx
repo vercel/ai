@@ -14,11 +14,10 @@ This allows you to define the conditions for which your agent should stop when t
 
 ```ts highlight={"7"}
 import { generateText, tool, stepCountIs } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const { text, steps } = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   stopWhen: stepCountIs(5),
   tools: {
     weather: tool({

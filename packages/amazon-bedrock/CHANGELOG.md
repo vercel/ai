@@ -1,5 +1,167 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.73
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/anthropic@2.0.57
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 3.0.72
+
+### Patch Changes
+
+- 4f0e5af: Fix bedrock ConverseStream using /delta/stop_sequence
+
+## 3.0.71
+
+### Patch Changes
+
+- 11cb33e: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
+
+  The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
+  - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
+  - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
+  - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
+
+- 11cb33e: Add stop sequence support for amazon bedrock provider
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [3716d34]
+  - @ai-sdk/anthropic@2.0.56
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/anthropic@2.0.55
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
+## 3.0.67
+
+### Patch Changes
+
+- 1887f82: fix(bedrock): send {} as tool input when streaming tool calls without arguments
+
+## 3.0.66
+
+### Patch Changes
+
+- c36a1ad: feat(provider/bedrock): Support Nova 2 extended reasoning `maxReasoningEffort` field
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [65dee10]
+  - @ai-sdk/anthropic@2.0.53
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [518e786]
+  - @ai-sdk/anthropic@2.0.52
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [a54839c]
+  - @ai-sdk/anthropic@2.0.51
+
+## 3.0.62
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - @ai-sdk/anthropic@2.0.50
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [dcdfeb7]
+  - @ai-sdk/anthropic@2.0.49
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [f2c6cbd]
+  - @ai-sdk/anthropic@2.0.48
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [3a7a427]
+  - @ai-sdk/anthropic@2.0.47
+
+## 3.0.58
+
+### Patch Changes
+
+- Updated dependencies [54a0480]
+  - @ai-sdk/anthropic@2.0.46
+
+## 3.0.57
+
+### Patch Changes
+
+- 708df55: feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
+
+  Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
+
+  **Amazon Bedrock Changes:**
+
+  - Removed incorrect warning that prevented using tools with JSON response format
+  - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
+  - Added `isJsonResponseFromTool` parameter to finish reason mapping
+  - JSON tool responses are correctly converted to text content and finish reason is mapped from `tool_use` to `stop`
+  - Added comprehensive test coverage for combining tools with structured outputs
+  - Added example files demonstrating the feature
+
+  **Google Vertex Anthropic Changes:**
+
+  - Inherits support from underlying Anthropic provider implementation
+  - Added test coverage to verify the feature works correctly
+  - Added example files demonstrating the feature
+
+  This brings Anthropic provider's structured output capabilities to the Amazon Bedrock and Google Vertex Anthropic providers.
+
+## 3.0.56
+
+### Patch Changes
+
+- f1f5804: fix(amazon-bedrock): clamp temperature to valid 0-1 range with warnings
+- 9cb8436: fix(amazon-bedrock): move anthropic_beta to request body
+- Updated dependencies [54b7c08]
+  - @ai-sdk/anthropic@2.0.45
+
+## 3.0.55
+
+### Patch Changes
+
+- cddda46: fix (provider/amazon-bedrock): deal gracefully with empty tool descriptions
+
 ## 3.0.54
 
 ### Patch Changes

@@ -1,9 +1,9 @@
-import { experimental_createMCPClient } from '@ai-sdk/mcp';
+import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 
 async function main() {
-  const mcpClient = await experimental_createMCPClient({
+  const mcpClient = await createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8082/sse',

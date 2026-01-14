@@ -6,6 +6,7 @@ async function main() {
   const { text, usage } = await generateText({
     model: openai('gpt-5-pro'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    maxRetries: 0,
   });
 
   console.log(text);

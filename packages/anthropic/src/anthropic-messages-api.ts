@@ -159,7 +159,7 @@ export interface AnthropicWebSearchToolResultContent {
   tool_use_id: string;
   content: Array<{
     url: string;
-    title: string;
+    title: string | null;
     page_age: string | null;
     encrypted_content: string;
     type: string;
@@ -415,11 +415,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -605,11 +612,18 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({

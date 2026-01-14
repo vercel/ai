@@ -1,5 +1,282 @@
 # @ai-sdk/google-vertex
 
+## 3.0.97
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/anthropic@2.0.57
+  - @ai-sdk/google@2.0.52
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 3.0.96
+
+### Patch Changes
+
+- Updated dependencies [cbc2dba]
+  - @ai-sdk/google@2.0.51
+
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [7c30c1d]
+  - @ai-sdk/google@2.0.50
+
+## 3.0.94
+
+### Patch Changes
+
+- 3ea80e7: feat(provider/google): add enterpriseWebSearch tool
+- Updated dependencies [3ea80e7]
+  - @ai-sdk/google@2.0.49
+
+## 3.0.93
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+- Updated dependencies [1bcc2d7]
+  - @ai-sdk/google@2.0.48
+
+## 3.0.92
+
+### Patch Changes
+
+- 0e182c5: Add Google Maps grounding tool support for location-aware Gemini responses
+- Updated dependencies [0e182c5]
+  - @ai-sdk/google@2.0.47
+
+## 3.0.91
+
+### Patch Changes
+
+- 97c861d: Remove duplicate gemini-1.0-pro-001 model ID
+
+## 3.0.90
+
+### Patch Changes
+
+- Updated dependencies [3716d34]
+  - @ai-sdk/anthropic@2.0.56
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/anthropic@2.0.55
+  - @ai-sdk/google@2.0.46
+
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
+## 3.0.87
+
+### Patch Changes
+
+- 363b1f5: fix(google,google-vertex): update known model IDs
+- Updated dependencies [363b1f5]
+  - @ai-sdk/google@2.0.45
+
+## 3.0.86
+
+### Patch Changes
+
+- 3197891: feat(provider/google-vertex): Add support for the imageSize provider option
+
+## 3.0.85
+
+### Patch Changes
+
+- Updated dependencies [65dee10]
+  - @ai-sdk/anthropic@2.0.53
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [518e786]
+  - @ai-sdk/anthropic@2.0.52
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [a54839c]
+  - @ai-sdk/anthropic@2.0.51
+
+## 3.0.82
+
+### Patch Changes
+
+- 922ecce: update google-auth-library to ^10.5.0
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - @ai-sdk/anthropic@2.0.50
+  - @ai-sdk/google@2.0.44
+
+## 3.0.80
+
+### Patch Changes
+
+- 4c4713d: Add claude-opus-4-5@20251101 to Google Vertex Anthropic models
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [dcdfeb7]
+  - @ai-sdk/anthropic@2.0.49
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [f2c6cbd]
+  - @ai-sdk/anthropic@2.0.48
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [3a7a427]
+  - @ai-sdk/anthropic@2.0.47
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [54a0480]
+  - @ai-sdk/anthropic@2.0.46
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [7b2c30f]
+  - @ai-sdk/google@2.0.43
+
+## 3.0.74
+
+### Patch Changes
+
+- Updated dependencies [b60216b]
+  - @ai-sdk/google@2.0.42
+
+## 3.0.73
+
+### Patch Changes
+
+- 3438163: add `gemini-3-pro-preview` and `gemini-3-pro-image-preview` model IDs
+- 708df55: feat(provider/amazon-bedrock,provider/google-vertex-anthropic): add support for tool calling with structured output
+
+  Added support for combining tool calling with structured outputs in both Amazon Bedrock and Google Vertex Anthropic providers. This allows developers to use tools (like weather lookups, web search, etc.) alongside structured JSON output schemas, enabling multi-step agentic workflows with structured final outputs.
+
+  **Amazon Bedrock Changes:**
+
+  - Removed incorrect warning that prevented using tools with JSON response format
+  - Updated tool choice to use `{ type: 'required' }` instead of specific tool selection when using structured outputs
+  - Added `isJsonResponseFromTool` parameter to finish reason mapping
+  - JSON tool responses are correctly converted to text content and finish reason is mapped from `tool_use` to `stop`
+  - Added comprehensive test coverage for combining tools with structured outputs
+  - Added example files demonstrating the feature
+
+  **Google Vertex Anthropic Changes:**
+
+  - Inherits support from underlying Anthropic provider implementation
+  - Added test coverage to verify the feature works correctly
+  - Added example files demonstrating the feature
+
+  This brings Anthropic provider's structured output capabilities to the Amazon Bedrock and Google Vertex Anthropic providers.
+
+- Updated dependencies [3438163]
+  - @ai-sdk/google@2.0.41
+
+## 3.0.72
+
+### Patch Changes
+
+- Updated dependencies [733c6b3]
+  - @ai-sdk/google@2.0.40
+
+## 3.0.71
+
+### Patch Changes
+
+- Updated dependencies [c89268c]
+  - @ai-sdk/google@2.0.39
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [42a6339]
+  - @ai-sdk/google@2.0.38
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [6de29ca]
+  - @ai-sdk/google@2.0.37
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [9df7698]
+  - @ai-sdk/google@2.0.36
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [f641e1b]
+  - @ai-sdk/google@2.0.35
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [54b7c08]
+  - @ai-sdk/anthropic@2.0.45
+
+## 3.0.65
+
+### Patch Changes
+
+- 9a66892: Add Google Vertex RAG Engine grounding provider tool
+- Updated dependencies [9a66892]
+  - @ai-sdk/google@2.0.34
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [30a7d54]
+  - @ai-sdk/google@2.0.33
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [0ac13cc]
+  - @ai-sdk/google@2.0.32
+
 ## 3.0.62
 
 ### Patch Changes

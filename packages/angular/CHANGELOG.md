@@ -1,5 +1,197 @@
 # @ai-sdk/angular
 
+## 1.0.121
+
+### Patch Changes
+
+- ai@5.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- ai@5.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- ai@5.0.119
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [42bad72]
+  - ai@5.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+  - @ai-sdk/provider-utils@3.0.20
+
+## 1.0.116
+
+### Patch Changes
+
+- ai@5.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- ai@5.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- Updated dependencies [fc633bd]
+  - ai@5.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [7e6fb4d]
+  - ai@5.0.113
+
+## 1.0.112
+
+### Patch Changes
+
+- ai@5.0.112
+
+## 1.0.111
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - ai@5.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- ai@5.0.110
+
+## 1.0.109
+
+### Patch Changes
+
+- Updated dependencies [427547a]
+  - ai@5.0.109
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [03cafbc]
+  - ai@5.0.108
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [21c9f90]
+  - ai@5.0.107
+
+## 1.0.106
+
+### Patch Changes
+
+- ai@5.0.106
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [1063aca]
+  - ai@5.0.105
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [d1dbe5d]
+  - @ai-sdk/provider-utils@3.0.18
+  - ai@5.0.104
+
+## 1.0.103
+
+### Patch Changes
+
+- ai@5.0.103
+
+## 1.0.102
+
+### Patch Changes
+
+- Updated dependencies [83b2c4b]
+  - ai@5.0.102
+
+## 1.0.101
+
+### Patch Changes
+
+- ai@5.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- ai@5.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [15cfac8]
+  - ai@5.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- ai@5.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- ai@5.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c89268c]
+  - ai@5.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [a20e687]
+  - ai@5.0.95
+
+## 1.0.94
+
+### Patch Changes
+
+- ai@5.0.94
+
+## 1.0.93
+
+### Patch Changes
+
+- ai@5.0.93
+
 ## 1.0.92
 
 ### Patch Changes

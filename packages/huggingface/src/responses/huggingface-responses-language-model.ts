@@ -137,6 +137,13 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
 
       ...(preparedTools && { tools: preparedTools }),
       ...(preparedToolChoice && { tool_choice: preparedToolChoice }),
+      ...(huggingfaceOptions?.reasoningEffort != null && {
+        reasoning: {
+          ...(huggingfaceOptions?.reasoningEffort != null && {
+            effort: huggingfaceOptions.reasoningEffort,
+          }),
+        },
+      }),
     };
 
     return { args: baseArgs, warnings };
@@ -213,6 +220,21 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
                 });
               }
             }
+          }
+          break;
+        }
+
+        case 'reasoning': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'reasoning',
+              text: contentPart.text,
+              providerMetadata: {
+                huggingface: {
+                  itemId: part.id,
+                },
+              },
+            });
           }
           break;
         }
@@ -397,6 +419,16 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
                   id: value.item.call_id,
                   toolName: value.item.name,
                 });
+              } else if (value.item.type === 'reasoning') {
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: value.item.id,
+                  providerMetadata: {
+                    huggingface: {
+                      itemId: value.item.id,
+                    },
+                  },
+                });
               }
               return;
             }
@@ -451,6 +483,23 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
               return;
             }
 
+            if (isReasoningDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: value.item_id,
+                delta: value.delta,
+              });
+              return;
+            }
+
+            if (isReasoningEndChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: value.item_id,
+              });
+              return;
+            }
+
             if (isTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'text-delta',
@@ -485,7 +534,69 @@ const huggingfaceResponsesProviderOptionsSchema = z.object({
   metadata: z.record(z.string(), z.string()).optional(),
   instructions: z.string().optional(),
   strictJsonSchema: z.boolean().optional(),
+  reasoningEffort: z.string().optional(),
 });
+
+const huggingfaceResponsesOutputSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('message'),
+    id: z.string(),
+    role: z.string().optional(),
+    status: z.string().optional(),
+    content: z.array(
+      z.object({
+        type: z.literal('output_text'),
+        text: z.string(),
+        annotations: z.array(z.any()).optional(),
+      }),
+    ),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    status: z.string().optional(),
+    content: z.array(
+      z.object({
+        type: z.literal('reasoning_text'),
+        text: z.string(),
+      }),
+    ),
+    summary: z
+      .array(
+        z
+          .object({
+            type: z.literal('reasoning_summary'),
+            text: z.string(),
+          })
+          .optional(),
+      )
+      .optional(),
+  }),
+  z.object({
+    type: z.literal('function_call'),
+    id: z.string(),
+    call_id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_call'),
+    id: z.string(),
+    name: z.string(),
+    arguments: z.string(),
+    output: z.string().optional(),
+    status: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_list_tools'),
+    id: z.string(),
+    server_label: z.string(),
+    tools: z.array(z.any()).optional(),
+    status: z.string().optional(),
+  }),
+]);
 
 const huggingfaceResponsesResponseSchema = z.object({
   id: z.string(),
@@ -525,7 +636,7 @@ const huggingfaceResponsesResponseSchema = z.object({
     })
     .nullable()
     .optional(),
-  output: z.array(z.any()),
+  output: z.array(huggingfaceResponsesOutputSchema),
   output_text: z.string().nullable().optional(),
 });
 
@@ -539,6 +650,13 @@ const responseOutputItemAddedSchema = z.object({
       role: z.string().optional(),
       status: z.string().optional(),
       content: z.array(z.any()).optional(),
+    }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
     }),
     z.object({
       type: z.literal('mcp_list_tools'),
@@ -605,6 +723,13 @@ const responseOutputItemDoneSchema = z.object({
       output: z.string().optional(),
       error: z.string().optional(),
     }),
+    z.object({
+      type: z.literal('reasoning'),
+      id: z.string(),
+      status: z.string().optional(),
+      content: z.array(z.any()).optional(),
+      summary: z.array(z.any()).optional(),
+    }),
   ]),
   sequence_number: z.number(),
 });
@@ -615,6 +740,24 @@ const textDeltaChunkSchema = z.object({
   output_index: z.number(),
   content_index: z.number(),
   delta: z.string(),
+  sequence_number: z.number(),
+});
+
+const reasoningTextDeltaChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  delta: z.string(),
+  sequence_number: z.number(),
+});
+
+const reasoningTextEndChunkSchema = z.object({
+  type: z.literal('response.reasoning_text.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  content_index: z.number(),
+  text: z.string(),
   sequence_number: z.number(),
 });
 
@@ -638,6 +781,8 @@ const responseCreatedChunkSchema = z.object({
 const huggingfaceResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseOutputItemDoneSchema,
+  reasoningTextDeltaChunkSchema,
+  reasoningTextEndChunkSchema,
   textDeltaChunkSchema,
   responseCompletedChunkSchema,
   responseCreatedChunkSchema,
@@ -660,6 +805,18 @@ function isTextDeltaChunk(
   chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
 ): chunk is z.infer<typeof textDeltaChunkSchema> {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isReasoningDeltaChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextDeltaChunkSchema> {
+  return chunk.type === 'response.reasoning_text.delta';
+}
+
+function isReasoningEndChunk(
+  chunk: z.infer<typeof huggingfaceResponsesChunkSchema>,
+): chunk is z.infer<typeof reasoningTextEndChunkSchema> {
+  return chunk.type === 'response.reasoning_text.done';
 }
 
 function isResponseCompletedChunk(

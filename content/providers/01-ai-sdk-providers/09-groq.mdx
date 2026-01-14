@@ -167,7 +167,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: groq('moonshotai/kimi-k2-instruct'),
+  model: groq('moonshotai/kimi-k2-instruct-0905'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -210,7 +210,7 @@ console.log(JSON.stringify(result.object, null, 2));
 
 <Note type="warning">
   Structured outputs are only supported by newer Groq models like
-  `moonshotai/kimi-k2-instruct`. For unsupported models, you can disable
+  `moonshotai/kimi-k2-instruct-0905`. For unsupported models, you can disable
   structured outputs by setting `structuredOutputs: false`. When disabled, Groq
   uses the `json_object` format which requires the word "JSON" to be included in
   your messages.
@@ -294,7 +294,7 @@ const { text } = await generateText({
 | `meta-llama/llama-4-scout-17b-16e-instruct`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `meta-llama/llama-prompt-guard-2-22m`           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta-llama/llama-prompt-guard-2-86m`           | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `moonshotai/kimi-k2-instruct`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/kimi-k2-instruct-0905`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `qwen/qwen3-32b`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `llama-guard-3-8b`                              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `llama3-70b-8192`                               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

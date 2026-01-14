@@ -248,6 +248,43 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should keep temperature and topP for gpt-5.1 models when reasoning effort is none', async () => {
+        const { warnings } = await createModel('gpt-5.1').doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.3,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'none',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "gpt-5.1",
+            "reasoning": {
+              "effort": "none",
+            },
+            "temperature": 0.5,
+            "top_p": 0.3,
+          }
+        `);
+
+        expect(warnings).toMatchInlineSnapshot(`[]`);
+      });
+
       it('should remove unsupported settings for o1', async () => {
         const { warnings } = await createModel('o1').doGenerate({
           prompt: [
@@ -572,6 +609,57 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send conversation provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn when both conversation and previousResponseId are provided', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              conversation: 'conv_123',
+              previousResponseId: 'resp_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          conversation: 'conv_123',
+          previous_response_id: 'resp_123',
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'conversation',
+            details:
+              'conversation and previousResponseId cannot be used together',
+          },
+        ]);
+      });
+
       it('should send previous response id provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -644,6 +732,32 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([]);
         },
       );
+
+      it('should send xhigh reasoningEffort for codex-max model', async () => {
+        const { warnings } = await createModel('gpt-5.1-codex-max').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'xhigh',
+            } satisfies OpenAIResponsesProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5.1-codex-max',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          reasoning: {
+            effort: 'xhigh',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
 
       it.each(nonReasoningModelIds)(
         'should not send and warn about unsupported reasoningEffort and reasoningSummary provider options for %s',
@@ -859,6 +973,27 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           prompt_cache_key: 'test-cache-key-123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send promptCacheRetention provider option', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              promptCacheRetention: '24h',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          prompt_cache_retention: '24h',
         });
 
         expect(warnings).toStrictEqual([]);
@@ -1232,6 +1367,20 @@ describe('OpenAIResponsesLanguageModel', () => {
             ],
           ]
         `);
+      });
+    });
+
+    describe('errors', () => {
+      it('should throw an error', async () => {
+        prepareJsonFixtureResponse('openai-error.1');
+
+        expect(
+          createModel('gpt-4o').doGenerate({
+            prompt: TEST_PROMPT,
+          }),
+        ).rejects.toThrow(
+          'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+        );
       });
     });
 
@@ -2500,66 +2649,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
     });
 
-    describe('errors', () => {
-      it('should throw an API call error when the response contains an error part', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: {
-              code: 'ERR_SOMETHING',
-              message: 'Something went wrong',
-            },
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'gpt-4o-2024-07-18',
-            output: [],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: null,
-              summary: null,
-            },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 345,
-              input_tokens_details: {
-                cached_tokens: 234,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 123,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-
-        expect(
-          createModel('gpt-4o').doGenerate({
-            prompt: TEST_PROMPT,
-          }),
-        ).rejects.toThrow('Something went wrong');
-      });
-    });
-
     it('should handle mixed url_citation and file_citation annotations', async () => {
       prepareJsonResponse({
         id: 'resp_123',
@@ -2913,6 +3002,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -2984,6 +3078,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3211,6 +3310,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_68b08bfc9a548196b15465b6020b04e40cd677a623b867d5",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3287,6 +3391,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_689cec4d46448195905a27fb9e12ff670f92af1765dd5aad",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -3515,13 +3624,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
     describe('errors', () => {
       it('should stream error parts', async () => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'stream-chunks',
-          chunks: [
-            `data:{"type":"response.created","response":{"id":"resp_67cf3390786881908b27489d7e8cfb6b","object":"response","created_at":1741632400,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"web_search","search_context_size":"medium","user_location":{"type":"approximate","city":null,"country":"US","region":null,"timezone":null}}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-            `data:{"type":"error","code":"ERR_SOMETHING","message":"Something went wrong","param":null,"sequence_number":1}\n\n`,
-          ],
-        };
+        prepareChunksFixtureResponse('openai-error.1');
 
         const { stream } = await createModel('gpt-4o-mini').doStream({
           prompt: TEST_PROMPT,
@@ -3530,43 +3633,46 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream))
           .toMatchInlineSnapshot(`
-          [
-            {
-              "type": "stream-start",
-              "warnings": [],
-            },
-            {
-              "id": "resp_67cf3390786881908b27489d7e8cfb6b",
-              "modelId": "gpt-4o-mini-2024-07-18",
-              "timestamp": 2025-03-10T18:46:40.000Z,
-              "type": "response-metadata",
-            },
-            {
-              "error": {
-                "code": "ERR_SOMETHING",
-                "message": "Something went wrong",
-                "param": null,
-                "sequence_number": 1,
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                "modelId": "gpt-5-nano-2025-08-07",
+                "timestamp": 2025-11-18T14:03:09.000Z,
+                "type": "response-metadata",
+              },
+              {
+                "error": {
+                  "error": {
+                    "code": "insufficient_quota",
+                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
+                    "param": null,
+                    "type": "insufficient_quota",
+                  },
+                  "sequence_number": 2,
+                  "type": "error",
+                },
                 "type": "error",
               },
-              "type": "error",
-            },
-            {
-              "finishReason": "unknown",
-              "providerMetadata": {
-                "openai": {
-                  "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              {
+                "finishReason": "unknown",
+                "providerMetadata": {
+                  "openai": {
+                    "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": undefined,
+                  "outputTokens": undefined,
+                  "totalTokens": undefined,
                 },
               },
-              "type": "finish",
-              "usage": {
-                "inputTokens": undefined,
-                "outputTokens": undefined,
-                "totalTokens": undefined,
-              },
-            },
-          ]
-        `);
+            ]
+          `);
       });
     });
 
@@ -3722,6 +3828,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -3833,6 +3944,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4015,6 +4131,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4128,6 +4249,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4324,6 +4450,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_67c97c02656c81908e080dfdf4a03cd1",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4387,6 +4518,11 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "id": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "msg_final_78d08d03767d92908f25523f5ge51e77",
+                  },
+                },
                 "type": "text-end",
               },
               {
@@ -4576,7 +4712,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         type: 'stream-chunks',
         chunks: [
           `data:{"type":"response.content_part.added","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
-          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL"}}\n\n`,
+          `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":0,"annotation":{"type":"url_citation","url":"https://example.com","title":"Example URL","start_index":123,"end_index":234}}\n\n`,
           `data:{"type":"response.output_text.annotation.added","item_id":"msg_123","output_index":0,"content_index":0,"annotation_index":1,"annotation":{"type":"file_citation","file_id":"file-abc123","quote":"This is a quote from the file"}}\n\n`,
           `data:{"type":"response.content_part.done","item_id":"msg_123","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_123","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Based on web search and file content.","annotations":[{"type":"url_citation","start_index":0,"end_index":10,"url":"https://example.com","title":"Example URL"},{"type":"file_citation","start_index":20,"end_index":30,"file_id":"file-abc123","quote":"This is a quote from the file"}]}]}}\n\n`,
@@ -4620,6 +4756,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_123",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "end_index": 234,
+                    "start_index": 123,
+                    "title": "Example URL",
+                    "type": "url_citation",
+                    "url": "https://example.com",
+                  },
+                  {
+                    "file_id": "file-abc123",
+                    "quote": "This is a quote from the file",
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_123",
+              },
+            },
             "type": "text-end",
           },
           {
@@ -4694,6 +4849,25 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "openai": {
+                "annotations": [
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "file-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {

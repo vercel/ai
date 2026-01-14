@@ -21,17 +21,17 @@ There are several models that offer native web-searching capabilities (Perplexit
 
 ### OpenAI Responses API
 
-OpenAI's Responses API has a built-in web search tool that can be used to search the web and return search results. This tool is called `web_search_preview` and is accessed via the `openai` provider.
+OpenAI's Responses API has a built-in web search tool that can be used to search the web and return search results. This tool is called `web_search` and is accessed via the `openai` provider.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: 'openai/gpt-5-mini',
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: openai.tools.webSearchPreview({}),
+    web_search: openai.tools.webSearch({}),
   },
 });
 
@@ -44,11 +44,10 @@ console.log(sources);
 Perplexity's Sonar models combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations.
 
 ```ts
-import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: perplexity('sonar-pro'),
+  model: 'perplexity/sonar-pro',
   prompt: 'What are the latest developments in quantum computing?',
 });
 
@@ -65,7 +64,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
-  model: google('gemini-2.5-flash'),
+  model: 'google/gemini-2.5-flash',
   tools: {
     google_search: google.tools.googleSearch({}),
   },
@@ -99,7 +98,7 @@ Unlike the native web search examples where searching is built into the model, u
 
 ### Use ready-made tools
 
-If you prefer a ready-to-use web search tool without building one from scratch, [Exa](https://exa.ai/)(a web search API designed for AI applications) provides a tool that integrates directly with the AI SDK.
+If you prefer a ready-to-use web search tool without building one from scratch, there are several options that integrate directly with the AI SDK.
 
 #### Exa
 
@@ -117,11 +116,11 @@ Then, you can import and pass it into `generateText`, `streamText`, or your agen
 
 ```ts
 import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { webSearch } from '@exalabs/ai-sdk';
-import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: __MODEL__,
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -133,6 +132,105 @@ console.log(text);
 ```
 
 For more configuration options and customization, see the [Exa AI SDK documentation](https://docs.exa.ai/reference/vercel).
+
+#### Parallel Web
+
+<Note>Get your API key from the [Parallel Platform](https://parallel.ai).</Note>
+
+First, install the Parallel Web AI SDK tools:
+
+```bash
+pnpm install @parallel-web/ai-sdk-tools
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Parallel Web provides two tools: `searchTool` for web search and `extractTool` for extracting web page content:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
+import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'When was Vercel Ship AI?',
+  tools: {
+    webSearch: searchTool,
+    webExtract: extractTool,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+#### Perplexity Search
+
+<Note>
+  Get your API key from the [Perplexity API Keys
+  page](https://www.perplexity.ai/account/api/keys).
+</Note>
+
+First, install the Perplexity Search tool:
+
+```bash
+pnpm install @perplexity-ai/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent. Perplexity Search provides real-time web search with advanced filtering options including domain, language, date range, and recency filters:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
+import { perplexitySearch } from '@perplexity-ai/ai-sdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt:
+    'What are the latest AI developments? Use search to find current information.',
+  tools: {
+    search: perplexitySearch(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Perplexity Search API documentation](https://docs.perplexity.ai/guides/search-quickstart).
+
+#### Tavily
+
+<Note>
+  Get your API key from the [Tavily Dashboard](https://app.tavily.com).
+</Note>
+
+First, install the `tavilySearch` tool:
+
+```bash
+pnpm install @tavily/ai-sdk
+```
+
+Then, you can import and pass it into `generateText`, `streamText`, or your agent:
+
+```ts
+import { generateText, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
+import { tavilySearch, tavilyExtract } from '@tavily/ai-sdk';
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt: 'When was the latest update to the AI SDK?',
+  tools: {
+    webSearch: tavilySearch(),
+    webExtract: tavilyExtract(),
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);
+```
+
+For more customization options over your agent's web-access functionality, visit the [Tavily AI SDK Documentation](https://docs.tavily.com/documentation/integrations/vercel).
 
 ### Build and use custom tools
 
@@ -148,6 +246,7 @@ pnpm install exa-js
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import Exa from 'exa-js';
 
@@ -173,7 +272,7 @@ export const webSearch = tool({
 });
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o-mini', // can be any model that supports tools
+  model: __MODEL__, // can be any model that supports tools
   prompt: 'What happened in San Francisco last week?',
   tools: {
     webSearch,
@@ -192,6 +291,7 @@ pnpm install @mendable/firecrawl-js
 
 ```ts
 import { generateText, tool, stepCountIs } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import 'dotenv/config';
@@ -224,7 +324,7 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: 'openai/gpt-4o-mini', // can be any model that supports tools
+    model: __MODEL__, // can be any model that supports tools
     prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,

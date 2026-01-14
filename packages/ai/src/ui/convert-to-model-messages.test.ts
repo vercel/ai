@@ -505,6 +505,217 @@ describe('convertToModelMessages', () => {
                   "type": "text",
                   "value": "3",
                 },
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should propagate provider metadata to tool-result (client-executed)', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'add', numbers: [1, 2] },
+              output: '3',
+              callProviderMetadata: {
+                testProvider: {
+                  executionTime: 100,
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "numbers": [
+                    1,
+                    2,
+                  ],
+                  "operation": "add",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 100,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "3",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 100,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should propagate provider metadata to tool-result (provider-executed)', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'subtract', numbers: [10, 5] },
+              output: '5',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  executionTime: 50,
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "numbers": [
+                    10,
+                    5,
+                  ],
+                  "operation": "subtract",
+                },
+                "providerExecuted": true,
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 50,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "5",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "executionTime": 50,
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should propagate provider metadata to tool-result with error state', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-error',
+              toolCallId: 'call1',
+              input: { operation: 'divide', numbers: [10, 0] },
+              errorText: 'Error: Division by zero',
+              callProviderMetadata: {
+                testProvider: {
+                  errorCode: 'DIVISION_BY_ZERO',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "numbers": [
+                    10,
+                    0,
+                  ],
+                  "operation": "divide",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": {
+                  "testProvider": {
+                    "errorCode": "DIVISION_BY_ZERO",
+                  },
+                },
+                "toolCallId": "call1",
+                "toolName": "calculator",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Division by zero",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "errorCode": "DIVISION_BY_ZERO",
+                  },
+                },
                 "toolCallId": "call1",
                 "toolName": "calculator",
                 "type": "tool-result",
@@ -1180,6 +1391,72 @@ describe('convertToModelMessages', () => {
               },
             ],
             "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should propagate provider metadata to dynamic tool-result', () => {
+      const result = convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'dynamic-tool',
+              toolName: 'custom-tool',
+              state: 'output-available',
+              toolCallId: 'call-dynamic-1',
+              input: { param: 'test' },
+              output: 'dynamic-result',
+              callProviderMetadata: {
+                testProvider: {
+                  dynamicToolExecution: true,
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "param": "test",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "dynamicToolExecution": true,
+                  },
+                },
+                "toolCallId": "call-dynamic-1",
+                "toolName": "custom-tool",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "dynamic-result",
+                },
+                "providerOptions": {
+                  "testProvider": {
+                    "dynamicToolExecution": true,
+                  },
+                },
+                "toolCallId": "call-dynamic-1",
+                "toolName": "custom-tool",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
           },
         ]
       `);
