@@ -206,4 +206,36 @@ describe('createAsyncIterableStream()', () => {
 
     expect(collected).toEqual([]);
   });
+
+  it('should not throw when return is called after the stream completed', async () => {
+    const input = ['chunk1', 'chunk2', 'chunk3'];
+    const source = convertArrayToReadableStream(input);
+
+    const asyncIterableStream = createAsyncIterableStream(source);
+
+    const asyncIterator = asyncIterableStream[Symbol.asyncIterator]();
+
+    const output = await (async () => {
+      const output: Array<string> = [];
+
+      while (true) {
+        const value = await asyncIterator.next();
+
+        if (value.done) {
+          break;
+        }
+
+        output.push(value.value);
+      }
+
+      return output;
+    })();
+
+    expect(output).toEqual(input);
+
+    expect(await asyncIterator.return?.()).toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
 });
