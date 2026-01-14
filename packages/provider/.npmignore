@@ -1,5 +1,0 @@
-# Test files
-**/*.test.ts
-**/*.test-d.ts
-**/__fixtures__/**
-**/__snapshots__/**
