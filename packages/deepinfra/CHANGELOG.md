@@ -1,5 +1,58 @@
 # @ai-sdk/deepinfra
 
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [bc02a3c]
+  - @ai-sdk/openai-compatible@2.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [78fcb18]
+  - @ai-sdk/openai-compatible@2.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [cd7bb0e]
+  - @ai-sdk/openai-compatible@2.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai-compatible@2.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [d54c380]
+  - @ai-sdk/openai-compatible@2.0.5
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/openai-compatible@2.0.4
+  - @ai-sdk/provider-utils@4.0.4
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/openai-compatible@2.0.3
+
 ## 2.0.2
 
 ### Patch Changes

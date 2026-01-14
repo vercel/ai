@@ -14,26 +14,43 @@ const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
 
 export type ToolSchemas =
-  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
+  | Record<
+      string,
+      {
+        inputSchema: FlexibleSchema<JSONObject | unknown>;
+        outputSchema?: FlexibleSchema<JSONObject | unknown>;
+      }
+    >
   | 'automatic'
   | undefined;
 
 /** Base MCP tool type with execute and _meta */
-type McpToolBase<INPUT = unknown> = Tool<INPUT, CallToolResult> &
-  Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>> & {
+type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
+  INPUT,
+  OUTPUT
+> &
+  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
     _meta?: ToolMeta;
   };
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
+  TOOL_SCHEMAS extends Record<
+    string,
+    { inputSchema: FlexibleSchema<any>; outputSchema?: FlexibleSchema<any> }
+  >
     ? {
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
+          outputSchema: FlexibleSchema<infer OUTPUT>;
         }
-          ? McpToolBase<INPUT>
-          : never;
+          ? McpToolBase<INPUT, OUTPUT>
+          : TOOL_SCHEMAS[K] extends {
+                inputSchema: FlexibleSchema<infer INPUT>;
+              }
+            ? McpToolBase<INPUT, CallToolResult>
+            : never;
       }
-    : Record<string, McpToolBase<unknown>>;
+    : Record<string, McpToolBase<unknown, CallToolResult>>;
 
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
@@ -128,6 +145,10 @@ const ToolSchema = z
         properties: z.optional(z.object({}).loose()),
       })
       .loose(),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
+     */
+    outputSchema: z.optional(z.object({}).loose()),
     annotations: z.optional(
       z
         .object({
@@ -211,6 +232,10 @@ export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
     z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
   ),
+  /**
+   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   */
+  structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
 }).or(
   ResultSchema.extend({

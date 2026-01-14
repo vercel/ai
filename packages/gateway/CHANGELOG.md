@@ -1,5 +1,51 @@
 # @ai-sdk/gateway
 
+## 3.0.13
+
+### Patch Changes
+
+- 92b339b: feat (provider/gateway): add'l perplexity search tool params
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.11
+
+### Patch Changes
+
+- 891a60a: feat (provider/gateway): add provider-defined perplexity search
+
+## 3.0.10
+
+### Patch Changes
+
+- 2696fd2: chore(provider/gateway): Update gateway model settings files
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.8
+
+### Patch Changes
+
+- 8ec1984: fix(gateway): bump `@vercel/oidc` to 3.1.0
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
 ## 3.0.6
 
 ### Patch Changes
