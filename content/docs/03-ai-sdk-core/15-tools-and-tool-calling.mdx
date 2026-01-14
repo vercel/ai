@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stopWhen } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({

@@ -884,6 +884,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -1027,6 +1028,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -1072,6 +1074,59 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+    });
+
+    it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          'test-provider': {
+            strictJsonSchema: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            strict: false,
             name: 'test-name',
             description: 'test description',
             schema: {
@@ -1440,6 +1495,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1452,10 +1511,6 @@ describe('doStream', () => {
           "delta": " my response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1543,6 +1598,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1555,10 +1614,6 @@ describe('doStream', () => {
           "delta": " correct",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1637,6 +1692,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1644,10 +1703,6 @@ describe('doStream', () => {
           "delta": "Final response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
