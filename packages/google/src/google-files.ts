@@ -89,7 +89,7 @@ export interface GoogleFile {
 const getFileZodSchema = () =>
   z.object({
     name: z.string(),
-    displayName: z.string().optional(),
+    displayName: z.string().nullish(),
     mimeType: z.string(),
     sizeBytes: z.string(),
     createTime: z.string(),
@@ -104,7 +104,7 @@ const getFileZodSchema = () =>
         message: z.string(),
         status: z.string(),
       })
-      .optional(),
+      .nullish(),
   });
 
 // minimal version of the schema, focussed on what is needed for the implementation
@@ -126,8 +126,8 @@ const googleFileResponseSchema = lazySchema(() =>
 const googleListFilesResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      files: z.array(getFileZodSchema()).optional(),
-      nextPageToken: z.string().optional(),
+      files: z.array(getFileZodSchema()).nullish(),
+      nextPageToken: z.string().nullish(),
     }),
   ),
 );
