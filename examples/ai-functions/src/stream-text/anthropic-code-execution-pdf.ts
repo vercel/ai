@@ -6,7 +6,7 @@ import { saveRawChunks } from '../lib/save-raw-chunks';
 run(async () => {
   const result = streamText({
     model: anthropic('claude-sonnet-4-5'),
-    prompt: 'Create a simple PDF document with my name Boba Fett on it',
+    prompt: 'Create a simple PDF document with my name Aayush on it',
     tools: {
       code_execution: anthropic.tools.codeExecution_20250825(),
     },
