@@ -104,6 +104,64 @@ describe('createAnthropic', () => {
   });
 });
 
+describe('anthropic provider - authentication', () => {
+  const originalApiKey = process.env.ANTHROPIC_API_KEY;
+  const originalAuthToken = process.env.ANTHROPIC_AUTH_TOKEN;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_AUTH_TOKEN;
+  });
+
+  afterEach(() => {
+    if (originalApiKey === undefined) {
+      delete process.env.ANTHROPIC_API_KEY;
+    } else {
+      process.env.ANTHROPIC_API_KEY = originalApiKey;
+    }
+    if (originalAuthToken === undefined) {
+      delete process.env.ANTHROPIC_AUTH_TOKEN;
+    } else {
+      process.env.ANTHROPIC_AUTH_TOKEN = originalAuthToken;
+    }
+  });
+
+  describe('authToken option', () => {
+    it('sends Authorization Bearer header when authToken is provided', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        authToken: 'test-auth-token',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'Bearer test-auth-token',
+      );
+      expect(requestOptions.headers['x-api-key']).toBeUndefined();
+    });
+  });
+
+  describe('apiKey and authToken conflict', () => {
+    it('throws error when both apiKey and authToken options are provided', () => {
+      expect(() =>
+        createAnthropic({
+          apiKey: 'test-api-key',
+          authToken: 'test-auth-token',
+        }),
+      ).toThrow(
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+      );
+    });
+  });
+});
+
 describe('anthropic provider - custom provider name', () => {
   beforeEach(() => {
     vi.clearAllMocks();
