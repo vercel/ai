@@ -5,7 +5,7 @@ description: 'Learn how to use the Soniox provider for the AI SDK.'
 
 # Soniox Provider
 
-This provider integrates Soniox transcription models with the Vercel AI SDK.
+[Soniox provider](https://github.com/soniox/vercel-ai-sdk-provider) integrates Soniox transcription models with the Vercel AI SDK.
 For more information, see the [Soniox Documentation](https://soniox.com/docs).
 
 ## Installation
@@ -17,6 +17,7 @@ npm install @soniox/vercel-ai-sdk-provider
 ## Authentication
 
 Set `SONIOX_API_KEY` in your environment or pass `apiKey` when creating the provider.
+Get your API key from the [Soniox Console](https://console.soniox.com).
 
 ## Example
 
@@ -27,7 +28,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 const { text } = await transcribe({
   model: soniox.transcription('stt-async-v3'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://soniox.com/media/examples/coffee_shop.mp3',
   ),
 });
 ```
