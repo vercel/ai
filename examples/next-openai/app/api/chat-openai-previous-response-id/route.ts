@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   const reqJson = await req.json();
 
   const { message, previousProviderMetadata } =
-    (await reqJson) as PreviousResponseIdRequestBody;
+    reqJson as PreviousResponseIdRequestBody;
 
   // Extract the prior OpenAI responseId so the Responses API can replay history.
   const previousResponseId: string | undefined =
