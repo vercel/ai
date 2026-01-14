@@ -56,6 +56,15 @@ export const groqProviderOptions = z.object({
   structuredOutputs: z.boolean().optional(),
 
   /**
+   * Whether to use strict JSON schema validation.
+   * When true, the model uses constrained decoding to guarantee schema compliance.
+   * Only used when structured outputs are enabled and a schema is provided.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
    * Service tier for the request.
    * - 'on_demand': Default tier with consistent performance and fairness
    * - 'flex': Higher throughput tier optimized for workloads that can handle occasional request failures
