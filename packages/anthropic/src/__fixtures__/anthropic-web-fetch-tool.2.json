@@ -13,7 +13,7 @@
       "id": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
       "name": "web_fetch",
       "input": {
-        "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf"
+        "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf"
       }
     },
     {
@@ -21,7 +21,7 @@
       "tool_use_id": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
       "content": {
         "type": "web_fetch_result",
-        "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf",
+        "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf",
         "retrieved_at": "2025-09-29T07:28:57.560000+00:00",
         "content": {
           "type": "document",
