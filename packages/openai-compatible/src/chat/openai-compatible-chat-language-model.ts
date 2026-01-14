@@ -131,6 +131,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       })) ?? {},
     );
 
+    const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
+
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -179,6 +181,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
