@@ -9,7 +9,7 @@
   "source": "./src/index.ts",
   "files": [
     "dist/**/*",
-    "src/**/*",
+    "src",
     "CHANGELOG.md",
     "README.md"
   ],

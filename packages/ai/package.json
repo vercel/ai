@@ -11,7 +11,7 @@
   "files": [
     "dist/**/*",
     "docs/**/*",
-    "src/**/*",
+    "src",
     "CHANGELOG.md",
     "internal.d.ts",
     "README.md",
