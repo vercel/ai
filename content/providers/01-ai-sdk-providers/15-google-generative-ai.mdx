@@ -326,6 +326,96 @@ const result = await generateText({
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
+### Files API
+
+The `google.files` client provides methods for uploading and managing files using the [Gemini File API](https://ai.google.dev/gemini-api/docs/files). This is essential for processing large media files (up to 2GB) that exceed the 20MB inline request limit.
+
+Files are automatically deleted after 48 hours.
+
+#### Uploading Files
+
+```ts
+import { google } from '@ai-sdk/google';
+import { readFileSync } from 'fs';
+
+const file = await google.files.upload({
+  file: readFileSync('./video.mp4'),
+  mimeType: 'video/mp4',
+  displayName: 'my-video.mp4', // optional
+});
+
+console.log(file.uri); // Use this URI in your prompts
+```
+
+#### Waiting for Processing
+
+Videos and audio files require processing before they can be used. Use `waitForProcessing()` to poll until the file is ready:
+
+```ts
+import { google } from '@ai-sdk/google';
+
+const file = await google.files.upload({
+  file: videoBuffer,
+  mimeType: 'video/mp4',
+});
+
+// Wait for video processing to complete
+const readyFile = await google.files.waitForProcessing(file.name, {
+  pollInterval: 2000, // optional, defaults to 1000ms
+  maxWaitTime: 300000, // optional, defaults to 5 minutes
+});
+
+// Now use the file in a prompt
+const result = await generateText({
+  model: google('gemini-2.5-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Summarize this video' },
+        {
+          type: 'file',
+          data: new URL(readyFile.uri),
+          mimeType: readyFile.mimeType,
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Managing Files
+
+```ts
+import { google } from '@ai-sdk/google';
+
+// Get file metadata
+const file = await google.files.get('files/abc123');
+
+// List all uploaded files
+const { files, nextPageToken } = await google.files.list({
+  pageSize: 10, // optional
+  pageToken: nextPageToken, // optional, for pagination
+});
+
+// Delete a file
+await google.files.delete('files/abc123');
+```
+
+#### File States
+
+Files can be in one of three states:
+
+- **`PROCESSING`** - File is being processed (videos/audio)
+- **`ACTIVE`** - File is ready to use
+- **`FAILED`** - Processing failed
+
+<Note>
+  The Files API is useful for large files that exceed the 20MB inline limit. For
+  smaller files, you can include them directly in your prompts using the `file`
+  content type.
+</Note>
+
 ### Cached Content
 
 Google Generative AI supports both explicit and implicit caching to help reduce costs on repetitive content.
