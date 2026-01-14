@@ -1,5 +1,39 @@
 # @ai-sdk/groq
 
+## 3.0.7
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 3.0.6
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
 ## 3.0.2
 
 ### Patch Changes

@@ -1,5 +1,176 @@
 # ai
 
+## 6.0.33
+
+### Patch Changes
+
+- 0ca078c: fix(ai): pass providerMetadata in smooth stream to preserve thinking tag
+
+## 6.0.32
+
+### Patch Changes
+
+- ec24401: chore(ai): include docs in npm package
+
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
+## 6.0.19
+
+### Patch Changes
+
+- Updated dependencies [2696fd2]
+  - @ai-sdk/gateway@3.0.10
+
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
+## 6.0.15
+
+### Patch Changes
+
+- 3a73fb3: Include abort reason in stream chunks and document the new field
+
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
+## 6.0.12
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/gateway@3.0.9
+  - @ai-sdk/provider-utils@4.0.4
+
+## 6.0.11
+
+### Patch Changes
+
+- Updated dependencies [8ec1984]
+  - @ai-sdk/gateway@3.0.8
+
+## 6.0.10
+
+### Patch Changes
+
+- ae26f95: Add missing `.catch()` handler to `executeToolCall` promise in `runToolsTransformation` to prevent potential stream hang when the promise rejects.
+
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/gateway@3.0.7
+
 ## 6.0.7
 
 ### Patch Changes
