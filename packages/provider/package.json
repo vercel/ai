@@ -6,8 +6,10 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
   "files": [
     "dist/**/*",
+    "src/**/*",
     "CHANGELOG.md",
     "README.md"
   ],
