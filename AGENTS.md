@@ -24,7 +24,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
 | `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
 | `packages/codemod`        | Automated migrations for major releases                                              |
-| `examples/`               | Example applications (ai-core, next-openai, etc.)                                    |
+| `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
 | `tools/`                  | Internal tooling (eslint-config, tsconfig)                                           |
