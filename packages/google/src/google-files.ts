@@ -28,7 +28,7 @@ export interface GoogleFile {
   /**
    * The human-readable display name for the file.
    */
-  displayName?: string;
+  displayName?: string | null;
 
   /**
    * The MIME type of the file.
@@ -82,7 +82,7 @@ export interface GoogleFile {
     code: number;
     message: string;
     status: string;
-  };
+  } | null;
 }
 
 // Helper function to get the file zod schema
@@ -218,7 +218,7 @@ export interface GoogleFileListResult {
   /**
    * Token to retrieve the next page of files, if available.
    */
-  nextPageToken?: string;
+  nextPageToken?: string | null;
 }
 
 /**
