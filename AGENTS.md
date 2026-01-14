@@ -83,7 +83,7 @@ Run these from within a package directory (e.g., `packages/ai`):
 ### Running Examples
 
 ```bash
-cd examples/ai-core
+cd examples/ai-functions
 pnpm tsx src/stream-text/openai.ts    # Run a specific example
 ```
 
