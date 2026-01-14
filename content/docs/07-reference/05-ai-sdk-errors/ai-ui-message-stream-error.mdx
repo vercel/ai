@@ -56,7 +56,11 @@ if (UIMessageStreamError.isInstance(error)) {
    ```typescript
    // When handling errors in custom transports
    writer.write({ type: 'text-start', id: errorId });
-   writer.write({ type: 'text-delta', id: errorId, delta: '⚠️ Request failed...' });
+   writer.write({
+     type: 'text-delta',
+     id: errorId,
+     delta: 'Request failed...',
+   });
    writer.write({ type: 'text-end', id: errorId });
    ```
 
