@@ -395,8 +395,7 @@ const file = await google.files.get('files/abc123');
 
 // List all uploaded files
 const { files, nextPageToken } = await google.files.list({
-  pageSize: 10, // optional
-  pageToken: nextPageToken, // optional, for pagination
+  pageSize: 10,
 });
 
 // Delete a file
