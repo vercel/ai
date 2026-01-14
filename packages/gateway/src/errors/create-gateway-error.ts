@@ -38,7 +38,9 @@ export async function createGatewayErrorFromResponse({
   if (!parseResult.success) {
     // Try to extract generationId even if validation failed
     const rawGenerationId =
-      typeof response === 'object' && response !== null && 'generationId' in response
+      typeof response === 'object' &&
+      response !== null &&
+      'generationId' in response
         ? (response as { generationId?: string }).generationId
         : undefined;
 
@@ -67,9 +69,19 @@ export async function createGatewayErrorFromResponse({
         generationId,
       });
     case 'invalid_request_error':
-      return new GatewayInvalidRequestError({ message, statusCode, cause, generationId });
+      return new GatewayInvalidRequestError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'rate_limit_exceeded':
-      return new GatewayRateLimitError({ message, statusCode, cause, generationId });
+      return new GatewayRateLimitError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     case 'model_not_found': {
       const modelResult = await safeValidateTypes({
         value: validatedResponse.error.param,
@@ -85,9 +97,19 @@ export async function createGatewayErrorFromResponse({
       });
     }
     case 'internal_server_error':
-      return new GatewayInternalServerError({ message, statusCode, cause, generationId });
+      return new GatewayInternalServerError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
     default:
-      return new GatewayInternalServerError({ message, statusCode, cause, generationId });
+      return new GatewayInternalServerError({
+        message,
+        statusCode,
+        cause,
+        generationId,
+      });
   }
 }
 
