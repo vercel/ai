@@ -12,6 +12,7 @@ import { DefaultChatTransport, ProviderMetadata } from 'ai';
 import { useRef } from 'react';
 
 export default function OpenPreviousResponseIdPage() {
+  // Keep the last provider metadata so we can supply previousResponseId on the next request.
   const providerMetadataRef = useRef<ProviderMetadata | undefined>(undefined);
 
   const { error, status, sendMessage, messages, regenerate } =
@@ -19,6 +20,7 @@ export default function OpenPreviousResponseIdPage() {
       transport: new DefaultChatTransport({
         api: '/api/chat-openai-previous-response-id',
         prepareSendMessagesRequest: ({ messages }) => {
+          // Send the newest message plus the previous provider metadata.
           const body: PreviousResponseIdRequestBody = {
             message: messages[messages.length - 1],
             previousProviderMetadata: providerMetadataRef.current,
@@ -31,6 +33,7 @@ export default function OpenPreviousResponseIdPage() {
       onData: ({ data, type }) => {
         switch (type) {
           case 'data-providerMetadata': {
+            // Store the latest responseId for the next round trip.
             providerMetadataRef.current = data;
             break;
           }

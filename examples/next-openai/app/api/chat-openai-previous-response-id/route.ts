@@ -33,6 +33,7 @@ export async function POST(req: Request) {
   const { message, previousProviderMetadata } =
     (await reqJson) as PreviousResponseIdRequestBody;
 
+  // Extract the prior OpenAI responseId so the Responses API can replay history.
   const previousResponseId: string | undefined =
     typeof previousProviderMetadata?.openai?.responseId === 'string'
       ? previousProviderMetadata?.openai?.responseId
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       const result = streamText({
         model: openai('gpt-5-mini'),
+        // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
         stopWhen: stepCountIs(20),
@@ -50,15 +52,17 @@ export async function POST(req: Request) {
             reasoningEffort: 'low',
             reasoningSummary: 'auto',
             store: true,
+            // Enable history lookup by passing the responseId from the previous call.
             previousResponseId,
           } satisfies OpenAIResponsesProviderOptions,
         },
         onFinish: ({ providerMetadata }) => {
           if (!!providerMetadata) {
+            // Return provider metadata so the client can persist the latest responseId.
             writer.write({
-              id: `data-providerMetadata-${Date.now()}`,
               type: 'data-providerMetadata',
               data: providerMetadata,
+              transient: true,
             });
           }
         },
