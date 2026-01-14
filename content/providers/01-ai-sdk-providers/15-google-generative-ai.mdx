@@ -353,6 +353,7 @@ Videos and audio files require processing before they can be used. Use `waitForP
 
 ```ts
 import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
 
 const file = await google.files.upload({
   file: videoBuffer,
@@ -361,7 +362,7 @@ const file = await google.files.upload({
 
 // Wait for video processing to complete
 const readyFile = await google.files.waitForProcessing(file.name, {
-  pollInterval: 2000, // optional, defaults to 1000ms
+  pollInterval: 2000, // optional, defaults to 2000ms
   maxWaitTime: 300000, // optional, defaults to 5 minutes
 });
 
