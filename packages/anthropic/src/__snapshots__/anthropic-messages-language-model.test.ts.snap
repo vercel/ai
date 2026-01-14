@@ -1029,7 +1029,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
     "type": "text",
   },
   {
-    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf"}",
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
     "toolName": "web_fetch",
@@ -1049,7 +1049,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > text res
       },
       "retrievedAt": "2025-09-29T07:28:57.560000+00:00",
       "type": "web_fetch_result",
-      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf",
+      "url": "https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf",
     },
     "toolCallId": "srvtoolu_01SCw66CVHHhqvHhRgxbXoj4",
     "toolName": "web_fetch",
@@ -1087,7 +1087,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web fetch tool > unavaila
     "type": "text",
   },
   {
-    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf"}",
+    "input": "{"url":"https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf"}",
     "providerExecuted": true,
     "toolCallId": "srvtoolu_013gia34XNKyTfwHxaPCKEVd",
     "toolName": "web_fetch",
