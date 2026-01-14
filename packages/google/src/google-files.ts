@@ -292,7 +292,7 @@ export class GoogleFilesClient {
    *
    * @param options - Upload options including the file data and MIME type.
    * @returns The uploaded file metadata including its URI for use in API calls.
-   * @throws {AI_APICallError} If the upload request fails.
+   * @throws {APICallError} If the upload request fails.
    *
    * @example
    * ```typescript
@@ -394,7 +394,7 @@ export class GoogleFilesClient {
    *
    * @param fileName - The file name in the format "files/{file_id}".
    * @returns The current file metadata.
-   * @throws {AI_APICallError} If the request fails or the file is not found.
+   * @throws {APICallError} If the request fails or the file is not found.
    *
    * @example
    * ```typescript
@@ -435,7 +435,7 @@ export class GoogleFilesClient {
    *
    * @param options - Optional pagination options.
    * @returns A page of files and an optional next page token.
-   * @throws {AI_APICallError} If the request fails.
+   * @throws {APICallError} If the request fails.
    *
    * @example
    * ```typescript
@@ -497,7 +497,7 @@ export class GoogleFilesClient {
    * is only necessary if you want to remove a file before it expires.
    *
    * @param fileName - The file name in the format "files/{file_id}".
-   * @throws {AI_APICallError} If the request fails or the file is not found.
+   * @throws {APICallError} If the request fails or the file is not found.
    *
    * @example
    * ```typescript
@@ -533,7 +533,7 @@ export class GoogleFilesClient {
    * @param fileName - The file name in the format "files/{file_id}".
    * @param options - Optional wait configuration.
    * @returns The file metadata once it reaches ACTIVE state.
-   * @throws {AI_APICallError} If the API request to get file status fails.
+   * @throws {APICallError} If the API request to get file status fails.
    * @throws {Error} If the file processing fails or times out.
    *
    * @example
@@ -578,7 +578,7 @@ export class GoogleFilesClient {
       }
 
       // Wait before next poll
-      await new Promise(resolve => setTimeout(resolve, pollInterval));
+      await new Promise(res => setTimeout(res, pollInterval));
     }
   }
 }
