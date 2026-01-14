@@ -1,10 +1,10 @@
-# AI Core Examples
+# AI Function Examples
 
-This directory contains scripts and test suites for quickly and easily validating, testing, and iterating on high level `ai/core` functions across providers.
+This directory contains scripts and test suites for quickly and easily validating, testing, and iterating on `ai` functions across providers.
 
 ## Basic Examples
 
-Basic examples for the `ai/core` functions (script usage).
+Basic examples for the `ai` functions (script usage).
 
 ### Usage
 
