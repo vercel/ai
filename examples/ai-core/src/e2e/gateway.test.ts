@@ -9,7 +9,7 @@ const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.languageModel(modelId));
 
 createFeatureTestSuite({
-  name: 'Gateway',
+  name: 'AI Gateway',
   models: {
     languageModels: [createChatModel('xai/grok-3-beta')],
   },
