@@ -138,6 +138,11 @@ functionality that can be fully encapsulated in the provider.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
+   * @deprecated Use `inputSchema` instead.
+   */
+  parameters?: never;
+
+  /**
    * An optional list of input examples that show the language
    * model what the input should look like.
    */
