@@ -834,7 +834,7 @@ importers:
         specifier: 3.0.9
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 1.0.8
+        specifier: 1.0.9
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 3.0.8
