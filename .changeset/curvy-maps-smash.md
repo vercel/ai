@@ -1,6 +1,6 @@
 ---
 '@ai-sdk/anthropic': patch
-'@ai-sdk/openai': patch
+'@ai-sdk/openai-compatible': patch
 ---
 
-feat(openai): add transformRequestBody function for openai
+feat(openai-compatible): add transformRequestBody function for openai-compatible
