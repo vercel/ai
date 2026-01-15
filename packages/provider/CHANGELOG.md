@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.3
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+
 ## 3.0.2
 
 ### Patch Changes
