@@ -113,10 +113,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
-  }
-
   private async getArgs({
     maxOutputTokens,
     temperature,
@@ -457,7 +453,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     } = await postJsonToApi({
       url,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: this.transformRequestBody(body),
+      body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiResponsesResponseSchema,
@@ -921,10 +917,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: this.transformRequestBody({
+      body: {
         ...body,
         stream: true,
-      }),
+      },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         openaiResponsesChunkSchema,

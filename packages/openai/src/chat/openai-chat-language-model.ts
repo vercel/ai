@@ -46,12 +46,6 @@ type OpenAIChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
-  /**
-   * Optional function to transform the request body before sending it to the API.
-   * This is useful for proxy providers that may require a different request format
-   * than the official OpenAI API.
-   */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV3 {
@@ -72,10 +66,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
   }
 
   private async getArgs({
@@ -326,8 +316,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
-    const body = this.transformRequestBody(args);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -417,13 +406,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
-    const body = this.transformRequestBody({
+    const body = {
       ...args,
       stream: true,
       stream_options: {
         include_usage: true,
       },
-    });
+    };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({

@@ -15,10 +15,4 @@ export type OpenAIConfig = {
    * - Azure OpenAI: ['assistant-'] for IDs like 'assistant-abc123'
    */
   fileIdPrefixes?: readonly string[];
-  /**
-   * Optional function to transform the request body before sending it to the API.
-   * This is useful for proxy providers that may require a different request format
-   * than the official OpenAI API.
-   */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
