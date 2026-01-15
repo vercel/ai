@@ -3,7 +3,6 @@ import {
   LanguageModelV2,
   LanguageModelV3,
   SharedV3Warning,
-  LanguageModelV3FinishReason,
   LanguageModelV3Source,
 } from '@ai-sdk/provider';
 
@@ -13,7 +12,7 @@ declare global {
    *
    * You can register model IDs in two ways:
    *
-   * 1. Register baesd on Model IDs from a provider package:
+   * 1. Register based on Model IDs from a provider package:
    * @example
    * ```typescript
    * import { openai } from '@ai-sdk/openai';
@@ -71,7 +70,13 @@ Can be one of the following:
 - `error`: model stopped because of an error
 - `other`: model stopped for other reasons
 */
-export type FinishReason = LanguageModelV3FinishReason;
+export type FinishReason =
+  | 'stop'
+  | 'length'
+  | 'content-filter'
+  | 'tool-calls'
+  | 'error'
+  | 'other';
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.

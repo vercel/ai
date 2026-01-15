@@ -2,6 +2,7 @@ import { ServerResponse } from 'node:http';
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import { ToolSet } from '../generate-text/tool-set';
+import { TimeoutConfiguration } from '../prompt/call-settings';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
@@ -12,7 +13,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * Pipes the agent UI message stream to a Node.js ServerResponse object.
  *
  * @param agent - The agent to run.
- * @param messages - The input UI messages.
+ * @param uiMessages - The input UI messages.
  */
 export async function pipeAgentUIStreamToResponse<
   CALL_OPTIONS = never,
@@ -29,8 +30,9 @@ export async function pipeAgentUIStreamToResponse<
 }: {
   response: ServerResponse;
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  messages: unknown[];
+  uiMessages: unknown[];
   abortSignal?: AbortSignal;
+  timeout?: TimeoutConfiguration;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>

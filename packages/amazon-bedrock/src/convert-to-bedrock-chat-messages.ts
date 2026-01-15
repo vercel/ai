@@ -146,6 +146,9 @@ export async function convertToBedrockChatMessages(
             }
             case 'tool': {
               for (const part of content) {
+                if (part.type === 'tool-approval-response') {
+                  continue;
+                }
                 let toolResultContent;
 
                 const output = part.output;

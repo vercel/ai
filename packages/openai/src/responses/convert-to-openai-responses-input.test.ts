@@ -14,6 +14,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -25,6 +26,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'developer',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -36,6 +38,7 @@ describe('convertToOpenAIResponsesInput', () => {
         prompt: [{ role: 'system', content: 'Hello' }],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'remove',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -54,6 +57,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -79,6 +83,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -112,6 +117,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -144,6 +150,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -176,6 +183,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
         store: true,
       });
@@ -209,6 +217,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -246,6 +255,46 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+              detail: 'low',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should read image detail from providerOptions when providerOptionsName is azure', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                providerOptions: {
+                  azure: {
+                    imageDetail: 'low',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'azure',
         store: true,
       });
 
@@ -282,6 +331,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -315,6 +365,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
         store: true,
       });
@@ -350,6 +401,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -386,6 +438,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           store: true,
         }),
       ).rejects.toThrow('file part media type text/plain');
@@ -407,6 +460,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -440,6 +494,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-'],
           store: true,
         });
@@ -473,6 +528,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-'],
           store: true,
         });
@@ -511,6 +567,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           fileIdPrefixes: ['assistant-', 'file-'],
           store: true,
         });
@@ -556,6 +613,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           // fileIdPrefixes intentionally omitted
           store: true,
         });
@@ -594,6 +652,7 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           fileIdPrefixes: [], // Empty array should disable file ID detection
           store: true,
         });
@@ -621,6 +680,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -650,6 +710,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -703,6 +764,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -743,6 +805,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -784,6 +847,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -825,6 +889,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -866,6 +931,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -908,6 +974,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -944,6 +1011,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -988,6 +1056,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1048,6 +1117,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1103,6 +1173,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1187,6 +1258,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: true,
           });
 
@@ -1297,6 +1369,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1470,6 +1543,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1568,6 +1642,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1605,6 +1680,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
             ],
             systemMessageMode: 'system',
+            providerOptionsName: 'openai',
             store: false,
           });
 
@@ -1644,6 +1720,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1678,6 +1755,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1717,6 +1795,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1762,6 +1841,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1772,6 +1852,51 @@ describe('convertToOpenAIResponsesInput', () => {
             "output": [
               {
                 "image_url": "data:image/png;base64,base64_data",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert single tool result part with multipart that contains image URL', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/screenshot.png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "https://example.com/screenshot.png",
                 "type": "input_image",
               },
             ],
@@ -1809,6 +1934,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1865,6 +1991,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1919,6 +2046,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -1969,6 +2097,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -2030,6 +2159,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ],
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: false,
       });
 
@@ -2102,6 +2232,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           store: true,
           hasLocalShellTool: true,
         });
@@ -2155,6 +2286,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
           ],
           systemMessageMode: 'system',
+          providerOptionsName: 'openai',
           store: false,
           hasLocalShellTool: true,
         });
@@ -2187,6 +2319,75 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  describe('provider tool outputs', () => {
+    it('should include apply_patch output when multiple tool results are present', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-shell',
+                toolName: 'shell',
+                output: {
+                  type: 'json',
+                  value: {
+                    output: [
+                      {
+                        stdout: 'hi\n',
+                        stderr: '',
+                        outcome: { type: 'exit', exitCode: 0 },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-apply',
+                toolName: 'apply_patch',
+                output: {
+                  type: 'json',
+                  value: {
+                    status: 'completed',
+                    output: 'patched',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasShellTool: true,
+        hasApplyPatchTool: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'shell_call_output',
+          call_id: 'call-shell',
+          output: [
+            {
+              stdout: 'hi\n',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        },
+        {
+          type: 'apply_patch_call_output',
+          call_id: 'call-apply',
+          status: 'completed',
+          output: 'patched',
+        },
+      ]);
+    });
+  });
+
   describe('function tools', () => {
     it('should include client-side tool calls in prompt', async () => {
       const result = await convertToOpenAIResponsesInput({
@@ -2206,6 +2407,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ],
         toolNameMapping: testToolNameMapping,
         systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -2222,6 +2424,297 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
           "warnings": [],
         }
+      `);
+    });
+  });
+
+  describe('MCP tool approval responses', () => {
+    it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-123',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-123",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-123",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert denied tool-approval-response to mcp_approval_response with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-456',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "mcp-approval-456",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "mcp-approval-456",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool-approval-response to mcp_approval_response without item_reference when store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-789',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "approval_request_id": "mcp-approval-789",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip duplicate tool-approval-response with same approvalId', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'duplicate-approval',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "duplicate-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "duplicate-approval",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle multiple different tool-approval-responses', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: true,
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-2',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-1",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-1",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "id": "approval-2",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-2",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should skip execution-denied output when it has approvalId in providerOptions', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'denied-approval',
+                approved: false,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-123',
+                toolName: 'mcp_tool',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                  providerOptions: {
+                    openai: {
+                      approvalId: 'denied-approval',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      // Only the mcp_approval_response should be present, not a function_call_output
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "denied-approval",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "denied-approval",
+            "approve": false,
+            "type": "mcp_approval_response",
+          },
+        ]
+      `);
+    });
+
+    it('should handle tool-approval-response mixed with regular tool results', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-for-mcp',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'regular-call-1',
+                toolName: 'calculator',
+                output: {
+                  type: 'json',
+                  value: { result: 42 },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "approval-for-mcp",
+            "type": "item_reference",
+          },
+          {
+            "approval_request_id": "approval-for-mcp",
+            "approve": true,
+            "type": "mcp_approval_response",
+          },
+          {
+            "call_id": "regular-call-1",
+            "output": "{"result":42}",
+            "type": "function_call_output",
+          },
+        ]
       `);
     });
   });

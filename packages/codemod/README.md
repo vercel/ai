@@ -137,16 +137,18 @@ npx @ai-sdk/codemod v5/rename-format-stream-part .
 | `v5/restructure-source-stream-parts`                                  | Transforms v5/restructure source stream parts                                  |
 | `v5/rsc-package`                                                      | Transforms v5/rsc package                                                      |
 
-### General Codemods
+### v6 Codemods (v5 → v6 Migration)
 
 | Codemod                                                     | Description                                                          |
 | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| `v6/add-await-converttomodelmessages`                       | Transforms v6/add await converttomodelmessages                       |
 | `v6/rename-converttocoremessages-to-converttomodelmessages` | Transforms v6/rename converttocoremessages to converttomodelmessages |
 | `v6/rename-core-message-to-model-message`                   | Transforms v6/rename core message to model message                   |
 | `v6/rename-mock-v2-to-v3`                                   | Transforms v6/rename mock v2 to v3                                   |
 | `v6/rename-text-embedding-to-embedding`                     | Transforms v6/rename text embedding to embedding                     |
 | `v6/rename-tool-call-options-to-tool-execution-options`     | Transforms v6/rename tool call options to tool execution options     |
 | `v6/rename-vertex-provider-metadata-key`                    | Transforms v6/rename vertex provider metadata key                    |
+| `v6/wrap-tomodeloutput-parameter`                           | Transforms v6/wrap tomodeloutput parameter                           |
 
 ## CLI Options
 

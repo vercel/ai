@@ -18,6 +18,7 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -53,9 +54,19 @@ Creates a model for generating text embeddings.
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+
+  /**
 Creates a model for generating images.
 */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+Gateway-specific tools executed server-side.
+*/
+  tools: typeof gatewayTools;
 }
 
 export interface GatewayProviderSettings {
@@ -109,11 +120,11 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v1/ai';
+    'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
-    const auth = await getGatewayAuthToken(options);
-    if (auth) {
+    try {
+      const auth = await getGatewayAuthToken(options);
       return withUserAgentSuffix(
         {
           Authorization: `Bearer ${auth.token}`,
@@ -123,13 +134,14 @@ export function createGatewayProvider(
         },
         `ai-sdk/gateway/${VERSION}`,
       );
+    } catch (error) {
+      throw GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+        statusCode: 401,
+        cause: error,
+      });
     }
-
-    throw GatewayAuthenticationError.createContextualError({
-      apiKeyProvided: false,
-      oidcTokenProvided: false,
-      statusCode: 401,
-    });
   };
 
   const createO11yHeaders = () => {
@@ -231,7 +243,7 @@ export function createGatewayProvider(
     });
   };
   provider.languageModel = createLanguageModel;
-  provider.embeddingModel = (modelId: GatewayEmbeddingModelId) => {
+  const createEmbeddingModel = (modelId: GatewayEmbeddingModelId) => {
     return new GatewayEmbeddingModel(modelId, {
       provider: 'gateway',
       baseURL,
@@ -240,6 +252,9 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
+  provider.tools = gatewayTools;
 
   return provider;
 }
@@ -248,10 +263,7 @@ export const gateway = createGatewayProvider();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
-): Promise<{
-  token: string;
-  authMethod: 'api-key' | 'oidc';
-} | null> {
+): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
   const apiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
@@ -264,13 +276,9 @@ export async function getGatewayAuthToken(
     };
   }
 
-  try {
-    const oidcToken = await getVercelOidcToken();
-    return {
-      token: oidcToken,
-      authMethod: 'oidc',
-    };
-  } catch {
-    return null;
-  }
+  const oidcToken = await getVercelOidcToken();
+  return {
+    token: oidcToken,
+    authMethod: 'oidc',
+  };
 }

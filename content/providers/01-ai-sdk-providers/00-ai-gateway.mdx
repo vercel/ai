@@ -80,7 +80,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **baseURL** _string_
 
-  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v1/ai`.
+  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v3/ai`.
 
 - **apiKey** _string_
 
@@ -318,6 +318,112 @@ console.dir(result.text);
   you must bring your own key (BYOK) directly to the provider.
 </Note>
 
+### Gateway Tools
+
+The AI Gateway provider includes built-in tools that are executed by the gateway itself. These tools can be used with any model through the gateway.
+
+#### Perplexity Search
+
+The Perplexity Search tool enables models to search the web using [Perplexity's search API](https://docs.perplexity.ai/guides/search-quickstart). This tool is executed by the AI Gateway and returns web search results that the model can use to provide up-to-date information.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Search for news about AI regulations in January 2025.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can also configure the search with optional parameters:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt:
+    'Search for news about AI regulations from the first week of January 2025.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch({
+      maxResults: 5,
+      searchLanguageFilter: ['en'],
+      country: 'US',
+      searchDomainFilter: ['reuters.com', 'bbc.com', 'nytimes.com'],
+    }),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+The Perplexity Search tool supports the following optional configuration options:
+
+- **maxResults** _number_
+
+  The maximum number of search results to return (1-20, default: 10).
+
+- **maxTokensPerPage** _number_
+
+  The maximum number of tokens to extract per search result page (256-2048, default: 2048).
+
+- **maxTokens** _number_
+
+  The maximum total tokens across all search results (default: 25000, max: 1000000).
+
+- **searchLanguageFilter** _string[]_
+
+  Filter search results by language using ISO 639-1 language codes (e.g., `['en']` for English, `['en', 'es']` for English and Spanish).
+
+- **country** _string_
+
+  Filter search results by country using ISO 3166-1 alpha-2 country codes (e.g., `'US'` for United States, `'GB'` for United Kingdom).
+
+- **searchDomainFilter** _string[]_
+
+  Limit search results to specific domains (e.g., `['reuters.com', 'bbc.com']`). This is useful for restricting results to trusted sources.
+
+- **searchRecencyFilter** _'day' | 'week' | 'month' | 'year'_
+
+  Filter search results by relative time period. Useful for always getting recent results (e.g., 'week' for results from the last week).
+
+The tool works with both `generateText` and `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Search for the latest news about AI regulations.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch(),
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.text);
+      break;
+    case 'tool-call':
+      console.log('\nTool call:', JSON.stringify(part, null, 2));
+      break;
+    case 'tool-result':
+      console.log('\nTool result:', JSON.stringify(part, null, 2));
+      break;
+  }
+}
+```
+
 ### Usage Tracking with User and Tags
 
 Track usage per end-user and categorize requests with tags:
@@ -409,8 +515,12 @@ The following gateway provider options are available:
   Examples:
 
   - Single provider: `byok: { 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
-  - Multiple credentials: `byok: { 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
+  - Multiple credentials: `byok: { 'vertex': [{ project: 'proj-1', googleCredentials: { privateKey: '...', clientEmail: '...' } }, { project: 'proj-2', googleCredentials: { privateKey: '...', clientEmail: '...' } }] }`
   - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+
+- **zeroDataRetention** _boolean_
+
+  Restricts routing requests to providers that have zero data retention policies.
 
 You can combine these options to have fine-grained control over routing and tracking:
 
@@ -453,6 +563,27 @@ const { text } = await generateText({
 // 2. If it fails, try openai/gpt-5-nano
 // 3. If that fails, try gemini-2.0-flash
 // 4. Return the result from the first model that succeeds
+```
+
+#### Zero Data Retention Example
+
+Set `zeroDataRetention` to true to ensure requests are only routed to providers
+that have zero data retention policies. When `zeroDataRetention` is `false` or not
+specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Analyze this sensitive document...',
+  providerOptions: {
+    gateway: {
+      zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
 ```
 
 ### Provider-Specific Options

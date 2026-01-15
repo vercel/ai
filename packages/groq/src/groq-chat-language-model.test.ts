@@ -262,7 +262,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('stop');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -274,7 +279,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -504,6 +514,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -595,6 +606,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -639,7 +651,55 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          strictJsonSchema: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          strict: false,
+          name: 'test-name',
+          description: 'test description',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -744,6 +804,7 @@ describe('doGenerate', () => {
               ],
               "type": "object",
             },
+            "strict": true,
           },
           "type": "json_schema",
         },
@@ -887,7 +948,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -966,6 +1030,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -975,15 +1043,14 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1126,7 +1193,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1274,7 +1344,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1413,7 +1486,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1501,7 +1577,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1554,7 +1633,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1601,7 +1683,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1810,7 +1895,10 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {

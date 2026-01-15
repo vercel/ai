@@ -1,11 +1,8 @@
 import { JSONSchema7, TypeValidationError } from '@ai-sdk/provider';
-import { StandardSchemaV1 } from '@standard-schema/spec';
+import { StandardSchemaV1, StandardJSONSchemaV1 } from '@standard-schema/spec';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
 import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
-import { arktypeToJsonSchema } from './to-json-schema/arktype-to-json-schema';
-import { effectToJsonSchema } from './to-json-schema/effect-to-json-schema';
-import { valibotToJsonSchema } from './to-json-schema/valibot-to-json-schema';
 import { zod3ToJsonSchema } from './to-json-schema/zod3-to-json-schema';
 
 /**
@@ -65,19 +62,29 @@ export function lazySchema<SCHEMA>(
 
 export type LazySchema<SCHEMA> = () => Schema<SCHEMA>;
 
+export type ZodSchema<SCHEMA = any> =
+  | z3.Schema<SCHEMA, z3.ZodTypeDef, any>
+  | z4.core.$ZodType<SCHEMA, any>;
+
+export type StandardSchema<SCHEMA = any> = StandardSchemaV1<unknown, SCHEMA> &
+  StandardJSONSchemaV1<unknown, SCHEMA>;
+
 export type FlexibleSchema<SCHEMA = any> =
   | Schema<SCHEMA>
   | LazySchema<SCHEMA>
-  | StandardSchemaV1<unknown, SCHEMA>;
+  | ZodSchema<SCHEMA>
+  | StandardSchema<SCHEMA>;
 
 export type InferSchema<SCHEMA> =
-  SCHEMA extends StandardSchemaV1<unknown, infer T>
+  SCHEMA extends ZodSchema<infer T>
     ? T
-    : SCHEMA extends LazySchema<infer T>
+    : SCHEMA extends StandardSchema<infer T>
       ? T
-      : SCHEMA extends Schema<infer T>
+      : SCHEMA extends LazySchema<infer T>
         ? T
-        : never;
+        : SCHEMA extends Schema<infer T>
+          ? T
+          : never;
 
 /**
  * Create a schema using a JSON Schema.
@@ -85,7 +92,6 @@ export type InferSchema<SCHEMA> =
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-// TODO rename to 'schema'
 export function jsonSchema<OBJECT = unknown>(
   jsonSchema:
     | JSONSchema7
@@ -127,80 +133,41 @@ export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
 ): Schema<OBJECT> {
   return schema == null
-    ? jsonSchema({
-        properties: {},
-        additionalProperties: false,
-      })
+    ? jsonSchema({ properties: {}, additionalProperties: false })
     : isSchema(schema)
       ? schema
       : '~standard' in schema
-        ? standardSchema(schema)
+        ? schema['~standard'].vendor === 'zod'
+          ? zodSchema(schema as ZodSchema<OBJECT>)
+          : standardSchema(schema as StandardSchema<OBJECT>)
         : schema();
 }
 
-export function standardSchema<OBJECT>(
-  standardSchema: StandardSchemaV1<unknown, OBJECT>,
+function standardSchema<OBJECT>(
+  standardSchema: StandardSchema<OBJECT>,
 ): Schema<OBJECT> {
-  const vendor = standardSchema['~standard'].vendor;
-
-  switch (vendor) {
-    case 'zod': {
-      return zodSchema(
-        standardSchema as
-          | z4.core.$ZodType<any, any>
-          | z3.Schema<any, z3.ZodTypeDef, any>,
-      );
-    }
-
-    case 'arktype': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        arktypeToJsonSchema,
-      );
-    }
-
-    case 'effect': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        effectToJsonSchema,
-      );
-    }
-
-    case 'valibot': {
-      return standardSchemaWithJsonSchemaResolver(
-        standardSchema,
-        valibotToJsonSchema,
-      );
-    }
-
-    default: {
-      return standardSchemaWithJsonSchemaResolver(standardSchema, () => () => {
-        throw new Error(`Unsupported standard schema vendor: ${vendor}`);
-      });
-    }
-  }
-}
-
-function standardSchemaWithJsonSchemaResolver<OBJECT>(
-  standardSchema: StandardSchemaV1<unknown, OBJECT>,
-  jsonSchemaResolver: (
-    schema: StandardSchemaV1<unknown, OBJECT>,
-  ) => () => JSONSchema7 | PromiseLike<JSONSchema7>,
-): Schema<OBJECT> {
-  return jsonSchema(jsonSchemaResolver(standardSchema), {
-    validate: async value => {
-      const result = await standardSchema['~standard'].validate(value);
-      return 'value' in result
-        ? { success: true, value: result.value }
-        : {
-            success: false,
-            error: new TypeValidationError({
-              value,
-              cause: result.issues,
-            }),
-          };
+  return jsonSchema(
+    () =>
+      addAdditionalPropertiesToJsonSchema(
+        standardSchema['~standard'].jsonSchema.input({
+          target: 'draft-07',
+        }) as JSONSchema7,
+      ),
+    {
+      validate: async value => {
+        const result = await standardSchema['~standard'].validate(value);
+        return 'value' in result
+          ? { success: true, value: result.value }
+          : {
+              success: false,
+              error: new TypeValidationError({
+                value,
+                cause: result.issues,
+              }),
+            };
+      },
     },
-  });
+  );
 }
 
 export function zod3Schema<OBJECT>(

@@ -144,6 +144,28 @@ The Responses API provides server-side tools that the model can autonomously exe
 - **x_search**: Search X (Twitter) posts, users, and threads
 - **code_execution**: Execute Python code for calculations and data analysis
 
+### Vision
+
+The Responses API supports image input with vision models:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: xai.responses('grok-2-vision-1212'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What do you see in this image?' },
+        { type: 'image', image: fs.readFileSync('./image.png') },
+      ],
+    },
+  ],
+});
+```
+
 ### Web Search Tool
 
 The web search tool enables autonomous web research with optional domain filtering and image understanding:
@@ -629,9 +651,8 @@ console.log('Sources:', await result.sources);
 
 <Note>
   The table above lists popular models. Please see the [xAI
-  docs](https://docs.x.ai/docs#models) for a full list of available models. The
-  table above lists popular models. You can also pass any available provider
-  model ID as a string if needed.
+  docs](https://docs.x.ai/docs#models) for a full list of available models. You
+  can also pass any available provider model ID as a string if needed.
 </Note>
 
 ## Image Models
@@ -640,7 +661,7 @@ You can create xAI image models using the `.image()` factory method. For more on
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: xai.image('grok-2-image'),
@@ -659,7 +680,7 @@ You can customize the image generation behavior with model-specific settings:
 
 ```ts
 import { xai } from '@ai-sdk/xai';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { images } = await generateImage({
   model: xai.image('grok-2-image'),

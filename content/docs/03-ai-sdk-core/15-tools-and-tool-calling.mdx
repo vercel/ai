@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stopWhen } from 'ai';
+import { generateText, tool, stepCountIs } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -367,6 +367,17 @@ prepareStep: async ({ stepNumber, steps, messages }) => {
 
   return {};
 },
+```
+
+#### Provider Options for Step Configuration
+
+You can use `providerOptions` in `prepareStep` to pass provider-specific configuration for each step. This is useful for features like Anthropic's code execution container persistence:
+
+```tsx
+import { forwardAnthropicContainerIdFromLastStep } from '@ai-sdk/anthropic';
+
+// Propagate container ID from previous step for code execution continuity
+prepareStep: forwardAnthropicContainerIdFromLastStep,
 ```
 
 ## Response Messages
@@ -1009,13 +1020,13 @@ const result = await generateText({
       },
 
       // map to tool result content for LLM consumption:
-      toModelOutput(result) {
+      toModelOutput({ output }) {
         return {
           type: 'content',
           value:
-            typeof result === 'string'
-              ? [{ type: 'text', text: result }]
-              : [{ type: 'media', data: result.data, mediaType: 'image/png' }],
+            typeof output === 'string'
+              ? [{ type: 'text', text: output }]
+              : [{ type: 'media', data: output.data, mediaType: 'image/png' }],
         };
       },
     }),

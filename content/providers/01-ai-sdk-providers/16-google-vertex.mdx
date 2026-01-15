@@ -401,6 +401,49 @@ const result = await generateText({
 });
 ```
 
+#### Enterprise Web Search
+
+[Enterprise Web Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/web-grounding-enterprise) provides grounding using a compliance-focused web index designed for highly-regulated industries such as finance, healthcare, and the public sector. Unlike standard Google Search grounding, Enterprise Web Search does not log customer data and supports VPC service controls. Supported models: Gemini 2.0 and newer.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
+  },
+  prompt: 'What are the latest FDA regulations for clinical trials?',
+});
+```
+
+#### Google Maps
+
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    google_maps: vertex.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt: 'What are the best Italian restaurants nearby?',
+});
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
+
 #### Reasoning (Thinking Tokens)
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
@@ -596,8 +639,10 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
@@ -682,7 +727,7 @@ using the `.image()` factory method. For more on image generation with the AI SD
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -696,7 +741,7 @@ Further configuration can be done using Google Vertex provider options. You can 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -736,7 +781,7 @@ Additional information about the images can be retrieved using Google Vertex met
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
   model: vertex.image('imagen-4.0-generate-001'),
@@ -748,6 +793,115 @@ console.log(
   `Revised prompt: ${providerMetadata.vertex.images[0].revisedPrompt}`,
 );
 ```
+
+#### Image Editing
+
+Google Vertex Imagen models support image editing through inpainting, outpainting, and other edit modes. Pass input images via `prompt.images` and optionally a mask via `prompt.mask`.
+
+<Note>
+  Image editing is supported by `imagen-3.0-capability-001`. The
+  `imagen-4.0-generate-001` model does not currently support editing operations.
+</Note>
+
+##### Inpainting (Insert Objects)
+
+Insert or replace objects in specific areas using a mask:
+
+```ts
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./mask.png'); // White = edit area
+
+const { images } = await generateImage({
+  model: vertex.image('imagen-3.0-capability-001'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask,
+  },
+  providerOptions: {
+    vertex: {
+      edit: {
+        baseSteps: 50,
+        mode: 'EDIT_MODE_INPAINT_INSERTION',
+        maskMode: 'MASK_MODE_USER_PROVIDED',
+        maskDilation: 0.01,
+      },
+    } satisfies GoogleVertexImageProviderOptions,
+  },
+});
+```
+
+##### Outpainting (Extend Image)
+
+Extend an image beyond its original boundaries:
+
+```ts
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./outpaint-mask.png'); // White = extend area
+
+const { images } = await generateImage({
+  model: vertex.image('imagen-3.0-capability-001'),
+  prompt: {
+    text: 'Extend the scene with more of the forest background',
+    images: [image],
+    mask,
+  },
+  providerOptions: {
+    vertex: {
+      edit: {
+        baseSteps: 50,
+        mode: 'EDIT_MODE_OUTPAINT',
+        maskMode: 'MASK_MODE_USER_PROVIDED',
+      },
+    } satisfies GoogleVertexImageProviderOptions,
+  },
+});
+```
+
+##### Edit Provider Options
+
+The following options are available under `providerOptions.vertex.edit`:
+
+- **mode** - The edit mode to use:
+
+  - `EDIT_MODE_INPAINT_INSERTION` - Insert objects into masked areas
+  - `EDIT_MODE_INPAINT_REMOVAL` - Remove objects from masked areas
+  - `EDIT_MODE_OUTPAINT` - Extend image beyond boundaries
+  - `EDIT_MODE_CONTROLLED_EDITING` - Controlled editing
+  - `EDIT_MODE_PRODUCT_IMAGE` - Product image editing
+  - `EDIT_MODE_BGSWAP` - Background swap
+
+- **baseSteps** _number_ - Number of sampling steps (35-75). Higher values = better quality but slower.
+
+- **maskMode** - How to interpret the mask:
+
+  - `MASK_MODE_USER_PROVIDED` - Use the provided mask directly
+  - `MASK_MODE_DEFAULT` - Default mask mode
+  - `MASK_MODE_DETECTION_BOX` - Mask from detected bounding boxes
+  - `MASK_MODE_CLOTHING_AREA` - Mask from clothing segmentation
+  - `MASK_MODE_PARSED_PERSON` - Mask from person parsing
+
+- **maskDilation** _number_ - Percentage (0-1) to grow the mask. Recommended: 0.01.
+
+<Note>
+  Input images must be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. URL-based images are not supported for Google Vertex
+  image editing.
+</Note>
 
 #### Model Capabilities
 
@@ -1178,10 +1332,10 @@ const computerTool = vertexAnthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  toModelOutput(result) {
-    return typeof result === 'string'
-      ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```

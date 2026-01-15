@@ -37,6 +37,11 @@ export interface OpenAICompatibleProvider<
 
   embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
 
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
+
   imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
 }
 
@@ -84,6 +89,13 @@ Include usage information in streaming responses.
    * Whether the provider supports structured outputs in chat models.
    */
   supportsStructuredOutputs?: boolean;
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 }
 
 /**
@@ -141,6 +153,7 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      transformRequestBody: options.transformRequestBody,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
@@ -164,6 +177,7 @@ export function createOpenAICompatible<
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = createImageModel;
 
   return provider as OpenAICompatibleProvider<

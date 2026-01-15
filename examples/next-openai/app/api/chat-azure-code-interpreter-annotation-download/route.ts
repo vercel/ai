@@ -1,6 +1,8 @@
-import { OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { azure } from '@ai-sdk/azure';
-
+import {
+  azure,
+  type AzureResponsesSourceDocumentProviderMetadata,
+  type OpenAIResponsesProviderOptions,
+} from '@ai-sdk/azure';
 import {
   convertToModelMessages,
   InferUITools,
@@ -28,7 +30,8 @@ export type AzureOpenAICodeInterpreterMessage = UIMessage<
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const uiMessages = await validateUIMessages({ messages });
+  const uiMessages =
+    await validateUIMessages<AzureOpenAICodeInterpreterMessage>({ messages });
 
   // Collect sources with container file citations as they're generated
   const containerFileSources: Array<{
@@ -38,37 +41,36 @@ export async function POST(req: Request) {
   }> = [];
 
   const result = streamText({
-    model: azure('gpt-5-mini'),
+    model: azure('gpt-4.1-mini'),
     tools,
-    messages: convertToModelMessages(uiMessages),
+    messages: await convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
       console.log(JSON.stringify(request.body, null, 2));
 
       // Collect container file citations from sources
       for (const source of sources) {
-        if (
-          source.sourceType === 'document' &&
-          source.providerMetadata?.azure?.containerId &&
-          source.providerMetadata?.azure?.fileId
-        ) {
-          const containerId = String(
-            source.providerMetadata.azure.containerId || '',
-          );
-          const fileId = String(source.providerMetadata.azure.fileId || '');
-          const filename = source.filename || source.title || 'file';
-
-          // Avoid duplicates
-          const exists = containerFileSources.some(
-            s => s.containerId === containerId && s.fileId === fileId,
-          );
-          if (!exists) {
-            containerFileSources.push({ containerId, fileId, filename });
+        if (source.sourceType === 'document') {
+          const providerMetadata = source.providerMetadata as
+            | AzureResponsesSourceDocumentProviderMetadata
+            | undefined;
+          if (!providerMetadata) continue;
+          const { azure } = providerMetadata;
+          if (azure.type === 'container_file_citation') {
+            const { containerId, fileId } = azure;
+            const filename = source.filename || source.title;
+            // Avoid duplicates
+            const exists = containerFileSources.some(
+              s => s.containerId === containerId && s.fileId === fileId,
+            );
+            if (!exists) {
+              containerFileSources.push({ containerId, fileId, filename });
+            }
           }
         }
       }
     },
     providerOptions: {
-      openai: {
+      azure: {
         store: true,
       } satisfies OpenAIResponsesProviderOptions,
     },

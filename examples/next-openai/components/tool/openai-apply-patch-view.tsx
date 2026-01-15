@@ -10,7 +10,11 @@ export default function OpenAIApplyPatchView({
   invocation: UIToolInvocation<ReturnType<typeof openai.tools.applyPatch>>;
 }) {
   switch (invocation.state) {
+    case 'input-streaming':
     case 'input-available': {
+      if (!invocation.input) {
+        return;
+      }
       const input = invocation.input as {
         callId: string;
         operation: {
@@ -23,10 +27,16 @@ export default function OpenAIApplyPatchView({
       const operationType = input.operation.type;
       const operationLabel =
         operationType === 'create_file'
-          ? 'CREATE FILE'
+          ? invocation.state === 'input-available'
+            ? 'CREATE FILE'
+            : 'CREATING FILE'
           : operationType === 'update_file'
-            ? 'UPDATE FILE'
-            : 'DELETE FILE';
+            ? invocation.state === 'input-available'
+              ? 'UPDATE FILE'
+              : 'UPDATING FILE'
+            : invocation.state === 'input-available'
+              ? 'DELETE FILE'
+              : 'DELETING FILE';
 
       const bgColor =
         operationType === 'create_file'

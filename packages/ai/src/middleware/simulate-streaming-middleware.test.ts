@@ -4,7 +4,15 @@ import {
   convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { afterEach, beforeEach, describe, expect, it, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import { streamText } from '../generate-text';
 import * as logWarningsModule from '../logger/log-warnings';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
@@ -16,7 +24,6 @@ const DEFAULT_SETTINGs = {
   experimental_generateMessageId: mockId({ prefix: 'msg' }),
   _internal: {
     generateId: mockId({ prefix: 'id' }),
-    currentDate: () => new Date('2025-01-01'),
   },
 };
 
@@ -38,12 +45,15 @@ describe('simulateStreamingMiddleware', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01'));
     logWarningsSpy = vitest
       .spyOn(logWarningsModule, 'logWarnings')
       .mockImplementation(() => {});
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     logWarningsSpy.mockRestore();
   });
 
@@ -52,7 +62,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -95,6 +105,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-0",
@@ -122,6 +133,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -156,7 +168,7 @@ describe('simulateStreamingMiddleware', () => {
             },
             { type: 'text', text: 'This is a test response' },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -214,6 +226,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-1",
@@ -241,6 +254,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -287,7 +301,7 @@ describe('simulateStreamingMiddleware', () => {
               },
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -379,6 +393,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-2",
@@ -406,6 +421,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -449,7 +465,7 @@ describe('simulateStreamingMiddleware', () => {
               text: 'This is a test response',
             },
           ],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -526,6 +542,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "providerMetadata": undefined,
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-3",
@@ -553,6 +570,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -599,7 +617,7 @@ describe('simulateStreamingMiddleware', () => {
               toolCallType: 'function',
             },
           ],
-          finishReason: 'tool-calls',
+          finishReason: { unified: 'tool-calls', raw: undefined },
           usage: testUsage,
           warnings: [],
         };
@@ -676,6 +694,7 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "tool-calls",
             "providerMetadata": undefined,
+            "rawFinishReason": undefined,
             "response": {
               "headers": undefined,
               "id": "id-4",
@@ -703,6 +722,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "tool-calls",
+            "rawFinishReason": undefined,
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -730,7 +750,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           providerMetadata: { custom: { key: 'value' } },
           warnings: [],
@@ -778,6 +798,7 @@ describe('simulateStreamingMiddleware', () => {
                 "key": "value",
               },
             },
+            "rawFinishReason": "stop",
             "response": {
               "headers": undefined,
               "id": "id-5",
@@ -805,6 +826,7 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
+            "rawFinishReason": "stop",
             "totalUsage": {
               "cachedInputTokens": 0,
               "inputTokenDetails": {
@@ -832,7 +854,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: '' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [],
         };
@@ -857,7 +879,7 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
           usage: testUsage,
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },
