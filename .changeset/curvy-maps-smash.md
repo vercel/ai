@@ -1,5 +1,4 @@
 ---
-'@ai-sdk/anthropic': patch
 '@ai-sdk/openai-compatible': patch
 ---
 
