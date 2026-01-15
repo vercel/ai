@@ -26,6 +26,7 @@ export { NoSpeechGeneratedError } from './no-speech-generated-error';
 export { NoSuchToolError } from './no-such-tool-error';
 export { ToolCallRepairError } from './tool-call-repair-error';
 export { UnsupportedModelVersionError } from './unsupported-model-version-error';
+export { UIMessageStreamError } from './ui-message-stream-error';
 
 export { InvalidDataContentError } from '../prompt/invalid-data-content-error';
 export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';

@@ -514,6 +514,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -605,6 +606,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -649,7 +651,55 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          strictJsonSchema: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          strict: false,
+          name: 'test-name',
+          description: 'test description',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -754,6 +804,7 @@ describe('doGenerate', () => {
               ],
               "type": "object",
             },
+            "strict": true,
           },
           "type": "json_schema",
         },
@@ -979,6 +1030,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -986,10 +1041,6 @@ describe('doStream', () => {
           "delta": "Hello",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",

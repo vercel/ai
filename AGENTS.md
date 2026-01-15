@@ -24,7 +24,7 @@ This is a **monorepo** using pnpm workspaces and Turborepo.
 | `packages/<provider>`     | AI provider implementations (openai, anthropic, google, azure, amazon-bedrock, etc.) |
 | `packages/<framework>`    | UI framework integrations (react, vue, svelte, angular, rsc)                         |
 | `packages/codemod`        | Automated migrations for major releases                                              |
-| `examples/`               | Example applications (ai-core, next-openai, etc.)                                    |
+| `examples/`               | Example applications (ai-functions, next-openai, etc.)                               |
 | `content/`                | Documentation source files (MDX)                                                     |
 | `contributing/`           | Contributor guides and documentation                                                 |
 | `tools/`                  | Internal tooling (eslint-config, tsconfig)                                           |
@@ -83,7 +83,7 @@ Run these from within a package directory (e.g., `packages/ai`):
 ### Running Examples
 
 ```bash
-cd examples/ai-core
+cd examples/ai-functions
 pnpm tsx src/stream-text/openai.ts    # Run a specific example
 ```
 
