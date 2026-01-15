@@ -82,23 +82,24 @@ export type LanguageModelUsage = {
 // Helper for required properties that can be undefined (key: Type | undefined)
 const numberOrUndefined = z.union([z.number(), z.undefined()]);
 
-export const languageModelUsageSchema: z.ZodType<LanguageModelUsage> = z.object({
-  inputTokens: numberOrUndefined,
-  inputTokenDetails: z.object({
-    noCacheTokens: numberOrUndefined,
-    cacheReadTokens: numberOrUndefined,
-    cacheWriteTokens: numberOrUndefined,
-  }),
-  outputTokens: numberOrUndefined,
-  outputTokenDetails: z.object({
-    textTokens: numberOrUndefined,
-    reasoningTokens: numberOrUndefined,
-  }),
-  totalTokens: numberOrUndefined,
-  reasoningTokens: z.number().optional(),
-  cachedInputTokens: z.number().optional(),
-  raw: z.record(z.string(), jsonValueSchema.optional()).optional(),
-});
+export const languageModelUsageSchema: z.ZodType<LanguageModelUsage> =
+  z.strictObject({
+    inputTokens: numberOrUndefined,
+    inputTokenDetails: z.strictObject({
+      noCacheTokens: numberOrUndefined,
+      cacheReadTokens: numberOrUndefined,
+      cacheWriteTokens: numberOrUndefined,
+    }),
+    outputTokens: numberOrUndefined,
+    outputTokenDetails: z.strictObject({
+      textTokens: numberOrUndefined,
+      reasoningTokens: numberOrUndefined,
+    }),
+    totalTokens: numberOrUndefined,
+    reasoningTokens: z.number().optional(),
+    cachedInputTokens: z.number().optional(),
+    raw: z.record(z.string(), jsonValueSchema.optional()).optional(),
+  });
 
 /**
 Represents the number of tokens used in an embedding.
