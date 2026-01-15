@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.9
+
+### Patch Changes
+
+- ec84ffd: fix(mcp): lenient JSON-RPC parsing for http transport
+
 ## 1.0.8
 
 ### Patch Changes
