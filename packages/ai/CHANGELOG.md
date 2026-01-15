@@ -1,5 +1,42 @@
 # ai
 
+## 6.0.37
+
+### Patch Changes
+
+- b5dab9b: fix(ai): maintain OpenTelemetry context across async generator yields
+
+  Fixes an issue where OpenTelemetry context was lost at async generator yield boundaries, causing nested ToolLoopAgent spans to escape to the parent agent's level in observability platforms.
+
+  The fix ensures that when `recordSpan` is used with async generators (e.g., in tool execution), the active context is explicitly maintained using `context.with()`, preventing span hierarchy corruption in nested agent scenarios.
+
+  Closes #11720
+
+## 6.0.36
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/gateway@3.0.15
+
+## 6.0.35
+
+### Patch Changes
+
+- d7e7f1f: Add descriptive error messages for malformed UIMessageStream chunks.
+
+## 6.0.34
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/gateway@3.0.14
+
 ## 6.0.33
 
 ### Patch Changes
