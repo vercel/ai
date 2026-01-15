@@ -100,25 +100,8 @@ export function createAnthropic(
 
   const providerName = options.name ?? 'anthropic.messages';
 
-  // Load auth credentials at initialization time for early validation
-  const rawAuthToken = loadOptionalSetting({
-    settingValue: options.authToken,
-    environmentVariableName: 'ANTHROPIC_AUTH_TOKEN',
-  });
-  const authToken =
-    rawAuthToken && rawAuthToken.trim().length > 0
-      ? rawAuthToken.trim()
-      : undefined;
-
-  const rawApiKey = loadOptionalSetting({
-    settingValue: options.apiKey,
-    environmentVariableName: 'ANTHROPIC_API_KEY',
-  });
-  const apiKey =
-    rawApiKey && rawApiKey.trim().length > 0 ? rawApiKey.trim() : undefined;
-
-  // Validate that both are not provided simultaneously
-  if (authToken && apiKey) {
+  // Only error if both are explicitly provided in options
+  if (options.apiKey && options.authToken) {
     throw new InvalidArgumentError({
       argument: 'apiKey/authToken',
       message:
@@ -127,16 +110,14 @@ export function createAnthropic(
   }
 
   const getHeaders = () => {
-    const authHeaders: Record<string, string> = authToken
-      ? { Authorization: `Bearer ${authToken}` }
+    const authHeaders: Record<string, string> = options.authToken
+      ? { Authorization: `Bearer ${options.authToken}` }
       : {
-          'x-api-key':
-            apiKey ??
-            loadApiKey({
-              apiKey: undefined,
-              environmentVariableName: 'ANTHROPIC_API_KEY',
-              description: 'Anthropic',
-            }),
+          'x-api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'ANTHROPIC_API_KEY',
+            description: 'Anthropic',
+          }),
         };
 
     return withUserAgentSuffix(

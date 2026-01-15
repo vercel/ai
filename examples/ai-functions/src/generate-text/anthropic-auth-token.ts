@@ -3,7 +3,6 @@ import { generateText } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
 
-
 const anthropic = createAnthropic({
   baseURL: process.env.ANTHROPIC_BASE_URL,
   authToken: process.env.ANTHROPIC_AUTH_TOKEN,
@@ -14,8 +13,8 @@ run(async () => {
     model: anthropic('haiku'),
     prompt: 'Invent a new holiday and describe its traditions.',
     headers: {
-      "accept": "application/json"
-    }
+      accept: 'application/json',
+    },
   });
 
   print('Content:', result.content);

@@ -105,28 +105,6 @@ describe('createAnthropic', () => {
 });
 
 describe('anthropic provider - authentication', () => {
-  const originalApiKey = process.env.ANTHROPIC_API_KEY;
-  const originalAuthToken = process.env.ANTHROPIC_AUTH_TOKEN;
-
-  beforeEach(() => {
-    vi.restoreAllMocks();
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.ANTHROPIC_AUTH_TOKEN;
-  });
-
-  afterEach(() => {
-    if (originalApiKey === undefined) {
-      delete process.env.ANTHROPIC_API_KEY;
-    } else {
-      process.env.ANTHROPIC_API_KEY = originalApiKey;
-    }
-    if (originalAuthToken === undefined) {
-      delete process.env.ANTHROPIC_AUTH_TOKEN;
-    } else {
-      process.env.ANTHROPIC_AUTH_TOKEN = originalAuthToken;
-    }
-  });
-
   describe('authToken option', () => {
     it('sends Authorization Bearer header when authToken is provided', async () => {
       const fetchMock = createFetchMock();
