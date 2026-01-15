@@ -6171,6 +6171,85 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('provider metadata during input-streaming', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          providerMetadata: { testProvider: { parentToolCallId: 'parent-1' } },
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-id',
+          inputTextDelta: '{"query":',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-id',
+          inputTextDelta: '"test"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-id',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should propagate providerMetadata during input-streaming state', async () => {
+      // Find the first update after tool-input-start (when state is input-streaming)
+      const inputStreamingUpdate = writeCalls.find(call =>
+        call.message.parts.some(
+          (p: any) =>
+            p.toolCallId === 'tool-call-id' && p.state === 'input-streaming',
+        ),
+      );
+
+      expect(inputStreamingUpdate).toBeDefined();
+      const toolPart = inputStreamingUpdate!.message.parts.find(
+        (p: any) => p.toolCallId === 'tool-call-id',
+      ) as any;
+
+      // Key assertion: providerMetadata should be available during input-streaming
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { parentToolCallId: 'parent-1' },
+      });
+    });
+
+    it('should retain providerMetadata in final input-available state', async () => {
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'tool-call-id',
+      ) as any;
+
+      expect(toolPart.state).toBe('input-available');
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { parentToolCallId: 'parent-1' },
+      });
+    });
+  });
+
   describe('tool input error', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([
