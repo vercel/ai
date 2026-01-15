@@ -141,7 +141,7 @@ functionality that can be fully encapsulated in the provider.
    * An optional list of input examples that show the language
    * model what the input should look like.
    */
-  inputExamples?: Array<{ input: INPUT }>;
+  inputExamples?: Array<{ input: NoInfer<INPUT> }>;
 
   /**
    * Whether the tool needs approval before it can be executed.
