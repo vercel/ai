@@ -1,5 +1,57 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.12
+
+### Patch Changes
+
+- 78a133a: feat(openai-compatible): add transformRequestBody function for openai-compatible
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 2.0.9
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 2.0.8
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
+## 2.0.7
+
+### Patch Changes
+
+- cd7bb0e: feat(openai-compat): add thoughtSignature handling for google models
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- d54c380: Change some response schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
 ## 2.0.4
 
 ### Patch Changes

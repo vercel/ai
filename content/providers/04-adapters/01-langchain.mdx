@@ -242,11 +242,13 @@ export async function POST(req: Request) {
 ```
 
 <Note>
-**When to use `streamEvents()` vs `graph.stream()`:**
-
-- **`streamEvents()`**: Best for debugging, observability, filtering by event type, agents created with `createAgent`, and migrating existing LCEL applications that rely on callbacks
-- **`graph.stream()` with `streamMode`**: Best for LangGraph applications where you need structured state updates via `values`, `messages`, or `custom` modes
-  </Note>
+  **When to use `streamEvents()` vs `graph.stream()`:** - **`streamEvents()`**:
+  Best for debugging, observability, filtering by event type, agents created
+  with `createAgent`, and migrating existing LCEL applications that rely on
+  callbacks - **`graph.stream()` with `streamMode`**: Best for LangGraph
+  applications where you need structured state updates via `values`, `messages`,
+  or `custom` modes
+</Note>
 
 ## Example: Custom Data Streaming
 
