@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.12
+
+### Patch Changes
+
+- 78a133a: feat(openai-compatible): add transformRequestBody function for openai-compatible
+
 ## 2.0.11
 
 ### Patch Changes
