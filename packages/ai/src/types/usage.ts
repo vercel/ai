@@ -3,6 +3,8 @@ import {
   JSONObject,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
+import { z } from 'zod/v4';
+import { jsonValueSchema } from './json-value';
 
 /**
  * Represents the number of tokens used in a prompt and completion.
@@ -76,6 +78,27 @@ export type LanguageModelUsage = {
    */
   raw?: JSONObject;
 };
+
+// Helper for required properties that can be undefined (key: Type | undefined)
+const numberOrUndefined = z.union([z.number(), z.undefined()]);
+
+export const languageModelUsageSchema: z.ZodType<LanguageModelUsage> = z.object({
+  inputTokens: numberOrUndefined,
+  inputTokenDetails: z.object({
+    noCacheTokens: numberOrUndefined,
+    cacheReadTokens: numberOrUndefined,
+    cacheWriteTokens: numberOrUndefined,
+  }),
+  outputTokens: numberOrUndefined,
+  outputTokenDetails: z.object({
+    textTokens: numberOrUndefined,
+    reasoningTokens: numberOrUndefined,
+  }),
+  totalTokens: numberOrUndefined,
+  reasoningTokens: z.number().optional(),
+  cachedInputTokens: z.number().optional(),
+  raw: z.record(z.string(), jsonValueSchema.optional()).optional(),
+});
 
 /**
 Represents the number of tokens used in an embedding.
