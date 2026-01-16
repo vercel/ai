@@ -11,11 +11,10 @@ This is useful for extending the capabilities of a language model to either use 
 
 ```ts
 import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: openai('gpt-4.1'),
+  model: 'openai/gpt-4.1',
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -41,7 +40,6 @@ const result = await generateText({
 If the model decides to call a tool, it will generate a tool call. You can access the tool call by checking the `toolCalls` property on the result.
 
 ```ts highlight="31-44"
-import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -50,7 +48,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     maxOutputTokens: 512,
     tools: {
       weather: tool({
@@ -101,7 +99,6 @@ main().catch(console.error);
 You can access the result of a tool call by checking the `toolResults` property on the result.
 
 ```ts highlight="31-41"
-import { openai } from '@ai-sdk/openai';
 import { generateText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
@@ -110,7 +107,7 @@ dotenv.config();
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: 'openai/gpt-4o',
     maxOutputTokens: 512,
     tools: {
       weather: tool({

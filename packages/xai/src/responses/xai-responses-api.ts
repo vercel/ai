@@ -15,9 +15,13 @@ export type XaiResponsesSystemMessage = {
   content: string;
 };
 
+export type XaiResponsesUserMessageContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; image_url: string };
+
 export type XaiResponsesUserMessage = {
   role: 'user';
-  content: string;
+  content: Array<XaiResponsesUserMessageContentPart>;
 };
 
 export type XaiResponsesAssistantMessage = {
@@ -48,12 +52,15 @@ export type XaiResponsesToolCall = {
     | 'function_call'
     | 'web_search_call'
     | 'x_search_call'
-    | 'code_interpreter_call';
+    | 'code_interpreter_call'
+    | 'custom_tool_call';
   id: string;
-  call_id: string;
-  name: string;
-  arguments: string;
+  call_id?: string;
+  name?: string;
+  arguments?: string;
+  input?: string;
   status: string;
+  action?: any;
 };
 
 export type XaiResponsesTool =
@@ -79,11 +86,9 @@ export type XaiResponsesTool =
   | { type: 'mcp' }
   | {
       type: 'function';
-      function: {
-        name: string;
-        description?: string;
-        parameters: unknown;
-      };
+      name: string;
+      description?: string;
+      parameters: unknown;
     };
 
 const annotationSchema = z.union([
@@ -104,12 +109,19 @@ const messageContentPartSchema = z.object({
   annotations: z.array(annotationSchema).optional(),
 });
 
+const reasoningSummaryPartSchema = z.object({
+  type: z.string(),
+  text: z.string(),
+});
+
 const toolCallSchema = z.object({
-  name: z.string(),
-  arguments: z.string(),
-  call_id: z.string(),
+  name: z.string().optional(),
+  arguments: z.string().optional(),
+  input: z.string().optional(),
+  call_id: z.string().optional(),
   id: z.string(),
   status: z.string(),
+  action: z.any().optional(),
 });
 
 const outputItemSchema = z.discriminatedUnion('type', [
@@ -138,6 +150,10 @@ const outputItemSchema = z.discriminatedUnion('type', [
     ...toolCallSchema.shape,
   }),
   z.object({
+    type: z.literal('custom_tool_call'),
+    ...toolCallSchema.shape,
+  }),
+  z.object({
     type: z.literal('message'),
     role: z.string(),
     content: z.array(messageContentPartSchema),
@@ -150,6 +166,13 @@ const outputItemSchema = z.discriminatedUnion('type', [
     arguments: z.string(),
     call_id: z.string(),
     id: z.string(),
+  }),
+  z.object({
+    type: z.literal('reasoning'),
+    id: z.string(),
+    summary: z.array(reasoningSummaryPartSchema),
+    status: z.string(),
+    encrypted_content: z.string().nullish(),
   }),
 ]);
 
@@ -238,6 +261,122 @@ export const xaiResponsesChunkSchema = z.union([
     content_index: z.number(),
     annotation_index: z.number(),
     annotation: annotationSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_part.added'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    part: reasoningSummaryPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_part.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    part: reasoningSummaryPartSchema,
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_summary_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    summary_index: z.number(),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.web_search_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.web_search_call.searching'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.web_search_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.x_search_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.x_search_call.searching'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.x_search_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_execution_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_execution_call.executing'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_execution_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call.executing'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call.interpreting'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  // Code interpreter code streaming events
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    code: z.string(),
   }),
   z.object({
     type: z.literal('response.done'),

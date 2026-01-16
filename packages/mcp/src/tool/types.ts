@@ -9,22 +9,48 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-11-05',
 ];
 
+/** MCP tool metadata - keys should follow MCP _meta key format specification */
+const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
+export type ToolMeta = z.infer<typeof ToolMetaSchema>;
+
 export type ToolSchemas =
-  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
+  | Record<
+      string,
+      {
+        inputSchema: FlexibleSchema<JSONObject | unknown>;
+        outputSchema?: FlexibleSchema<JSONObject | unknown>;
+      }
+    >
   | 'automatic'
   | undefined;
 
+/** Base MCP tool type with execute and _meta */
+type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
+  INPUT,
+  OUTPUT
+> &
+  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
+    _meta?: ToolMeta;
+  };
+
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
+  TOOL_SCHEMAS extends Record<
+    string,
+    { inputSchema: FlexibleSchema<any>; outputSchema?: FlexibleSchema<any> }
+  >
     ? {
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
+          outputSchema: FlexibleSchema<infer OUTPUT>;
         }
-          ? Tool<INPUT, CallToolResult> &
-              Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>>
-          : never;
+          ? McpToolBase<INPUT, OUTPUT>
+          : TOOL_SCHEMAS[K] extends {
+                inputSchema: FlexibleSchema<infer INPUT>;
+              }
+            ? McpToolBase<INPUT, CallToolResult>
+            : never;
       }
-    : McpToolSet<Record<string, { inputSchema: FlexibleSchema<unknown> }>>;
+    : Record<string, McpToolBase<unknown, CallToolResult>>;
 
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
@@ -52,6 +78,13 @@ export type RequestOptions = {
 
 export type Notification = z.infer<typeof RequestSchema>;
 
+/** @see https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation */
+const ElicitationCapabilitySchema = z
+  .object({
+    applyDefaults: z.optional(z.boolean()),
+  })
+  .loose();
+
 const ServerCapabilitiesSchema = z.looseObject({
   experimental: z.optional(z.object({}).loose()),
   logging: z.optional(z.object({}).loose()),
@@ -71,9 +104,18 @@ const ServerCapabilitiesSchema = z.looseObject({
       listChanged: z.optional(z.boolean()),
     }),
   ),
+  elicitation: z.optional(ElicitationCapabilitySchema),
 });
 
 export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
+export const ClientCapabilitiesSchema = z
+  .object({
+    elicitation: z.optional(ElicitationCapabilitySchema),
+  })
+  .loose();
+
+export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
+export type ElicitationCapability = z.infer<typeof ElicitationCapabilitySchema>;
 
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
@@ -103,6 +145,10 @@ const ToolSchema = z
         properties: z.optional(z.object({}).loose()),
       })
       .loose(),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
+     */
+    outputSchema: z.optional(z.object({}).loose()),
     annotations: z.optional(
       z
         .object({
@@ -110,6 +156,7 @@ const ToolSchema = z
         })
         .loose(),
     ),
+    _meta: ToolMetaSchema,
   })
   .loose();
 export type MCPTool = z.infer<typeof ToolSchema>;
@@ -185,6 +232,10 @@ export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
     z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
   ),
+  /**
+   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   */
+  structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
 }).or(
   ResultSchema.extend({
@@ -258,3 +309,26 @@ export const GetPromptResultSchema = ResultSchema.extend({
   messages: z.array(PromptMessageSchema),
 });
 export type GetPromptResult = z.infer<typeof GetPromptResultSchema>;
+
+const ElicitationRequestParamsSchema = BaseParamsSchema.extend({
+  message: z.string(),
+  requestedSchema: z.unknown(),
+});
+
+export const ElicitationRequestSchema = RequestSchema.extend({
+  method: z.literal('elicitation/create'),
+  params: ElicitationRequestParamsSchema,
+});
+
+export type ElicitationRequest = z.infer<typeof ElicitationRequestSchema>;
+
+export const ElicitResultSchema = ResultSchema.extend({
+  action: z.union([
+    z.literal('accept'),
+    z.literal('decline'),
+    z.literal('cancel'),
+  ]),
+  content: z.optional(z.record(z.string(), z.unknown())),
+});
+
+export type ElicitResult = z.infer<typeof ElicitResultSchema>;

@@ -2,10 +2,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output } from '../generate-text';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { ToolLoopAgent } from './tool-loop-agent';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
-import { ModelMessage } from '../prompt';
+import { AgentCallParameters, AgentStreamParameters } from './agent';
+import { ToolLoopAgent } from './tool-loop-agent';
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
@@ -27,10 +27,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        { options: { callOption: string } } & (
-          | { prompt: string | ModelMessage[]; messages?: never }
-          | { messages: ModelMessage[]; prompt?: never }
-        )
+        AgentCallParameters<{ callOption: string }>
       >();
     });
 
@@ -40,10 +37,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.generate>[0]>().toEqualTypeOf<
-        { options?: never } & (
-          | { prompt: string | ModelMessage[]; messages?: never }
-          | { messages: ModelMessage[]; prompt?: never }
-        )
+        AgentCallParameters<never>
       >();
     });
 
@@ -84,10 +78,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        { options: { callOption: string } } & (
-          | { prompt: string | ModelMessage[]; messages?: never }
-          | { messages: ModelMessage[]; prompt?: never }
-        )
+        AgentStreamParameters<{ callOption: string }, {}>
       >();
     });
 
@@ -97,10 +88,7 @@ describe('ToolLoopAgent', () => {
       });
 
       expectTypeOf<Parameters<typeof agent.stream>[0]>().toEqualTypeOf<
-        { options?: never } & (
-          | { prompt: string | ModelMessage[]; messages?: never }
-          | { messages: ModelMessage[]; prompt?: never }
-        )
+        AgentStreamParameters<never, {}>
       >();
     });
 

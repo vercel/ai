@@ -9,7 +9,10 @@ import {
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
+  Configuration,
+  ElicitationRequestSchema,
 } from './types';
+import { JSONRPCRequest } from './json-rpc-message';
 import {
   beforeEach,
   afterEach,
@@ -87,6 +90,38 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should expose _meta field from MCP tool definition', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'tool-with-meta',
+              description: 'A tool with metadata',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  input: { type: 'string' },
+                },
+              },
+              _meta: {
+                'openai/outputTemplate': '{{result}}',
+              },
+            },
+          ],
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['tool-with-meta'];
+
+    expect(tool._meta?.['openai/outputTemplate']).toBe('{{result}}');
+  });
+
   it('should list resources from the server', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
@@ -155,7 +190,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompts = await client.listPrompts();
+    const prompts = await client.experimental_listPrompts();
 
     expectTypeOf(prompts).toEqualTypeOf<ListPromptsResult>();
 
@@ -182,7 +217,7 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    const prompt = await client.getPrompt({
+    const prompt = await client.experimental_getPrompt({
       name: 'code_review',
       arguments: { code: 'print(42)' },
     });
@@ -218,10 +253,12 @@ describe('MCPClient', () => {
       transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
-    await expect(client.listPrompts()).rejects.toThrow(MCPClientError);
-    await expect(client.getPrompt({ name: 'code_review' })).rejects.toThrow(
+    await expect(client.experimental_listPrompts()).rejects.toThrow(
       MCPClientError,
     );
+    await expect(
+      client.experimental_getPrompt({ name: 'code_review' }),
+    ).rejects.toThrow(MCPClientError);
   });
 
   it('should return typed AI SDK compatible tool set when schemas are provided', async () => {
@@ -441,6 +478,75 @@ describe('MCPClient', () => {
     );
   });
 
+  describe('elicitation support', () => {
+    it('should handle elicitation requests from the server', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+        capabilities: {
+          elicitation: {},
+        },
+      });
+
+      const transportInstance = createMockTransport.mock.results.at(-1)
+        ?.value as MockMCPTransport;
+      const sendSpy = vi.spyOn(transportInstance, 'send');
+      const handler = vi.fn(async () => ({
+        action: 'accept' as const,
+        content: {
+          name: 'octocat',
+        },
+      }));
+
+      client.onElicitationRequest(ElicitationRequestSchema, handler);
+
+      const elicitationRequest = {
+        jsonrpc: '2.0' as const,
+        id: 42,
+        method: 'elicitation/create' as const,
+        params: {
+          message: 'Please provide your GitHub username',
+          requestedSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      };
+
+      transportInstance.onmessage?.(elicitationRequest);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: {
+            message: elicitationRequest.params.message,
+            requestedSchema: elicitationRequest.params.requestedSchema,
+          },
+        }),
+      );
+
+      const elicitationResponse = sendSpy.mock.calls.find(
+        ([message]) =>
+          'result' in message && message.id === elicitationRequest.id,
+      );
+
+      expect(elicitationResponse?.[0]).toMatchObject({
+        jsonrpc: '2.0',
+        id: elicitationRequest.id,
+        result: {
+          action: 'accept',
+          content: {
+            name: 'octocat',
+          },
+        },
+      });
+    });
+  });
+
   it('should use onUncaughtError callback if provided', async () => {
     const onUncaughtError = vi.fn();
     const mockTransport = new MockMCPTransport({
@@ -528,5 +634,484 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should use custom client version when provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+      version: '2.5.0',
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('2.5.0');
+  });
+
+  it('should use default version when not provided', async () => {
+    const mockTransport = new MockMCPTransport();
+    let capturedClientInfo: { name: string; version: string } | undefined;
+
+    const originalSend = mockTransport.send.bind(mockTransport);
+    mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
+      if (message.method === 'initialize' && message.params) {
+        capturedClientInfo = message.params.clientInfo as Configuration;
+      }
+      return originalSend(message);
+    });
+
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+
+    expect(capturedClientInfo).toBeDefined();
+    expect(capturedClientInfo?.version).toBe('1.0.0');
+  });
+
+  describe('outputSchema support', () => {
+    it('should return typed output when outputSchema is provided with structuredContent', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'weather-tool',
+            description: 'Get weather data',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+              },
+            },
+            outputSchema: {
+              type: 'object',
+              properties: {
+                temperature: { type: 'number' },
+                conditions: { type: 'string' },
+              },
+            },
+          },
+        ],
+        toolCallResults: {
+          'weather-tool': {
+            content: [
+              {
+                type: 'text',
+                text: '{"temperature": 22.5, "conditions": "Sunny"}',
+              },
+            ],
+            structuredContent: {
+              temperature: 22.5,
+              conditions: 'Sunny',
+            },
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'weather-tool': {
+            inputSchema: z.object({
+              location: z.string(),
+            }),
+            outputSchema: z.object({
+              temperature: z.number(),
+              conditions: z.string(),
+            }),
+          },
+        },
+      });
+
+      const tool = tools['weather-tool'];
+
+      type ToolInput = Parameters<typeof tool.execute>[0];
+      expectTypeOf<ToolInput>().toEqualTypeOf<{ location: string }>();
+
+      const result = await tool.execute(
+        { location: 'New York' },
+        { messages: [], toolCallId: '1' },
+      );
+
+      expectTypeOf<Exclude<typeof result, AsyncIterable<any>>>().toEqualTypeOf<{
+        temperature: number;
+        conditions: string;
+      }>();
+
+      expect(result).toEqual({
+        temperature: 22.5,
+        conditions: 'Sunny',
+      });
+    });
+
+    it('should fallback to parsing text content when structuredContent is not present', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'json-tool',
+            description: 'Returns JSON data',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'json-tool': {
+            content: [
+              {
+                type: 'text',
+                text: '{"value": 42, "name": "test"}',
+              },
+            ],
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'json-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              value: z.number(),
+              name: z.string(),
+            }),
+          },
+        },
+      });
+
+      const result = await tools['json-tool'].execute(
+        {},
+        { messages: [], toolCallId: '1' },
+      );
+
+      expect(result).toEqual({
+        value: 42,
+        name: 'test',
+      });
+    });
+
+    it('should return CallToolResult when outputSchema is not provided', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'untyped-tool',
+            description: 'Returns untyped data',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+        ],
+        toolCallResults: {
+          'untyped-tool': {
+            content: [
+              {
+                type: 'text',
+                text: 'Some text result',
+              },
+            ],
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'untyped-tool': {
+            inputSchema: z.object({
+              input: z.string(),
+            }),
+            // No outputSchema - should return CallToolResult
+          },
+        },
+      });
+
+      const tool = tools['untyped-tool'];
+
+      const result = await tool.execute(
+        { input: 'test' },
+        { messages: [], toolCallId: '1' },
+      );
+
+      expectTypeOf<
+        Exclude<typeof result, AsyncIterable<any>>
+      >().toEqualTypeOf<CallToolResult>();
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: 'Some text result',
+          },
+        ],
+        isError: false,
+      });
+    });
+
+    it('should throw error when structuredContent does not match outputSchema', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'bad-output-tool',
+            description: 'Returns mismatched data',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'bad-output-tool': {
+            content: [
+              {
+                type: 'text',
+                text: '{"wrong": "data"}',
+              },
+            ],
+            structuredContent: {
+              wrong: 'data',
+            },
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'bad-output-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              expected: z.number(),
+            }),
+          },
+        },
+      });
+
+      await expect(
+        tools['bad-output-tool'].execute({}, { messages: [], toolCallId: '1' }),
+      ).rejects.toThrow(MCPClientError);
+    });
+
+    it('should throw error when text content is not valid JSON but outputSchema is provided', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'invalid-json-tool',
+            description: 'Returns invalid JSON',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'invalid-json-tool': {
+            content: [
+              {
+                type: 'text',
+                text: 'not valid json',
+              },
+            ],
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'invalid-json-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              value: z.string(),
+            }),
+          },
+        },
+      });
+
+      await expect(
+        tools['invalid-json-tool'].execute(
+          {},
+          { messages: [], toolCallId: '1' },
+        ),
+      ).rejects.toThrow(MCPClientError);
+    });
+
+    it('should throw error when parsed JSON does not match outputSchema', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'mismatched-json-tool',
+            description: 'Returns JSON that does not match schema',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'mismatched-json-tool': {
+            content: [
+              {
+                type: 'text',
+                text: '{"differentField": "value"}',
+              },
+            ],
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'mismatched-json-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              requiredField: z.string(),
+            }),
+          },
+        },
+      });
+
+      await expect(
+        tools['mismatched-json-tool'].execute(
+          {},
+          { messages: [], toolCallId: '1' },
+        ),
+      ).rejects.toThrow(MCPClientError);
+    });
+
+    it('should work with automatic schema discovery (no outputSchema)', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      const tools = await client.tools(); // automatic schema discovery
+
+      const result = await tools['mock-tool'].execute(
+        { foo: 'bar' },
+        { messages: [], toolCallId: '1' },
+      );
+
+      // With automatic discovery, result is CallToolResult
+      expectTypeOf<
+        Exclude<typeof result, AsyncIterable<any>>
+      >().toEqualTypeOf<CallToolResult>();
+      expect(result).toMatchObject({
+        content: [{ type: 'text', text: 'Mock tool call result' }],
+      });
+    });
+
+    it('should handle complex nested outputSchema', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'complex-tool',
+            description: 'Returns complex nested data',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'complex-tool': {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  users: [
+                    { id: 1, name: 'Alice' },
+                    { id: 2, name: 'Bob' },
+                  ],
+                  metadata: {
+                    total: 2,
+                    page: 1,
+                  },
+                }),
+              },
+            ],
+            structuredContent: {
+              users: [
+                { id: 1, name: 'Alice' },
+                { id: 2, name: 'Bob' },
+              ],
+              metadata: {
+                total: 2,
+                page: 1,
+              },
+            },
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'complex-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              users: z.array(
+                z.object({
+                  id: z.number(),
+                  name: z.string(),
+                }),
+              ),
+              metadata: z.object({
+                total: z.number(),
+                page: z.number(),
+              }),
+            }),
+          },
+        },
+      });
+
+      const result = await tools['complex-tool'].execute(
+        {},
+        { messages: [], toolCallId: '1' },
+      );
+
+      expect(result).toEqual({
+        users: [
+          { id: 1, name: 'Alice' },
+          { id: 2, name: 'Bob' },
+        ],
+        metadata: {
+          total: 2,
+          page: 1,
+        },
+      });
+    });
   });
 });

@@ -1,34 +1,40 @@
-import { LanguageModelV3, LanguageModelV3CallWarning } from '@ai-sdk/provider';
+import {
+  LanguageModelV3,
+  LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   InferSchema,
   ProviderOptions,
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
+import {
+  CallSettings,
+  CallWarning,
+  FinishReason,
+  InvalidToolInputError,
+  LanguageModelUsage,
+  NoSuchToolError,
+  Prompt,
+  Schema,
+  ToolChoice,
+} from 'ai';
+import {
+  asLanguageModelUsage,
+  convertToLanguageModelPrompt,
+  prepareCallSettings,
+  prepareRetries,
+  prepareToolsAndToolChoice,
+  standardizePrompt,
+} from 'ai/internal';
 import { ReactNode } from 'react';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModelUsage,
-  ToolChoice,
-  Prompt,
-  CallSettings,
-  InvalidToolInputError,
-  NoSuchToolError,
-  Schema,
-} from 'ai';
-import {
-  standardizePrompt,
-  prepareToolsAndToolChoice,
-  prepareRetries,
-  prepareCallSettings,
-  convertToLanguageModelPrompt,
-} from 'ai/internal';
+import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { isAsyncGenerator } from '../util/is-async-generator';
 import { isGenerator } from '../util/is-generator';
-import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 
 type Streamable = ReactNode | Promise<ReactNode>;
 
@@ -79,7 +85,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV3['doStream']>>;
+} & LanguageModelV3StreamResult;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -200,7 +206,7 @@ functionality that can be fully encapsulated in the provider.
 
   let finishEvent: {
     finishReason: FinishReason;
-    usage: LanguageModelUsage;
+    usage: LanguageModelV3Usage;
     warnings?: CallWarning[];
     response?: {
       headers?: Record<string, string>;
@@ -290,7 +296,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
-      let warnings: LanguageModelV3CallWarning[] | undefined;
+      let warnings: SharedV3Warning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {
@@ -370,7 +376,7 @@ functionality that can be fully encapsulated in the provider.
 
           case 'finish': {
             finishEvent = {
-              finishReason: value.finishReason,
+              finishReason: value.finishReason?.unified,
               usage: value.usage,
               warnings,
               response: result.response,
@@ -394,6 +400,7 @@ functionality that can be fully encapsulated in the provider.
       if (finishEvent && onFinish) {
         await onFinish({
           ...finishEvent,
+          usage: asLanguageModelUsage(finishEvent.usage),
           value: ui.value,
         });
       }

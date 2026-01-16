@@ -21,7 +21,7 @@ When using `output` with tool calling, adjust your `stopWhen` condition to accou
 
 ```tsx
 const result = await generateText({
-  model: openai('gpt-4o'),
+  model: __MODEL__,
   output: Output.object({
     schema: z.object({
       summary: z.string(),

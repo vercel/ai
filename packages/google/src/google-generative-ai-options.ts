@@ -29,6 +29,9 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-04-17'
   | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-3-pro-preview'
+  | 'gemini-3-pro-image-preview'
+  | 'gemini-3-flash-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -51,6 +54,10 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
         .object({
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
+          // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
+          thinkingLevel: z
+            .enum(['minimal', 'low', 'medium', 'high'])
+            .optional(),
         })
         .optional(),
 
@@ -156,6 +163,24 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
               '16:9',
               '21:9',
             ])
+            .optional(),
+          imageSize: z.enum(['1K', '2K', '4K']).optional(),
+        })
+        .optional(),
+
+      /**
+       * Optional. Configuration for grounding retrieval.
+       * Used to provide location context for Google Maps and Google Search grounding.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+       */
+      retrievalConfig: z
+        .object({
+          latLng: z
+            .object({
+              latitude: z.number(),
+              longitude: z.number(),
+            })
             .optional(),
         })
         .optional(),

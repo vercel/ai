@@ -23,7 +23,7 @@ type CohereEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereEmbeddingModel implements EmbeddingModelV3<string> {
+export class CohereEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly modelId: CohereEmbeddingModelId;
 
@@ -46,8 +46,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV3<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',
@@ -73,8 +73,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV3<string> {
       headers: combineHeaders(this.config.headers(), headers),
       body: {
         model: this.modelId,
-        // The AI SDK only supports 'float' embeddings which are also the only ones
-        // the Cohere API docs state are supported for all models.
+        // The AI SDK only supports 'float' embeddings. Note that the Cohere API
+        // supports other embedding types, but they are not currently supported by the AI SDK.
         // https://docs.cohere.com/v2/reference/embed#request.body.embedding_types
         embedding_types: ['float'],
         texts: values,
@@ -90,6 +90,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV3<string> {
     });
 
     return {
+      warnings: [],
       embeddings: response.embeddings.float,
       usage: { tokens: response.meta.billed_units.input_tokens },
       response: { headers: responseHeaders, body: rawValue },

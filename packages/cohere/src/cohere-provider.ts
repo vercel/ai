@@ -29,9 +29,25 @@ Creates a model for text generation.
 */
   languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
-  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
-  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3<string>;
+  /**
+   * Creates a model for text embeddings.
+   */
+  embeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV3;
 
   /**
    * Creates a model for reranking.
@@ -105,7 +121,7 @@ export function createCohere(
       generateId: options.generateId ?? generateId,
     });
 
-  const createTextEmbeddingModel = (modelId: CohereEmbeddingModelId) =>
+  const createEmbeddingModel = (modelId: CohereEmbeddingModelId) =>
     new CohereEmbeddingModel(modelId, {
       provider: 'cohere.textEmbedding',
       baseURL,
@@ -133,8 +149,10 @@ export function createCohere(
 
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createChatModel;
-  provider.embedding = createTextEmbeddingModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embedding = createEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 

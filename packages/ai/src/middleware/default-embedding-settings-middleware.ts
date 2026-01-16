@@ -1,4 +1,4 @@
-import { EmbeddingModelCallOptions } from '@ai-sdk/provider';
+import { EmbeddingModelV3CallOptions } from '@ai-sdk/provider';
 import { EmbeddingModelMiddleware } from '../types';
 import { mergeObjects } from '../util/merge-objects';
 
@@ -9,17 +9,14 @@ export function defaultEmbeddingSettingsMiddleware({
   settings,
 }: {
   settings: Partial<{
-    headers?: EmbeddingModelCallOptions<string>['headers'];
-    providerOptions?: EmbeddingModelCallOptions<string>['providerOptions'];
+    headers?: EmbeddingModelV3CallOptions['headers'];
+    providerOptions?: EmbeddingModelV3CallOptions['providerOptions'];
   }>;
 }): EmbeddingModelMiddleware {
   return {
     specificationVersion: 'v3',
     transformParams: async ({ params }) => {
-      return mergeObjects(
-        settings,
-        params,
-      ) as EmbeddingModelCallOptions<string>;
+      return mergeObjects(settings, params) as EmbeddingModelV3CallOptions;
     },
   };
 }

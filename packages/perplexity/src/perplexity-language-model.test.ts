@@ -58,6 +58,7 @@ describe('PerplexityLanguageModel', () => {
         completion_tokens: number;
         citation_tokens?: number;
         num_search_queries?: number;
+        reasoning_tokens?: number;
       };
       id?: string;
       created?: number;
@@ -105,7 +106,25 @@ describe('PerplexityLanguageModel', () => {
         ]
       `);
 
-      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": 10,
+            "total": 10,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 20,
+            "total": 20,
+          },
+          "raw": {
+            "completion_tokens": 20,
+            "prompt_tokens": 10,
+          },
+        }
+      `);
 
       expect({
         id: result.response?.id,
@@ -147,6 +166,104 @@ describe('PerplexityLanguageModel', () => {
         search_recency_filter: 'month',
         return_images: true,
       });
+    });
+
+    it('should handle PDF files with base64 encoding', async () => {
+      const mockPdfData = 'mock-pdf-data';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: mockPdfData,
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: expect.stringContaining(mockPdfData),
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF',
+        },
+      ]);
+    });
+
+    it('should handle PDF files with URLs', async () => {
+      const pdfUrl = 'https://example.com/test.pdf';
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this PDF' },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: new URL(pdfUrl),
+              filename: 'test.pdf',
+            },
+          ],
+        },
+      ];
+
+      prepareJsonResponse({
+        content: 'This is an analysis of the PDF from URL',
+      });
+
+      const result = await perplexityModel.doGenerate({ prompt });
+
+      // Verify the request contains the correct PDF URL format
+      const requestBody =
+        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
+      expect(requestBody.messages[0].content).toEqual([
+        {
+          type: 'text',
+          text: 'Analyze this PDF',
+        },
+        {
+          type: 'file_url',
+          file_url: {
+            url: pdfUrl,
+          },
+          file_name: 'test.pdf',
+        },
+      ]);
+
+      // Verify the response is processed correctly
+      expect(result.content).toEqual([
+        {
+          type: 'text',
+          text: 'This is an analysis of the PDF from URL',
+        },
+      ]);
     });
 
     it('should extract citations as sources', async () => {
@@ -217,6 +334,7 @@ describe('PerplexityLanguageModel', () => {
           completion_tokens: 20,
           citation_tokens: 30,
           num_search_queries: 40,
+          reasoning_tokens: 50,
         },
       });
 
@@ -224,17 +342,41 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
-
-      expect(result.providerMetadata).toEqual({
-        perplexity: {
-          images: null,
-          usage: {
-            citationTokens: 30,
-            numSearchQueries: 40,
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": 10,
+            "total": 10,
           },
-        },
-      });
+          "outputTokens": {
+            "reasoning": 50,
+            "text": -30,
+            "total": 20,
+          },
+          "raw": {
+            "citation_tokens": 30,
+            "completion_tokens": 20,
+            "num_search_queries": 40,
+            "prompt_tokens": 10,
+            "reasoning_tokens": 50,
+          },
+        }
+      `);
+      expect(result.providerMetadata).toMatchInlineSnapshot(
+        `
+          {
+            "perplexity": {
+              "images": null,
+              "usage": {
+                "citationTokens": 30,
+                "numSearchQueries": 40,
+              },
+            },
+          }
+        `,
+      );
     });
 
     it('should pass headers from provider and request', async () => {
@@ -298,6 +440,7 @@ describe('PerplexityLanguageModel', () => {
         completion_tokens: number;
         citation_tokens?: number;
         num_search_queries?: number;
+        reasoning_tokens?: number;
       };
       citations?: string[];
       images?: z.infer<typeof perplexityImageSchema>[];
@@ -389,7 +532,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -401,9 +547,21 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 10,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 20,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
@@ -471,7 +629,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -483,9 +644,21 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 10,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 20,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
@@ -562,7 +735,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": [
@@ -581,9 +757,21 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 10,
+                "total": 10,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 20,
+                "total": 20,
+              },
+              "raw": {
+                "completion_tokens": 20,
+                "prompt_tokens": 10,
+              },
             },
           },
         ]
@@ -598,6 +786,7 @@ describe('PerplexityLanguageModel', () => {
           completion_tokens: 21,
           citation_tokens: 30,
           num_search_queries: 40,
+          reasoning_tokens: 50,
         },
       });
 
@@ -644,7 +833,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -656,9 +848,24 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": 11,
-              "outputTokens": 21,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": 11,
+                "total": 11,
+              },
+              "outputTokens": {
+                "reasoning": 50,
+                "text": -29,
+                "total": 21,
+              },
+              "raw": {
+                "citation_tokens": 30,
+                "completion_tokens": 21,
+                "num_search_queries": 40,
+                "prompt_tokens": 11,
+                "reasoning_tokens": 50,
+              },
             },
           },
         ]
@@ -858,7 +1065,10 @@ describe('PerplexityLanguageModel', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "unknown",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "other",
+            },
             "providerMetadata": {
               "perplexity": {
                 "images": null,
@@ -870,9 +1080,18 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
+              "inputTokens": {
+                "cacheRead": undefined,
+                "cacheWrite": undefined,
+                "noCache": undefined,
+                "total": undefined,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": undefined,
+              },
+              "raw": undefined,
             },
           },
         ]

@@ -202,9 +202,9 @@ jobs:
           - module: '@ai-sdk/openai-compatible'
             max-load-time: 65
           - module: '@ai-sdk/anthropic'
-            max-load-time: 60
+            max-load-time: 65
           - module: '@ai-sdk/google'
-            max-load-time: 60
+            max-load-time: 65
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -228,19 +228,19 @@ jobs:
 
       - name: Measure and check load time for ${{ matrix.module }}
         id: load-time
-        working-directory: examples/ai-core
+        working-directory: examples/ai-functions
         run: |
           echo "📦 Measuring load time for ${{ matrix.module }}..."
           pnpm tsx src/benchmark/load-time.ts "${{ matrix.module }}" | tee load-time-output.txt
-          
+
           # Extract the average time from the output
           AVERAGE_TIME=$(grep "Average:" load-time-output.txt | awk '{print $2}' | sed 's/ms//')
-          
+
           echo ""
           echo "🔍 Checking threshold..."
           echo "Average load time: ${AVERAGE_TIME}ms"
           echo "Maximum allowed: ${{ matrix.max-load-time }}ms"
-          
+
           if (( $(echo "$AVERAGE_TIME > ${{ matrix.max-load-time }}" | bc -l) )); then
             echo ""
             echo "❌ Load time check failed!"

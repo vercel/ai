@@ -13,6 +13,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   {
     "finishReason": "stop",
     "providerMetadata": undefined,
+    "rawFinishReason": "stop",
     "response": {
       "headers": undefined,
       "id": "id-6",
@@ -21,21 +22,41 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     },
     "type": "finish-step",
     "usage": {
-      "cachedInputTokens": undefined,
+      "cachedInputTokens": 0,
+      "inputTokenDetails": {
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "noCacheTokens": 5,
+      },
       "inputTokens": 5,
+      "outputTokenDetails": {
+        "reasoningTokens": 3,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
+      "raw": undefined,
       "reasoningTokens": 3,
-      "totalTokens": 18,
+      "totalTokens": 15,
     },
   },
   {
     "finishReason": "stop",
+    "rawFinishReason": "stop",
     "totalUsage": {
-      "cachedInputTokens": undefined,
+      "cachedInputTokens": 0,
+      "inputTokenDetails": {
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "noCacheTokens": 5,
+      },
       "inputTokens": 5,
+      "outputTokenDetails": {
+        "reasoningTokens": 3,
+        "textTokens": 10,
+      },
       "outputTokens": 10,
       "reasoningTokens": 3,
-      "totalTokens": 18,
+      "totalTokens": 15,
     },
     "type": "finish",
   },

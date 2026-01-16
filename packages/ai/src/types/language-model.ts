@@ -1,15 +1,63 @@
+import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV3,
-  LanguageModelV3CallWarning,
-  LanguageModelV3FinishReason,
+  SharedV3Warning,
   LanguageModelV3Source,
 } from '@ai-sdk/provider';
 
+declare global {
+  /**
+   * Global interface that can be augmented by third-party packages to register custom model IDs.
+   *
+   * You can register model IDs in two ways:
+   *
+   * 1. Register based on Model IDs from a provider package:
+   * @example
+   * ```typescript
+   * import { openai } from '@ai-sdk/openai';
+   * type OpenAIResponsesModelId = Parameters<typeof openai>[0];
+   *
+   * declare global {
+   *   interface RegisteredProviderModels {
+   *     openai: OpenAIResponsesModelId;
+   *   }
+   * }
+   * ```
+   *
+   * 2. Register individual model IDs directly as keys:
+   * @example
+   * ```typescript
+   * declare global {
+   *   interface RegisteredProviderModels {
+   *     'my-provider:my-model': any;
+   *     'my-provider:another-model': any;
+   *   }
+   * }
+   * ```
+   */
+  interface RegisteredProviderModels {}
+}
+
 /**
-Language model that is used by the AI SDK Core functions.
+ * Global provider model ID type that defaults to GatewayModelId but can be augmented
+ * by third-party packages via declaration merging.
+ */
+export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
+  never,
+]
+  ? GatewayModelId
+  :
+      | keyof RegisteredProviderModels
+      | RegisteredProviderModels[keyof RegisteredProviderModels];
+
+/**
+Language model that is used by the AI SDK.
 */
-export type LanguageModel = string | LanguageModelV3 | LanguageModelV2;
+export type LanguageModel =
+  | GlobalProviderModelId
+  | LanguageModelV3
+  | LanguageModelV2;
 
 /**
 Reason why a language model finished generating a response.
@@ -22,13 +70,19 @@ Can be one of the following:
 - `error`: model stopped because of an error
 - `other`: model stopped for other reasons
 */
-export type FinishReason = LanguageModelV3FinishReason;
+export type FinishReason =
+  | 'stop'
+  | 'length'
+  | 'content-filter'
+  | 'tool-calls'
+  | 'error'
+  | 'other';
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.
 some settings might not be supported, which can lead to suboptimal results.
 */
-export type CallWarning = LanguageModelV3CallWarning;
+export type CallWarning = SharedV3Warning;
 
 /**
 A source that has been used as input to generate the response.

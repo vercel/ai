@@ -1,7 +1,16 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export {
+  createToolNameMapping,
+  type ToolNameMapping,
+} from './create-tool-name-mapping';
 export * from './delay';
+export { DelayedPromise } from './delayed-promise';
 export * from './extract-response-headers';
+export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertToFormData } from './convert-to-form-data';
+export { downloadBlob } from './download-blob';
+export { DownloadError } from './download-error';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -22,11 +31,11 @@ export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
 export * from './post-to-api';
 export {
-  createProviderDefinedToolFactory,
-  createProviderDefinedToolFactoryWithOutputSchema,
-  type ProviderDefinedToolFactory,
-  type ProviderDefinedToolFactoryWithOutputSchema,
-} from './provider-defined-tool-factory';
+  createProviderToolFactory,
+  createProviderToolFactoryWithOutputSchema,
+  type ProviderToolFactory,
+  type ProviderToolFactoryWithOutputSchema,
+} from './provider-tool-factory';
 export * from './remove-undefined-entries';
 export * from './resolve';
 export * from './response-handler';

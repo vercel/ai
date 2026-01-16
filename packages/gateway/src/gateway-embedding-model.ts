@@ -17,7 +17,7 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
-export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
+export class GatewayEmbeddingModel implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
@@ -39,8 +39,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
@@ -57,7 +57,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          input: values.length === 1 ? values[0] : values,
+          values,
           ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
@@ -77,6 +77,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
+        warnings: [],
       };
     } catch (error) {
       throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
@@ -89,7 +90,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3<string> {
 
   private getModelConfigHeaders() {
     return {
-      'ai-embedding-model-specification-version': '2',
+      'ai-embedding-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }

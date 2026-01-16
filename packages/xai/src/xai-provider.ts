@@ -64,6 +64,11 @@ Creates an Xai image model for image generation.
 Server-side agentic tools for use with the responses API.
    */
   tools: typeof xaiTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface XaiProviderSettings {
@@ -143,9 +148,10 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.languageModel = createChatLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
   provider.tools = xaiTools;

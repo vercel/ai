@@ -1,4 +1,4 @@
-import { createProviderDefinedToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
+import { createProviderToolFactoryWithOutputSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -10,7 +10,7 @@ import { z } from 'zod/v4';
  * @see https://ai.google.dev/gemini-api/docs/code-execution (Google AI)
  * @see https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/code-execution-api (Vertex AI)
  */
-export const codeExecution = createProviderDefinedToolFactoryWithOutputSchema<
+export const codeExecution = createProviderToolFactoryWithOutputSchema<
   {
     language: string;
     code: string;
@@ -22,7 +22,6 @@ export const codeExecution = createProviderDefinedToolFactoryWithOutputSchema<
   {}
 >({
   id: 'google.code_execution',
-  name: 'code_execution',
   inputSchema: z.object({
     language: z.string().describe('The programming language of the code.'),
     code: z.string().describe('The code to be executed.'),

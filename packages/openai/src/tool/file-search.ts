@@ -1,5 +1,5 @@
 import {
-  createProviderDefinedToolFactoryWithOutputSchema,
+  createProviderToolFactoryWithOutputSchema,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -11,8 +11,8 @@ import {
 
 const comparisonFilterSchema = z.object({
   key: z.string(),
-  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
-  value: z.union([z.string(), z.number(), z.boolean()]),
+  type: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin']),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]),
 });
 
 const compoundFilterSchema: z.ZodType<any> = z.object({
@@ -59,7 +59,7 @@ export const fileSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
+export const fileSearch = createProviderToolFactoryWithOutputSchema<
   {},
   {
     /**
@@ -140,7 +140,6 @@ export const fileSearch = createProviderDefinedToolFactoryWithOutputSchema<
   }
 >({
   id: 'openai.file_search',
-  name: 'file_search',
   inputSchema: z.object({}),
   outputSchema: fileSearchOutputSchema,
 });

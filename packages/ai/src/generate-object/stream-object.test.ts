@@ -1,8 +1,9 @@
 import {
   JSONParseError,
-  LanguageModelV3CallWarning,
+  SharedV3Warning,
   LanguageModelV3StreamPart,
   TypeValidationError,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
@@ -22,15 +23,21 @@ import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { asLanguageModelUsage } from '../types/usage';
 
-const testUsage = {
-  inputTokens: 3,
-  outputTokens: 10,
-  totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
+const testUsage: LanguageModelV3Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
 };
-
 function createTestModel({
   warnings = [],
   stream = convertArrayToReadableStream([
@@ -54,7 +61,7 @@ function createTestModel({
     { type: 'text-end', id: '1' },
     {
       type: 'finish',
-      finishReason: 'stop',
+      finishReason: { unified: 'stop', raw: 'stop' },
       usage: testUsage,
       providerMetadata: {
         testProvider: {
@@ -69,7 +76,7 @@ function createTestModel({
   stream?: ReadableStream<LanguageModelV3StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: LanguageModelV3CallWarning[];
+  warnings?: SharedV3Warning[];
 } = {}) {
   return new MockLanguageModelV3({
     doStream: async () => ({ stream, request, response, warnings }),
@@ -338,7 +345,11 @@ describe('streamObject', () => {
                 delta: '{ "content": "Hello, world!" }',
               },
               { type: 'text-end', id: '1' },
-              { type: 'finish', finishReason: 'stop', usage: testUsage },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
             ]),
           }),
           schema: z.object({ content: z.string() }),
@@ -351,8 +362,18 @@ describe('streamObject', () => {
         expect(await result.usage).toMatchInlineSnapshot(`
           {
             "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
             "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
             "outputTokens": 10,
+            "raw": undefined,
             "reasoningTokens": undefined,
             "totalTokens": 13,
           }
@@ -374,7 +395,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -415,7 +436,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -458,7 +479,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -494,7 +515,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -527,7 +548,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -558,7 +579,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -591,7 +612,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -633,7 +654,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
@@ -680,7 +701,7 @@ describe('streamObject', () => {
                 { type: 'text-end', id: '1' },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -723,7 +744,7 @@ describe('streamObject', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -761,7 +782,7 @@ describe('streamObject', () => {
                   { type: 'text-end', id: '1' },
                   {
                     type: 'finish',
-                    finishReason: 'stop',
+                    finishReason: { unified: 'stop', raw: 'stop' },
                     usage: testUsage,
                   },
                 ]),
@@ -852,7 +873,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -874,7 +895,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -896,7 +917,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -918,7 +939,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -937,7 +958,7 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'finish',
-                  finishReason: 'stop',
+                  finishReason: { unified: 'stop', raw: 'stop' },
                   usage: testUsage,
                 },
               ]),
@@ -959,7 +980,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: testUsage,
+            usage: asLanguageModelUsage(testUsage),
             finishReason: 'stop',
           });
         }
@@ -1007,7 +1028,7 @@ describe('streamObject', () => {
               // finish
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1111,7 +1132,7 @@ describe('streamObject', () => {
               },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1177,7 +1198,11 @@ describe('streamObject', () => {
           { type: 'text-delta', id: '1', delta: `"` },
           { type: 'text-delta', id: '1', delta: ' }' },
           { type: 'text-end', id: '1' },
-          { type: 'finish', finishReason: 'stop', usage: testUsage },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
         ]),
       });
 
@@ -1236,7 +1261,7 @@ describe('streamObject', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
             },
           ]),
@@ -1267,7 +1292,7 @@ describe('streamObject', () => {
           { type: 'text-delta', id: '1', delta: ' }' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1302,7 +1327,7 @@ describe('streamObject', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1338,7 +1363,7 @@ describe('streamObject', () => {
           { type: 'text-end', id: '1' },
           {
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
           },
         ]),
@@ -1405,7 +1430,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1442,7 +1467,7 @@ describe('streamObject', () => {
             { type: 'text-end', id: '1' },
             {
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop', raw: 'stop' },
               usage: testUsage,
               providerMetadata: {
                 testProvider: {
@@ -1504,7 +1529,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1553,7 +1578,11 @@ describe('streamObject', () => {
                   delta: '{ "content": "Hello, world!" }',
                 },
                 { type: 'text-end', id: '1' },
-                { type: 'finish', finishReason: 'stop', usage: testUsage },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
               ]),
             }),
           });
@@ -1600,7 +1629,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1643,7 +1672,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1688,7 +1717,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1733,7 +1762,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1779,7 +1808,7 @@ describe('streamObject', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -1802,7 +1831,7 @@ describe('streamObject', () => {
             timestamp: new Date(0),
             modelId: 'mock-model-id',
           },
-          usage: testUsage,
+          usage: asLanguageModelUsage(testUsage),
           finishReason: 'stop',
         });
       }
@@ -1831,10 +1860,10 @@ describe('streamObject', () => {
     });
 
     it('should resolve warnings promise with warnings when warnings are present', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV3Warning[] = [
         {
-          type: 'unsupported-setting',
-          setting: 'frequency_penalty',
+          type: 'unsupported',
+          feature: 'frequency_penalty',
           details: 'This model does not support the frequency_penalty setting.',
         },
         {
@@ -1863,14 +1892,14 @@ describe('streamObject', () => {
     });
 
     it('should call logWarnings with the correct warnings', async () => {
-      const expectedWarnings: LanguageModelV3CallWarning[] = [
+      const expectedWarnings: SharedV3Warning[] = [
         {
           type: 'other',
           message: 'Setting is not supported',
         },
         {
-          type: 'unsupported-setting',
-          setting: 'temperature',
+          type: 'unsupported',
+          feature: 'temperature',
           details: 'Temperature parameter not supported',
         },
       ];

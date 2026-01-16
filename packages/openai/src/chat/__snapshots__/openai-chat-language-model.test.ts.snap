@@ -46,7 +46,10 @@ exports[`doStream > should set .modelId for model-router request 1`] = `
     "type": "text-end",
   },
   {
-    "finishReason": "stop",
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
     "providerMetadata": {
       "openai": {
         "acceptedPredictionTokens": 0,
@@ -55,11 +58,30 @@ exports[`doStream > should set .modelId for model-router request 1`] = `
     },
     "type": "finish",
     "usage": {
-      "cachedInputTokens": 0,
-      "inputTokens": 15,
-      "outputTokens": 78,
-      "reasoningTokens": 64,
-      "totalTokens": 93,
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 15,
+        "total": 15,
+      },
+      "outputTokens": {
+        "reasoning": 64,
+        "text": 14,
+        "total": 78,
+      },
+      "raw": {
+        "completion_tokens": 78,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "reasoning_tokens": 64,
+          "rejected_prediction_tokens": 0,
+        },
+        "prompt_tokens": 15,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "total_tokens": 93,
+      },
     },
   },
 ]

@@ -32,6 +32,11 @@ Creates a model for text generation.
   messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
+
+  /**
 Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
@@ -62,6 +67,12 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   generateId?: () => string;
+
+  /**
+   * Custom provider name
+   * Defaults to 'anthropic.messages'.
+   */
+  name?: string;
 }
 
 /**
@@ -77,6 +88,8 @@ export function createAnthropic(
         environmentVariableName: 'ANTHROPIC_BASE_URL',
       }),
     ) ?? 'https://api.anthropic.com/v1';
+
+  const providerName = options.name ?? 'anthropic.messages';
 
   const getHeaders = () =>
     withUserAgentSuffix(
@@ -94,13 +107,14 @@ export function createAnthropic(
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
-      provider: 'anthropic.messages',
+      provider: providerName,
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         'image/*': [/^https?:\/\/.*$/],
+        'application/pdf': [/^https?:\/\/.*$/],
       }),
     });
 
@@ -119,9 +133,10 @@ export function createAnthropic(
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
-  provider.textEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };

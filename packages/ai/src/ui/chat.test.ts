@@ -96,7 +96,10 @@ describe('Chat', () => {
           formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
           formatChunk({ type: 'text-end', id: 'text-1' }),
           formatChunk({ type: 'finish-step' }),
-          formatChunk({ type: 'finish' }),
+          formatChunk({
+            type: 'finish',
+            finishReason: 'stop',
+          }),
         ],
       };
 
@@ -126,6 +129,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": "stop",
             "isAbort": false,
             "isDisconnect": false,
             "isError": false,
@@ -484,6 +488,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": undefined,
             "isAbort": false,
             "isDisconnect": true,
             "isError": true,
@@ -719,6 +724,7 @@ describe('Chat', () => {
       expect(letOnFinishArgs).toMatchInlineSnapshot(`
         [
           {
+            "finishReason": undefined,
             "isAbort": true,
             "isDisconnect": false,
             "isError": false,
@@ -900,7 +906,10 @@ describe('Chat', () => {
         }),
         formatChunk({ type: 'text-end', id: 'text-1' }),
         formatChunk({ type: 'finish-step' }),
-        formatChunk({ type: 'finish' }),
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
       ],
     };
 
@@ -1553,7 +1562,12 @@ describe('Chat', () => {
 
       // finish stream
       controller1.write(formatChunk({ type: 'finish-step' }));
-      controller1.write(formatChunk({ type: 'finish' }));
+      controller1.write(
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
+      );
 
       await controller1.close();
 
@@ -1920,7 +1934,10 @@ describe('Chat', () => {
             }),
             formatChunk({ type: 'text-end', id: 'id-1' }),
             formatChunk({ type: 'finish-step' }),
-            formatChunk({ type: 'finish' }),
+            formatChunk({
+              type: 'finish',
+              finishReason: 'stop',
+            }),
           ],
         },
       ];
@@ -2423,7 +2440,10 @@ describe('Chat', () => {
               }),
               formatChunk({ type: 'text-end', id: 'txt-1' }),
               formatChunk({ type: 'finish-step' }),
-              formatChunk({ type: 'finish' }),
+              formatChunk({
+                type: 'finish',
+                finishReason: 'stop',
+              }),
             ],
           },
         ];

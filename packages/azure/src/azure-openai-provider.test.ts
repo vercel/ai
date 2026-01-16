@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -585,6 +586,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -604,6 +607,8 @@ describe('image', () => {
         .imageModel('dalle-deployment')
         .doGenerate({
           prompt,
+          files: undefined,
+          mask: undefined,
           n: 1,
           size: '1024x1024',
           aspectRatio: undefined,
@@ -629,6 +634,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -660,6 +667,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -677,6 +686,8 @@ describe('image', () => {
 
       const result = await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -692,6 +703,8 @@ describe('image', () => {
 
       await provider.imageModel('dalle-deployment').doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: '1024x1024',
         aspectRatio: undefined,
@@ -931,7 +944,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.file_search',
               name: 'file_search',
               args: {
@@ -986,7 +999,7 @@ describe('responses', () => {
         .doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: {
+            azure: {
               include: ['file_search_call.results'],
             },
           },
@@ -1004,7 +1017,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1013,7 +1026,7 @@ describe('responses', () => {
           prompt: TEST_PROMPT,
           tools: [
             {
-              type: 'provider-defined',
+              type: 'provider',
               id: 'openai.code_interpreter',
               name: 'code_interpreter',
               args: {},
@@ -1058,7 +1071,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1068,7 +1081,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1139,7 +1152,7 @@ describe('responses', () => {
             prompt: TEST_PROMPT,
             tools: [
               {
-                type: 'provider-defined',
+                type: 'provider',
                 id: 'openai.file_search',
                 name: 'file_search',
                 args: {
@@ -1158,7 +1171,7 @@ describe('responses', () => {
               },
             ],
             providerOptions: {
-              openai: {
+              azure: {
                 include: ['file_search_call.results'],
               },
             },
@@ -1210,19 +1223,82 @@ describe('responses', () => {
         });
       });
     });
+
+    describe('web search preview tool', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {},
+            },
+          ],
+        });
+      });
+      it('should stream web search preview results include', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('reasoning', async () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-reasoning-encrypted-content.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  a: { type: 'number' },
+                  b: { type: 'number' },
+                  op: { type: 'string' },
+                },
+                required: ['a', 'b'],
+                additionalProperties: false,
+              },
+            },
+          ],
+          providerOptions: {
+            azure: {
+              reasoningEffort: 'high',
+              maxCompletionTokens: 32_000,
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningSummary: 'auto',
+              forceReasoning: true,
+            },
+          },
+        });
+      });
+      it('should generate with reasoning encrypted content', async () => {
+        expect(result).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
-      prepareJsonFixtureResponse('openai-image-generation-tool.1');
+      prepareJsonFixtureResponse('azure-image-generation-tool.1');
 
       result = await createModel('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.image_generation',
             name: 'image_generation',
             args: {
@@ -1309,7 +1385,7 @@ describe('responses', () => {
           {
             "id": "msg_67c9a81dea8c8190b79651a2b3adf91e",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "msg_67c9a81dea8c8190b79651a2b3adf91e",
               },
             },
@@ -1327,22 +1403,46 @@ describe('responses', () => {
           },
           {
             "id": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+            "providerMetadata": {
+              "azure": {
+                "itemId": "msg_67c9a8787f4c8190b49c858d4c1cf20c",
+              },
+            },
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 234,
-              "inputTokens": 543,
-              "outputTokens": 478,
-              "reasoningTokens": 123,
-              "totalTokens": 1021,
+              "inputTokens": {
+                "cacheRead": 234,
+                "cacheWrite": undefined,
+                "noCache": 309,
+                "total": 543,
+              },
+              "outputTokens": {
+                "reasoning": 123,
+                "text": 355,
+                "total": 478,
+              },
+              "raw": {
+                "input_tokens": 543,
+                "input_tokens_details": {
+                  "cached_tokens": 234,
+                },
+                "output_tokens": 478,
+                "output_tokens_details": {
+                  "reasoning_tokens": 123,
+                },
+              },
             },
           },
         ]
@@ -1408,7 +1508,7 @@ describe('responses', () => {
           {
             "input": "{}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a838088190be08eb3927c87501",
               },
             },
@@ -1453,7 +1553,7 @@ describe('responses', () => {
           {
             "input": "{"location":"Rome"}",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "itemId": "fc_67cb13a858f081908a600343fa040f47",
               },
             },
@@ -1462,19 +1562,38 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 0,
-              "outputTokens": 0,
-              "reasoningTokens": 0,
-              "totalTokens": 0,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 0,
+                "total": 0,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 0,
+                "total": 0,
+              },
+              "raw": {
+                "input_tokens": 0,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 0,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1513,8 +1632,10 @@ describe('responses', () => {
             "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1526,8 +1647,10 @@ describe('responses', () => {
             "id": "id-1",
             "mediaType": "text/plain",
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1536,22 +1659,60 @@ describe('responses', () => {
           },
           {
             "id": "msg_456",
+            "providerMetadata": {
+              "azure": {
+                "annotations": [
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 145,
+                    "type": "file_citation",
+                  },
+                  {
+                    "file_id": "assistant-YRcoCqn3Fo2K4JgraG",
+                    "filename": "resource1.json",
+                    "index": 192,
+                    "type": "file_citation",
+                  },
+                ],
+                "itemId": "msg_456",
+              },
+            },
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
-              "openai": {
+              "azure": {
                 "responseId": null,
               },
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": 0,
-              "inputTokens": 50,
-              "outputTokens": 25,
-              "reasoningTokens": 0,
-              "totalTokens": 75,
+              "inputTokens": {
+                "cacheRead": 0,
+                "cacheWrite": undefined,
+                "noCache": 50,
+                "total": 50,
+              },
+              "outputTokens": {
+                "reasoning": 0,
+                "text": 25,
+                "total": 25,
+              },
+              "raw": {
+                "input_tokens": 50,
+                "input_tokens_details": {
+                  "cached_tokens": 0,
+                },
+                "output_tokens": 25,
+                "output_tokens_details": {
+                  "reasoning_tokens": 0,
+                },
+              },
             },
           },
         ]
@@ -1565,12 +1726,50 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.code_interpreter',
             name: 'code_interpreter',
             args: {},
           },
         ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+
+    it('should stream with reasoning encrypted content include reasoning-delta part', async () => {
+      prepareChunksFixtureResponse('azure-reasoning-encrypted-content.1');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'calculator',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                a: { type: 'number' },
+                b: { type: 'number' },
+                op: { type: 'string' },
+              },
+              required: ['a', 'b'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'high',
+            maxCompletionTokens: 32_000,
+            store: false,
+            include: ['reasoning.encrypted_content'],
+            reasoningSummary: 'auto',
+            forceReasoning: true,
+          },
+        },
       });
 
       expect(
@@ -1586,7 +1785,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1608,7 +1807,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'openai.file_search',
             name: 'file_search',
             args: {
@@ -1621,6 +1820,45 @@ describe('responses', () => {
             include: ['file_search_call.results'],
           },
         },
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('web search preview tool', () => {
+    it('should stream web search preview results include', async () => {
+      prepareChunksFixtureResponse('azure-web-search-preview-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search_preview',
+            name: 'web_search_preview',
+            args: {},
+          },
+        ],
+      });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('image generation tool', () => {
+    it('should stream image generation tool results include', async () => {
+      prepareChunksFixtureResponse('azure-image-generation-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
       });
 
       expect(

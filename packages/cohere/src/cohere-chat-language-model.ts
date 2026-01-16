@@ -1,12 +1,11 @@
 import {
   LanguageModelV3,
-  LanguageModelV3CallWarning,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
-  LanguageModelV3Prompt,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  UnsupportedFunctionalityError,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -14,7 +13,6 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
-  generateId,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -24,9 +22,10 @@ import {
   cohereChatModelOptions,
 } from './cohere-chat-options';
 import { cohereFailedResponseHandler } from './cohere-error';
+import { prepareTools } from './cohere-prepare-tools';
+import { CohereUsageTokens, convertCohereUsage } from './convert-cohere-usage';
 import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from './map-cohere-finish-reason';
-import { prepareTools } from './cohere-prepare-tools';
 
 type CohereChatConfig = {
   provider: string;
@@ -70,7 +69,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     // Parse provider options
     const cohereOptions =
       (await parseProviderOptions({
@@ -135,8 +134,8 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -203,14 +202,11 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapCohereFinishReason(response.finish_reason),
-      usage: {
-        inputTokens: response.usage.tokens.input_tokens,
-        outputTokens: response.usage.tokens.output_tokens,
-        totalTokens:
-          response.usage.tokens.input_tokens +
-          response.usage.tokens.output_tokens,
+      finishReason: {
+        unified: mapCohereFinishReason(response.finish_reason),
+        raw: response.finish_reason ?? undefined,
       },
+      usage: convertCohereUsage(response.usage.tokens),
       request: { body: args },
       response: {
         // TODO timestamp, model id
@@ -223,8 +219,8 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -239,12 +235,11 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
-    const usage: LanguageModelV3Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
     };
+    let usage: CohereUsageTokens | undefined = undefined;
 
     let pendingToolCall: {
       id: string;
@@ -272,7 +267,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -409,12 +404,11 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
               }
 
               case 'message-end': {
-                finishReason = mapCohereFinishReason(value.delta.finish_reason);
-                const tokens = value.delta.usage.tokens;
-
-                usage.inputTokens = tokens.input_tokens;
-                usage.outputTokens = tokens.output_tokens;
-                usage.totalTokens = tokens.input_tokens + tokens.output_tokens;
+                finishReason = {
+                  unified: mapCohereFinishReason(value.delta.finish_reason),
+                  raw: value.delta.finish_reason,
+                };
+                usage = value.delta.usage.tokens;
                 return;
               }
 
@@ -428,7 +422,7 @@ export class CohereChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: convertCohereUsage(usage),
             });
           },
         }),

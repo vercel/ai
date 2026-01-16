@@ -1,17 +1,17 @@
 import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
+export class MockEmbeddingModelV3 implements EmbeddingModelV3 {
   readonly specificationVersion = 'v3';
 
-  readonly provider: EmbeddingModelV3<VALUE>['provider'];
-  readonly modelId: EmbeddingModelV3<VALUE>['modelId'];
-  readonly maxEmbeddingsPerCall: EmbeddingModelV3<VALUE>['maxEmbeddingsPerCall'];
-  readonly supportsParallelCalls: EmbeddingModelV3<VALUE>['supportsParallelCalls'];
+  readonly provider: EmbeddingModelV3['provider'];
+  readonly modelId: EmbeddingModelV3['modelId'];
+  readonly maxEmbeddingsPerCall: EmbeddingModelV3['maxEmbeddingsPerCall'];
+  readonly supportsParallelCalls: EmbeddingModelV3['supportsParallelCalls'];
 
-  doEmbed: EmbeddingModelV3<VALUE>['doEmbed'];
+  doEmbed: EmbeddingModelV3['doEmbed'];
 
-  doEmbedCalls: Parameters<EmbeddingModelV3<VALUE>['doEmbed']>[0][] = [];
+  doEmbedCalls: Parameters<EmbeddingModelV3['doEmbed']>[0][] = [];
 
   constructor({
     provider = 'mock-provider',
@@ -20,16 +20,14 @@ export class MockEmbeddingModelV3<VALUE> implements EmbeddingModelV3<VALUE> {
     supportsParallelCalls = false,
     doEmbed = notImplemented,
   }: {
-    provider?: EmbeddingModelV3<VALUE>['provider'];
-    modelId?: EmbeddingModelV3<VALUE>['modelId'];
-    maxEmbeddingsPerCall?:
-      | EmbeddingModelV3<VALUE>['maxEmbeddingsPerCall']
-      | null;
-    supportsParallelCalls?: EmbeddingModelV3<VALUE>['supportsParallelCalls'];
+    provider?: EmbeddingModelV3['provider'];
+    modelId?: EmbeddingModelV3['modelId'];
+    maxEmbeddingsPerCall?: EmbeddingModelV3['maxEmbeddingsPerCall'] | null;
+    supportsParallelCalls?: EmbeddingModelV3['supportsParallelCalls'];
     doEmbed?:
-      | EmbeddingModelV3<VALUE>['doEmbed']
-      | Awaited<ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>>
-      | Awaited<ReturnType<EmbeddingModelV3<VALUE>['doEmbed']>>[];
+      | EmbeddingModelV3['doEmbed']
+      | Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+      | Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>[];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;

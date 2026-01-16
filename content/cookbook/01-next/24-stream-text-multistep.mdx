@@ -16,7 +16,6 @@ allowing you to have different steps in a single assistant UI message.
 ## Server
 
 ```typescript filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
   createUIMessageStream,
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
     execute: async ({ writer }) => {
       // step 1 example: forced tool call
       const result1 = streamText({
-        model: openai('gpt-4o-mini'),
+        model: 'openai/gpt-4o-mini',
         system: 'Extract the user goal from the conversation.',
         messages,
         toolChoice: 'required', // force the model to call a tool
@@ -54,7 +53,7 @@ export async function POST(req: Request) {
       // example: continue stream with forced tool call from previous step
       const result2 = streamText({
         // different system prompt, different model, no tools:
-        model: openai('gpt-4o'),
+        model: 'openai/gpt-4o',
         system:
           'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
         // continue the workflow stream with the messages from the previous step:

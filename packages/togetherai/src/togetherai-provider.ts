@@ -69,9 +69,12 @@ Creates a completion model for text generation.
   /**
 Creates a text embedding model for text generation.
 */
-  textEmbeddingModel(
-    modelId: TogetherAIEmbeddingModelId,
-  ): EmbeddingModelV3<string>;
+  embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
 Creates a model for image generation.
@@ -140,7 +143,7 @@ export function createTogetherAI(
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
+  const createEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
       getCommonModelConfig('embedding'),
@@ -164,7 +167,8 @@ export function createTogetherAI(
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
-  provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.reranking = createRerankingModel;

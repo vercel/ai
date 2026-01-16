@@ -17,7 +17,12 @@ The `createUIMessageStreamResponse` function creates a Response object that stre
 ## Example
 
 ```tsx
-import { createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai';
+__PROVIDER_IMPORT__;
 
 const response = createUIMessageStreamResponse({
   status: 200,
@@ -52,7 +57,7 @@ const response = createUIMessageStreamResponse({
 
       // Merge with LLM stream
       const result = streamText({
-        model: openai('gpt-4'),
+        model: __MODEL__,
         prompt: 'Say hello',
       });
 

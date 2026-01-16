@@ -7,7 +7,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -35,7 +35,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -64,7 +64,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -92,7 +92,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {
@@ -120,7 +120,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {},
@@ -147,7 +147,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -179,7 +179,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -209,7 +209,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {
@@ -241,7 +241,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.code_execution',
             name: 'code_execution',
             args: {},
@@ -264,7 +264,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.view_image',
             name: 'view_image',
             args: {},
@@ -281,7 +281,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.view_x_video',
             name: 'view_x_video',
             args: {},
@@ -315,20 +315,18 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
-            "function": {
-              "description": "get weather information",
-              "name": "weather",
-              "parameters": {
-                "properties": {
-                  "location": {
-                    "type": "string",
-                  },
+            "description": "get weather information",
+            "name": "weather",
+            "parameters": {
+              "properties": {
+                "location": {
+                  "type": "string",
                 },
-                "required": [
-                  "location",
-                ],
-                "type": "object",
               },
+              "required": [
+                "location",
+              ],
+              "type": "object",
             },
             "type": "function",
           },
@@ -342,7 +340,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -358,7 +356,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -374,7 +372,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -409,7 +407,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
@@ -433,13 +431,13 @@ describe('prepareResponsesTools', () => {
             inputSchema: { type: 'object', properties: {} },
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.web_search',
             name: 'web_search',
             args: {},
           },
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'xai.x_search',
             name: 'x_search',
             args: {},
@@ -478,7 +476,7 @@ describe('prepareResponsesTools', () => {
       const result = await prepareResponsesTools({
         tools: [
           {
-            type: 'provider-defined',
+            type: 'provider',
             id: 'unsupported.tool',
             name: 'unsupported',
             args: {},
@@ -486,8 +484,14 @@ describe('prepareResponsesTools', () => {
         ],
       });
 
-      expect(result.toolWarnings).toHaveLength(1);
-      expect(result.toolWarnings[0].type).toBe('unsupported-tool');
+      expect(result.toolWarnings).toMatchInlineSnapshot(`
+        [
+          {
+            "feature": "provider-defined tool unsupported",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 });

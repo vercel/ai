@@ -1,4 +1,4 @@
-import { ImageModelV3, ImageModelV3CallWarning } from '@ai-sdk/provider';
+import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -52,19 +52,36 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     const {
       prompt,
       n = 1,
-      size = '1024x1024',
+      size,
       aspectRatio = '1:1',
       seed,
       providerOptions,
       headers,
       abortSignal,
+      files,
+      mask,
     } = options;
-    const warnings: Array<ImageModelV3CallWarning> = [];
+    const warnings: Array<SharedV3Warning> = [];
+
+    // Google Generative AI does not support image editing
+    if (files != null && files.length > 0) {
+      throw new Error(
+        'Google Generative AI does not support image editing. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
+
+    if (mask != null) {
+      throw new Error(
+        'Google Generative AI does not support image editing with masks. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    }
 
     if (size != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'size',
+        type: 'unsupported',
+        feature: 'size',
         details:
           'This model does not support the `size` option. Use `aspectRatio` instead.',
       });
@@ -72,8 +89,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
 
     if (seed != null) {
       warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
+        type: 'unsupported',
+        feature: 'seed',
         details:
           'This model does not support the `seed` option through this provider.',
       });

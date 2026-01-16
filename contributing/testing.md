@@ -1,6 +1,6 @@
 # Manual Testing
 
-You can use the examples under `/examples/ai-core` and `/examples/next-openai` for manual testing (command line and web UI).
+You can use the examples under `/examples/ai-functions` and `/examples/next-openai` for manual testing (command line and web UI).
 
 Ideally you should cover 3 cases for changes or new features:
 
@@ -18,7 +18,7 @@ For provider response parsing tests, we aim at storing test fixtures with the tr
 
 The fixtures are stored in a `__fixtures__` subfolder, e.g. `packages/openai/src/responses/__fixtures__`. See the file names in `packages/openai/src/responses/__fixtures__` for naming conventions and `packages/openai/src/responses/openai-responses-language-model.test.ts` for how to set up test helpers.
 
-You can use our examples under `/examples/ai-core` to generate test fixtures.
+You can use our examples under `/examples/ai-functions` to generate test fixtures.
 
 #### generateText
 
@@ -41,7 +41,7 @@ run(async () => {
 
 #### streamText
 
-For `streamText`, you need to set `includeRawChunks` to `true` and use the special `saveRawChunks` helper. Run the script from the `/example/ai-core` folder via `pnpm tsx src/stream-text/script-name.ts`. The result is then stored in the `/examples/ai-core/output` folder. You can copy it to your fixtures folder and rename it.
+For `streamText`, you need to set `includeRawChunks` to `true` and use the special `saveRawChunks` helper. Run the script from the `/example/ai-functions` folder via `pnpm tsx src/stream-text/script-name.ts`. The result is then stored in the `/examples/ai-functions/output` folder. You can copy it to your fixtures folder and rename it.
 
 ```ts
 import { openai } from '@ai-sdk/openai';

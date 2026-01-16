@@ -103,3 +103,60 @@ describe('createAnthropic', () => {
     });
   });
 });
+
+describe('anthropic provider - custom provider name', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use custom provider name when specified', () => {
+    const provider = createAnthropic({
+      name: 'my-claude-proxy',
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    expect(model.provider).toBe('my-claude-proxy');
+  });
+
+  it('should default to anthropic.messages when name not specified', () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    expect(model.provider).toBe('anthropic.messages');
+  });
+});
+
+describe('anthropic provider - supportedUrls', () => {
+  it('should support image/* URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['image/*']).toBeDefined();
+    expect(
+      supportedUrls['image/*']![0]!.test('https://example.com/image.png'),
+    ).toBe(true);
+  });
+
+  it('should support application/pdf URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['application/pdf']).toBeDefined();
+    expect(
+      supportedUrls['application/pdf']![0]!.test(
+        'https://arxiv.org/pdf/2401.00001',
+      ),
+    ).toBe(true);
+  });
+});

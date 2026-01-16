@@ -1,25 +1,22 @@
-import {
-  TranscriptionModelV3,
-  TranscriptionModelV3CallOptions,
-  TranscriptionModelV3CallWarning,
-} from '@ai-sdk/provider';
+import { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 import { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
-import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
 const deepgramProviderOptionsSchema = z.object({
-  /** Language to use for transcription. If not specified, Deepgram will auto-detect the language. */
+  /** Language to use for transcription. If not specified, Deepgram defaults to English. Use `detectLanguage: true` to enable automatic language detection. */
   language: z.string().nullish(),
+  /** Whether to enable automatic language detection. When true, Deepgram will detect the language of the audio. */
+  detectLanguage: z.boolean().nullish(),
   /** Whether to use smart formatting, which formats written-out numbers, dates, times, etc. */
   smartFormat: z.boolean().nullish(),
   /** Whether to add punctuation to the transcript. */
@@ -79,7 +76,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
   private async getArgs({
     providerOptions,
   }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV3CallWarning[] = [];
+    const warnings: SharedV3Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -96,6 +93,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
     // Add provider-specific options
     if (deepgramOptions) {
       body.detect_entities = deepgramOptions.detectEntities ?? undefined;
+      body.detect_language = deepgramOptions.detectLanguage ?? undefined;
       body.filler_words = deepgramOptions.fillerWords ?? undefined;
       body.language = deepgramOptions.language ?? undefined;
       body.punctuate = deepgramOptions.punctuate ?? undefined;
@@ -169,7 +167,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
           startSecond: word.start,
           endSecond: word.end,
         })) ?? [],
-      language: undefined,
+      language:
+        response.results?.channels.at(0)?.detected_language ?? undefined,
       durationInSeconds: response.metadata?.duration ?? undefined,
       warnings,
       response: {
@@ -192,6 +191,7 @@ const deepgramTranscriptionResponseSchema = z.object({
     .object({
       channels: z.array(
         z.object({
+          detected_language: z.string().nullish(),
           alternatives: z.array(
             z.object({
               transcript: z.string(),

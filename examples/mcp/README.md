@@ -40,6 +40,9 @@ Available examples/folders:
 - `mcp-prompts` - MCP prompts example
 - `mcp-resources` - MCP resources example
 - `stdio` - Stdio Transport (requires `pnpm stdio:build` first)
+- `elicitation` - MCP elicitation example
+- `elicitation-multi-step` - MCP multi-step elicitation example
+- `elicitation-ui` - MCP elicitation with UI (server only)
 
 Example usage:
 
@@ -53,3 +56,11 @@ In another terminal, run the HTTP client:
 ```sh
 pnpm client:http
 ```
+
+To test the example with the UI, you will first need to run the MCP server:
+
+```sh
+pnpm server:elicitation-ui
+```
+
+and then start the dev server in a new terminal in `examples/next-openai` and navigate to `localhost:3000/mcp-elicitation`

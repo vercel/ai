@@ -40,6 +40,11 @@ Creates a model for image generation.
 Creates a model for image generation.
    */
   imageModel(modelId: LumaImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';
@@ -67,22 +72,25 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: () => {
+    languageModel: (modelId: string) => {
       throw new NoSuchModelError({
-        modelId: 'languageModel',
+        modelId,
         modelType: 'languageModel',
       });
     },
-    textEmbeddingModel: () => {
-      throw new NoSuchModelError({
-        modelId: 'textEmbeddingModel',
-        modelType: 'textEmbeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

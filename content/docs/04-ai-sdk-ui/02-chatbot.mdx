@@ -70,8 +70,8 @@ export default function Page() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -80,9 +80,9 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
+    model: __MODEL__,
     system: 'You are a helpful assistant.',
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -518,7 +518,7 @@ return result.toUIMessageStreamResponse({
     if (part.type === 'start') {
       return {
         createdAt: Date.now(),
-        model: 'gpt-4o',
+        model: 'gpt-5.1',
       };
     }
 
@@ -592,8 +592,8 @@ export async function POST(req: Request) {
   messages.push(message);
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -661,8 +661,8 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -670,6 +670,55 @@ export async function POST(req: Request) {
 ```
 
 To learn more about building custom transports, refer to the [Transport API documentation](/docs/ai-sdk-ui/transport).
+
+### Direct Agent Transport
+
+For scenarios where you want to communicate directly with an Agent without going through HTTP, you can use `DirectChatTransport`. This is useful for:
+
+- Server-side rendering scenarios
+- Testing without network
+- Single-process applications
+
+```tsx filename="app/page.tsx"
+import { useChat } from '@ai-sdk/react';
+import { DirectChatTransport, ToolLoopAgent } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  instructions: 'You are a helpful assistant.',
+});
+
+export default function Chat() {
+  const { messages, sendMessage, status } = useChat({
+    transport: new DirectChatTransport({ agent }),
+  });
+
+  return (
+    <>
+      {messages.map(message => (
+        <div key={message.id}>
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
+        </div>
+      ))}
+
+      <button
+        onClick={() => sendMessage({ text: 'Hello!' })}
+        disabled={status !== 'ready'}
+      >
+        Send
+      </button>
+    </>
+  );
+}
+```
+
+The `DirectChatTransport` invokes the agent's `stream()` method directly, converting UI messages to model messages and streaming the response back as UI message chunks.
+
+For more details, see the [DirectChatTransport reference](/docs/reference/ai-sdk-ui/direct-chat-transport).
 
 ## Controlling the response stream
 
@@ -682,15 +731,15 @@ The default error message is "An error occurred."
 You can forward error messages or send your own error message by providing a `getErrorMessage` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="13-27"
-import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
+__PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.1'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -731,6 +780,7 @@ import {
   UIMessage,
   type LanguageModelUsage,
 } from 'ai';
+__PROVIDER_IMPORT__;
 
 // Create a new metadata type (optional for type-safety)
 type MyMetadata = {
@@ -744,8 +794,8 @@ export async function POST(req: Request) {
   const { messages }: { messages: MyUIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -852,21 +902,20 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-reasoner`
+Some models such as as DeepSeek `deepseek-r1`
 and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
 ```ts filename="app/api/chat/route.ts" highlight="13"
-import { deepseek } from '@ai-sdk/deepseek';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: deepseek('deepseek-reasoner'),
-    messages: convertToModelMessages(messages),
+    model: 'deepseek/deepseek-r1',
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -907,15 +956,14 @@ Currently sources are limited to web pages that ground the response.
 You can forward them to the client with the `sendSources` option:
 
 ```ts filename="app/api/chat/route.ts" highlight="13"
-import { perplexity } from '@ai-sdk/perplexity';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: perplexity('sonar-pro'),
-    messages: convertToModelMessages(messages),
+    model: 'perplexity/sonar-pro',
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({

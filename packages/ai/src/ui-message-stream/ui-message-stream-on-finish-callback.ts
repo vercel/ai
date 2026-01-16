@@ -1,3 +1,4 @@
+import { FinishReason } from '../types/language-model';
 import { UIMessage } from '../ui/ui-messages';
 
 export type UIMessageStreamOnFinishCallback<UI_MESSAGE extends UIMessage> =
@@ -23,4 +24,9 @@ export type UIMessageStreamOnFinishCallback<UI_MESSAGE extends UIMessage> =
      * (including the original message if it was extended).
      */
     responseMessage: UI_MESSAGE;
+
+    /**
+     * The reason why the generation finished.
+     */
+    finishReason?: FinishReason;
   }) => PromiseLike<void> | void;
