@@ -132,6 +132,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   providerExecuted?: boolean;
+                  providerMetadata?: ProviderMetadata;
                 }
               | {
                   state: 'input-available';
@@ -179,10 +180,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (
-                anyOptions.providerMetadata != null &&
-                part.state === 'input-available'
-              ) {
+              if (anyOptions.providerMetadata != null) {
                 part.callProviderMetadata = anyOptions.providerMetadata;
               }
             } else {
@@ -214,6 +212,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  providerMetadata?: ProviderMetadata;
                 }
               | {
                   state: 'input-available';
@@ -258,10 +257,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (
-                anyOptions.providerMetadata != null &&
-                part.state === 'input-available'
-              ) {
+              if (anyOptions.providerMetadata != null) {
                 part.callProviderMetadata = anyOptions.providerMetadata;
               }
             } else {
@@ -463,6 +459,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  providerMetadata: chunk.providerMetadata,
                 });
               } else {
                 updateToolPart({
@@ -472,6 +469,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  providerMetadata: chunk.providerMetadata,
                 });
               }
 

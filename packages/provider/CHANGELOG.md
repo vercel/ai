@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.4
+
+### Patch Changes
+
+- 5c090e7: fix(ai): fix LanguageModelV2ProviderTool type
+
 ## 3.0.3
 
 ### Patch Changes

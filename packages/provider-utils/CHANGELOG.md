@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 4.0.7
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+
 ## 4.0.6
 
 ### Patch Changes

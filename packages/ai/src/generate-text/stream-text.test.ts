@@ -1406,6 +1406,66 @@ describe('streamText', () => {
         `);
     });
 
+    it('should pass through providerMetadata on tool-input-start', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-input-start',
+              id: 'call-1',
+              toolName: 'test-tool',
+              providerMetadata: {
+                testProvider: { someKey: 'someValue' },
+              },
+            },
+            {
+              type: 'tool-input-delta',
+              id: 'call-1',
+              delta: '{"value":"test"}',
+            },
+            {
+              type: 'tool-input-end',
+              id: 'call-1',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'test-tool',
+              input: '{"value":"test"}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage2,
+            },
+          ]),
+        }),
+        tools: {
+          'test-tool': tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        toolChoice: 'required',
+        prompt: 'test-input',
+      });
+
+      const chunks = await convertAsyncIterableToArray(result.fullStream);
+      const toolInputStart = chunks.find(
+        (c): c is Extract<typeof c, { type: 'tool-input-start' }> =>
+          c.type === 'tool-input-start',
+      );
+
+      expect(toolInputStart?.providerMetadata).toEqual({
+        testProvider: { someKey: 'someValue' },
+      });
+    });
+
     it('should send tool results', async () => {
       const result = streamText({
         model: createTestModel({
@@ -16305,6 +16365,11 @@ describe('streamText', () => {
               {
                 "dynamic": true,
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-start",

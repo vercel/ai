@@ -42,6 +42,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         toolName: z.string(),
         providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -279,6 +280,7 @@ export type UIMessageChunk<
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
     }

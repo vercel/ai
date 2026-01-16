@@ -1,11 +1,11 @@
 /**
 The configuration of a tool that is defined by the provider.
  */
-export type LanguageModelV2ProviderTool = {
+export type LanguageModelV2ProviderDefinedTool = {
   /**
-The type of the tool (always 'provider').
+The type of the tool (always 'provider-defined').
    */
-  type: 'provider';
+  type: 'provider-defined';
 
   /**
 The ID of the tool. Should follow the format `<provider-name>.<unique-tool-name>`.
