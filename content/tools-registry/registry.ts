@@ -451,4 +451,35 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'actionbook',
+    name: 'Actionbook',
+    description:
+      'Actionbook provides action manuals and DOM structure to help AI agents interact with websites 10× faster with 100× token savings. Search for actions by keyword and get curated selectors to optimize browser automation tasks.',
+    packageName: '@actionbookdev/tools-ai-sdk',
+    tags: ['browser-automation', 'web', 'dom', 'selectors'],
+    installCommand: {
+      pnpm: 'pnpm add @actionbookdev/tools-ai-sdk',
+      npm: 'npm install @actionbookdev/tools-ai-sdk',
+      yarn: 'yarn add @actionbookdev/tools-ai-sdk',
+      bun: 'bun add @actionbookdev/tools-ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { searchActions, getActionById } from '@actionbookdev/tools-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'Search for Airbnb booking and help me book a place in Tokyo',
+  tools: {
+    searchActions: searchActions(),
+    getActionById: getActionById(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/actionbook/actionbook',
+    websiteUrl: 'https://actionbook.dev',
+    npmUrl: 'https://www.npmjs.com/package/@actionbookdev/tools-ai-sdk',
+  },
 ];
