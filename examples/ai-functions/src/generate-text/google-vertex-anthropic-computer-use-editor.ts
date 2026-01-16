@@ -11,7 +11,7 @@ This is a test file.
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
-      str_replace_editor: vertexAnthropic.tools.textEditor_20241022({
+      str_replace_editor: vertexAnthropic.tools.textEditor_20250124({
         async execute({ command, path, old_str, new_str }) {
           console.log({ command, path, old_str, new_str });
           switch (command) {

@@ -6,7 +6,7 @@ run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
-      bash: vertexAnthropic.tools.bash_20241022({
+      bash: vertexAnthropic.tools.bash_20250124({
         async execute({ command }) {
           console.log('COMMAND', command);
           return [
