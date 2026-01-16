@@ -256,6 +256,166 @@ describe('user messages', () => {
       ],
     });
   });
+
+  it('should add per-part mediaResolution for inline data when specified', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: {
+                mediaResolution: 'MEDIA_RESOLUTION_HIGH',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+              mediaResolution: {
+                level: 'MEDIA_RESOLUTION_HIGH',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should add per-part mediaResolution for URL file data when specified', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('gs://bucket/image.png'),
+            mediaType: 'image/png',
+            providerOptions: {
+              google: {
+                mediaResolution: 'MEDIA_RESOLUTION_ULTRA_HIGH',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri: 'gs://bucket/image.png',
+              },
+              mediaResolution: {
+                level: 'MEDIA_RESOLUTION_ULTRA_HIGH',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should use vertex provider options name for per-part mediaResolution', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'AAECAw==',
+              mediaType: 'image/png',
+              providerOptions: {
+                vertex: {
+                  mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      { providerOptionsName: 'vertex' },
+    );
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+              mediaResolution: {
+                level: 'MEDIA_RESOLUTION_MEDIUM',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should not add mediaResolution when not specified in providerOptions', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: {
+                // no mediaResolution specified
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
 
 describe('tool messages', () => {
