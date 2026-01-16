@@ -364,7 +364,7 @@ console.log(text);`,
       bun: 'bun add @takoviz/ai-sdk',
     },
     codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
-  import { generateText } from 'ai';
+  import { generateText, stepCountIs } from 'ai';
   
   const { text } = await generateText({
     model: 'openai/gpt-4o-mini',
@@ -372,7 +372,7 @@ console.log(text);`,
     tools: {
       takoSearch: takoSearch(),
     },
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
   });
   
   console.log(text);`,
