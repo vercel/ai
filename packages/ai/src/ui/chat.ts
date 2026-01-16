@@ -694,7 +694,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           isDisconnect,
           isError,
           finishReason: this.activeResponse?.state.finishReason,
-          usage: this.activeResponse?.state.usage,
+          ...(this.activeResponse?.state.usage != null && {
+            usage: this.activeResponse.state.usage,
+          }),
         });
       } catch (err) {
         console.error(err);
