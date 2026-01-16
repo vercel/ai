@@ -115,6 +115,59 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
 
 const toolTests = (model: LanguageModelV3) => {
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
+    'should execute computer tool commands',
+    async () => {
+      const result = await generateText({
+        model,
+        tools: {
+          computer: vertexAnthropic.tools.computer_20241022({
+            displayWidthPx: 1024,
+            displayHeightPx: 768,
+            async execute({ action, coordinate, text }) {
+              switch (action) {
+                case 'screenshot': {
+                  return {
+                    type: 'image',
+                    data: fs
+                      .readFileSync('./data/screenshot-editor.png')
+                      .toString('base64'),
+                  };
+                }
+                default: {
+                  return `executed ${action}`;
+                }
+              }
+            },
+            toModelOutput({ output }) {
+              return {
+                type: 'content',
+                value: [
+                  typeof output === 'string'
+                    ? { type: 'text', text: output }
+                    : {
+                        type: 'image-data',
+                        data: output.data,
+                        mediaType: 'image/png',
+                      },
+                ],
+              };
+            },
+          }),
+        },
+        prompt:
+          'How can I switch to dark mode? Take a look at the screen and tell me.',
+        stopWhen: stepCountIs(5),
+      });
+
+      console.log(result.text);
+      expect(result.text).toBeTruthy();
+      expect(result.text.toLowerCase()).toMatch(/color theme|dark mode/);
+      expect(result.usage?.totalTokens).toBeGreaterThan(0);
+    },
+    { timeout: COMPUTER_USE_TEST_MILLIS },
+  );
+
+  it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
     'should execute computer use bash tool commands',
     async () => {
       const result = await generateText({

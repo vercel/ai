@@ -95,9 +95,9 @@ describe('google-vertex-anthropic-provider', () => {
     expect(provider.tools).toHaveProperty('textEditor_20250124');
     expect(provider.tools).toHaveProperty('textEditor_20250429');
     expect(provider.tools).toHaveProperty('textEditor_20250728');
+    expect(provider.tools).toHaveProperty('computer_20241022');
     expect(provider.tools).toHaveProperty('webSearch_20250305');
     expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
-    expect(provider.tools).not.toHaveProperty('computer_20241022');
   });
 
   it('should pass custom headers to the model constructor', () => {

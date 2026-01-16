@@ -47,6 +47,14 @@ export const vertexAnthropicTools = {
   textEditor_20250728: anthropicTools.textEditor_20250728,
 
   /**
+   * Claude can interact with computer environments through the computer use tool, which
+   * provides screenshot capabilities and mouse/keyboard control for autonomous desktop interaction.
+   *
+   * Image results are supported.
+   */
+  computer_20241022: anthropicTools.computer_20241022,
+
+  /**
    * Creates a web search tool that gives Claude direct access to real-time web content.
    */
   webSearch_20250305: anthropicTools.webSearch_20250305,
