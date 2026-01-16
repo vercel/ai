@@ -60,7 +60,7 @@ function generateTypeFile(modelIds: string[], typeName: string): string {
 
   const lines = [
     `export type ${typeName} =`,
-    ...sortedIds.map(id => `  | '${id.replace(/'/g, "\\'")}'`),
+    ...sortedIds.map(id => `  | '${id}'`),
     '  | (string & {});',
   ];
 
@@ -89,7 +89,8 @@ async function main() {
       const modelIds = modelsByType[type];
 
       if (modelIds.length === 0) {
-        console.warn(`Warning: No ${type} models found`);
+        console.error(`Error: No ${type} models found in API response`);
+        process.exit(1);
       }
 
       const content = generateTypeFile(modelIds, config.typeName);

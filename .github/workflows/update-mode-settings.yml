@@ -5,7 +5,6 @@ on:
     # Run every morning at 8:00 AM UTC
     - cron: '0 8 * * *'
   workflow_dispatch:
-  pull_request:
 
 permissions:
   contents: write
@@ -40,6 +39,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
+          ref: main
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
@@ -94,13 +94,14 @@ jobs:
 
       - name: Create branch and commit changes
         if: steps.check-changes.outputs.has-changes == 'true'
+        id: create-branch
         run: |
           BRANCH_NAME="update-gateway-models-$(date +%Y%m%d-%H%M)"
           git checkout -b "$BRANCH_NAME"
           git add .
           git commit -m "chore(provider/gateway): update gateway model settings files"
           git push origin "$BRANCH_NAME"
-          echo "BRANCH_NAME=$BRANCH_NAME" >> "$GITHUB_ENV"
+          echo "branch-name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
         if: steps.check-changes.outputs.has-changes == 'true'
@@ -112,7 +113,7 @@ jobs:
             --title "$PR_TITLE" \
             --body "This is an automated weekly update of the gateway model settings files." \
             --base main \
-            --head "$BRANCH_NAME" \
+            --head "${{ steps.create-branch.outputs.branch-name }}" \
             --reviewer R-Taneja \
             --reviewer sylviezhang37)
 
