@@ -210,7 +210,39 @@ const result2 = await generateText({
 
 ### MCP Server Integration
 
-The provider supports integration with MCP (Model Context Protocol) servers for extended capabilities.
+The provider supports integration with MCP (Model Context Protocol) servers for extended capabilities:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  mcpServers: {
+    // Local/stdio MCP server
+    'my-local-server': {
+      type: 'local',
+      command: 'node',
+      args: ['./mcp-server.js'],
+      tools: ['*'], // Include all tools, or specify ['tool1', 'tool2']
+      env: { DEBUG: 'true' },
+    },
+    // Remote HTTP MCP server
+    'my-remote-server': {
+      type: 'http',
+      url: 'https://mcp.example.com/api',
+      tools: ['search', 'fetch'],
+      headers: { Authorization: 'Bearer token' },
+    },
+  },
+});
+```
+
+MCP server configuration options:
+
+- **type** _'local' | 'stdio' | 'http' | 'sse'_ - Server type (defaults to `'local'`)
+- **tools** _string[]_ - Tools to include (`['*']` for all, or specific tool names)
+- **command** / **args** - For local servers, the command to spawn
+- **url** - For remote servers, the HTTP/SSE endpoint
+- **timeout** _number_ - Optional timeout in milliseconds for tool calls
 
 ### OpenTelemetry Integration
 
