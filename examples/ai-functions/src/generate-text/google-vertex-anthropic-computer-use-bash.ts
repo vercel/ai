@@ -1,12 +1,12 @@
+import { run } from '../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, stepCountIs } from 'ai';
-import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
-      bash: vertexAnthropic.tools.bash_20250124({
+      bash: vertexAnthropic.tools.bash_20241022({
         async execute({ command }) {
           console.log('COMMAND', command);
           return [

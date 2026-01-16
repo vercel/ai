@@ -23,11 +23,31 @@ export const vertexAnthropicTools = {
   /**
    * The bash tool enables Claude to execute shell commands in a persistent bash session,
    * allowing system operations, script execution, and command-line automation.
+   *
+   * Image results are supported.
+   */
+  bash_20241022: anthropicTools.bash_20241022,
+
+  /**
+   * The bash tool enables Claude to execute shell commands in a persistent bash session,
+   * allowing system operations, script execution, and command-line automation.
+   *
+   * Image results are supported.
    */
   bash_20250124: anthropicTools.bash_20250124,
 
   /**
-   * Claude can use an Anthropic-defined text editor tool to view and modify text files.
+   * Claude can use an Anthropic-defined text editor tool to view and modify text files,
+   * helping you debug, fix, and improve your code or other text documents.
+   *
+   * Supported models: Claude Sonnet 3.5
+   */
+  textEditor_20241022: anthropicTools.textEditor_20241022,
+
+  /**
+   * Claude can use an Anthropic-defined text editor tool to view and modify text files,
+   * helping you debug, fix, and improve your code or other text documents.
+   *
    * Supported models: Claude Sonnet 3.7
    */
   textEditor_20250124: anthropicTools.textEditor_20250124,
@@ -73,8 +93,9 @@ Creates a model for text generation.
   /**
    * Anthropic tools supported by Google Vertex.
    * Note: Only a subset of Anthropic tools are available on Vertex.
-   * Supported tools: bash_20250124, textEditor_20250124, textEditor_20250429,
-   * textEditor_20250728, webSearch_20250305
+   * Supported tools: bash_20241022, bash_20250124, textEditor_20241022,
+   * textEditor_20250124, textEditor_20250429, textEditor_20250728,
+   * computer_20241022, webSearch_20250305
    */
   tools: typeof vertexAnthropicTools;
 

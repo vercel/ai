@@ -91,7 +91,9 @@ describe('google-vertex-anthropic-provider', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
     expect(provider.tools).toBe(vertexAnthropicTools);
+    expect(provider.tools).toHaveProperty('bash_20241022');
     expect(provider.tools).toHaveProperty('bash_20250124');
+    expect(provider.tools).toHaveProperty('textEditor_20241022');
     expect(provider.tools).toHaveProperty('textEditor_20250124');
     expect(provider.tools).toHaveProperty('textEditor_20250429');
     expect(provider.tools).toHaveProperty('textEditor_20250728');
