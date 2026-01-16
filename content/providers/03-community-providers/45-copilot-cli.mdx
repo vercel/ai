@@ -190,7 +190,28 @@ The provider supports integration with MCP (Model Context Protocol) servers for 
 
 ### OpenTelemetry Integration
 
-The provider includes built-in support for OpenTelemetry tracing and metrics for observability.
+The provider includes built-in support for OpenTelemetry tracing and metrics:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  telemetry: {
+    enabled: true,
+    tracerParams: {
+      name: 'my-custom-tracer',
+      version: '1.0.0',
+    },
+    recordInputs: false, // Set to true to record prompts (careful with PII)
+    recordOutputs: false, // Set to true to record completions
+  },
+});
+```
+
+Metrics emitted:
+
+- `gen_ai.client.token.usage`: Counter of tokens used (input/output)
+- `gen_ai.client.operation.duration`: Histogram of operation latency
 
 ## Authentication
 
