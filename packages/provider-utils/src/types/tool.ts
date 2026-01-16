@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV3 } from '@ai-sdk/provider';
 import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
@@ -37,6 +37,11 @@ export interface ToolExecutionOptions {
    * Experimental (can break in patch releases).
    */
   experimental_context?: unknown;
+
+  /**
+  * The assistant response that contains the tool call.
+   */
+  currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 }
 
 /**

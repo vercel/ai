@@ -9,6 +9,7 @@ import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -19,6 +20,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
   onPreliminaryToolResult,
+  currentModelResponse,
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
@@ -28,6 +30,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
@@ -65,6 +68,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal,
             experimental_context,
+            currentModelResponse,
           },
         });
 
