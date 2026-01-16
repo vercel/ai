@@ -17,12 +17,14 @@ export class GatewayInvalidRequestError extends GatewayError {
     message = 'Invalid request',
     statusCode = 400,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayInvalidRequestError {
