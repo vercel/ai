@@ -29,6 +29,7 @@ import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 import { asArray } from '../util/as-array';
+import { MissingToolResultError } from '../error/missing-tool-result-error';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -44,6 +45,38 @@ export async function convertToLanguageModelPrompt({
     download,
     supportedUrls,
   );
+
+  const approvalIdToToolCallId = new Map<string, string>();
+  for (const message of prompt.messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content) {
+        if (
+          part.type === 'tool-approval-request' &&
+          'approvalId' in part &&
+          'toolCallId' in part
+        ) {
+          approvalIdToToolCallId.set(
+            part.approvalId as string,
+            part.toolCallId as string,
+          );
+        }
+      }
+    }
+  }
+
+  const approvedToolCallIds = new Set<string>();
+  for (const message of prompt.messages) {
+    if (message.role === 'tool') {
+      for (const part of message.content) {
+        if (part.type === 'tool-approval-response') {
+          const toolCallId = approvalIdToToolCallId.get(part.approvalId);
+          if (toolCallId) {
+            approvedToolCallIds.add(toolCallId);
+          }
+        }
+      }
+    }
+  }
 
   const messages = [
     ...(prompt.system != null
@@ -76,7 +109,54 @@ export async function convertToLanguageModelPrompt({
     }
   }
 
-  return combinedMessages;
+  const toolCallIds = new Set<string>();
+
+  for (const message of combinedMessages) {
+    switch (message.role) {
+      case 'assistant': {
+        for (const content of message.content) {
+          if (content.type === 'tool-call' && !content.providerExecuted) {
+            toolCallIds.add(content.toolCallId);
+          }
+        }
+        break;
+      }
+      case 'tool': {
+        for (const content of message.content) {
+          if (content.type === 'tool-result') {
+            toolCallIds.delete(content.toolCallId);
+          }
+        }
+        break;
+      }
+      case 'user':
+      case 'system':
+        // remove approved tool calls from the set before checking:
+        for (const id of approvedToolCallIds) {
+          toolCallIds.delete(id);
+        }
+
+        if (toolCallIds.size > 0) {
+          const [missingToolCallId] = toolCallIds;
+          throw new MissingToolResultError({ toolCallId: missingToolCallId });
+        }
+        break;
+    }
+  }
+
+  // remove approved tool calls from the set before checking:
+  for (const id of approvedToolCallIds) {
+    toolCallIds.delete(id);
+  }
+
+  if (toolCallIds.size > 0) {
+    const [missingToolCallId] = toolCallIds;
+    throw new MissingToolResultError({ toolCallId: missingToolCallId });
+  }
+
+  return combinedMessages.filter(
+    message => message.role !== 'tool' || message.content.length > 0,
+  );
 }
 
 /**
