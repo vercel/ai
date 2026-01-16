@@ -367,7 +367,7 @@ console.log(text);`,
 import { generateText, stepCountIs } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o-mini',
+  model: 'openai/gpt-5.2',
   prompt: 'What is the stock price of Nvidia?',
   tools: {
     takoSearch: takoSearch(),
