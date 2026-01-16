@@ -364,18 +364,18 @@ console.log(text);`,
       bun: 'bun add @takoviz/ai-sdk',
     },
     codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
-  import { generateText, stepCountIs } from 'ai';
-  
-  const { text } = await generateText({
-    model: 'openai/gpt-4o-mini',
-    prompt: 'What is the stock price of Nvidia?',
-    tools: {
-      takoSearch: takoSearch(),
-    },
-    stopWhen: stepCountIs(5),
-  });
-  
-  console.log(text);`,
+import { generateText, stepCountIs } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-4o-mini',
+  prompt: 'What is the stock price of Nvidia?',
+  tools: {
+    takoSearch: takoSearch(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
     docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
     npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
     websiteUrl: 'https://tako.com',
