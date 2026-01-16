@@ -6,7 +6,7 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
   pull_request:
-    
+
 permissions:
   contents: write
   pull-requests: write
@@ -40,7 +40,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
-          ref: main
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
