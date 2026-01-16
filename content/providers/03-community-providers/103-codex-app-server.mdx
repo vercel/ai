@@ -14,24 +14,44 @@ The [ai-sdk-provider-codex-app-server](https://github.com/pablof7z/ai-sdk-provid
 - **Session control**: Interrupt running turns, inject messages at checkpoints
 - **Tool streaming**: Real-time visibility into command executions and file changes
 
+## Version Compatibility
+
+| Provider Version | AI SDK Version | Status |
+| ---------------- | -------------- | ------ |
+| 1.x              | v6             | Stable |
+
 ## Setup
 
-```bash
-npm install github:pablof7z/ai-sdk-provider-codex-app-server ai
-```
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-codex-app-server" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-codex-app-server" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-codex-app-server" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-codex-app-server" dark />
+  </Tab>
+</Tabs>
 
 ## Provider Instance
 
 Import the default provider instance:
 
 ```ts
-import { createCodexAppServer, type Session } from 'ai-sdk-provider-codex-app-server';
+import {
+  createCodexAppServer,
+  type Session,
+} from 'ai-sdk-provider-codex-app-server';
 
 let session: Session;
 
 const provider = createCodexAppServer({
   defaultSettings: {
-    onSessionCreated: (s) => {
+    onSessionCreated: s => {
       session = s;
     },
   },
@@ -43,14 +63,17 @@ const provider = createCodexAppServer({
 The killer feature of this provider is the ability to inject messages while the agent is actively working:
 
 ```ts
-import { createCodexAppServer, type Session } from 'ai-sdk-provider-codex-app-server';
+import {
+  createCodexAppServer,
+  type Session,
+} from 'ai-sdk-provider-codex-app-server';
 import { streamText } from 'ai';
 
 let session: Session;
 
 const provider = createCodexAppServer({
   defaultSettings: {
-    onSessionCreated: (s) => {
+    onSessionCreated: s => {
       session = s;
     },
   },
@@ -104,7 +127,7 @@ const { models, defaultModel } = await listModels();
 
 for (const model of models) {
   console.log(`${model.id}: ${model.description}`);
-  const efforts = model.supportedReasoningEfforts.map((e) => e.reasoningEffort);
+  const efforts = model.supportedReasoningEfforts.map(e => e.reasoningEffort);
   console.log(`  Reasoning: ${efforts.join(', ')}`);
 }
 ```
