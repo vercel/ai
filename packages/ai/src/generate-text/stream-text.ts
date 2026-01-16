@@ -1468,6 +1468,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // raw text as it comes from the provider. recorded for telemetry.
           let activeText = '';
+          // raw reasoning as it comes from the provider. recorded for telemetry.
+          let activeReasoning = '';
 
           self.addStream(
             streamWithToolResults.pipeThrough(
@@ -1540,6 +1542,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                         text: chunk.delta,
                         providerMetadata: chunk.providerMetadata,
                       });
+                      activeReasoning += chunk.delta;
                       break;
                     }
 
@@ -1687,6 +1690,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                           'ai.response.finishReason': stepFinishReason,
                           'ai.response.text': {
                             output: () => activeText,
+                          },
+                          'ai.response.reasoning': {
+                            output: () => {
+                              const fs = require('fs');
+                              fs.appendFileSync(
+                                '/Users/aayushkapoor/Desktop/ai/examples/ai-functions/output/debug-telemetry.txt',
+                                `[DEBUG TELEMETRY] activeReasoning length: ${activeReasoning?.length} | first 200 chars: ${activeReasoning?.substring(0, 200)}\n`,
+                              );
+                              return activeReasoning || undefined;
+                            },
                           },
                           'ai.response.toolCalls': {
                             output: () => stepToolCallsJson,
