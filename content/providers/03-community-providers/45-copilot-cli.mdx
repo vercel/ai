@@ -174,14 +174,38 @@ const copilot = createCopilotProvider({
 
 ### Response Caching
 
+The provider includes a caching layer to reduce API calls for repeated prompts:
+
 ```ts
 import { createCopilotProvider } from 'ai-sdk-provider-copilot';
-import { MemoryCache } from 'ai-sdk-provider-copilot/cache';
+import { createMemoryCache, wrapWithCache } from 'ai-sdk-provider-copilot/cache';
+import { generateText } from 'ai';
 
-const cache = new MemoryCache();
 const copilot = createCopilotProvider();
 
-// Use cache middleware for responses
+// Create a cache instance
+const cache = createMemoryCache({
+  maxEntries: 100,
+});
+
+// Wrap the model with caching
+const cachedModel = wrapWithCache(copilot('gpt-4'), {
+  enabled: true,
+  adapter: cache,
+  defaultTtlMs: 60000, // Cache for 1 minute
+});
+
+// First call hits the API
+const result1 = await generateText({
+  model: cachedModel,
+  prompt: 'What is the capital of France?',
+});
+
+// Second identical call returns cached response
+const result2 = await generateText({
+  model: cachedModel,
+  prompt: 'What is the capital of France?',
+});
 ```
 
 ### MCP Server Integration
