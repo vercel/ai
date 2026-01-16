@@ -358,7 +358,7 @@ console.log(text);`,
       "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
     packageName: '@takoviz/ai-sdk',
     installCommand: {
-      pnpm: 'pnpm add @takoviz/ai-sdk',
+      pnpm: 'pnpm install @takoviz/ai-sdk',
       npm: 'npm install @takoviz/ai-sdk',
       yarn: 'yarn add @takoviz/ai-sdk',
       bun: 'bun add @takoviz/ai-sdk',
