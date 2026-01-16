@@ -6180,7 +6180,7 @@ describe('processUIMessageStream', () => {
           type: 'tool-input-start',
           toolCallId: 'tool-call-id',
           toolName: 'tool-name',
-          providerMetadata: { testProvider: { parentToolCallId: 'parent-1' } },
+          providerMetadata: { testProvider: { someKey: 'someValue' } },
         },
         {
           type: 'tool-input-delta',
@@ -6234,7 +6234,7 @@ describe('processUIMessageStream', () => {
 
       // Key assertion: providerMetadata should be available during input-streaming
       expect(toolPart.callProviderMetadata).toEqual({
-        testProvider: { parentToolCallId: 'parent-1' },
+        testProvider: { someKey: 'someValue' },
       });
     });
 
@@ -6245,7 +6245,7 @@ describe('processUIMessageStream', () => {
 
       expect(toolPart.state).toBe('input-available');
       expect(toolPart.callProviderMetadata).toEqual({
-        testProvider: { parentToolCallId: 'parent-1' },
+        testProvider: { someKey: 'someValue' },
       });
     });
   });

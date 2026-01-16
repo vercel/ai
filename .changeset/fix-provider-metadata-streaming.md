@@ -1,5 +1,5 @@
 ---
-"ai": patch
+'ai': patch
 ---
 
 fix(ai): propagate providerMetadata during input-streaming state
