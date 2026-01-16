@@ -1236,24 +1236,29 @@ const result = await generateText({
 
 For more on prompt caching with Anthropic, see [Google Vertex AI's Claude prompt caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching) and [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
-### Computer Use
+### Tools
 
-Anthropic provides three built-in tools that can be used to interact with external systems:
+Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The following tools are available via the `tools` property of the provider instance:
 
 1. **Bash Tool**: Allows running bash commands.
 2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
-3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
+3. **Web Search Tool**: Provides access to real-time web content.
 
-They are available via the `tools` property of the provider instance.
+<Note>
+  Only a subset of Anthropic tools are supported on Google Vertex. Tools like
+  Computer Use, Code Execution, Memory, and Web Fetch are not available. Use the
+  regular `@ai-sdk/anthropic` provider if you need access to all Anthropic
+  tools.
+</Note>
 
-For more background see [Anthropic's Computer Use documentation](https://docs.anthropic.com/en/docs/build-with-claude/computer-use).
+For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
 
 #### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
 ```ts
-const bashTool = vertexAnthropic.tools.bash_20241022({
+const bashTool = vertexAnthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => {
     // Implement your bash command execution logic here
     // Return the result of the command execution
@@ -1271,7 +1276,7 @@ Parameters:
 The Text Editor Tool provides functionality for viewing and editing text files:
 
 ```ts
-const textEditorTool = vertexAnthropic.tools.textEditor_20241022({
+const textEditorTool = vertexAnthropic.tools.textEditor_20250124({
   execute: async ({
     command,
     path,
@@ -1297,56 +1302,39 @@ Parameters:
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
-#### Computer Tool
+#### Web Search Tool
 
-The Computer Tool enables control of keyboard and mouse actions on a computer:
+The Web Search Tool provides Claude with direct access to real-time web content:
 
 ```ts
-const computerTool = vertexAnthropic.tools.computer_20241022({
-  displayWidthPx: 1920,
-  displayHeightPx: 1080,
-  displayNumber: 0, // Optional, for X11 environments
-
-  execute: async ({ action, coordinate, text }) => {
-    // Implement your computer control logic here
-    // Return the result of the action
-
-    // Example code:
-    switch (action) {
-      case 'screenshot': {
-        // multipart result:
-        return {
-          type: 'image',
-          data: fs
-            .readFileSync('./data/screenshot-editor.png')
-            .toString('base64'),
-        };
-      }
-      default: {
-        console.log('Action:', action);
-        console.log('Coordinate:', coordinate);
-        console.log('Text:', text);
-        return `executed ${action}`;
-      }
-    }
-  },
-
-  // map to tool result content for LLM consumption:
-  toModelOutput({ output }) {
-    return typeof output === 'string'
-      ? [{ type: 'text', text: output }]
-      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
+const webSearchTool = vertexAnthropic.tools.webSearch_20250305({
+  maxUses: 5, // Optional: Maximum number of web searches Claude can perform
+  allowedDomains: ['example.com'], // Optional: Only search these domains
+  blockedDomains: ['spam.com'], // Optional: Never search these domains
+  userLocation: {
+    // Optional: Provide location for geographically relevant results
+    type: 'approximate',
+    city: 'San Francisco',
+    region: 'CA',
+    country: 'US',
+    timezone: 'America/Los_Angeles',
   },
 });
 ```
 
 Parameters:
 
-- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position'): The action to perform.
-- `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
-- `text` (string, optional): Required for `type` and `key` actions.
+- `maxUses` (number, optional): Maximum number of web searches Claude can perform during the conversation.
+- `allowedDomains` (string[], optional): Optional list of domains that Claude is allowed to search.
+- `blockedDomains` (string[], optional): Optional list of domains that Claude should avoid when searching.
+- `userLocation` (object, optional): Optional user location information to provide geographically relevant search results.
+  - `type` ('approximate'): The type of location (must be approximate).
+  - `city` (string, optional): The city name.
+  - `region` (string, optional): The region or state.
+  - `country` (string, optional): The country.
+  - `timezone` (string, optional): The IANA timezone ID.
 
-These tools can be used in conjunction with the `claude-3-5-sonnet-v2@20241022` model to enable more complex interactions and tasks.
+These tools can be used in conjunction with supported Claude models to enable more complex interactions and tasks.
 
 ### Model Capabilities
 
