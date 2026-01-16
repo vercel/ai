@@ -178,7 +178,6 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
-            "usage": undefined,
           },
         ]
       `);
@@ -538,7 +537,6 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
-            "usage": undefined,
           },
         ]
       `);
@@ -775,7 +773,6 @@ describe('Chat', () => {
                 "role": "assistant",
               },
             ],
-            "usage": undefined,
           },
         ]
       `);
