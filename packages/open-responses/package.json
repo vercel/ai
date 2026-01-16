@@ -9,8 +9,7 @@
   "files": [
     "dist/**/*",
     "CHANGELOG.md",
-    "README.md",
-    "internal.d.ts"
+    "README.md"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
