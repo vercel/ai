@@ -1,5 +1,53 @@
 # @ai-sdk/provider-utils
 
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 4.0.7
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+
+## 4.0.6
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider@3.0.3
+
+## 4.0.5
+
+### Patch Changes
+
+- 34d1c8a: fix(provider-utils): add additionalProperties field for standard schema function
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- 0b429d4: fix(provider-utils): handle anyOf/allOf/oneOf and definitions in addAdditionalPropertiesToJsonSchema
+
+## 4.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+
 ## 4.0.1
 
 ### Patch Changes

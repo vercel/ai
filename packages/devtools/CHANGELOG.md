@@ -1,5 +1,40 @@
 # @ai-sdk/devtools
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider@3.0.3
+
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 0.0.3
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+
+## 0.0.2
+
+### Patch Changes
+
+- 4c527d5: fix (devtools): step output text and bin name
+
 ## 0.0.1
 
 ### Patch Changes

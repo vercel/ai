@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "3.0.2",
+  "version": "3.0.16",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -16,6 +16,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
+    "generate-model-settings": "tsx scripts/generate-model-settings.ts",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -36,13 +37,14 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@vercel/oidc": "3.0.5"
+    "@vercel/oidc": "3.1.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "18.15.11",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
+    "tsx": "4.19.2",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

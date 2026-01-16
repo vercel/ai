@@ -1,5 +1,29 @@
 # @ai-sdk/provider
 
+## 3.0.4
+
+### Patch Changes
+
+- 5c090e7: fix(ai): fix LanguageModelV2ProviderTool type
+
+## 3.0.3
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+
+## 3.0.2
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+
+## 3.0.1
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+
 ## 3.0.0
 
 ### Major Changes
