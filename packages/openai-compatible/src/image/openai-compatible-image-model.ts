@@ -40,6 +40,13 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     return this.config.provider;
   }
 
+  /**
+   * The provider options key used to extract provider-specific options.
+   */
+  private get providerOptionsKey(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
     private readonly config: OpenAICompatibleImageModelConfig,
@@ -91,7 +98,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
           mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
-          ...(providerOptions.openai ?? {}),
+          ...(providerOptions[this.providerOptionsKey] ?? {}),
         }),
         failedResponseHandler: createJsonErrorResponseHandler(
           this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
@@ -126,7 +133,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
         prompt,
         n,
         size,
-        ...(providerOptions.openai ?? {}),
+        ...(providerOptions[this.providerOptionsKey] ?? {}),
         response_format: 'b64_json',
       },
       failedResponseHandler: createJsonErrorResponseHandler(
