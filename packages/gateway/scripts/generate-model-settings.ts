@@ -54,9 +54,13 @@ async function fetchModels(): Promise<ModelsResponse> {
 function generateTypeFile(modelIds: string[], typeName: string): string {
   const sortedIds = [...modelIds].sort();
 
+  if (sortedIds.length === 0) {
+    return `export type ${typeName} = string & {};\n`;
+  }
+
   const lines = [
     `export type ${typeName} =`,
-    ...sortedIds.map(id => `  | '${id}'`),
+    ...sortedIds.map((id) => `  | '${id.replace(/'/g, "\\'")}'`),
     '  | (string & {});',
   ];
 
@@ -92,7 +96,9 @@ async function main() {
       const outputPath = path.join(OUTPUT_DIR, config.outputFile);
 
       fs.writeFileSync(outputPath, content, 'utf-8');
-      console.log(`Generated ${config.outputFile} with ${modelIds.length} models`);
+      console.log(
+        `Generated ${config.outputFile} with ${modelIds.length} models`,
+      );
     }
 
     console.log('Model settings updated successfully');

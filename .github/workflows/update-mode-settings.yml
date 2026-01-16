@@ -4,8 +4,8 @@ on:
   schedule:
     # Run every morning at 8:00 AM UTC
     - cron: '0 8 * * *'
-  pull_request:
   workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: write
