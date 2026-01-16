@@ -1,0 +1,226 @@
+---
+title: Copilot CLI
+description: Learn how to use the Copilot CLI provider to access GitHub Copilot models through the Copilot SDK.
+---
+
+# Copilot CLI Provider
+
+The [ai-sdk-provider-copilot](https://github.com/nicobailon/ai-sdk-provider-copilot) community provider enables using GitHub Copilot models through the official [@github/copilot-sdk](https://www.npmjs.com/package/@github/copilot-sdk). It's useful for developers who want to use their existing GitHub Copilot subscription for AI SDK applications.
+
+<Note>
+  This provider requires the Copilot CLI to be running locally. It will **not
+  work in serverless environments** (Vercel, AWS Lambda, etc.) because the
+  Copilot SDK spawns a local CLI process.
+</Note>
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import `createCopilotProvider` from `ai-sdk-provider-copilot` and create a provider instance:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider();
+```
+
+If you need a customized setup, you can provide configuration options:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  // Enable verbose logging
+  verbose: true,
+
+  // Retry configuration
+  retry: {
+    maxRetries: 3,
+    initialDelayMs: 100,
+  },
+
+  // Custom agents
+  customAgents: [
+    {
+      name: 'code-reviewer',
+      prompt: 'You are an expert code reviewer...',
+    },
+  ],
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **verbose** _boolean_ - Enable verbose logging for debugging.
+- **retry** _\{ maxRetries: number, initialDelayMs: number \}_ - Configure retry behavior with exponential backoff.
+- **provider** _object_ - BYOK (Bring Your Own Key) configuration for using alternative backends like OpenAI directly.
+- **customAgents** _\{ name: string, prompt: string \}[]_ - Define custom agent personas with specific system prompts.
+
+## Language Models
+
+Create models that call GitHub Copilot through the Copilot SDK using the provider instance:
+
+```ts
+const model = copilot('gpt-4');
+```
+
+Supported models include those available through your GitHub Copilot subscription:
+
+- **gpt-4**: GPT-4 model
+- **gpt-4o**: GPT-4o model
+- **gpt-3.5-turbo**: GPT-3.5 Turbo model
+- Other models as supported by your Copilot subscription
+
+### Example
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+
+const copilot = createCopilotProvider();
+
+const { text } = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+
+// Always dispose when done
+await copilot.dispose();
+```
+
+### Streaming Example
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { streamText } from 'ai';
+
+const copilot = createCopilotProvider();
+
+const stream = await streamText({
+  model: copilot('gpt-4'),
+  prompt: 'Tell me a story',
+});
+
+for await (const chunk of stream.textStream) {
+  process.stdout.write(chunk);
+}
+
+await copilot.dispose();
+```
+
+### Model Settings
+
+```ts
+const model = copilot('gpt-4', {
+  systemMessage: {
+    mode: 'append',
+    content: 'Be concise and helpful.',
+  },
+  // Control which built-in tools are available
+  availableTools: ['web_fetch'],
+  excludedTools: ['report_intent'],
+});
+```
+
+Model-level settings:
+
+- **systemMessage** _\{ mode: 'append' | 'replace', content: string \}_ - System message configuration.
+- **availableTools** _string[]_ - List of built-in tools to make available.
+- **excludedTools** _string[]_ - List of built-in tools to exclude.
+
+### Model Capabilities
+
+| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Object generation shows ❌ because this provider uses prompt-based structured
+  output rather than native JSON mode. Tool calling is fully supported with
+  custom tools defined via Zod schemas.
+</Note>
+
+## BYOK (Bring Your Own Key)
+
+You can configure the provider to use your own API key with an alternative backend:
+
+```ts
+const copilot = createCopilotProvider({
+  provider: {
+    type: 'openai',
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+```
+
+## Additional Features
+
+### Response Caching
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { MemoryCache } from 'ai-sdk-provider-copilot/cache';
+
+const cache = new MemoryCache();
+const copilot = createCopilotProvider();
+
+// Use cache middleware for responses
+```
+
+### MCP Server Integration
+
+The provider supports integration with MCP (Model Context Protocol) servers for extended capabilities.
+
+### OpenTelemetry Integration
+
+The provider includes built-in support for OpenTelemetry tracing and metrics for observability.
+
+## Authentication
+
+The provider uses your existing GitHub Copilot subscription. Authenticate via the GitHub CLI or Copilot CLI:
+
+```bash
+# Using GitHub CLI
+gh auth login
+
+# Or using Copilot CLI
+copilot auth login
+```
+
+## Requirements
+
+- Node.js 20 or higher
+- GitHub Copilot CLI installed globally: `npm install -g @github/copilot`
+- Valid GitHub Copilot subscription
+- Authenticated via `copilot auth login` or `gh auth login`
+
+## Windows Notes
+
+On Windows, the provider automatically detects the Copilot CLI path. If you encounter issues, ensure the CLI is installed globally:
+
+```powershell
+npm install -g @github/copilot
+```
+
+For more details, see the [provider documentation](https://github.com/nicobailon/ai-sdk-provider-copilot).
