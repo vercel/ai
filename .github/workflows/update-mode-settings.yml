@@ -2,8 +2,9 @@ name: Update Gateway Model Settings
 
 on:
   schedule:
-    # Run every Monday at 8:00 AM UTC
-    - cron: '0 8 * * 1'
+    # Run every morning at 8:00 AM UTC
+    - cron: '0 8 * * *'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -57,35 +58,10 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Fetch and update language models
+      - name: Generate model settings
         run: |
-          echo "Fetching language models..."
-          {
-            echo "export type GatewayModelId ="
-            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "language") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
-            echo "  | (string & {});"
-          } > packages/gateway/src/gateway-language-model-settings.ts
-          echo "Language models updated"
-
-      - name: Fetch and update embedding models
-        run: |
-          echo "Fetching embedding models..."
-          {
-            echo "export type GatewayEmbeddingModelId ="
-            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "embedding") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
-            echo "  | (string & {});"
-          } > packages/gateway/src/gateway-embedding-model-settings.ts
-          echo "Embedding models updated"
-
-      - name: Fetch and update image models
-        run: |
-          echo "Fetching image models..."
-          {
-            echo "export type GatewayImageModelId ="
-            curl -s https://ai-gateway.vercel.sh/v1/models | jq -r '.data[] | select(.type == "image") | .id' | sort | awk '{print "  | \047" $0 "\047"}'
-            echo "  | (string & {});"
-          } > packages/gateway/src/gateway-image-model-settings.ts
-          echo "Image models updated"
+          cd packages/gateway
+          pnpm generate-model-settings
 
       - name: Check for changes
         id: check-changes
@@ -169,5 +145,5 @@ jobs:
           HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
           TITLE: ${{ steps.create-pr.outputs.pr-title }}
           URL: ${{ steps.create-pr.outputs.pr-url }}
-          CHANNEL_ID: "C099VQB75TP"
+          CHANNEL_ID: "C0A7TF81HS5"
           REVIEWER: "U0A54KMV02E"
