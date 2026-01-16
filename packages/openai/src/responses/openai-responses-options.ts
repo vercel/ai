@@ -126,6 +126,8 @@ export type OpenAIResponsesModelId =
   | 'o3-mini-2025-01-31'
   | 'o3-mini'
   | 'o3'
+  | 'o4-mini'
+  | 'o4-mini-2025-04-16'
   | (string & {});
 
 // TODO AI SDK 6: use optional here instead of nullish
