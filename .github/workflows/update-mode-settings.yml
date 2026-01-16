@@ -40,6 +40,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v5
         with:
+          ref: main
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
@@ -83,7 +84,7 @@ jobs:
 
           cat > "$CHANGESET_FILE" << 'EOF'
           ---
-          "@ai-sdk/gateway": patch
+          '@ai-sdk/gateway': patch
           ---
 
           chore(provider/gateway): update gateway model settings files
@@ -111,7 +112,7 @@ jobs:
 
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
-            --body "This is an automated weekly update of the gateway model settings files." \
+            --body "This is an automated update of the gateway model settings files." \
             --base main \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
             --reviewer R-Taneja \
