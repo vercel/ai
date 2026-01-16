@@ -87,7 +87,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
   | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
   | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile, providerMetadata?: ProviderMetadata; } // different because of GeneratedFile object
   | { type: 'stream-start'; warnings: SharedV3Warning[] }
   | {
       type: 'response-metadata';
@@ -208,6 +208,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               data: chunk.data,
               mediaType: chunk.mediaType,
             }),
+            providerMetadata: chunk.providerMetadata,
           });
           break;
         }
