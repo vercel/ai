@@ -1,5 +1,12 @@
 # @ai-sdk/angular
 
+## 2.0.38
+
+### Patch Changes
+
+- ai@6.0.38
+- @ai-sdk/provider-utils@4.0.8
+
 ## 2.0.37
 
 ### Patch Changes
