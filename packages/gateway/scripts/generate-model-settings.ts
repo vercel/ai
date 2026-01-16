@@ -60,7 +60,7 @@ function generateTypeFile(modelIds: string[], typeName: string): string {
 
   const lines = [
     `export type ${typeName} =`,
-    ...sortedIds.map((id) => `  | '${id.replace(/'/g, "\\'")}'`),
+    ...sortedIds.map(id => `  | '${id.replace(/'/g, "\\'")}'`),
     '  | (string & {});',
   ];
 
