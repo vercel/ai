@@ -39,7 +39,7 @@ export interface ToolExecutionOptions {
   experimental_context?: unknown;
 
   /**
-  * The assistant response that contains the tool call.
+   * The assistant response that contains the tool call.
    */
   currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
 }
