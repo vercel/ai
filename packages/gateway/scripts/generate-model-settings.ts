@@ -52,7 +52,7 @@ async function fetchModels(): Promise<ModelsResponse> {
 }
 
 function generateTypeFile(modelIds: string[], typeName: string): string {
-  const sortedIds = modelIds.sort();
+  const sortedIds = [...modelIds].sort();
 
   if (sortedIds.length === 0) {
     return `export type ${typeName} = string & {};\n`;
