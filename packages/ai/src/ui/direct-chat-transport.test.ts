@@ -421,6 +421,293 @@ describe('DirectChatTransport', () => {
         }),
       ).rejects.toThrow();
     });
+
+    describe('prepareSendMessagesRequest', () => {
+      it('should call prepareSendMessagesRequest with correct parameters', async () => {
+        let receivedOptions: unknown;
+
+        const agent = new ToolLoopAgent({ model: mockModel });
+        const transport = new DirectChatTransport({
+          agent,
+          prepareSendMessagesRequest: options => {
+            receivedOptions = options;
+            return {};
+          },
+        });
+
+        const messages = [
+          {
+            id: 'msg-1',
+            role: 'user' as const,
+            parts: [{ type: 'text' as const, text: 'Hello!' }],
+          },
+        ];
+
+        const stream = await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: 'msg-123',
+          trigger: 'regenerate-message',
+          messages,
+          metadata: { custom: 'data' },
+          abortSignal: undefined,
+        });
+
+        // Consume the stream
+        const reader = stream.getReader();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(receivedOptions).toMatchObject({
+          id: 'chat-1',
+          messages,
+          requestMetadata: { custom: 'data' },
+          agentOptions: undefined,
+          trigger: 'regenerate-message',
+          messageId: 'msg-123',
+        });
+      });
+
+      it('should use modified messages from prepareSendMessagesRequest', async () => {
+        let receivedPrompt: unknown;
+
+        const mockModelWithCapture = new MockLanguageModelV3({
+          doStream: async options => {
+            receivedPrompt = options.prompt;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 1,
+                      noCache: 1,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: { total: 1, text: 1, reasoning: undefined },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+
+        const agent = new ToolLoopAgent({ model: mockModelWithCapture });
+        const transport = new DirectChatTransport({
+          agent,
+          prepareSendMessagesRequest: () => ({
+            messages: [
+              {
+                id: 'modified-msg',
+                role: 'user' as const,
+                parts: [{ type: 'text' as const, text: 'Modified message' }],
+              },
+            ],
+          }),
+        });
+
+        const stream = await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'original-msg',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Original message' }],
+            },
+          ],
+          abortSignal: undefined,
+        });
+
+        // Consume the stream
+        const reader = stream.getReader();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(receivedPrompt).toMatchObject([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Modified message' }],
+          },
+        ]);
+      });
+
+      it('should use modified agentOptions from prepareSendMessagesRequest', async () => {
+        let receivedProviderOptions: unknown;
+
+        const mockModelWithCapture = new MockLanguageModelV3({
+          doStream: async options => {
+            receivedProviderOptions = options.providerOptions;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'test' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 1,
+                      noCache: 1,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: { total: 1, text: 1, reasoning: undefined },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+
+        const agent = new ToolLoopAgent<{ customOption: string }>({
+          model: mockModelWithCapture,
+          prepareCall: ({ options, ...rest }) => ({
+            ...rest,
+            providerOptions: { custom: { value: options.customOption } },
+          }),
+        });
+
+        const transport = new DirectChatTransport({
+          agent,
+          options: { customOption: 'original-value' },
+          prepareSendMessagesRequest: () => ({
+            agentOptions: { customOption: 'modified-value' },
+          }),
+        });
+
+        const stream = await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'msg-1',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Hello!' }],
+            },
+          ],
+          abortSignal: undefined,
+        });
+
+        // Consume the stream
+        const reader = stream.getReader();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(receivedProviderOptions).toMatchObject({
+          custom: { value: 'modified-value' },
+        });
+      });
+
+      it('should support async prepareSendMessagesRequest', async () => {
+        let receivedPrompt: unknown;
+
+        const mockModelWithCapture = new MockLanguageModelV3({
+          doStream: async options => {
+            receivedPrompt = options.prompt;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 1,
+                      noCache: 1,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: { total: 1, text: 1, reasoning: undefined },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+
+        const agent = new ToolLoopAgent({ model: mockModelWithCapture });
+        const transport = new DirectChatTransport({
+          agent,
+          prepareSendMessagesRequest: async () => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return {
+              messages: [
+                {
+                  id: 'async-msg',
+                  role: 'user' as const,
+                  parts: [{ type: 'text' as const, text: 'Async message' }],
+                },
+              ],
+            };
+          },
+        });
+
+        const stream = await transport.sendMessages({
+          chatId: 'chat-1',
+          messageId: undefined,
+          trigger: 'submit-message',
+          messages: [
+            {
+              id: 'original-msg',
+              role: 'user',
+              parts: [{ type: 'text', text: 'Original' }],
+            },
+          ],
+          abortSignal: undefined,
+        });
+
+        // Consume the stream
+        const reader = stream.getReader();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+
+        expect(receivedPrompt).toMatchObject([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Async message' }],
+          },
+        ]);
+      });
+    });
   });
 
   describe('reconnectToStream', () => {
