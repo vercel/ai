@@ -282,6 +282,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               description:
                 'The reason why the model finished generating the response. Undefined if the finish reason was not provided by the model.',
             },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage',
+              isOptional: true,
+              description:
+                'Token usage information for the response, including inputTokens, outputTokens, and totalTokens.',
+            },
           ],
         },
       ],
