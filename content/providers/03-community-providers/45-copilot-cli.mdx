@@ -55,9 +55,23 @@ const copilot = createCopilotProvider({
   customAgents: [
     {
       name: 'code-reviewer',
+      displayName: 'Code Reviewer',
+      description: 'An expert code reviewer focused on best practices',
       prompt: 'You are an expert code reviewer...',
     },
   ],
+
+  // Session pooling for efficiency
+  sessionPool: {
+    enabled: true,
+    maxIdleSessions: 3,
+  },
+
+  // Health monitoring for reliability
+  healthMonitor: {
+    failureThreshold: 3,
+    onHealthChange: (healthy, reason) => console.log(`Health: ${healthy}`),
+  },
 });
 ```
 
@@ -66,7 +80,11 @@ You can use the following optional settings to customize the provider instance:
 - **verbose** _boolean_ - Enable verbose logging for debugging.
 - **retry** _\{ maxRetries: number, initialDelayMs: number \}_ - Configure retry behavior with exponential backoff.
 - **provider** _object_ - BYOK (Bring Your Own Key) configuration for using alternative backends like OpenAI directly.
-- **customAgents** _\{ name: string, prompt: string \}[]_ - Define custom agent personas with specific system prompts.
+- **customAgents** _array_ - Define custom agent personas with specific system prompts (see [Custom Agents](#custom-agents)).
+- **mcpServers** _object_ - MCP server configurations (see [MCP Server Integration](#mcp-server-integration)).
+- **sessionPool** _object_ - Session pooling for efficiency (see [Session Pool](#session-pool)).
+- **healthMonitor** _object_ - Health monitoring for reliability (see [Health Monitor](#health-monitor)).
+- **telemetry** _object_ - OpenTelemetry configuration (see [OpenTelemetry Integration](#opentelemetry-integration)).
 
 ## Language Models
 
@@ -176,6 +194,55 @@ Model-level settings:
   custom tools defined via Zod schemas.
 </Note>
 
+## Tool Calling
+
+The provider supports custom tool definitions using Zod schemas, allowing you to define domain-specific functionality that the model can invoke:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+import { z } from 'zod';
+
+const copilot = createCopilotProvider();
+
+const result = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'What is the weather in Tokyo and what is 42 * 17?',
+  tools: {
+    weather: {
+      description: 'Get the current weather in a given location',
+      inputSchema: z.object({
+        location: z.string().describe('The city and state, e.g., San Francisco, CA'),
+        unit: z.enum(['celsius', 'fahrenheit']).optional().default('celsius'),
+      }),
+    },
+    calculator: {
+      description: 'Perform basic mathematical calculations',
+      inputSchema: z.object({
+        expression: z.string().describe('The mathematical expression to evaluate'),
+      }),
+    },
+  },
+});
+
+// Access tool calls made by the model
+if (result.toolCalls && result.toolCalls.length > 0) {
+  for (const toolCall of result.toolCalls) {
+    console.log(`Tool: ${toolCall.toolName}`);
+    console.log(`Input: ${JSON.stringify(toolCall.input)}`);
+  }
+}
+
+await copilot.dispose();
+```
+
+<Note>
+  Copilot has built-in tools (like `web_fetch`, `report_intent`, etc.) that the
+  model may prefer for common tasks. Custom tools work best for domain-specific
+  functionality. You can control built-in tool availability using
+  `availableTools` and `excludedTools` in the model settings.
+</Note>
+
 ## BYOK (Bring Your Own Key)
 
 You can configure the provider to use your own API key with an alternative backend:
@@ -186,6 +253,70 @@ const copilot = createCopilotProvider({
     type: 'openai',
     baseUrl: 'https://api.openai.com/v1',
     apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+```
+
+## Custom Agents
+
+Define custom agent personas with specific system prompts for specialized tasks:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+
+const copilot = createCopilotProvider({
+  customAgents: [
+    {
+      name: 'code-reviewer',
+      displayName: 'Code Reviewer',
+      description: 'An expert code reviewer focused on best practices',
+      prompt: `You are an expert code reviewer. Focus on readability, maintainability, and performance.`,
+      tools: ['web_fetch'], // Optional: restrict to specific tools
+    },
+    {
+      name: 'explainer',
+      displayName: 'Code Explainer',
+      description: 'Explains code in simple terms',
+      prompt: 'You are a patient coding teacher who explains concepts simply.',
+    },
+  ],
+});
+```
+
+Custom agent configuration options:
+
+- **name** _string_ - Unique identifier for the agent (required)
+- **prompt** _string_ - System prompt content for the agent (required)
+- **displayName** _string_ - Human-readable display name
+- **description** _string_ - Description of what the agent does
+- **tools** _string[] | null_ - Restrict which tools the agent can use (`null` for all)
+- **mcpServers** _object_ - MCP servers specific to this agent
+- **infer** _boolean_ - Whether the agent should be available for model inference (default: `true`)
+
+### Using Custom Agents
+
+There are two ways to use custom agents:
+
+**Via model ID pattern:**
+
+```ts
+const result = await generateText({
+  model: copilot('agent/code-reviewer'),
+  prompt: 'Review this code: ...',
+});
+```
+
+**Via providerOptions:**
+
+```ts
+const result = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'Explain async/await in JavaScript',
+  providerOptions: {
+    copilot: {
+      agent: 'explainer',
+    },
   },
 });
 ```
@@ -264,25 +395,80 @@ MCP server configuration options:
 - **url** - For remote servers, the HTTP/SSE endpoint
 - **timeout** _number_ - Optional timeout in milliseconds for tool calls
 
+### Session Pool
+
+Enable session reuse for improved performance across multiple requests:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  sessionPool: {
+    enabled: true,           // Enable session reuse
+    maxIdleSessions: 3,      // Keep up to 3 idle sessions
+    idleTimeoutMs: 300000,   // 5 minute idle timeout
+    validateBeforeReuse: true,
+  },
+});
+```
+
+Session pool configuration options:
+
+- **enabled** _boolean_ - Whether to enable session reuse (default: `false`)
+- **maxIdleSessions** _number_ - Maximum idle sessions to keep (default: `3`)
+- **idleTimeoutMs** _number_ - Idle timeout in ms (default: `300000`)
+- **validateBeforeReuse** _boolean_ - Validate session health before reuse (default: `true`)
+
+### Health Monitor
+
+Configure health monitoring for automatic failure detection and recovery:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  healthMonitor: {
+    failureThreshold: 3,     // Mark unhealthy after 3 failures
+    failureWindowMs: 60000,  // In a 1-minute window
+    reconnectBaseDelayMs: 1000,
+    onHealthChange: (healthy, reason) => {
+      console.log(`Health changed: ${healthy} (${reason})`);
+    },
+  },
+});
+```
+
+Health monitor configuration options:
+
+- **failureThreshold** _number_ - Consecutive failures before marking unhealthy (default: `3`)
+- **failureWindowMs** _number_ - Time window for failure counting (default: `60000`)
+- **reconnectBaseDelayMs** _number_ - Base delay before reconnection (default: `1000`)
+- **onHealthChange** _function_ - Callback when health state changes
+
 ### OpenTelemetry Integration
 
 The provider includes built-in support for OpenTelemetry tracing and metrics:
 
 ```ts
 import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { trace, metrics } from '@opentelemetry/api';
 
 const copilot = createCopilotProvider({
   telemetry: {
-    enabled: true,
-    tracerParams: {
-      name: 'my-custom-tracer',
-      version: '1.0.0',
-    },
-    recordInputs: false, // Set to true to record prompts (careful with PII)
-    recordOutputs: false, // Set to true to record completions
+    tracerProvider: trace.getTracerProvider(),
+    meterProvider: metrics.getMeterProvider(),
+    serviceName: 'my-app',
+    recordContent: false, // Set to true to record prompts/completions (careful with PII)
   },
 });
 ```
+
+Telemetry configuration options:
+
+- **tracerProvider** _TracerProvider_ - OpenTelemetry TracerProvider instance
+- **meterProvider** _MeterProvider_ - OpenTelemetry MeterProvider instance
+- **serviceName** _string_ - Service name for identification (default: `'copilot-ai-sdk-provider'`)
+- **recordContent** _boolean_ - Whether to record input/output content (default: `false`)
 
 Metrics emitted:
 
