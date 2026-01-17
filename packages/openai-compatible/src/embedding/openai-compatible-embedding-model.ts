@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV3,
+  SharedV3Warning,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -76,9 +77,26 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
   }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
   > {
+    const warnings: SharedV3Warning[] = [];
+
+    // Parse provider options - check for deprecated 'openai-compatible' key
+    const deprecatedOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleEmbeddingProviderOptions,
+    });
+
+    if (deprecatedOptions != null) {
+      warnings.push({
+        type: 'other',
+        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+      });
+    }
+
     const compatibleOptions = Object.assign(
+      deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: 'openai-compatible',
+        provider: 'openaiCompatible',
         providerOptions,
         schema: openaiCompatibleEmbeddingProviderOptions,
       })) ?? {},
@@ -126,7 +144,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
-      warnings: [],
+      warnings,
       embeddings: response.data.map(item => item.embedding),
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
