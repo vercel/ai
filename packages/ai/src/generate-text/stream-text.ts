@@ -1421,6 +1421,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     onToolCallFinish,
                     globalTelemetry.onToolCallFinish,
                   ],
+                  approvalData: toolApproval.approvalResponse.data,
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },

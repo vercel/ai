@@ -37,6 +37,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   experimental_context,
   stepNumber,
   model,
+  approvalData,
   onPreliminaryToolResult,
   onToolCallStart,
   onToolCallFinish,
@@ -50,6 +51,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   experimental_context: unknown;
   stepNumber?: number;
   model?: { provider: string; modelId: string };
+  /**
+   * Extra data provided with the approval response.
+   * Available when the tool required approval and was approved.
+   */
+  approvalData?: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>
@@ -109,6 +115,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal,
             experimental_context,
+            approvalData,
           },
         });
 

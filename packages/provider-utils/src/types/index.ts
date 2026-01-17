@@ -19,6 +19,7 @@ export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
+  type InferToolApprovalData,
   type InferToolInput,
   type InferToolOutput,
   type Tool,
