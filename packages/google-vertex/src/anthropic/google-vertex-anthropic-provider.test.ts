@@ -1,9 +1,9 @@
-import { createVertexAnthropic } from './google-vertex-anthropic-provider';
-import { NoSuchModelError } from '@ai-sdk/provider';
 import {
-  AnthropicMessagesLanguageModel,
-  anthropicTools,
-} from '@ai-sdk/anthropic/internal';
+  createVertexAnthropic,
+  vertexAnthropicTools,
+} from './google-vertex-anthropic-provider';
+import { NoSuchModelError } from '@ai-sdk/provider';
+import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
@@ -87,10 +87,19 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
-  it('should include anthropicTools', () => {
+  it('should include vertexAnthropicTools (subset of anthropicTools)', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 
-    expect(provider.tools).toBe(anthropicTools);
+    expect(provider.tools).toBe(vertexAnthropicTools);
+    expect(provider.tools).toHaveProperty('bash_20241022');
+    expect(provider.tools).toHaveProperty('bash_20250124');
+    expect(provider.tools).toHaveProperty('textEditor_20241022');
+    expect(provider.tools).toHaveProperty('textEditor_20250124');
+    expect(provider.tools).toHaveProperty('textEditor_20250429');
+    expect(provider.tools).toHaveProperty('textEditor_20250728');
+    expect(provider.tools).toHaveProperty('computer_20241022');
+    expect(provider.tools).toHaveProperty('webSearch_20250305');
+    expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
   });
 
   it('should pass custom headers to the model constructor', () => {
