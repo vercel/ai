@@ -76,12 +76,29 @@ Create models that call GitHub Copilot through the Copilot SDK using the provide
 const model = copilot('gpt-4');
 ```
 
-Supported models include those available through your GitHub Copilot subscription:
+GitHub Copilot provides access to models from OpenAI, Anthropic, and Google:
 
-- **gpt-4**: GPT-4 model
-- **gpt-4o**: GPT-4o model
-- **gpt-3.5-turbo**: GPT-3.5 Turbo model
-- Other models as supported by your Copilot subscription
+**OpenAI Models:**
+- **gpt-4.1**: Default model optimized for speed and reasoning
+- **gpt-4o**: Multimodal model with vision capabilities
+- **gpt-5** _(preview)_: Advanced reasoning and debugging
+- **gpt-5-mini** _(preview)_: Lightweight version of GPT-5
+
+**Anthropic (Claude) Models:**
+- **claude-sonnet-4**: Clear, structured output
+- **claude-sonnet-3.7**: Fast and efficient
+- **claude-opus-4.5**: Reasoning-focused AI for complex coding
+- **claude-haiku-4.5**: Quick responses for simple tasks
+
+**Google (Gemini) Models:**
+- **gemini-2.0-flash**: Fast, cost-effective for quick tasks
+- **gemini-2.5-pro**: Strong reasoning for complex tasks
+- **gemini-3-flash** _(preview)_: Next-gen fast model
+- **gemini-3-pro** _(preview)_: Advanced capabilities for complex challenges
+
+<Note>
+  Model availability depends on your GitHub Copilot subscription tier (Free, Pro, Pro+, Business, Enterprise).
+</Note>
 
 ### Example
 
@@ -144,11 +161,14 @@ Model-level settings:
 
 ### Model Capabilities
 
-| Model           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo` | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ----- | ----------- | ----------------- | ---------- | -------------- |
+| `gpt-4.1` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4.5` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Object generation shows ❌ because this provider uses prompt-based structured
