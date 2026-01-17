@@ -381,6 +381,15 @@ A function that attempts to repair a tool call that failed to parse.
           deniedToolApprovals.length > 0 ||
           localApprovedToolApprovals.length > 0
         ) {
+          // Build a map of tool call IDs to approval data
+          const approvalDataByToolCallId: Record<string, unknown> = {};
+          for (const approval of localApprovedToolApprovals) {
+            if (approval.approvalResponse.data !== undefined) {
+              approvalDataByToolCallId[approval.toolCall.toolCallId] =
+                approval.approvalResponse.data;
+            }
+          }
+
           const toolOutputs = await executeTools({
             toolCalls: localApprovedToolApprovals.map(
               toolApproval => toolApproval.toolCall,
@@ -391,6 +400,7 @@ A function that attempts to repair a tool call that failed to parse.
             messages: initialMessages,
             abortSignal: mergedAbortSignal,
             experimental_context,
+            approvalDataByToolCallId,
           });
 
           const toolContent: Array<any> = [];
@@ -935,6 +945,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  approvalDataByToolCallId,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -943,6 +954,11 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  /**
+   * Map of tool call IDs to approval data.
+   * Used to pass approval data to tool execute functions.
+   */
+  approvalDataByToolCallId?: Record<string, unknown>;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -954,6 +970,7 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        approvalData: approvalDataByToolCallId?.[toolCall.toolCallId],
       }),
     ),
   );

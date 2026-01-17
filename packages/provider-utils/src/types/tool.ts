@@ -7,7 +7,7 @@ import { ProviderOptions } from './provider-options';
 /**
  * Additional options that are sent into each tool call.
  */
-export interface ToolExecutionOptions {
+export interface ToolExecutionOptions<APPROVAL_DATA = unknown> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -37,6 +37,17 @@ export interface ToolExecutionOptions {
    * Experimental (can break in patch releases).
    */
   experimental_context?: unknown;
+
+  /**
+   * Extra data provided with the approval response when the tool required approval.
+   * This is `undefined` if the tool did not require approval or was auto-approved.
+   *
+   * Use this to pass user-provided data from the approval UI to the tool execution,
+   * such as confirmation notes, selected options, or other contextual information.
+   *
+   * When `approvalDataSchema` is defined on the tool, this will be typed accordingly.
+   */
+  approvalData?: APPROVAL_DATA;
 }
 
 /**
@@ -65,9 +76,9 @@ export type ToolNeedsApprovalFunction<INPUT> = (
   },
 ) => boolean | PromiseLike<boolean>;
 
-export type ToolExecuteFunction<INPUT, OUTPUT> = (
+export type ToolExecuteFunction<INPUT, OUTPUT, APPROVAL_DATA = unknown> = (
   input: INPUT,
-  options: ToolExecutionOptions,
+  options: ToolExecutionOptions<APPROVAL_DATA>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
@@ -78,7 +89,11 @@ type NeverOptional<N, T> = 0 extends 1 & N
     ? Partial<Record<keyof T, undefined>>
     : T;
 
-type ToolOutputProperties<INPUT, OUTPUT> = NeverOptional<
+type ToolOutputProperties<
+  INPUT,
+  OUTPUT,
+  APPROVAL_DATA = unknown,
+> = NeverOptional<
   OUTPUT,
   | {
       /**
@@ -88,7 +103,7 @@ If not provided, the tool will not be executed automatically.
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
     */
-      execute: ToolExecuteFunction<INPUT, OUTPUT>;
+      execute: ToolExecuteFunction<INPUT, OUTPUT, APPROVAL_DATA>;
 
       outputSchema?: FlexibleSchema<OUTPUT>;
     }
@@ -108,6 +123,7 @@ The tool can also contain an optional execute function for the actual execution 
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
+  APPROVAL_DATA extends JSONValue | unknown | never = unknown,
 > = {
   /**
 An optional description of what the tool does.
@@ -151,6 +167,13 @@ functionality that can be fully encapsulated in the provider.
     | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
 
   /**
+   * Schema for extra data that can be provided with the approval response.
+   * When defined, the approval data will be typed accordingly in the execute function.
+   * This allows users to pass structured, validated data during tool approval.
+   */
+  approvalDataSchema?: FlexibleSchema<APPROVAL_DATA>;
+
+  /**
    * Strict mode setting for the tool.
    *
    * Providers that support strict mode will use this setting to determine
@@ -182,7 +205,7 @@ functionality that can be fully encapsulated in the provider.
       input: [INPUT] extends [never] ? unknown : INPUT;
     } & ToolExecutionOptions,
   ) => void | PromiseLike<void>;
-} & ToolOutputProperties<INPUT, OUTPUT> & {
+} & ToolOutputProperties<INPUT, OUTPUT, APPROVAL_DATA> & {
     /**
      * Optional conversion function that maps the tool result to an output that can be used by the language model.
      *
@@ -259,18 +282,27 @@ The arguments for configuring the tool. Must match the expected arguments define
  * Infer the input type of a tool.
  */
 export type InferToolInput<TOOL extends Tool> =
-  TOOL extends Tool<infer INPUT, any> ? INPUT : never;
+  TOOL extends Tool<infer INPUT, any, any> ? INPUT : never;
 
 /**
  * Infer the output type of a tool.
  */
 export type InferToolOutput<TOOL extends Tool> =
-  TOOL extends Tool<any, infer OUTPUT> ? OUTPUT : never;
+  TOOL extends Tool<any, infer OUTPUT, any> ? OUTPUT : never;
+
+/**
+ * Infer the approval data type of a tool.
+ */
+export type InferToolApprovalData<TOOL extends Tool> =
+  TOOL extends Tool<any, any, infer APPROVAL_DATA> ? APPROVAL_DATA : never;
 
 /**
 Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion
+export function tool<INPUT, OUTPUT, APPROVAL_DATA>(
+  tool: Tool<INPUT, OUTPUT, APPROVAL_DATA>,
+): Tool<INPUT, OUTPUT, APPROVAL_DATA>;
 export function tool<INPUT, OUTPUT>(
   tool: Tool<INPUT, OUTPUT>,
 ): Tool<INPUT, OUTPUT>;

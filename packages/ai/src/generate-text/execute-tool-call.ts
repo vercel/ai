@@ -18,6 +18,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  approvalData,
   onPreliminaryToolResult,
 }: {
   toolCall: TypedToolCall<TOOLS>;
@@ -27,6 +28,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  /**
+   * Extra data provided with the approval response.
+   * Available when the tool required approval and was approved.
+   */
+  approvalData?: unknown;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
@@ -65,6 +71,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal,
             experimental_context,
+            approvalData,
           },
         });
 

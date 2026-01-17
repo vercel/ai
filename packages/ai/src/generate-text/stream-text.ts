@@ -1205,6 +1205,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                   messages: initialMessages,
                   abortSignal,
                   experimental_context,
+                  approvalData: toolApproval.approvalResponse.data,
                   onPreliminaryToolResult: result => {
                     toolExecutionStepStreamController?.enqueue(result);
                   },

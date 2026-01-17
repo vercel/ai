@@ -266,6 +266,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: boolean;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -279,6 +283,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -292,6 +300,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: true;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -304,6 +316,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         id: string;
         approved: false;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
 );
@@ -371,6 +387,10 @@ export type DynamicToolUIPart = {
         id: string;
         approved: boolean;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -384,6 +404,10 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -396,6 +420,10 @@ export type DynamicToolUIPart = {
         id: string;
         approved: true;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
   | {
@@ -408,6 +436,10 @@ export type DynamicToolUIPart = {
         id: string;
         approved: false;
         reason?: string;
+        /**
+         * Extra data provided with the approval response.
+         */
+        data?: unknown;
       };
     }
 );

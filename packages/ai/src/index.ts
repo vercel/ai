@@ -12,6 +12,7 @@ export {
   type FlexibleSchema,
   type IdGenerator,
   type InferSchema,
+  type InferToolApprovalData,
   type InferToolInput,
   type InferToolOutput,
   type Schema,
