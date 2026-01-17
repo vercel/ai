@@ -40,6 +40,7 @@
     "@ai-sdk/xai": "workspace:*",
     "@ai-sdk/huggingface": "workspace:*",
     "@google/generative-ai": "0.21.0",
+    "google-auth-library": "^9.15.1",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",
     "@opentelemetry/sdk-trace-node": "1.28.0",
