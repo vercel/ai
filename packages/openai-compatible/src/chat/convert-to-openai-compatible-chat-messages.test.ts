@@ -845,6 +845,273 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     });
   });
 
+  describe('provider-specific metadata with provider name parameter', () => {
+    it('should use provider-specific metadata when provider name is specified', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              openai: {
+                user: 'openai-user',
+              },
+            },
+          },
+        ],
+        'openai',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          user: 'openai-user',
+        },
+      ]);
+    });
+
+    it('should fall back to openaiCompatible when provider-specific metadata is not available', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              openaiCompatible: {
+                user: 'legacy-user',
+              },
+            },
+          },
+        ],
+        'openai',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          user: 'legacy-user',
+        },
+      ]);
+    });
+
+    it('should prioritize provider-specific over openaiCompatible', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+            providerOptions: {
+              openai: {
+                user: 'new-user',
+              },
+              openaiCompatible: {
+                user: 'legacy-user',
+                otherOption: 'value',
+              },
+            },
+          },
+        ],
+        'openai',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          user: 'new-user',
+          otherOption: 'value',
+        },
+      ]);
+    });
+
+    it('should use default provider name when not specified', () => {
+      const result = convertToOpenAICompatibleChatMessages([
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: {
+            openaiCompatible: {
+              user: 'default-user',
+            },
+          },
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          user: 'default-user',
+        },
+      ]);
+    });
+
+    it('should handle provider-specific metadata in tool calls', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'calculator',
+                input: { x: 1, y: 2 },
+                providerOptions: {
+                  openai: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        'openai',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call1',
+              type: 'function',
+              function: {
+                name: 'calculator',
+                arguments: JSON.stringify({ x: 1, y: 2 }),
+              },
+              cacheControl: { type: 'ephemeral' },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should handle provider-specific metadata in user content parts', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello',
+                providerOptions: {
+                  anthropic: {
+                    cacheControl: { type: 'ephemeral' },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        'anthropic',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: 'Hello',
+          cacheControl: { type: 'ephemeral' },
+        },
+      ]);
+    });
+
+    it('should handle provider-specific metadata in tool responses', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call123',
+                toolName: 'calculator',
+                output: { type: 'json', value: { result: 42 } },
+                providerOptions: {
+                  'test-provider': {
+                    partial: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        'test-provider',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'tool',
+          tool_call_id: 'call123',
+          content: JSON.stringify({ result: 42 }),
+          partial: true,
+        },
+      ]);
+    });
+
+    it('should merge provider-specific and openaiCompatible metadata in complex scenarios', () => {
+      const result = convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'user',
+            providerOptions: {
+              openai: {
+                messageLevel: 'provider-specific',
+              },
+              openaiCompatible: {
+                legacyOption: 'legacy-value',
+                messageLevel: 'legacy',
+              },
+            },
+            content: [
+              {
+                type: 'text',
+                text: 'Part A',
+                providerOptions: {
+                  openai: {
+                    textPartLevel: 'provider-specific',
+                  },
+                  openaiCompatible: {
+                    legacyTextOption: 'legacy-text-value',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'Part B',
+              },
+            ],
+          },
+        ],
+        'openai',
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          messageLevel: 'provider-specific',
+          legacyOption: 'legacy-value',
+          content: [
+            {
+              type: 'text',
+              text: 'Part A',
+              textPartLevel: 'provider-specific',
+              legacyTextOption: 'legacy-text-value',
+            },
+            {
+              type: 'text',
+              text: 'Part B',
+            },
+          ],
+        },
+      ]);
+    });
+  });
+
   it('should handle parallel tool calls with signature only on first call', () => {
     const result = convertToOpenAICompatibleChatMessages([
       {

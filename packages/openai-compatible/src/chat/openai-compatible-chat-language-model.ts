@@ -215,7 +215,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
-        messages: convertToOpenAICompatibleChatMessages(prompt),
+        messages: convertToOpenAICompatibleChatMessages(
+          prompt,
+          this.providerOptionsName,
+        ),
 
         // tools:
         tools: openaiTools,

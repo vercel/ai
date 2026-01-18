@@ -484,6 +484,81 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should support message-level provider metadata with backwards compatibility', async () => {
+    prepareJsonResponse();
+
+    await provider('grok-beta').doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Part 1' },
+            { type: 'text', text: 'Part 2' },
+          ],
+          providerOptions: {
+            openaiCompatible: {
+              legacyOption: 'legacy-value',
+            },
+            'test-provider': {
+              newOption: 'new-value',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'grok-beta',
+      messages: [
+        {
+          role: 'user',
+          legacyOption: 'legacy-value',
+          newOption: 'new-value',
+          content: [
+            { type: 'text', text: 'Part 1' },
+            { type: 'text', text: 'Part 2' },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should prioritize provider-specific metadata over openaiCompatible', async () => {
+    prepareJsonResponse();
+
+    await provider('grok-beta').doGenerate({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are helpful',
+          providerOptions: {
+            openaiCompatible: {
+              sharedKey: 'legacy-value',
+              legacyOnly: 'legacy',
+            },
+            'test-provider': {
+              sharedKey: 'provider-value',
+              providerOnly: 'provider',
+            },
+          },
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      model: 'grok-beta',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are helpful',
+          sharedKey: 'provider-value',
+          legacyOnly: 'legacy',
+          providerOnly: 'provider',
+        },
+      ],
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
 
