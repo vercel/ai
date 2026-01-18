@@ -298,6 +298,8 @@ const { text } = await generateText({
 
 The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
 
+Provider-specific options are also supported on individual messages and message content.
+
 ## Custom Metadata Extraction
 
 The OpenAI Compatible provider supports extracting provider-specific metadata from API responses through metadata extractors.
