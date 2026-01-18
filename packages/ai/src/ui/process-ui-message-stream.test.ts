@@ -9,6 +9,7 @@ import {
 import { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
+import { LanguageModelUsage } from '../types/usage';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -8368,6 +8369,83 @@ describe('processUIMessageStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('usage', () => {
+    it('should populate usage on message when finish chunk includes usage', async () => {
+      const usage: LanguageModelUsage = {
+        inputTokens: 10,
+        inputTokenDetails: {
+          noCacheTokens: 8,
+          cacheReadTokens: 2,
+          cacheWriteTokens: 0,
+        },
+        outputTokens: 20,
+        outputTokenDetails: {
+          textTokens: 18,
+          reasoningTokens: 2,
+        },
+        totalTokens: 30,
+      };
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish', usage },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state!.message.usage).toEqual(usage);
+      expect(state!.usage).toEqual(usage);
+    });
+
+    it('should not populate usage when finish chunk does not include usage', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      expect(state!.message.usage).toBeUndefined();
+      expect(state!.usage).toBeUndefined();
     });
   });
 });

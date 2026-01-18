@@ -72,6 +72,11 @@ interface UIMessage<
    * The parts of the message. Use this for rendering the message in the UI.
    */
   parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
+
+  /**
+   * Token usage information for the message. Only available for assistant messages after completion.
+   */
+  usage?: LanguageModelUsage;
 }
 ```
 

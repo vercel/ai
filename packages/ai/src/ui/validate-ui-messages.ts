@@ -10,6 +10,7 @@ import {
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { providerMetadataSchema } from '../types/provider-metadata';
+import { languageModelUsageSchema } from '../types/usage';
 import {
   DataUIPart,
   InferUIMessageData,
@@ -26,6 +27,7 @@ const uiMessagesSchema = lazySchema(() =>
           id: z.string(),
           role: z.enum(['system', 'user', 'assistant']),
           metadata: z.unknown().optional(),
+          usage: languageModelUsageSchema.optional(),
           parts: z
             .array(
               z.union([

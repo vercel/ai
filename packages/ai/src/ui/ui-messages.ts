@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { LanguageModelUsage } from '../types/usage';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -70,6 +71,11 @@ User messages can have text parts and file parts.
 Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
   parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
+
+  /**
+Token usage information for the message.
+   */
+  usage?: LanguageModelUsage;
 }
 
 export type UIMessagePart<
