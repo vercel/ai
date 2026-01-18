@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
 import { XaiResponsesTool } from './xai-responses-api';
@@ -110,8 +111,19 @@ export async function prepareResponsesTools({
         }
 
         case 'xai.mcp': {
+          const args = await validateTypes({
+            value: tool.args,
+            schema: mcpServerArgsSchema,
+          });
+
           xaiTools.push({
             type: 'mcp',
+            server_url: args.serverUrl,
+            server_label: args.serverLabel,
+            server_description: args.serverDescription,
+            allowed_tools: args.allowedTools,
+            headers: args.headers,
+            authorization: args.authorization,
           });
           break;
         }

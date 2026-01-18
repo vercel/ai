@@ -12842,6 +12842,10 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "url": "https://x.ai/",
   },
   {
+    "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
+    "type": "text-end",
+  },
+  {
     "id": "id-5",
     "sourceType": "url",
     "title": "https://en.wikipedia.org/wiki/XAI_%28company%29",
@@ -12875,10 +12879,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream w
     "title": "https://x.ai/",
     "type": "source",
     "url": "https://x.ai/",
-  },
-  {
-    "id": "text-msg_98a8d4aa-fc8b-fd93-e673-d5a8f1c9cee8",
-    "type": "text-end",
   },
   {
     "finishReason": {
@@ -21749,6 +21749,10 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "url": "https://x.com/i/status/1991284818928366015",
   },
   {
+    "id": "text-msg_b7b464ea-cc85-d44a-0f2f-1f7320e703c3",
+    "type": "text-end",
+  },
+  {
     "id": "id-20",
     "sourceType": "url",
     "title": "https://x.com/i/status/1990530503129391571",
@@ -21887,10 +21891,6 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream x
     "title": "https://x.com/i/status/1991284818928366015",
     "type": "source",
     "url": "https://x.com/i/status/1991284818928366015",
-  },
-  {
-    "id": "text-msg_b7b464ea-cc85-d44a-0f2f-1f7320e703c3",
-    "type": "text-end",
   },
   {
     "finishReason": {
