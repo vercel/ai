@@ -169,6 +169,10 @@ export interface AnthropicToolResultContent {
   tool_use_id: string;
   content:
     | string
+    | Array<{
+        type: 'tool_reference';
+        tool_name: string;
+      }>
     | Array<
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent

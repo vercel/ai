@@ -13,6 +13,16 @@ import { validateTypes } from '@ai-sdk/provider-utils';
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
   allowedCallers?: Array<'code_execution_20250825'>;
+  /**
+   * The content type of the tool result output.
+   *
+   * - `tool_reference`: The tool result contains an array of tool references
+   *   (e.g., from a custom tool search implementation). The value should be
+   *   an array of `{ type: 'tool_reference', toolName: string }` objects.
+   *   When set, the SDK will validate and convert the output to the Anthropic
+   *   API's expected `tool_reference` format instead of JSON-stringifying it.
+   */
+  contentType?: 'tool_reference';
 }
 
 export async function prepareTools({

@@ -22,6 +22,7 @@ import {
   AnthropicWebFetchToolResultContent,
 } from './anthropic-messages-api';
 import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import { AnthropicToolOptions } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
@@ -376,9 +377,26 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   case 'json':
                   case 'error-json':
-                  default:
-                    contentValue = JSON.stringify(output.value);
+                  default: {
+                    const anthropicOptions = output.providerOptions?.anthropic as
+                      | AnthropicToolOptions
+                      | undefined;
+
+                    if (anthropicOptions?.contentType === 'tool_reference') {
+                      const toolSearchOutput = await validateTypes({
+                        value: output.value,
+                        schema: toolSearchOutputSchema,
+                      });
+
+                      contentValue = toolSearchOutput.map(ref => ({
+                        type: 'tool_reference' as const,
+                        tool_name: ref.toolName,
+                      }));
+                    } else {
+                      contentValue = JSON.stringify(output.value);
+                    }
                     break;
+                  }
                 }
 
                 anthropicContent.push({
