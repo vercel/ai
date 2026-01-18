@@ -781,6 +781,102 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with contentType: tool_reference for custom tool search', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'custom_tool_search',
+              toolCallId: 'tool-search-1',
+              output: {
+                type: 'json',
+                value: [
+                  { type: 'tool_reference', toolName: 'get_weather' },
+                  { type: 'tool_reference', toolName: 'get_forecast' },
+                ],
+                providerOptions: {
+                  anthropic: {
+                    contentType: 'tool_reference',
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "tool_name": "get_weather",
+                      "type": "tool_reference",
+                    },
+                    {
+                      "tool_name": "get_forecast",
+                      "type": "tool_reference",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "tool-search-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
+  it('should throw error when contentType: tool_reference is used with invalid value', async () => {
+    await expect(
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolName: 'custom_tool_search',
+                toolCallId: 'tool-search-1',
+                output: {
+                  type: 'json',
+                  // Invalid: missing 'type' field and using wrong property name
+                  value: [{ name: 'get_weather' }, { name: 'get_forecast' }],
+                  providerOptions: {
+                    anthropic: {
+                      contentType: 'tool_reference',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow();
+  });
 });
 
 describe('assistant messages', () => {
