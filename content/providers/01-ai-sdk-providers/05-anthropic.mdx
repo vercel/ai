@@ -705,6 +705,76 @@ const result = await generateText({
 
 Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
 
+#### Custom Tool Search Implementation
+
+If you need more control over tool search behavior, you can implement your own client-side tool search. To return tool references that Anthropic's API understands, use the `contentType: 'tool_reference'` provider option in your tool's `toModelOutput` function:
+
+```ts
+import { anthropic, AnthropicToolOptions } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+// Your tool catalog
+const TOOL_CATALOG = [
+  { name: 'get_weather', description: 'Get weather for a location' },
+  { name: 'get_forecast', description: 'Get weather forecast' },
+  // ... more tools
+];
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // Custom tool search implementation
+    tool_search: tool({
+      description: 'Search for available tools using a regex pattern',
+      inputSchema: z.object({
+        query: z.string().describe('Regex pattern to search for tools'),
+      }),
+      execute: async ({ query }) => {
+        const regex = new RegExp(query, 'i');
+        const matches = TOOL_CATALOG.filter(
+          t => regex.test(t.name) || regex.test(t.description),
+        );
+        // Return tool references in the expected format
+        return matches.map(t => ({
+          type: 'tool_reference' as const,
+          toolName: t.name,
+        }));
+      },
+      // Convert output to tool_reference format for Anthropic
+      toModelOutput: async ({ output }) => ({
+        type: 'json',
+        value: output,
+        providerOptions: {
+          anthropic: {
+            contentType: 'tool_reference',
+          } satisfies AnthropicToolOptions,
+        },
+      }),
+    }),
+
+    // Deferred tools that can be discovered
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({
+        location: z.string().describe('The city and state'),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+        condition: 'Sunny',
+      }),
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+When `contentType: 'tool_reference'` is set, the SDK validates that the output is an array of `{ type: 'tool_reference', toolName: string }` objects and converts it to the format expected by Anthropic's API.
+
 ### MCP Connectors
 
 Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
