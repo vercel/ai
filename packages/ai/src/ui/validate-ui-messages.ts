@@ -408,10 +408,12 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             toolPart.state === 'output-available' ||
             (toolPart.state === 'output-error' && toolPart.input !== undefined)
           ) {
-            await validateTypes({
-              value: toolPart.input,
-              schema: tool.inputSchema,
-            });
+            if (tool.inputSchema) {
+              await validateTypes({
+                value: toolPart.input,
+                schema: tool.inputSchema,
+              });
+            }
           }
 
           if (toolPart.state === 'output-available' && tool.outputSchema) {

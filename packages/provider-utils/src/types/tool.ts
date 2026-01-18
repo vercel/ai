@@ -87,7 +87,7 @@ If not provided, the tool will not be executed automatically.
 
 @args is the input of the tool call.
 @options.abortSignal is a signal that can be used to abort the tool call.
-    */
+  */
       execute: ToolExecuteFunction<INPUT, OUTPUT>;
 
       outputSchema?: FlexibleSchema<OUTPUT>;
@@ -135,7 +135,7 @@ functionality that can be fully encapsulated in the provider.
    *
    * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
-  inputSchema: FlexibleSchema<INPUT>;
+  inputSchema?: FlexibleSchema<INPUT>;
 
   /**
    * An optional list of input examples that show the language
@@ -212,30 +212,30 @@ functionality that can be fully encapsulated in the provider.
     | {
         /**
 Tool with user-defined input and output schemas.
-     */
+   */
         type?: undefined | 'function';
       }
     | {
         /**
 Tool that is defined at runtime (e.g. an MCP tool).
 The types of input and output are not known at development time.
-       */
+     */
         type: 'dynamic';
       }
     | {
         /**
 Tool with provider-defined input and output schemas.
-     */
+   */
         type: 'provider';
 
         /**
 The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
-   */
+ */
         id: `${string}.${string}`;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-     */
+   */
         args: Record<string, unknown>;
 
         /**
@@ -278,7 +278,10 @@ export function tool<INPUT>(tool: Tool<INPUT, never>): Tool<INPUT, never>;
 export function tool<OUTPUT>(tool: Tool<never, OUTPUT>): Tool<never, OUTPUT>;
 export function tool(tool: Tool<never, never>): Tool<never, never>;
 export function tool(tool: any): any {
-  return tool;
+  return {
+    ...tool,
+    inputSchema: tool.inputSchema ?? { type: 'object', properties: {} },
+  };
 }
 
 /**
