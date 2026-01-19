@@ -1,4 +1,20 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
+import { lazySchema } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { zodSchema } from '@ai-sdk/provider-utils';
+
+export const openResponsesErrorSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      error: z.object({
+        message: z.string(),
+        type: z.string(),
+        param: z.string(),
+        code: z.string(),
+      }),
+    }),
+  ),
+);
 
 // ============================================================================
 // Enums

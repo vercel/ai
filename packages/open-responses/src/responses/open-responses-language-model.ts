@@ -8,10 +8,12 @@ import {
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
-  postJsonToApi
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
-import { OpenResponseApiBody } from './open-responses-api';
+import {
+  OpenResponseApiBody,
+  openResponsesErrorSchema,
+} from './open-responses-api';
 import { OpenResponsesConfig } from './open-responses-config';
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
@@ -73,17 +75,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       url: this.config.url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
-      // TODO extract and lazy load error schema
       failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: z.object({
-          error: z.object({
-            message: z.string(),
-            type: z.string(),
-            param: z.string(),
-            code: z.string(),
-          }),
-        }),
-        errorToMessage: (error) => error.error.message,
+        errorSchema: openResponsesErrorSchema,
+        errorToMessage: error => error.error.message,
       }),
       successfulResponseHandler: () => {
         throw new Error('Not implemented');
