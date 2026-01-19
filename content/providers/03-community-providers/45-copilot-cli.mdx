@@ -7,8 +7,6 @@ description: Learn how to use the Copilot CLI provider to access GitHub Copilot 
 
 The [ai-sdk-provider-copilot](https://github.com/codewarnab/ai-sdk-provider-copilot) community provider enables using GitHub Copilot models through the official [@github/copilot-sdk](https://www.npmjs.com/package/@github/copilot-sdk). It's useful for developers who want to use their existing GitHub Copilot subscription for AI SDK applications.
 
-
-
 ## Setup
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
@@ -16,7 +14,10 @@ The [ai-sdk-provider-copilot](https://github.com/codewarnab/ai-sdk-provider-copi
     <Snippet text="pnpm add ai-sdk-provider-copilot @github/copilot-sdk" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install ai-sdk-provider-copilot @github/copilot-sdk" dark />
+    <Snippet
+      text="npm install ai-sdk-provider-copilot @github/copilot-sdk"
+      dark
+    />
   </Tab>
   <Tab>
     <Snippet text="yarn add ai-sdk-provider-copilot @github/copilot-sdk" dark />
@@ -97,25 +98,29 @@ const model = copilot('gpt-4');
 GitHub Copilot provides access to models from OpenAI, Anthropic, and Google:
 
 **OpenAI Models:**
+
 - **gpt-4.1**: Default model optimized for speed and reasoning
 - **gpt-4o**: Multimodal model with vision capabilities
 - **gpt-5** _(preview)_: Advanced reasoning and debugging
 - **gpt-5-mini** _(preview)_: Lightweight version of GPT-5
 
 **Anthropic (Claude) Models:**
+
 - **claude-sonnet-4**: Clear, structured output
 - **claude-sonnet-3.7**: Fast and efficient
 - **claude-opus-4.5**: Reasoning-focused AI for complex coding
 - **claude-haiku-4.5**: Quick responses for simple tasks
 
 **Google (Gemini) Models:**
+
 - **gemini-2.0-flash**: Fast, cost-effective for quick tasks
 - **gemini-2.5-pro**: Strong reasoning for complex tasks
 - **gemini-3-flash** _(preview)_: Next-gen fast model
 - **gemini-3-pro** _(preview)_: Advanced capabilities for complex challenges
 
 <Note>
-  Model availability depends on your GitHub Copilot subscription tier (Free, Pro, Pro+, Business, Enterprise).
+  Model availability depends on your GitHub Copilot subscription tier (Free,
+  Pro, Pro+, Business, Enterprise).
 </Note>
 
 ### Example
@@ -179,13 +184,13 @@ Model-level settings:
 
 ### Model Capabilities
 
-| Model | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| ----- | ----------- | ----------------- | ---------- | -------------- |
-| `gpt-4.1` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4.5` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.5-pro` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4.1`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4.5`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro`   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
@@ -212,14 +217,18 @@ const result = await generateText({
     weather: {
       description: 'Get the current weather in a given location',
       inputSchema: z.object({
-        location: z.string().describe('The city and state, e.g., San Francisco, CA'),
+        location: z
+          .string()
+          .describe('The city and state, e.g., San Francisco, CA'),
         unit: z.enum(['celsius', 'fahrenheit']).optional().default('celsius'),
       }),
     },
     calculator: {
       description: 'Perform basic mathematical calculations',
       inputSchema: z.object({
-        expression: z.string().describe('The mathematical expression to evaluate'),
+        expression: z
+          .string()
+          .describe('The mathematical expression to evaluate'),
       }),
     },
   },
@@ -329,7 +338,10 @@ The provider includes a caching layer to reduce API calls for repeated prompts:
 
 ```ts
 import { createCopilotProvider } from 'ai-sdk-provider-copilot';
-import { createMemoryCache, wrapWithCache } from 'ai-sdk-provider-copilot/cache';
+import {
+  createMemoryCache,
+  wrapWithCache,
+} from 'ai-sdk-provider-copilot/cache';
 import { generateText } from 'ai';
 
 const copilot = createCopilotProvider();
@@ -404,9 +416,9 @@ import { createCopilotProvider } from 'ai-sdk-provider-copilot';
 
 const copilot = createCopilotProvider({
   sessionPool: {
-    enabled: true,           // Enable session reuse
-    maxIdleSessions: 3,      // Keep up to 3 idle sessions
-    idleTimeoutMs: 300000,   // 5 minute idle timeout
+    enabled: true, // Enable session reuse
+    maxIdleSessions: 3, // Keep up to 3 idle sessions
+    idleTimeoutMs: 300000, // 5 minute idle timeout
     validateBeforeReuse: true,
   },
 });
@@ -428,8 +440,8 @@ import { createCopilotProvider } from 'ai-sdk-provider-copilot';
 
 const copilot = createCopilotProvider({
   healthMonitor: {
-    failureThreshold: 3,     // Mark unhealthy after 3 failures
-    failureWindowMs: 60000,  // In a 1-minute window
+    failureThreshold: 3, // Mark unhealthy after 3 failures
+    failureWindowMs: 60000, // In a 1-minute window
     reconnectBaseDelayMs: 1000,
     onHealthChange: (healthy, reason) => {
       console.log(`Health changed: ${healthy} (${reason})`);
