@@ -1,13 +1,11 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, Output, stepCountIs } from 'ai';
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { generateText, Output, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
-import { print } from '../lib/print';
 import { run } from '../lib/run';
-import { weatherTool } from '../tools/weather-tool';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('global.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
     stopWhen: stepCountIs(20),
     output: Output.array({
       element: z.object({
@@ -16,9 +14,23 @@ run(async () => {
         condition: z.string(),
       }),
     }),
-    tools: { weather: weatherTool },
+    tools: {
+      weather: tool({
+        description: 'Get the weather for a location',
+        inputSchema: z.object({
+          location: z.string().describe('The location to get the weather for'),
+        }),
+        execute: async ({ location }) => ({
+          location,
+          temperature: Math.floor(Math.random() * 30) + 50,
+          condition: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)],
+        }),
+      }),
+    },
     prompt: 'What is the weather in San Francisco, London, Paris, and Berlin?',
   });
 
-  print('Output:', result.output);
+  console.log('Output:', JSON.stringify(result.output, null, 2));
+  console.log('Steps:', result.steps.length);
+  console.log('Finish reason:', result.finishReason);
 });

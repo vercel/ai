@@ -1,0 +1,30 @@
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { generateText } from 'ai';
+import 'dotenv/config';
+import { run } from '../lib/run';
+
+run(async () => {
+  const result = await generateText({
+    model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a helpful assistant that specializes in TypeScript and JavaScript development. You provide clear, concise explanations with code examples when appropriate.',
+        providerOptions: {
+          anthropic: { cacheControl: { type: 'ephemeral' } },
+        },
+      },
+      {
+        role: 'user',
+        content: 'What is the difference between interface and type in TypeScript?',
+      },
+    ],
+    maxOutputTokens: 500,
+  });
+
+  console.log('Response:', result.text);
+  console.log();
+  console.log('Finish reason:', result.finishReason);
+  console.log('Usage:', result.usage);
+});
