@@ -108,6 +108,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 | Tool/schema utilities (`tool`, `jsonSchema`)  | `ai`                                          |
 | Provider implementations                      | `@ai-sdk/<provider>` (e.g., `@ai-sdk/openai`) |
 | Error classes                                 | `ai` (re-exports from `@ai-sdk/provider`)     |
+| Memory Module (`MemoryAdapter`, `MemoryEntry`) | `ai`                                          |
 | Provider type interfaces (`LanguageModelV3`)  | `@ai-sdk/provider`                            |
 | Provider implementation utilities             | `@ai-sdk/provider-utils`                      |
 
