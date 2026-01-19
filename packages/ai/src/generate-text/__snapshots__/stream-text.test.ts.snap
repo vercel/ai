@@ -655,7 +655,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should mask error m
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","finishReason":"error","usage":{"inputTokenDetails":{},"outputTokenDetails":{}}}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -678,7 +678,7 @@ exports[`streamText > result.pipeUIMessageStreamToResponse > should support cust
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","finishReason":"error","usage":{"inputTokenDetails":{},"outputTokenDetails":{}}}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -803,22 +803,6 @@ exports[`streamText > result.toUIMessageStream > should mask error messages by d
   {
     "finishReason": "error",
     "type": "finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokenDetails": {
-        "cacheReadTokens": undefined,
-        "cacheWriteTokens": undefined,
-        "noCacheTokens": undefined,
-      },
-      "inputTokens": undefined,
-      "outputTokenDetails": {
-        "reasoningTokens": undefined,
-        "textTokens": undefined,
-      },
-      "outputTokens": undefined,
-      "reasoningTokens": undefined,
-      "totalTokens": undefined,
-    },
   },
 ]
 `;
@@ -865,22 +849,6 @@ exports[`streamText > result.toUIMessageStream > should send tool call, tool cal
   {
     "finishReason": "stop",
     "type": "finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokenDetails": {
-        "cacheReadTokens": undefined,
-        "cacheWriteTokens": undefined,
-        "noCacheTokens": 3,
-      },
-      "inputTokens": 3,
-      "outputTokenDetails": {
-        "reasoningTokens": undefined,
-        "textTokens": 10,
-      },
-      "outputTokens": 10,
-      "reasoningTokens": undefined,
-      "totalTokens": 13,
-    },
   },
 ]
 `;
@@ -903,22 +871,6 @@ exports[`streamText > result.toUIMessageStream > should support custom error mes
   {
     "finishReason": "error",
     "type": "finish",
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokenDetails": {
-        "cacheReadTokens": undefined,
-        "cacheWriteTokens": undefined,
-        "noCacheTokens": undefined,
-      },
-      "inputTokens": undefined,
-      "outputTokenDetails": {
-        "reasoningTokens": undefined,
-        "textTokens": undefined,
-      },
-      "outputTokens": undefined,
-      "reasoningTokens": undefined,
-      "totalTokens": undefined,
-    },
   },
 ]
 `;
@@ -937,7 +889,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should mask error messa
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","finishReason":"error","usage":{"inputTokenDetails":{},"outputTokenDetails":{}}}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
@@ -960,7 +912,7 @@ exports[`streamText > result.toUIMessageStreamResponse > should support custom e
   "data: {"type":"finish-step"}
 
 ",
-  "data: {"type":"finish","finishReason":"error","usage":{"inputTokenDetails":{},"outputTokenDetails":{}}}
+  "data: {"type":"finish","finishReason":"error"}
 
 ",
   "data: [DONE]
