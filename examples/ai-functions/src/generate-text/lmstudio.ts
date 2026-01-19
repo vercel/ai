@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 const  lmstudio = createOpenResponses({
   name: 'lmstudio',
-  baseURL: 'http://localhost:1234/v1/responses',
+  url: 'http://localhost:1234/v1/responses',
 });
 
 run(async () => {

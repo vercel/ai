@@ -18,9 +18,9 @@ export interface OpenResponsesProvider extends ProviderV3 {
 
 export interface OpenResponsesProviderSettings {
   /**
-   * Base URL for the Open Responses API calls.
+   * URL for the Open Responses API POST endpoint.
    */
-  baseURL: string;
+  url: string;
 
   /**
    * Provider name. Used as key for provider options and metadata.
@@ -54,27 +54,24 @@ export function createOpenResponses(
   const getHeaders = () =>
     withUserAgentSuffix(
       {
-        // TODO infer environment variable name from the provider name
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'OPEN_RESPONSES_API_KEY',
-          description: 'Open Responses',
-        })}`,
+        ...(options.apiKey ? {
+          Authorization: `Bearer ${options.apiKey}`,
+        } : {
+        }),
         ...options.headers,
       },
       `ai-sdk/open-responses/${VERSION}`,
     );
 
-
-    const createResponsesModel = (modelId: string) => {
-      return new OpenResponsesLanguageModel(modelId, {
-        provider: `${providerName}.responses`,
-        headers: getHeaders,
-        baseURL: options.baseURL,
-        fetch: options.fetch,
-        generateId: () => generateId(),
-      });
-    };
+  const createResponsesModel = (modelId: string) => {
+    return new OpenResponsesLanguageModel(modelId, {
+      provider: `${providerName}.responses`,
+      headers: getHeaders,
+      url: options.url,
+      fetch: options.fetch,
+      generateId: () => generateId(),
+    });
+  };
 
   const createLanguageModel = (modelId: string) => {
     if (new.target) {
