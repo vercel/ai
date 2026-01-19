@@ -13,9 +13,20 @@ describe('convertToOpenResponsesInput', () => {
         ],
       });
 
-      expect(result.input).toEqual([
-        { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-      ]);
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `)
     });
   });
 });

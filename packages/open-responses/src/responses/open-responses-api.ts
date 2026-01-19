@@ -156,10 +156,10 @@ export type UserMessageItemParam = {
   type: 'message';
   role: 'user';
   content:
-    | string
-    | Array<
-        InputTextContentParam | InputImageContentParam | InputFileContentParam
-      >;
+  | string
+  | Array<
+    InputTextContentParam | InputImageContentParam | InputFileContentParam
+  >;
   status?: string;
 };
 
@@ -216,13 +216,13 @@ export type FunctionCallOutputItemParam = {
   call_id: string;
   type: 'function_call_output';
   output:
-    | string
-    | Array<
-        | InputTextContentParam
-        | InputImageContentParam
-        | InputFileContentParam
-        | InputVideoContent
-      >;
+  | string
+  | Array<
+    | InputTextContentParam
+    | InputImageContentParam
+    | InputFileContentParam
+    | InputVideoContent
+  >;
   status?: FunctionCallStatus;
 };
 
@@ -334,17 +334,17 @@ export type OpenResponsesApiRequestBody = {
    * or an array of structured message items.
    */
   input:
-    | string
-    | Array<
-        | ItemReferenceParam
-        | ReasoningItemParam
-        | UserMessageItemParam
-        | SystemMessageItemParam
-        | DeveloperMessageItemParam
-        | AssistantMessageItemParam
-        | FunctionCallItemParam
-        | FunctionCallOutputItemParam
-      >;
+  | string
+  | Array<
+    | ItemReferenceParam
+    | ReasoningItemParam
+    | UserMessageItemParam
+    | SystemMessageItemParam
+    | DeveloperMessageItemParam
+    | AssistantMessageItemParam
+    | FunctionCallItemParam
+    | FunctionCallOutputItemParam
+  >;
 
   /**
    * The ID of the response to use as the prior turn for this request.
