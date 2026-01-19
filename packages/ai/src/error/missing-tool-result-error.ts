@@ -1,24 +1,27 @@
 import { AISDKError } from '@ai-sdk/provider';
 
-const name = 'AI_MissingToolResultError';
+const name = 'AI_MissingToolResultsError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
-export class MissingToolResultError extends AISDKError {
+export class MissingToolResultsError extends AISDKError {
   private readonly [symbol] = true;
 
-  readonly toolCallId: string;
+  readonly toolCallIds: string[];
 
-  constructor({ toolCallId }: { toolCallId: string }) {
+  constructor({ toolCallIds }: { toolCallIds: string[] }) {
     super({
       name,
-      message: `Tool result is missing for tool call ${toolCallId}.`,
+      message: `Tool result${toolCallIds.length > 1 ? 's are' : ' is'
+        } missing for tool call${toolCallIds.length > 1 ? 's' : ''} ${toolCallIds.join(
+          ', ',
+        )}.`,
     });
 
-    this.toolCallId = toolCallId;
+    this.toolCallIds = toolCallIds;
   }
 
-  static isInstance(error: unknown): error is MissingToolResultError {
+  static isInstance(error: unknown): error is MissingToolResultsError {
     return AISDKError.hasMarker(error, marker);
   }
 }

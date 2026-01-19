@@ -29,7 +29,7 @@ import { convertToLanguageModelV3DataContent } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
 import { asArray } from '../util/as-array';
-import { MissingToolResultError } from '../error/missing-tool-result-error';
+import { MissingToolResultsError } from '../error/missing-tool-result-error';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -83,10 +83,10 @@ export async function convertToLanguageModelPrompt({
       ? typeof prompt.system === 'string'
         ? [{ role: 'system' as const, content: prompt.system }]
         : asArray(prompt.system).map(message => ({
-            role: 'system' as const,
-            content: message.content,
-            providerOptions: message.providerOptions,
-          }))
+          role: 'system' as const,
+          content: message.content,
+          providerOptions: message.providerOptions,
+        }))
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),
@@ -137,8 +137,9 @@ export async function convertToLanguageModelPrompt({
         }
 
         if (toolCallIds.size > 0) {
-          const [missingToolCallId] = toolCallIds;
-          throw new MissingToolResultError({ toolCallId: missingToolCallId });
+          throw new MissingToolResultsError({
+            toolCallIds: Array.from(toolCallIds),
+          });
         }
         break;
     }
@@ -150,11 +151,13 @@ export async function convertToLanguageModelPrompt({
   }
 
   if (toolCallIds.size > 0) {
-    const [missingToolCallId] = toolCallIds;
-    throw new MissingToolResultError({ toolCallId: missingToolCallId });
+    throw new MissingToolResultsError({ toolCallIds: Array.from(toolCallIds) });
   }
 
   return combinedMessages.filter(
+    // Filter out empty tool messages (e.g. if they only contained
+    // tool-approval-response parts that were removed).
+    // This prevents sending invalid empty messages to the provider.
     message => message.role !== 'tool' || message.content.length > 0,
   );
 }
@@ -359,7 +362,7 @@ async function downloadAssets(
       if (typeof data === 'string') {
         try {
           data = new URL(data);
-        } catch (ignored) {}
+        } catch (ignored) { }
       }
 
       return { mediaType, data };
@@ -389,9 +392,9 @@ async function downloadAssets(
         file == null
           ? null
           : [
-              plannedDownloads[index].url.toString(),
-              { data: file.data, mediaType: file.mediaType },
-            ],
+            plannedDownloads[index].url.toString(),
+            { data: file.data, mediaType: file.mediaType },
+          ],
       )
       .filter(file => file != null),
   );

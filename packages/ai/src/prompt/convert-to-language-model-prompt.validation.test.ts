@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { convertToLanguageModelPrompt } from './convert-to-language-model-prompt';
-import { MissingToolResultError } from '../error/missing-tool-result-error';
+import { MissingToolResultsError } from '../error/missing-tool-result-error';
 
 describe('tool validation', () => {
   it('should pass validation for provider-executed tools (deferred results)', async () => {
@@ -25,16 +25,7 @@ describe('tool validation', () => {
       download: undefined,
     });
 
-    expect(result).toBeDefined();
-    const assistantMessage = result.find(m => m.role === 'assistant');
-    if (!assistantMessage) throw new Error('Assistant message not found');
-
-    // @ts-ignore
-    const toolCall = assistantMessage.content.find(c => c.type === 'tool-call');
-    expect(toolCall).toMatchObject({
-      toolCallId: 'call_1',
-      providerExecuted: true,
-    });
+    expect(result).toMatchSnapshot();
   });
 
   it('should pass validation for tool-approval-response', async () => {
@@ -75,16 +66,7 @@ describe('tool validation', () => {
       download: undefined,
     });
 
-    expect(result).toBeDefined();
-    const assistantMessage = result.find(m => m.role === 'assistant');
-    if (!assistantMessage) throw new Error('Assistant message not found');
-
-    // @ts-ignore
-    expect(
-      assistantMessage.content.some(
-        c => c.type === 'tool-call' && c.toolCallId === 'call_to_approve',
-      ),
-    ).toBe(true);
+    expect(result).toMatchSnapshot();
   });
 
   it('should throw error for actual missing results', async () => {
@@ -108,6 +90,6 @@ describe('tool validation', () => {
         supportedUrls: {},
         download: undefined,
       });
-    }).rejects.toThrow(MissingToolResultError);
+    }).rejects.toThrow(MissingToolResultsError);
   });
 });
