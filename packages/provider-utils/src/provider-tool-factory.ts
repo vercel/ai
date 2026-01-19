@@ -1,4 +1,4 @@
-import { tool, Tool, ToolExecuteFunction } from './types/tool';
+import { tool, Tool, ToolExecuteFunction, ToolInput } from './types/tool';
 import { FlexibleSchema } from './schema';
 
 export type ProviderToolFactory<INPUT, ARGS extends object> = <OUTPUT>(
@@ -37,7 +37,7 @@ export function createProviderToolFactory<INPUT, ARGS extends object>({
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
   }): Tool<INPUT, OUTPUT> =>
-    tool({
+    tool<INPUT, OUTPUT>({
       type: 'provider',
       id,
       args,
@@ -49,7 +49,7 @@ export function createProviderToolFactory<INPUT, ARGS extends object>({
       onInputStart,
       onInputDelta,
       onInputAvailable,
-    });
+    } as ToolInput<INPUT, OUTPUT>);
 }
 
 export type ProviderToolFactoryWithOutputSchema<
@@ -108,7 +108,7 @@ export function createProviderToolFactoryWithOutputSchema<
     onInputDelta?: Tool<INPUT, OUTPUT>['onInputDelta'];
     onInputAvailable?: Tool<INPUT, OUTPUT>['onInputAvailable'];
   }): Tool<INPUT, OUTPUT> =>
-    tool({
+    tool<INPUT, OUTPUT>({
       type: 'provider',
       id,
       args,
@@ -121,5 +121,5 @@ export function createProviderToolFactoryWithOutputSchema<
       onInputDelta,
       onInputAvailable,
       supportsDeferredResults,
-    });
+    } as ToolInput<INPUT, OUTPUT>);
 }
