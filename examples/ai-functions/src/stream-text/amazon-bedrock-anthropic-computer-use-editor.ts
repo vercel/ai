@@ -34,7 +34,9 @@ This is a sample README file for testing the text editor tool.
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     } else if (part.type === 'tool-call') {
-      console.log(`\nTool call: ${part.toolName}(${JSON.stringify(part.input).substring(0, 100)}...)`);
+      console.log(
+        `\nTool call: ${part.toolName}(${JSON.stringify(part.input).substring(0, 100)}...)`,
+      );
     } else if (part.type === 'tool-result') {
       console.log(`Tool result received`);
     }

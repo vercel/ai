@@ -23,7 +23,9 @@ run(async () => {
         execute: async ({ location }) => ({
           location,
           temperature: Math.floor(Math.random() * 30) + 50,
-          condition: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)],
+          condition: ['sunny', 'cloudy', 'rainy'][
+            Math.floor(Math.random() * 3)
+          ],
         }),
       }),
     },

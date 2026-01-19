@@ -31,7 +31,8 @@ run(async () => {
         }),
       }),
     },
-    prompt: 'What is the weather in Tokyo? Also, what is the stock price of GOOGL?',
+    prompt:
+      'What is the weather in Tokyo? Also, what is the stock price of GOOGL?',
   });
 
   for await (const part of result.fullStream) {

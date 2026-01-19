@@ -347,7 +347,9 @@ describe('bedrock-anthropic-provider', () => {
       tools: [{ type: 'bash_20250124', name: 'bash' }],
     });
 
-    expect(transformedBody?.anthropic_beta).toContain('computer-use-2025-01-24');
+    expect(transformedBody?.anthropic_beta).toContain(
+      'computer-use-2025-01-24',
+    );
   });
 
   it('should not add anthropic_beta when no computer use tools are present', () => {

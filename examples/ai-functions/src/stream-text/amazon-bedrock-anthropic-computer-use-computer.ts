@@ -31,7 +31,11 @@ run(async () => {
             value: [
               typeof output === 'string'
                 ? { type: 'text', text: output }
-                : { type: 'image-data', data: output.data, mediaType: 'image/png' },
+                : {
+                    type: 'image-data',
+                    data: output.data,
+                    mediaType: 'image/png',
+                  },
             ],
           };
         },
@@ -45,7 +49,9 @@ run(async () => {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     } else if (part.type === 'tool-call') {
-      console.log(`\nTool call: ${part.toolName}(${JSON.stringify(part.input).substring(0, 50)}...)`);
+      console.log(
+        `\nTool call: ${part.toolName}(${JSON.stringify(part.input).substring(0, 50)}...)`,
+      );
     } else if (part.type === 'tool-result') {
       console.log(`Tool result received`);
     }

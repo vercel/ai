@@ -13,6 +13,9 @@ run(async () => {
   console.log('Text:', result.text);
   console.log();
   console.log('Finish reason:', result.finishReason);
-  console.log('Stop sequence:', result.providerMetadata?.anthropic?.stopSequence);
+  console.log(
+    'Stop sequence:',
+    result.providerMetadata?.anthropic?.stopSequence,
+  );
   console.log('Usage:', result.usage);
 });

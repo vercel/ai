@@ -54,9 +54,7 @@ const CHAT_MODELS = [
 ];
 
 // Claude 3.7 for computer use tools
-const COMPUTER_USE_MODELS = [
-  'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
-];
+const COMPUTER_USE_MODELS = ['us.anthropic.claude-3-7-sonnet-20250219-v1:0'];
 
 const createModelsForRuntime = () => ({
   languageModels: [

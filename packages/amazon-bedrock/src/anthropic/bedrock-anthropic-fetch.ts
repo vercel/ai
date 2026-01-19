@@ -103,11 +103,15 @@ function transformBedrockEventStreamToSSE(
                 // End of stream - emit the done event for SSE
                 controller.enqueue(textEncoder.encode('data: [DONE]\n\n'));
               }
-            } else if (decoded.headers[':message-type']?.value === 'exception') {
+            } else if (
+              decoded.headers[':message-type']?.value === 'exception'
+            ) {
               // Handle exceptions
               const errorData = textDecoder.decode(decoded.body);
               controller.enqueue(
-                textEncoder.encode(`data: {"type":"error","error":${errorData}}\n\n`),
+                textEncoder.encode(
+                  `data: {"type":"error","error":${errorData}}\n\n`,
+                ),
               );
             }
           } catch {
