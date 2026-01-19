@@ -323,7 +323,7 @@ export type ReasoningParam = {
 /**
  * Body that is sent to the Open Responses API.
  */
-export type OpenResponseApiBody = {
+export type OpenResponsesApiRequestBody = {
   /**
    * The model to use for this request, e.g. 'gpt-5.2'.
    */
@@ -333,7 +333,7 @@ export type OpenResponseApiBody = {
    * Context for the model: either a string (interpreted as a user message),
    * or an array of structured message items.
    */
-  input?:
+  input:
     | string
     | Array<
         | ItemReferenceParam

@@ -10,8 +10,9 @@ import {
   createJsonErrorResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
-  OpenResponseApiBody,
+  OpenResponsesApiRequestBody,
   openResponsesErrorSchema,
 } from './open-responses-api';
 import { OpenResponsesConfig } from './open-responses-config';
@@ -49,16 +50,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     toolChoice,
     responseFormat,
   }: LanguageModelV3CallOptions): Promise<{
-    body: Omit<OpenResponseApiBody, 'stream' | 'stream_options'>;
+    body: Omit<OpenResponsesApiRequestBody, 'stream' | 'stream_options'>;
     warnings: SharedV3Warning[];
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const { input, warnings: inputWarnings } =
+      await convertToOpenResponsesInput({
+        prompt,
+      });
 
     return {
       body: {
         model: this.modelId,
+        input,
       },
-      warnings,
+      warnings: inputWarnings,
     };
   }
 
