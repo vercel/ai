@@ -126,10 +126,10 @@ describe('tool type', () => {
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
-          toolCallId: string;
-          input: { number: number };
-          output: any;
-        }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+            toolCallId: string;
+            input: { number: number };
+            output: any;
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
       >();
     });
@@ -146,10 +146,10 @@ describe('tool type', () => {
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
-          toolCallId: string;
-          input: { number: number };
-          output: 'test';
-        }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
       >();
     });
@@ -166,10 +166,10 @@ describe('tool type', () => {
 
       expectTypeOf(aTool.toModelOutput).toMatchTypeOf<
         | ((options: {
-          toolCallId: string;
-          input: { number: number };
-          output: 'test';
-        }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
+            toolCallId: string;
+            input: { number: number };
+            output: 'test';
+          }) => ToolResultOutput | PromiseLike<ToolResultOutput>)
         | undefined
       >();
     });
@@ -193,13 +193,13 @@ describe('tool type', () => {
       expectTypeOf(aTool.needsApproval).toMatchTypeOf<
         | boolean
         | ((
-          input: { number: number },
-          options: {
-            toolCallId: string;
-            messages: ModelMessage[];
-            experimental_context: unknown;
-          },
-        ) => boolean | PromiseLike<boolean>)
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              experimental_context: unknown;
+            },
+          ) => boolean | PromiseLike<boolean>)
         | undefined
       >();
     });
@@ -222,13 +222,13 @@ describe('tool type', () => {
       expectTypeOf(aTool.needsApproval).toMatchTypeOf<
         | boolean
         | ((
-          input: { number: number },
-          options: {
-            toolCallId: string;
-            messages: ModelMessage[];
-            experimental_context: unknown;
-          },
-        ) => boolean | PromiseLike<boolean>)
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              experimental_context: unknown;
+            },
+          ) => boolean | PromiseLike<boolean>)
         | undefined
       >();
     });
@@ -297,7 +297,7 @@ describe('tool type', () => {
     it('should work with dynamic tool definition', () => {
       const aTool = dynamicTool({
         inputSchema: z.object({}),
-        execute: async () => { },
+        execute: async () => {},
       });
 
       expectTypeOf(aTool.type).toEqualTypeOf<'dynamic'>();
