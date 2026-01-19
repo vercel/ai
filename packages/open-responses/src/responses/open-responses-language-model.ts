@@ -3,27 +3,30 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
-  SharedV3Warning
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import { OpenResponsesConfig } from './open-responses-config';
 import { OpenResponseApiBody } from './open-responses-api';
-import { combineHeaders, createJsonErrorResponseHandler, createJsonResponseHandler, postJsonToApi } from '@ai-sdk/provider-utils';
-
+import {
+  combineHeaders,
+  createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  postJsonToApi,
+} from '@ai-sdk/provider-utils';
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
 
   readonly modelId: string;
 
-    private readonly config: OpenResponsesConfig;
+  private readonly config: OpenResponsesConfig;
 
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
     this.config = config;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-  };
+  readonly supportedUrls: Record<string, RegExp[]> = {};
 
   get provider(): string {
     return this.config.provider;
@@ -50,10 +53,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     const warnings: SharedV3Warning[] = [];
 
     return {
-        body: {
-         model: this.modelId,
-          },
-        warnings
+      body: {
+        model: this.modelId,
+      },
+      warnings,
     };
   }
 

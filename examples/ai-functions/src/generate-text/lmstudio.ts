@@ -2,14 +2,14 @@ import { createOpenResponses } from '@ai-sdk/open-responses';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
-const  lmstudio = createOpenResponses({
+const lmstudio = createOpenResponses({
   name: 'lmstudio',
   url: 'http://localhost:1234/v1/responses',
 });
 
 run(async () => {
   const result = await generateText({
-    model: lmstudio("mistralai/ministral-3-14b-reasoning"),
+    model: lmstudio('mistralai/ministral-3-14b-reasoning'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

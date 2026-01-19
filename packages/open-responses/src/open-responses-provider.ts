@@ -1,13 +1,13 @@
 import {
   LanguageModelV3,
   NoSuchModelError,
-  ProviderV3
+  ProviderV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
   loadApiKey,
-  withUserAgentSuffix
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
 import { VERSION } from './version';
@@ -44,20 +44,19 @@ export interface OpenResponsesProviderSettings {
   fetch?: FetchFunction;
 }
 
-
 export function createOpenResponses(
-  options: OpenResponsesProviderSettings
+  options: OpenResponsesProviderSettings,
 ): OpenResponsesProvider {
-
   const providerName = options.name;
 
   const getHeaders = () =>
     withUserAgentSuffix(
       {
-        ...(options.apiKey ? {
-          Authorization: `Bearer ${options.apiKey}`,
-        } : {
-        }),
+        ...(options.apiKey
+          ? {
+              Authorization: `Bearer ${options.apiKey}`,
+            }
+          : {}),
         ...options.headers,
       },
       `ai-sdk/open-responses/${VERSION}`,
@@ -82,7 +81,6 @@ export function createOpenResponses(
 
     return createResponsesModel(modelId);
   };
-
 
   const provider = function (modelId: string) {
     return createLanguageModel(modelId);

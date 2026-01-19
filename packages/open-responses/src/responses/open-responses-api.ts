@@ -17,12 +17,7 @@ export type ImageDetail = 'low' | 'high' | 'auto';
 /**
  * Reasoning effort level.
  */
-export type ReasoningEffortEnum =
-  | 'none'
-  | 'low'
-  | 'medium'
-  | 'high'
-  | 'xhigh';
+export type ReasoningEffortEnum = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 
 /**
  * Reasoning summary level.
@@ -313,150 +308,150 @@ export type ReasoningParam = {
  * Body that is sent to the Open Responses API.
  */
 export type OpenResponseApiBody = {
-    /**
-     * The model to use for this request, e.g. 'gpt-5.2'.
-     */
-    model: string;
+  /**
+   * The model to use for this request, e.g. 'gpt-5.2'.
+   */
+  model: string;
 
-    /**
-     * Context for the model: either a string (interpreted as a user message),
-     * or an array of structured message items.
-     */
-    input?: string |
-      Array<
-        ItemReferenceParam |
-        ReasoningItemParam |
-        UserMessageItemParam |
-        SystemMessageItemParam |
-        DeveloperMessageItemParam |
-        AssistantMessageItemParam |
-        FunctionCallItemParam |
-        FunctionCallOutputItemParam
+  /**
+   * Context for the model: either a string (interpreted as a user message),
+   * or an array of structured message items.
+   */
+  input?:
+    | string
+    | Array<
+        | ItemReferenceParam
+        | ReasoningItemParam
+        | UserMessageItemParam
+        | SystemMessageItemParam
+        | DeveloperMessageItemParam
+        | AssistantMessageItemParam
+        | FunctionCallItemParam
+        | FunctionCallOutputItemParam
       >;
 
-    /**
-     * The ID of the response to use as the prior turn for this request.
-     */
-    previous_response_id?: string;
+  /**
+   * The ID of the response to use as the prior turn for this request.
+   */
+  previous_response_id?: string;
 
-    /**
-     * Options specifying extra values to include in the response.
-     */
-    include?: Array<
-      | 'reasoning.encrypted_content'
-      | 'message.output_text.logprobs'
-    >;
+  /**
+   * Options specifying extra values to include in the response.
+   */
+  include?: Array<
+    'reasoning.encrypted_content' | 'message.output_text.logprobs'
+  >;
 
-    /**
-     * A list of tools that the model may call while generating the response.
-     */
-    tools?: FunctionToolParam[];
+  /**
+   * A list of tools that the model may call while generating the response.
+   */
+  tools?: FunctionToolParam[];
 
-    /**
-     * Controls which tool the model should use, if any.
-     */
-    tool_choice?: ToolChoiceParam;
+  /**
+   * Controls which tool the model should use, if any.
+   */
+  tool_choice?: ToolChoiceParam;
 
-    /**
-     * Structured metadata as up to 16 key-value pairs.
-     */
-    metadata?: MetadataParam;
+  /**
+   * Structured metadata as up to 16 key-value pairs.
+   */
+  metadata?: MetadataParam;
 
-    /**
-     * Configuration options for text output.
-     */
-    text?: TextParam;
+  /**
+   * Configuration options for text output.
+   */
+  text?: TextParam;
 
-    /**
-     * Sampling temperature to use, between 0 and 2.
-     */
-    temperature?: number;
+  /**
+   * Sampling temperature to use, between 0 and 2.
+   */
+  temperature?: number;
 
-    /**
-     * Nucleus sampling parameter, between 0 and 1.
-     */
-    top_p?: number;
+  /**
+   * Nucleus sampling parameter, between 0 and 1.
+   */
+  top_p?: number;
 
-    /**
-     * Penalizes new tokens based on whether they appear in the text so far.
-     */
-    presence_penalty?: number;
+  /**
+   * Penalizes new tokens based on whether they appear in the text so far.
+   */
+  presence_penalty?: number;
 
-    /**
-     * Penalizes new tokens based on their frequency in the text so far.
-     */
-    frequency_penalty?: number;
+  /**
+   * Penalizes new tokens based on their frequency in the text so far.
+   */
+  frequency_penalty?: number;
 
-    /**
-     * Whether the model may call multiple tools in parallel.
-     */
-    parallel_tool_calls?: boolean;
+  /**
+   * Whether the model may call multiple tools in parallel.
+   */
+  parallel_tool_calls?: boolean;
 
-    /**
-     * Whether to stream response events as server-sent events.
-     */
-    stream?: boolean;
+  /**
+   * Whether to stream response events as server-sent events.
+   */
+  stream?: boolean;
 
-    /**
-     * Options that control streamed response behavior.
-     */
-    stream_options?: StreamOptionsParam;
+  /**
+   * Options that control streamed response behavior.
+   */
+  stream_options?: StreamOptionsParam;
 
-    /**
-     * Whether to run the request in the background and return immediately.
-     */
-    background?: boolean;
+  /**
+   * Whether to run the request in the background and return immediately.
+   */
+  background?: boolean;
 
-    /**
-     * Maximum number of tokens the model may generate.
-     */
-    max_output_tokens?: number;
+  /**
+   * Maximum number of tokens the model may generate.
+   */
+  max_output_tokens?: number;
 
-    /**
-     * Maximum number of tool calls the model may make while generating the response.
-     */
-    max_tool_calls?: number;
+  /**
+   * Maximum number of tool calls the model may make while generating the response.
+   */
+  max_tool_calls?: number;
 
-    /**
-     * Configuration options for reasoning behavior.
-     */
-    reasoning?: ReasoningParam;
+  /**
+   * Configuration options for reasoning behavior.
+   */
+  reasoning?: ReasoningParam;
 
-    /**
-     * A stable identifier used for safety monitoring and abuse detection.
-     */
-    safety_identifier?: string;
+  /**
+   * A stable identifier used for safety monitoring and abuse detection.
+   */
+  safety_identifier?: string;
 
-    /**
-     * A key to use when reading/writing to the prompt cache.
-     */
-    prompt_cache_key?: string;
+  /**
+   * A key to use when reading/writing to the prompt cache.
+   */
+  prompt_cache_key?: string;
 
-    /**
-     * Controls how input is truncated if it exceeds the model's context window.
-     * - 'auto': Let the service decide how to truncate.
-     * - 'disabled': Disable truncation. Context overflow yields 400 error.
-     */
-    truncation?: 'auto' | 'disabled';
+  /**
+   * Controls how input is truncated if it exceeds the model's context window.
+   * - 'auto': Let the service decide how to truncate.
+   * - 'disabled': Disable truncation. Context overflow yields 400 error.
+   */
+  truncation?: 'auto' | 'disabled';
 
-    /**
-     * Additional instructions to guide the model for this request.
-     */
-    instructions?: string;
+  /**
+   * Additional instructions to guide the model for this request.
+   */
+  instructions?: string;
 
-    /**
-     * Whether to store the response so it can be retrieved later.
-     */
-    store?: boolean;
+  /**
+   * Whether to store the response so it can be retrieved later.
+   */
+  store?: boolean;
 
-    /**
-     * The service tier to use for this request.
-     * - 'auto' | 'default' | 'flex' | 'priority'
-     */
-    service_tier?: 'auto' | 'default' | 'flex' | 'priority';
+  /**
+   * The service tier to use for this request.
+   * - 'auto' | 'default' | 'flex' | 'priority'
+   */
+  service_tier?: 'auto' | 'default' | 'flex' | 'priority';
 
-    /**
-     * Number of most likely tokens to return at each position, with logprobs.
-     */
-    top_logprobs?: number;
-}
+  /**
+   * Number of most likely tokens to return at each position, with logprobs.
+   */
+  top_logprobs?: number;
+};
