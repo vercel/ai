@@ -5,7 +5,6 @@ import {
   InferSchema,
 } from '@ai-sdk/provider-utils';
 import { FinishReason } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { SerialJobExecutor } from '../util/serial-job-executor';
@@ -125,7 +124,6 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
  * @param isDisconnect Indicates whether the request has been ended by a network error.
  * @param isError Indicates whether the request has been ended by an error.
  * @param finishReason The reason why the generation finished.
- * @param usage Token usage information for the response.
  */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   message: UI_MESSAGE;
@@ -134,7 +132,6 @@ export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
   isDisconnect: boolean;
   isError: boolean;
   finishReason?: FinishReason;
-  usage?: LanguageModelUsage;
 }) => void;
 
 export interface ChatInit<UI_MESSAGE extends UIMessage> {
@@ -694,9 +691,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           isDisconnect,
           isError,
           finishReason: this.activeResponse?.state.finishReason,
-          ...(this.activeResponse?.state.usage != null && {
-            usage: this.activeResponse.state.usage,
-          }),
         });
       } catch (err) {
         console.error(err);
