@@ -140,6 +140,9 @@ importers:
       '@ai-sdk/mistral':
         specifier: workspace:*
         version: link:../../packages/mistral
+      '@ai-sdk/open-responses':
+        specifier: workspace:*
+        version: link:../../packages/open-responses
       '@ai-sdk/openai':
         specifier: 3.0.12
         version: link:../../packages/openai
