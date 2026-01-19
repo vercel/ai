@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
 ## 6.0.40
 
 ### Patch Changes
