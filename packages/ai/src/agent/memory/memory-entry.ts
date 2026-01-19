@@ -2,7 +2,7 @@
  * A single memory entry stored by an agent.
  * @property > id:string - Unique identifier for this entry.
  * @property > agentId:string - ID of the agent that owns this memory.
- * @property > content: unkown - The actual content of the memory.
+ * @property > content: unknown - The actual content of the memory.
  * @property > metadata: Record<string, unknown> - Optional metadata for filtering and organization.
  * @property > createdAt: Date - When this entry was created.
  * @property > updatedAt: Date - When this entry was last updated.
