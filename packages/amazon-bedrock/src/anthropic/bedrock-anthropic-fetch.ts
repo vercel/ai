@@ -14,9 +14,12 @@ export function createBedrockAnthropicFetch(
 
     // Check if this is a streaming response from Bedrock
     const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/vnd.amazon.eventstream')) {
+    if (
+      contentType?.includes('application/vnd.amazon.eventstream') &&
+      response.body != null
+    ) {
       // Transform Bedrock's event stream to SSE
-      const transformedBody = transformBedrockEventStreamToSSE(response.body!);
+      const transformedBody = transformBedrockEventStreamToSSE(response.body);
 
       // Create a new response with the transformed body and SSE content type
       return new Response(transformedBody, {

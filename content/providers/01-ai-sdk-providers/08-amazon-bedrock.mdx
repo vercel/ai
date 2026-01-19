@@ -1345,7 +1345,11 @@ const result = await generateText({
           value: [
             typeof output === 'string'
               ? { type: 'text', text: output }
-              : { type: 'image-data', data: output.data, mediaType: 'image/png' },
+              : {
+                  type: 'image-data',
+                  data: output.data,
+                  mediaType: 'image/png',
+                },
           ],
         };
       },
