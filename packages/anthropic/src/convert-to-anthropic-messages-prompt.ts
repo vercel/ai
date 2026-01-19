@@ -814,10 +814,14 @@ export async function convertToAnthropicMessagesPrompt({
                       }
                     } catch {
                       // If parsing fails, treat the value as-is
+                      const extractedErrorCode = (
+                        output.value as Record<string, unknown>
+                      )?.errorCode;
                       errorValue = {
                         errorCode:
-                          (output.value as Record<string, unknown>)
-                            ?.errorCode ?? 'unknown',
+                          typeof extractedErrorCode === 'string'
+                            ? extractedErrorCode
+                            : 'unknown',
                       };
                     }
 
