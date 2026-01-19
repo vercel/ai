@@ -21,8 +21,6 @@ interface MemoryAdapter {
 
   read(agentId: string, options?: MemoryReadOptions): Promise<MemoryReadResult>;
 
-  readById?(agentId: string, entryId: string): Promise<MemoryEntry | undefined>;
-
   search?(
     agentId: string,
     embedding: number[], // Changed from query: string based on bot feedback

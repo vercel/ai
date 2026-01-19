@@ -24,7 +24,13 @@ To use memory, you typically implement or provide a `MemoryAdapter` and use it w
 ### Writing to Memory
 
 ```typescript
+import { embed } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { MemoryOperationError } from 'ai/memory';
+
+// ... inside your agent setup ...
 await memory.write({
+```
   agentId: 'user-123',
   content: { lastCommand: 'deploy' },
   metadata: { priority: 'high' }
@@ -42,7 +48,12 @@ const { entries } = await memory.read('user-123', { limit: 10 });
 If your adapter supports it, you can perform semantic or keyword search:
 
 ```typescript
-const result = await memory.search('user-123', 'How do I deploy?');
+const { embedding } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'How do I deploy?',
+});
+
+const result = await memory.search('user-123', embedding);
 ```
 
 ## Standard Error Handling
