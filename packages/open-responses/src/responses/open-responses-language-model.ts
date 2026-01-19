@@ -5,14 +5,14 @@ import {
   LanguageModelV3StreamResult,
   SharedV3Warning,
 } from '@ai-sdk/provider';
-import { OpenResponsesConfig } from './open-responses-config';
-import { OpenResponseApiBody } from './open-responses-api';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
-  createJsonResponseHandler,
-  postJsonToApi,
+  postJsonToApi
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { OpenResponseApiBody } from './open-responses-api';
+import { OpenResponsesConfig } from './open-responses-config';
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -73,9 +73,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       url: this.config.url,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
-      failedResponseHandler: () => {
-        throw new Error('Not implemented');
-      },
+      // TODO extract and lazy load error schema
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: z.object({
+          error: z.object({
+            message: z.string(),
+            type: z.string(),
+            param: z.string(),
+            code: z.string(),
+          }),
+        }),
+        errorToMessage: (error) => error.error.message,
+      }),
       successfulResponseHandler: () => {
         throw new Error('Not implemented');
       },
