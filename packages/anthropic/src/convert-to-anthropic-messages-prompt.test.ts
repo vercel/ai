@@ -1227,7 +1227,7 @@ describe('assistant messages', () => {
           content: [
             {
               input: {
-                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
               },
               providerExecuted: true,
               toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
@@ -1239,7 +1239,7 @@ describe('assistant messages', () => {
                 type: 'json',
                 value: {
                   type: 'web_fetch_result',
-                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
                   retrievedAt: '2025-01-01T00:00:00.000Z',
                   content: {
                     type: 'document',
@@ -1276,7 +1276,7 @@ describe('assistant messages', () => {
                   "cache_control": undefined,
                   "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "input": {
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "name": "web_fetch",
                   "type": "server_tool_use",
@@ -1298,7 +1298,7 @@ describe('assistant messages', () => {
                     },
                     "retrieved_at": "2025-01-01T00:00:00.000Z",
                     "type": "web_fetch_result",
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "type": "web_fetch_tool_result",

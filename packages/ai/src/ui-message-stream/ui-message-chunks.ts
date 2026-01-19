@@ -4,6 +4,7 @@ import {
   providerMetadataSchema,
 } from '../types/provider-metadata';
 import { FinishReason } from '../types/language-model';
+import { LanguageModelUsage, languageModelUsageSchema } from '../types/usage';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
@@ -41,6 +42,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         toolName: z.string(),
         providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -164,6 +166,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'other',
           ] as const satisfies readonly FinishReason[])
           .optional(),
+        usage: languageModelUsageSchema.optional(),
         messageMetadata: z.unknown().optional(),
       }),
       z.strictObject({
@@ -277,6 +280,7 @@ export type UIMessageChunk<
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
     }
@@ -321,6 +325,7 @@ export type UIMessageChunk<
   | {
       type: 'finish';
       finishReason?: FinishReason;
+      usage?: LanguageModelUsage;
       messageMetadata?: METADATA;
     }
   | {

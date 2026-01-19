@@ -1,5 +1,65 @@
 # ai
 
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
+## 6.0.39
+
+### Patch Changes
+
+- 4e28ba0: fix(ai): propagate providerMetadata during input-streaming state
+
+  Provider-executed tools (like MCP tools) need to send metadata during the streaming phase, but the implementation only set `callProviderMetadata` when `part.state === "input-available"`. This fix removes the overly-restrictive state check and adds `callProviderMetadata` to the input-streaming state types and schemas.
+
+## 6.0.38
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/gateway@3.0.16
+  - @ai-sdk/provider-utils@4.0.8
+
+## 6.0.37
+
+### Patch Changes
+
+- b5dab9b: fix(ai): maintain OpenTelemetry context across async generator yields
+
+  Fixes an issue where OpenTelemetry context was lost at async generator yield boundaries, causing nested ToolLoopAgent spans to escape to the parent agent's level in observability platforms.
+
+  The fix ensures that when `recordSpan` is used with async generators (e.g., in tool execution), the active context is explicitly maintained using `context.with()`, preventing span hierarchy corruption in nested agent scenarios.
+
+  Closes #11720
+
+## 6.0.36
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/gateway@3.0.15
+
+## 6.0.35
+
+### Patch Changes
+
+- d7e7f1f: Add descriptive error messages for malformed UIMessageStream chunks.
+
+## 6.0.34
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/gateway@3.0.14
+
 ## 6.0.33
 
 ### Patch Changes
