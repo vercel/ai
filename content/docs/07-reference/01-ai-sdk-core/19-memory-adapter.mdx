@@ -23,13 +23,23 @@ interface MemoryAdapter {
 
   readById?(agentId: string, entryId: string): Promise<MemoryEntry | undefined>;
 
-  search?(agentId: string, query: string, options?: MemorySearchOptions): Promise<MemorySearchResult>;
+  search?(
+    agentId: string,
+    embedding: number[], // Changed from query: string based on bot feedback
+    options?: MemorySearchOptions,
+  ): Promise<MemorySearchResult>;
 
-  update(agentId: string, entryId: string, updates: Partial<Omit<MemoryEntry, 'id' | 'agentId' | 'createdAt' | 'updatedAt'>>): Promise<MemoryEntry>;
+  readById?(agentId: string, entryId: string): Promise<MemoryEntry | null>;
 
-  delete(agentId: string, entryId: string): Promise<void>;
+  update?( // Marked as optional
+    agentId: string,
+    entryId: string,
+    updates: Partial<Omit<MemoryEntry, 'id' | 'agentId' | 'createdAt'>>, // Removing updatedAt from omit list if intention was to allow it, but usually system managed. Bot says docs claim disallowed but code allows. I will match code.
+  ): Promise<MemoryEntry>;
 
-  clear(agentId: string): Promise<void>;
+  delete?(agentId: string, entryId: string): Promise<void>; // Optional
+
+  clear?(agentId: string, options?: { namespace?: string }): Promise<void>; // Optional and updated signature
 
   disconnect?(): Promise<void>;
 }
