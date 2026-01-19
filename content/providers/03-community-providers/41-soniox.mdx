@@ -86,16 +86,16 @@ const { text } = await transcribe({
 
 Available options:
 
-- `languageHints`
-- `enableLanguageIdentification`
-- `enableSpeakerDiarization`
-- `languageHintsStrict`
-- `context`
-- `clientReferenceId`
-- `webhookUrl`
-- `webhookAuthHeaderName`
-- `webhookAuthHeaderValue`
-- `translation`
+- `languageHints` - Array of ISO language codes to bias recognition
+- `languageHintsStrict` - When true, rely more heavily on language hints (note: not supported by all models)
+- `enableLanguageIdentification` - Automatically detect spoken language
+- `enableSpeakerDiarization` - Identify and separate different speakers
+- `context` - Additional context to improve accuracy
+- `clientReferenceId` - Optional client-defined reference ID
+- `webhookUrl` - Webhook URL for transcription completion notifications
+- `webhookAuthHeaderName` - Webhook authentication header name
+- `webhookAuthHeaderValue` - Webhook authentication header value
+- `translation` - Translation configuration
 
 Check the [Soniox API reference](https://soniox.com/docs/stt/api-reference/transcriptions/create_transcription) for more details.
 
