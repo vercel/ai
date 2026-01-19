@@ -1196,6 +1196,17 @@ You can use the following optional settings to customize the Bedrock Anthropic p
   Optional. The AWS session token that you want to use for the API calls.
   It uses the `AWS_SESSION_TOKEN` environment variable by default.
 
+- **apiKey** _string_
+
+  API key for authenticating requests using Bearer token authentication.
+  When provided, this will be used instead of AWS SigV4 authentication.
+  It uses the `AWS_BEARER_TOKEN_BEDROCK` environment variable by default.
+
+- **baseURL** _string_
+
+  Base URL for the Bedrock API calls.
+  Useful for custom endpoints or proxy configurations.
+
 - **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
 
   Headers to include in the requests.
@@ -1205,6 +1216,13 @@ You can use the following optional settings to customize the Bedrock Anthropic p
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+- **credentialProvider** _() => PromiseLike&lt;BedrockCredentials&gt;_
+
+  The AWS credential provider to use for the Bedrock provider to get dynamic
+  credentials similar to the AWS SDK. Setting a provider here will cause its
+  credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+  and `sessionToken` settings.
 
 ### Language Models
 
@@ -1237,7 +1255,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
   messages: [
     {
       role: 'system',
@@ -1323,6 +1341,7 @@ const result = await generateText({
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText, stepCountIs } from 'ai';
+import fs from 'fs';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
@@ -1359,6 +1378,34 @@ const result = await generateText({
   stopWhen: stepCountIs(3),
 });
 ```
+
+### Reasoning
+
+Anthropic has reasoning support for the `us.anthropic.claude-3-7-sonnet-20250219-v1:0` model on Bedrock.
+
+You can enable it using the `thinking` provider option and specifying a thinking budget in tokens.
+
+```ts
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
 
 ### Model Capabilities
 
