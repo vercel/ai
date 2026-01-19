@@ -1,6 +1,8 @@
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
 import { FinishReason } from '../types/language-model';
+import { LanguageModelUsage } from '../types/usage';
 import {
   DataUIMessageChunk,
   InferUIMessageChunk,
@@ -43,6 +45,7 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     }
   >;
   finishReason?: FinishReason;
+  usage?: LanguageModelUsage;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -108,9 +111,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             );
 
             if (toolInvocation == null) {
-              throw new Error(
-                `no tool invocation found for tool call ${toolCallId}`,
-              );
+              throw new UIMessageStreamError({
+                chunkType: 'tool-invocation',
+                chunkId: toolCallId,
+                message: `No tool invocation found for tool call ID "${toolCallId}".`,
+              });
             }
 
             return toolInvocation;
@@ -127,6 +132,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   providerExecuted?: boolean;
+                  providerMetadata?: ProviderMetadata;
                 }
               | {
                   state: 'input-available';
@@ -174,10 +180,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (
-                anyOptions.providerMetadata != null &&
-                part.state === 'input-available'
-              ) {
+              if (anyOptions.providerMetadata != null) {
                 part.callProviderMetadata = anyOptions.providerMetadata;
               }
             } else {
@@ -209,6 +212,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  providerMetadata?: ProviderMetadata;
                 }
               | {
                   state: 'input-available';
@@ -253,10 +257,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.providerExecuted =
                 anyOptions.providerExecuted ?? part.providerExecuted;
 
-              if (
-                anyOptions.providerMetadata != null &&
-                part.state === 'input-available'
-              ) {
+              if (anyOptions.providerMetadata != null) {
                 part.callProviderMetadata = anyOptions.providerMetadata;
               }
             } else {
@@ -313,6 +314,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'text-delta': {
               const textPart = state.activeTextParts[chunk.id];
+              if (textPart == null) {
+                throw new UIMessageStreamError({
+                  chunkType: 'text-delta',
+                  chunkId: chunk.id,
+                  message:
+                    `Received text-delta for missing text part with ID "${chunk.id}". ` +
+                    `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
+                });
+              }
               textPart.text += chunk.delta;
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
@@ -322,6 +332,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'text-end': {
               const textPart = state.activeTextParts[chunk.id];
+              if (textPart == null) {
+                throw new UIMessageStreamError({
+                  chunkType: 'text-end',
+                  chunkId: chunk.id,
+                  message:
+                    `Received text-end for missing text part with ID "${chunk.id}". ` +
+                    `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
+                });
+              }
               textPart.state = 'done';
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
@@ -345,6 +364,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'reasoning-delta': {
               const reasoningPart = state.activeReasoningParts[chunk.id];
+              if (reasoningPart == null) {
+                throw new UIMessageStreamError({
+                  chunkType: 'reasoning-delta',
+                  chunkId: chunk.id,
+                  message:
+                    `Received reasoning-delta for missing reasoning part with ID "${chunk.id}". ` +
+                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
+                });
+              }
               reasoningPart.text += chunk.delta;
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
@@ -354,6 +382,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'reasoning-end': {
               const reasoningPart = state.activeReasoningParts[chunk.id];
+              if (reasoningPart == null) {
+                throw new UIMessageStreamError({
+                  chunkType: 'reasoning-end',
+                  chunkId: chunk.id,
+                  message:
+                    `Received reasoning-end for missing reasoning part with ID "${chunk.id}". ` +
+                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
+                });
+              }
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               reasoningPart.state = 'done';
@@ -422,6 +459,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  providerMetadata: chunk.providerMetadata,
                 });
               } else {
                 updateToolPart({
@@ -431,6 +469,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: undefined,
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
+                  providerMetadata: chunk.providerMetadata,
                 });
               }
 
@@ -440,6 +479,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-input-delta': {
               const partialToolCall = state.partialToolCalls[chunk.toolCallId];
+              if (partialToolCall == null) {
+                throw new UIMessageStreamError({
+                  chunkType: 'tool-input-delta',
+                  chunkId: chunk.toolCallId,
+                  message:
+                    `Received tool-input-delta for missing tool call with ID "${chunk.toolCallId}". ` +
+                    `Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.`,
+                });
+              }
 
               partialToolCall.text += chunk.inputTextDelta;
 
@@ -639,6 +687,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'finish': {
               if (chunk.finishReason != null) {
                 state.finishReason = chunk.finishReason;
+              }
+              if (chunk.usage != null) {
+                state.usage = chunk.usage;
               }
               await updateMessageMetadata(chunk.messageMetadata);
               if (chunk.messageMetadata != null) {

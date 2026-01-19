@@ -6989,4 +6989,153 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
   });
+
+  describe('transformRequestBody', () => {
+    function prepareTransformJsonResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: {
+            input_tokens: 4,
+            output_tokens: 30,
+          },
+        },
+      };
+    }
+
+    function prepareTransformStreamResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":4,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":2}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+    }
+
+    it('should transform request body in doGenerate when transformRequestBody is provided', async () => {
+      const transformFn = vi.fn((body: Record<string, any>) => ({
+        ...body,
+        custom_field: 'added-by-transform',
+      }));
+
+      prepareTransformJsonResponse();
+
+      const { AnthropicMessagesLanguageModel } = await import(
+        './anthropic-messages-language-model'
+      );
+      const model = new AnthropicMessagesLanguageModel(
+        'claude-3-haiku-20240307',
+        {
+          provider: 'test-provider',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: {},
+          transformRequestBody: transformFn,
+        },
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      // Verify transform was called
+      expect(transformFn).toHaveBeenCalledOnce();
+      expect(transformFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'claude-3-haiku-20240307',
+          messages: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        }),
+      );
+
+      // Verify transformed body was sent
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        custom_field: 'added-by-transform',
+      });
+    });
+
+    it('should transform request body in doStream when transformRequestBody is provided', async () => {
+      const transformFn = vi.fn((body: Record<string, any>) => ({
+        ...body,
+        custom_field: 'added-by-transform',
+      }));
+
+      prepareTransformStreamResponse();
+
+      const { AnthropicMessagesLanguageModel } = await import(
+        './anthropic-messages-language-model'
+      );
+      const model = new AnthropicMessagesLanguageModel(
+        'claude-3-haiku-20240307',
+        {
+          provider: 'test-provider',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: {},
+          transformRequestBody: transformFn,
+        },
+      );
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      // Consume the stream
+      await convertReadableStreamToArray(stream);
+
+      // Verify transform was called
+      expect(transformFn).toHaveBeenCalledOnce();
+      expect(transformFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'claude-3-haiku-20240307',
+          messages: [
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+          stream: true,
+        }),
+      );
+
+      // Verify transformed body was sent
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        custom_field: 'added-by-transform',
+      });
+    });
+
+    it('should work without transformRequestBody', async () => {
+      prepareTransformJsonResponse();
+
+      const { AnthropicMessagesLanguageModel } = await import(
+        './anthropic-messages-language-model'
+      );
+      const model = new AnthropicMessagesLanguageModel(
+        'claude-3-haiku-20240307',
+        {
+          provider: 'test-provider',
+          baseURL: 'https://api.anthropic.com/v1',
+          headers: {},
+        },
+      );
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        model: 'claude-3-haiku-20240307',
+      });
+      expect(requestBody).not.toHaveProperty('custom_field');
+    });
+  });
 });

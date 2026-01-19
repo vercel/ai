@@ -1,5 +1,34 @@
 # @ai-sdk/groq
 
+## 3.0.11
+
+### Patch Changes
+
+- 7c98577: fix timestamp_granularities handling in groq transcription
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
 ## 3.0.7
 
 ### Patch Changes
