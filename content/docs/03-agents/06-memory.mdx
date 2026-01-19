@@ -1,0 +1,60 @@
+---
+title: Agent Memory
+description: How to persist and retrieve agent state with the Memory Module.
+---
+
+# Agent Memory
+
+By default, agents in the AI SDK are stateless. They process prompts and generate outputs but do not remember previous interactions unless you explicitly pass the conversation history.
+
+The **Memory Module** provides a standardized way to persist and retrieve information, allowing agents to maintain long-term memory across different sessions and devices.
+
+## How it Works
+
+The Memory Module is built around the `MemoryAdapter` interface. This interface defines how data is written, read, searched, and deleted. Because it is a low-level abstraction, you can use it with any storage backend:
+
+- **Vector Databases**: For semantic search and long-term retrieval (e.g., Pinecone, Weaviate).
+- **Relational Databases**: For structured state management (e.g., PostgreSQL, MySQL).
+- **In-Memory/Key-Value**: For fast, ephemeral state (e.g., Redis, Map).
+
+## Using Memory
+
+To use memory, you typically implement or provide a `MemoryAdapter` and use it within your agent's lifecycle.
+
+### Writing to Memory
+
+```typescript
+await memory.write({
+  agentId: 'user-123',
+  content: { lastCommand: 'deploy' },
+  metadata: { priority: 'high' }
+});
+```
+
+### Reading from Memory
+
+```typescript
+const { entries } = await memory.read('user-123', { limit: 10 });
+```
+
+### Searching Memory
+
+If your adapter supports it, you can perform semantic or keyword search:
+
+```typescript
+const result = await memory.search('user-123', 'How do I deploy?');
+```
+
+## Standard Error Handling
+
+All memory operations use the `MemoryOperationError` class for consistent error reporting. This ensures that your application can gracefully handle storage failures.
+
+```typescript
+try {
+  await memory.read('user-123');
+} catch (error) {
+  if (MemoryOperationError.isInstance(error)) {
+    // Handle specific memory error
+  }
+}
+```
