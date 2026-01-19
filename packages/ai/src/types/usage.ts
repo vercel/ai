@@ -2,6 +2,7 @@ import {
   ImageModelV3Usage,
   JSONObject,
   LanguageModelV3Usage,
+  VideoModelV3Usage,
 } from '@ai-sdk/provider';
 
 /**
@@ -192,6 +193,22 @@ export function addImageModelUsage(
   usage1: ImageModelUsage,
   usage2: ImageModelUsage,
 ): ImageModelUsage {
+  return {
+    inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
+    outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
+    totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
+  };
+}
+
+/**
+Usage information for a video model call.
+ */
+export type VideoModelUsage = VideoModelV3Usage;
+
+export function addVideoModelUsage(
+  usage1: VideoModelUsage,
+  usage2: VideoModelUsage,
+): VideoModelUsage {
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),

@@ -5,28 +5,32 @@ import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 
 // Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
-  loadOptionalSetting: vi
-    .fn()
-    .mockImplementation(({ settingValue, environmentVariableName }) => {
-      if (settingValue) return settingValue;
-      if (
-        environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
-        process.env.GOOGLE_VERTEX_API_KEY
-      ) {
-        return process.env.GOOGLE_VERTEX_API_KEY;
-      }
-      return undefined;
+vi.mock('@ai-sdk/provider-utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@ai-sdk/provider-utils')>();
+  return {
+    ...actual,
+    loadSetting: vi.fn().mockImplementation(({ settingValue }) => settingValue),
+    loadOptionalSetting: vi
+      .fn()
+      .mockImplementation(({ settingValue, environmentVariableName }) => {
+        if (settingValue) return settingValue;
+        if (
+          environmentVariableName === 'GOOGLE_VERTEX_API_KEY' &&
+          process.env.GOOGLE_VERTEX_API_KEY
+        ) {
+          return process.env.GOOGLE_VERTEX_API_KEY;
+        }
+        return undefined;
+      }),
+    generateId: vi.fn().mockReturnValue('mock-id'),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    resolve: vi.fn().mockImplementation(async value => {
+      if (typeof value === 'function') return value();
+      return value;
     }),
-  generateId: vi.fn().mockReturnValue('mock-id'),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  resolve: vi.fn().mockImplementation(async value => {
-    if (typeof value === 'function') return value();
-    return value;
-  }),
-  withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
-}));
+    withUserAgentSuffix: vi.fn().mockImplementation(headers => headers),
+  };
+});
 
 vi.mock('@ai-sdk/google/internal', () => ({
   GoogleGenerativeAILanguageModel: vi.fn(),
