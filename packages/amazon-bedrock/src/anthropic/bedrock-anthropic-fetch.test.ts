@@ -300,4 +300,43 @@ describe('createBedrockAnthropicFetch', () => {
     expect(response.status).toBe(200);
     expect(response.statusText).toBe('OK');
   });
+
+  it('should handle chunk events with missing bytes field', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    // Create a chunk without a bytes field - this should fall back to emitting raw data
+    const chunkPayload = JSON.stringify({
+      someOtherField: 'value',
+    });
+
+    const bedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'event' },
+        ':event-type': { type: 'string', value: 'chunk' },
+      },
+      body: fromUtf8(chunkPayload),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(bedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    // Should emit the raw payload data as fallback
+    expect(text).toBe(`data: ${chunkPayload}\n\n`);
+  });
 });

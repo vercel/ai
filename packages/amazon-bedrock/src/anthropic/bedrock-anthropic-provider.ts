@@ -8,7 +8,9 @@ import {
   loadOptionalSetting,
   loadSetting,
   Resolvable,
+  resolve,
   withoutTrailingSlash,
+  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
@@ -21,6 +23,7 @@ import {
 } from '../bedrock-sigv4-fetch';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import { BedrockAnthropicModelId } from './bedrock-anthropic-options';
+import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
 const BEDROCK_TOOL_VERSION_MAP = {
@@ -231,11 +234,16 @@ export function createBedrockAnthropic(
         })}.amazonaws.com`,
     ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
+  const getHeaders = async () => {
+    const baseHeaders = (await resolve(options.headers)) ?? {};
+    return withUserAgentSuffix(baseHeaders, `ai-sdk/amazon-bedrock/${VERSION}`);
+  };
+
   const createChatModel = (modelId: BedrockAnthropicModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
       provider: 'bedrock.anthropic.messages',
       baseURL: getBaseURL(),
-      headers: options.headers ?? {},
+      headers: getHeaders,
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>

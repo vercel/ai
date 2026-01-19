@@ -21,6 +21,14 @@ vi.mock('@ai-sdk/provider-utils', () => ({
     return settingValue;
   }),
   withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+  withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
+    ...headers,
+    'user-agent': suffix,
+  })),
+  resolve: vi.fn().mockImplementation(async value => {
+    if (typeof value === 'function') return value();
+    return value;
+  }),
   createJsonErrorResponseHandler: vi.fn(),
   createProviderToolFactory: vi.fn(),
   createProviderToolFactoryWithOutputSchema: vi.fn(),
@@ -59,7 +67,7 @@ describe('bedrock-anthropic-provider', () => {
       expect.objectContaining({
         baseURL: expect.stringContaining('bedrock-runtime'),
         provider: 'bedrock.anthropic.messages',
-        headers: expect.any(Object),
+        headers: expect.any(Function),
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
         supportedUrls: expect.any(Function),
@@ -132,7 +140,7 @@ describe('bedrock-anthropic-provider', () => {
     expect(provider.tools).toBe(anthropicTools);
   });
 
-  it('should pass custom headers to the model constructor', () => {
+  it('should pass custom headers wrapped in a function with user-agent suffix', async () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
@@ -145,9 +153,18 @@ describe('bedrock-anthropic-provider', () => {
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        headers: customHeaders,
+        headers: expect.any(Function),
       }),
     );
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    expect(config.headers).toEqual(expect.any(Function));
+    const resolvedHeaders = await (config.headers as Function)();
+    expect(resolvedHeaders).toMatchObject(customHeaders);
+    expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
   });
 
   it('should build correct URL for non-streaming requests', () => {

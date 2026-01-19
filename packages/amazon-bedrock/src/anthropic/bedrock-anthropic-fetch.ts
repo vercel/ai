@@ -97,6 +97,9 @@ function transformBedrockEventStreamToSSE(
                     controller.enqueue(
                       textEncoder.encode(`data: ${anthropicEvent}\n\n`),
                     );
+                  } else {
+                    // If bytes field is missing, emit the raw data as fallback
+                    controller.enqueue(textEncoder.encode(`data: ${data}\n\n`));
                   }
                 } catch {
                   // If parsing fails, emit the raw data
