@@ -13,14 +13,4 @@ export type ToolApprovalRequest = {
    * ID of the tool call that the approval request is for.
    */
   toolCallId: string;
-
-  /**
-   * Name of the tool to approve.
-   */
-  toolName: string;
-
-  /**
-   * Input arguments for the tool call.
-   */
-  input: unknown;
 };

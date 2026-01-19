@@ -326,7 +326,6 @@ describe('tool type', () => {
 
   describe('ToolApprovalRequest', () => {
     it('should have toolName and input', () => {
-      // This should fail if toolName or input are missing
       expectTypeOf<ToolApprovalRequest['toolName']>().toBeString();
       expectTypeOf<ToolApprovalRequest['input']>().toBeUnknown();
     });
