@@ -41,3 +41,36 @@ exports[`tool validation > should pass validation for tool-approval-response 1`]
   },
 ]
 `;
+
+exports[`tool validation > should preserve provider-executed tool-approval-response 1`] = `
+[
+  {
+    "content": [
+      {
+        "input": {
+          "action": "execute",
+        },
+        "providerExecuted": true,
+        "providerOptions": undefined,
+        "toolCallId": "call_provider_executed",
+        "toolName": "mcp_tool",
+        "type": "tool-call",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "approvalId": "approval_provider",
+        "approved": true,
+        "reason": undefined,
+        "type": "tool-approval-response",
+      },
+    ],
+    "providerOptions": undefined,
+    "role": "tool",
+  },
+]
+`;

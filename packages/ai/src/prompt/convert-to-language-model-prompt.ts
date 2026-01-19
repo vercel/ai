@@ -158,6 +158,7 @@ export async function convertToLanguageModelPrompt({
     // Filter out empty tool messages (e.g. if they only contained
     // tool-approval-response parts that were removed).
     // This prevents sending invalid empty messages to the provider.
+    // Note: provider-executed tool-approval-response parts are preserved.
     message => message.role !== 'tool' || message.content.length > 0,
   );
 }

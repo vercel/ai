@@ -69,6 +69,49 @@ describe('tool validation', () => {
     expect(result).toMatchSnapshot();
   });
 
+  it('should preserve provider-executed tool-approval-response', async () => {
+    const result = await convertToLanguageModelPrompt({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_provider_executed',
+                toolName: 'mcp_tool',
+                input: { action: 'execute' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-approval-request',
+                toolCallId: 'call_provider_executed',
+                approvalId: 'approval_provider',
+                toolName: 'mcp_tool',
+                input: { action: 'execute' },
+              } as any,
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval_provider',
+                approved: true,
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+      },
+      supportedUrls: {},
+      download: undefined,
+    });
+
+    expect(result).toMatchSnapshot();
+  });
+
   it('should throw error for actual missing results', async () => {
     await expect(async () => {
       await convertToLanguageModelPrompt({
