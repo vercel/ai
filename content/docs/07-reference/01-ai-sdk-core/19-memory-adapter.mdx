@@ -1,0 +1,70 @@
+---
+title: MemoryAdapter (Interface)
+description: API Reference for the MemoryAdapter interface.
+---
+
+# `MemoryAdapter` (interface)
+
+The `MemoryAdapter` is a low-level, asynchronous interface designed to persist and retrieve agent state. It is the primary abstraction for building memory backends such as Vector databases, Relational databases, or In-memory stores.
+
+## Definition
+
+```typescript
+interface MemoryAdapter {
+  write(entry: Omit<MemoryEntry, 'id' | 'createdAt' | 'updatedAt'> & {
+    id?: string;
+  }): Promise<MemoryEntry>;
+
+  writeMany?(entries: Array<Omit<MemoryEntry, 'id' | 'createdAt' | 'updatedAt'> & {
+    id?: string;
+  }>): Promise<Array<MemoryEntry>>;
+
+  read(agentId: string, options?: MemoryReadOptions): Promise<MemoryReadResult>;
+
+  readById?(agentId: string, entryId: string): Promise<MemoryEntry | undefined>;
+
+  search?(agentId: string, query: string, options?: MemorySearchOptions): Promise<MemorySearchResult>;
+
+  update(agentId: string, entryId: string, updates: Partial<Omit<MemoryEntry, 'id' | 'agentId' | 'createdAt' | 'updatedAt'>>): Promise<MemoryEntry>;
+
+  delete(agentId: string, entryId: string): Promise<void>;
+
+  clear(agentId: string): Promise<void>;
+
+  disconnect?(): Promise<void>;
+}
+```
+
+## Methods
+
+### `write()`
+Persists a single memory entry.
+- **Parameters**: `entry` (without system-managed fields).
+- **Returns**: `Promise<MemoryEntry>` with generated IDs and timestamps.
+
+### `read()`
+Retrieves memories for a specific agent with support for pagination and filtering.
+- **Parameters**: `agentId`, `options` (cursor, limit, filter).
+- **Returns**: `Promise<MemoryReadResult>` containing entries and an optional next cursor.
+
+### `update()`
+Updates an existing memory entry. Throws `MemoryOperationError` if the entry is not found.
+
+### `delete()`
+Permanently removes a specific memory entry.
+
+### `clear()`
+Removes all memories associated with a specific agent.
+
+## Related Types
+
+### `MemoryEntry`
+The data model for a single unit of memory.
+- `id`: Unique identifier.
+- `agentId`: ID of the owner agent.
+- `content`: `unknown` (serialized data).
+- `metadata`: `Record<string, unknown>` (optional).
+- `embedding`: `number[]` (optional, for vector search).
+
+### `MemoryOperationError`
+Standard error thrown when a memory operation fails. Use `MemoryOperationError.isInstance(error)` to detect.
