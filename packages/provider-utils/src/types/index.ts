@@ -17,7 +17,6 @@ export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
-  DEFAULT_EMPTY_INPUT_SCHEMA,
   dynamicTool,
   tool,
   type InferToolInput,

@@ -3,7 +3,7 @@ import {
   LanguageModelV3ProviderTool,
   LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
-import { asSchema, DEFAULT_EMPTY_INPUT_SCHEMA } from '@ai-sdk/provider-utils';
+import { asSchema } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
