@@ -1,0 +1,68 @@
+{
+  "name": "@ai-sdk/mcp-docs-server",
+  "version": "0.0.1",
+  "description": "MCP server for AI SDK documentation",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "ai-sdk-docs-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "content/**/*",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm clean && pnpm copy-content && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist content *.tsbuildinfo",
+    "copy-content": "cp -r ../../content ./content",
+    "lint": "eslint \"./src/**/*.ts*\"",
+    "type-check": "tsc --build",
+    "prettier-check": "prettier --check \"./src/**/*.ts*\"",
+    "test": "vitest --config vitest.node.config.js --run",
+    "test:update": "vitest --config vitest.node.config.js -u",
+    "test:watch": "vitest --config vitest.node.config.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "eslint-config-vercel-ai": "workspace:*",
+    "tsup": "^8",
+    "typescript": "5.8.3",
+    "vitest": "2.1.4"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "mcp",
+    "documentation",
+    "ai-sdk"
+  ]
+}

@@ -1,0 +1,102 @@
+---
+title: MCP Docs Server
+description: Search and access AI SDK documentation in your editor via MCP
+---
+
+# MCP Docs Server
+
+The AI SDK MCP Docs Server provides AI assistants with searchable access to the AI SDK documentation through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). This allows AI assistants in editors like Cursor and Claude Code to answer questions about the AI SDK with accurate, up-to-date information.
+
+## Why use the MCP server?
+
+Compared to [`llms.txt`](/llms.txt), the MCP server offers several advantages:
+
+- **Searchable**: Find relevant docs without loading everything into context
+- **Paginated**: Large documents are split into manageable chunks
+- **Integrated**: Works directly in your editor without copy/paste
+- **Efficient**: Only fetches the documentation you need
+
+## Installation
+
+<Tabs items={['Cursor', 'Claude Code']}>
+  <Tab>
+Add to `.cursor/mcp.json` in your project or global settings:
+
+```json
+{
+  "mcpServers": {
+    "ai-sdk-docs": {
+      "command": "npx",
+      "args": ["-y", "@ai-sdk/mcp-docs-server"]
+    }
+  }
+}
+```
+
+  </Tab>
+  <Tab>
+
+```bash
+claude mcp add ai-sdk-docs -- npx -y @ai-sdk/mcp-docs-server
+```
+
+  </Tab>
+</Tabs>
+
+### Global installation
+
+For faster startup, install the package globally:
+
+```bash
+npm install -g @ai-sdk/mcp-docs-server
+```
+
+Then use `ai-sdk-docs-mcp` as the command instead of `npx -y @ai-sdk/mcp-docs-server`.
+
+## Available tools
+
+The MCP server provides three tools to AI assistants:
+
+### `search_ai_sdk_docs`
+
+Search the documentation by keyword or phrase. Returns matching documents with relevance scores and snippets.
+
+```
+query: "streamText" → finds docs about streaming text generation
+query: "tool calling" → finds docs about using tools with LLMs
+```
+
+### `get_ai_sdk_doc`
+
+Get the full content of a specific documentation page. Large documents are automatically paginated.
+
+```
+path: "docs/03-ai-sdk-core/05-generating-text"
+page: 1 (optional, for paginated docs)
+```
+
+### `list_ai_sdk_docs`
+
+List available documentation pages, optionally filtered by section.
+
+```
+section: "docs" | "cookbook" | "providers" (optional)
+```
+
+## Usage tips
+
+When asking your AI assistant about the AI SDK:
+
+1. **Be specific**: "How do I stream text with OpenAI?" works better than "How do I use the SDK?"
+2. **Mention the SDK**: Include "AI SDK" in your question so the assistant knows to use this tool
+3. **Ask follow-ups**: The assistant can search for related topics or fetch more pages of a document
+
+## Documentation sections
+
+The server includes documentation from three sections:
+
+| Section     | Description                                         |
+| ----------- | --------------------------------------------------- |
+| `docs`      | Core guides, API reference, and troubleshooting     |
+| `cookbook`  | Step-by-step examples and recipes                   |
+| `providers` | AI provider documentation (OpenAI, Anthropic, etc.) |
