@@ -1901,7 +1901,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]
@@ -1972,7 +1972,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]
@@ -2187,7 +2187,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]
@@ -2247,7 +2247,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]
@@ -2305,7 +2305,7 @@ describe('streamText', () => {
           "data: {"type":"finish-step"}
 
         ",
-          "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+          "data: {"type":"finish","finishReason":"stop"}
 
         ",
           "data: [DONE]
@@ -2398,22 +2398,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -2590,22 +2574,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -2751,22 +2719,6 @@ describe('streamText', () => {
                 "key8": "value8",
               },
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -2904,22 +2856,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3096,22 +3032,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3175,22 +3095,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3256,22 +3160,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3323,22 +3211,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3392,22 +3264,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3462,22 +3318,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -3851,7 +3691,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+            "data: {"type":"finish","finishReason":"stop"}
 
           ",
             "data: [DONE]
@@ -3918,7 +3758,7 @@ describe('streamText', () => {
             "data: {"type":"finish-step"}
 
           ",
-            "data: {"type":"finish","finishReason":"stop","usage":{"inputTokens":3,"inputTokenDetails":{"noCacheTokens":3},"outputTokens":10,"outputTokenDetails":{"textTokens":10},"totalTokens":13}}
+            "data: {"type":"finish","finishReason":"stop"}
 
           ",
             "data: [DONE]
@@ -4260,22 +4100,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ],
         }
@@ -7354,22 +7178,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": 0,
-                    "cacheWriteTokens": 0,
-                    "noCacheTokens": 6,
-                  },
-                  "inputTokens": 6,
-                  "outputTokenDetails": {
-                    "reasoningTokens": 10,
-                    "textTokens": 20,
-                  },
-                  "outputTokens": 20,
-                  "reasoningTokens": 10,
-                  "totalTokens": 26,
-                },
               },
             ]
           `);
@@ -9285,22 +9093,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": 0,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": 0,
-                    "cacheWriteTokens": 0,
-                    "noCacheTokens": 6,
-                  },
-                  "inputTokens": 6,
-                  "outputTokenDetails": {
-                    "reasoningTokens": 10,
-                    "textTokens": 20,
-                  },
-                  "outputTokens": 20,
-                  "reasoningTokens": 10,
-                  "totalTokens": 26,
-                },
               },
             ]
           `);
@@ -9954,22 +9746,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -10205,22 +9981,6 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -11663,22 +11423,6 @@ describe('streamText', () => {
             {
               "finishReason": "stop",
               "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokenDetails": {
-                  "cacheReadTokens": undefined,
-                  "cacheWriteTokens": undefined,
-                  "noCacheTokens": 3,
-                },
-                "inputTokens": 3,
-                "outputTokenDetails": {
-                  "reasoningTokens": undefined,
-                  "textTokens": 10,
-                },
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
             },
           ]
         `);
@@ -15763,22 +15507,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -16009,22 +15737,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -16410,22 +16122,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -18308,22 +18004,6 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -18594,22 +18274,6 @@ describe('streamText', () => {
               {
                 "finishReason": "tool-calls",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -19030,22 +18694,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -19375,22 +19023,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -19681,22 +19313,6 @@ describe('streamText', () => {
               {
                 "finishReason": "stop",
                 "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
               },
             ]
           `);
@@ -19868,22 +19484,6 @@ describe('streamText', () => {
                 {
                   "finishReason": "tool-calls",
                   "type": "finish",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 3,
-                    },
-                    "inputTokens": 3,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 10,
-                    },
-                    "outputTokens": 10,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 13,
-                  },
                 },
               ]
             `);
