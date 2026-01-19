@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
 ## 6.0.39
 
 ### Patch Changes
