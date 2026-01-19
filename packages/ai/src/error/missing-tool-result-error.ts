@@ -12,10 +12,11 @@ export class MissingToolResultsError extends AISDKError {
   constructor({ toolCallIds }: { toolCallIds: string[] }) {
     super({
       name,
-      message: `Tool result${toolCallIds.length > 1 ? 's are' : ' is'
-        } missing for tool call${toolCallIds.length > 1 ? 's' : ''} ${toolCallIds.join(
-          ', ',
-        )}.`,
+      message: `Tool result${
+        toolCallIds.length > 1 ? 's are' : ' is'
+      } missing for tool call${toolCallIds.length > 1 ? 's' : ''} ${toolCallIds.join(
+        ', ',
+      )}.`,
     });
 
     this.toolCallIds = toolCallIds;

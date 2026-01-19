@@ -83,10 +83,10 @@ export async function convertToLanguageModelPrompt({
       ? typeof prompt.system === 'string'
         ? [{ role: 'system' as const, content: prompt.system }]
         : asArray(prompt.system).map(message => ({
-          role: 'system' as const,
-          content: message.content,
-          providerOptions: message.providerOptions,
-        }))
+            role: 'system' as const,
+            content: message.content,
+            providerOptions: message.providerOptions,
+          }))
       : []),
     ...prompt.messages.map(message =>
       convertToLanguageModelMessage({ message, downloadedAssets }),
@@ -362,7 +362,7 @@ async function downloadAssets(
       if (typeof data === 'string') {
         try {
           data = new URL(data);
-        } catch (ignored) { }
+        } catch (ignored) {}
       }
 
       return { mediaType, data };
@@ -392,9 +392,9 @@ async function downloadAssets(
         file == null
           ? null
           : [
-            plannedDownloads[index].url.toString(),
-            { data: file.data, mediaType: file.mediaType },
-          ],
+              plannedDownloads[index].url.toString(),
+              { data: file.data, mediaType: file.mediaType },
+            ],
       )
       .filter(file => file != null),
   );
