@@ -120,6 +120,49 @@ export const audioMediaTypeSignatures = [
   },
 ] as const;
 
+export const videoMediaTypeSignatures = [
+  {
+    mediaType: 'video/mp4' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // ftyp
+    ],
+  },
+  {
+    mediaType: 'video/webm' as const,
+    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3], // EBML
+  },
+  {
+    mediaType: 'video/quicktime' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      0x14,
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0x71,
+      0x74, // ftypqt
+    ],
+  },
+  {
+    mediaType: 'video/x-msvideo' as const,
+    bytesPrefix: [0x52, 0x49, 0x46, 0x46], // RIFF (AVI)
+  },
+  {
+    mediaType: 'video/x-matroska' as const,
+    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3], // MKV (same as WebM)
+  },
+] as const;
+
 const stripID3 = (data: Uint8Array | string) => {
   const bytes =
     typeof data === 'string' ? convertBase64ToUint8Array(data) : data;
@@ -157,7 +200,10 @@ export function detectMediaType({
   signatures,
 }: {
   data: Uint8Array | string;
-  signatures: typeof audioMediaTypeSignatures | typeof imageMediaTypeSignatures;
+  signatures:
+    | typeof audioMediaTypeSignatures
+    | typeof imageMediaTypeSignatures
+    | typeof videoMediaTypeSignatures;
 }): (typeof signatures)[number]['mediaType'] | undefined {
   const processedData = stripID3TagsIfPresent(data);
 
