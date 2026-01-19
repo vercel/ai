@@ -2,7 +2,6 @@ import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
 import { FinishReason } from '../types/language-model';
-import { LanguageModelUsage } from '../types/usage';
 import {
   DataUIMessageChunk,
   InferUIMessageChunk,
@@ -45,7 +44,6 @@ export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
     }
   >;
   finishReason?: FinishReason;
-  usage?: LanguageModelUsage;
 };
 
 export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
@@ -687,9 +685,6 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             case 'finish': {
               if (chunk.finishReason != null) {
                 state.finishReason = chunk.finishReason;
-              }
-              if (chunk.usage != null) {
-                state.usage = chunk.usage;
               }
               await updateMessageMetadata(chunk.messageMetadata);
               if (chunk.messageMetadata != null) {
