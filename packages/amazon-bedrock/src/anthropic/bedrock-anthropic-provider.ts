@@ -258,10 +258,6 @@ export function createBedrockAnthropic(
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
-          if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
-            requiredBetas.add(BEDROCK_TOOL_BETA_MAP[toolType]);
-          }
-
           if (toolType && toolType in BEDROCK_TOOL_VERSION_MAP) {
             const newType =
               BEDROCK_TOOL_VERSION_MAP[
@@ -275,6 +271,11 @@ export function createBedrockAnthropic(
               type: newType,
             };
           }
+
+          if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
+            requiredBetas.add(BEDROCK_TOOL_BETA_MAP[toolType]);
+          }
+
           return tool;
         });
 
