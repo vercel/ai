@@ -6,6 +6,7 @@ import {
   ProviderV3,
   SpeechModelV3,
   TranscriptionModelV3,
+  VideoModelV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
@@ -18,6 +19,7 @@ import { asLanguageModelV3 } from './as-language-model-v3';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
 import { ImageModel } from '../types/image-model';
+import { VideoModel } from '../types/video-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV3 {
   if (typeof model !== 'string') {
@@ -119,6 +121,26 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
   }
 
   return getGlobalProvider().imageModel(model);
+}
+
+export function resolveVideoModel(model: VideoModel): VideoModelV3 {
+  if (typeof model === 'string') {
+    throw new Error(
+      'Video models cannot be resolved from strings. ' +
+        'Please use a VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+    );
+  }
+
+  if (model.specificationVersion !== 'v3') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
 }
 
 function getGlobalProvider(): ProviderV3 {
