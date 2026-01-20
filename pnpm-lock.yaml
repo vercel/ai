@@ -203,6 +203,9 @@ importers:
       effect:
         specifier: 3.18.4
         version: 3.18.4
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1(encoding@0.1.13)
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
@@ -691,7 +694,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.18
+        specifier: 4.0.20
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.42
@@ -822,13 +825,13 @@ importers:
         specifier: 2.0.8
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.13
+        specifier: 2.0.14
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 3.0.10
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.18
+        specifier: 4.0.20
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.11
@@ -858,7 +861,7 @@ importers:
         specifier: 2.0.8
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.26
+        specifier: 3.0.27
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
@@ -13332,6 +13335,10 @@ packages:
     resolution: {integrity: sha512-7ABviyMOlX5hIVD60YOfHw4/CxOfBhyduaYB+wbFWCWoni4N7SLcV46hrVRktuBbZjFC9ONyqamZITN7q3n32w==}
     engines: {node: '>=18'}
 
+  google-auth-library@9.15.1:
+    resolution: {integrity: sha512-Jb6Z0+nvECVz+2lzSMt9u98UsoakXxA2HGHMCxh+so3n90XgYWkq5dur19JAJV7ONiJY22yBTyJB1TSkvPq9Ng==}
+    engines: {node: '>=14'}
+
   google-logging-utils@1.1.3:
     resolution: {integrity: sha512-eAmLkjDjAFCVXg7A1unxHsLf961m6y17QFqXqAXGj/gVkKFrEICfStRfwUlGNfeCEjNRa32JEWOUTlYXPyyKvA==}
     engines: {node: '>=14'}
@@ -13352,6 +13359,10 @@ packages:
   graphql@16.9.0:
     resolution: {integrity: sha512-GGTKBX4SD7Wdb8mqeDLni2oaRGYQWjWHGKPQ24ZMnUtKfcsVoiv4uX8+LJr1K6U5VW2Lu1BwJnj7uiori0YtRw==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
+
+  gtoken@7.1.0:
+    resolution: {integrity: sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==}
+    engines: {node: '>=14.0.0'}
 
   gtoken@8.0.0:
     resolution: {integrity: sha512-+CqsMbHPiSTdtSO14O51eMNlrp9N79gmeqmXeouJOhfucAedHw9noVe/n5uJk3tbKE6a+6ZCQg3RPhVhHByAIw==}
@@ -32889,6 +32900,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  google-auth-library@9.15.1(encoding@0.1.13):
+    dependencies:
+      base64-js: 1.5.1
+      ecdsa-sig-formatter: 1.0.11
+      gaxios: 6.5.0(encoding@0.1.13)
+      gcp-metadata: 6.1.0(encoding@0.1.13)
+      gtoken: 7.1.0(encoding@0.1.13)
+      jws: 4.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   google-logging-utils@1.1.3: {}
 
   gopd@1.0.1:
@@ -32902,6 +32925,14 @@ snapshots:
   graphemer@1.4.0: {}
 
   graphql@16.9.0: {}
+
+  gtoken@7.1.0(encoding@0.1.13):
+    dependencies:
+      gaxios: 6.5.0(encoding@0.1.13)
+      jws: 4.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
 
   gtoken@8.0.0:
     dependencies:
