@@ -128,6 +128,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
+    const usage = response.usage;
+    const inputTokens = usage?.input_tokens;
+    const cachedInputTokens = usage?.input_tokens_details?.cached_tokens;
+    const outputTokens = usage?.output_tokens;
+    const reasoningTokens = usage?.output_tokens_details?.reasoning_tokens;
+
     return {
       content,
       finishReason: {
@@ -136,16 +142,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       },
       usage: {
         inputTokens: {
-          total: undefined,
-          noCache: undefined,
-          cacheRead: undefined,
+          total: inputTokens,
+          noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+          cacheRead: cachedInputTokens,
           cacheWrite: undefined,
         },
         outputTokens: {
-          total: undefined,
-          text: undefined,
-          reasoning: undefined,
+          total: outputTokens,
+          text: (outputTokens ?? 0) - (reasoningTokens ?? 0),
+          reasoning: reasoningTokens,
         },
+        raw: response.usage,
       },
       request: { body },
       response: {

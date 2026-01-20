@@ -60,6 +60,10 @@ describe('OpenResponsesLanguageModel', () => {
       it('should produce correct content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should extract usage correctly', async () => {
+        expect(result.usage).toMatchSnapshot();
+      });
     });
 
     describe('request parameters', () => {

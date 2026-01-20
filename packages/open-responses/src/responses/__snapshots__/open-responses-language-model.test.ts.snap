@@ -1,5 +1,32 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should extract usage correctly 1`] = `
+{
+  "inputTokens": {
+    "cacheRead": 0,
+    "cacheWrite": undefined,
+    "noCache": 136,
+    "total": 136,
+  },
+  "outputTokens": {
+    "reasoning": 2456,
+    "text": 1221,
+    "total": 3677,
+  },
+  "raw": {
+    "input_tokens": 136,
+    "input_tokens_details": {
+      "cached_tokens": 0,
+    },
+    "output_tokens": 3677,
+    "output_tokens_details": {
+      "reasoning_tokens": 2456,
+    },
+    "total_tokens": 3813,
+  },
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should produce correct content 1`] = `
 [
   {
