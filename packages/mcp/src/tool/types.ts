@@ -138,10 +138,10 @@ const PaginatedResultSchema = ResultSchema.extend({
 const ToolSchema = z
   .object({
     name: z.string(),
-    // /**
-    //  * @see https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool
-    //  */
-    // title: z.optional(z.string()),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool
+     */
+    title: z.optional(z.string()),
     description: z.optional(z.string()),
     inputSchema: z
       .object({

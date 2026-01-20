@@ -503,14 +503,13 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
       for (const {
         name,
-        // title,
+        title,
         description,
         inputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
-        // const resolvedTitle = title ?? annotations?.title;
-        const resolvedTitle = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
