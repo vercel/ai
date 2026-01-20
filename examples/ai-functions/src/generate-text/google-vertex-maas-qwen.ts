@@ -1,10 +1,10 @@
 import { run } from '../lib/run';
-import { vertex } from '@ai-sdk/google-vertex';
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
 import { generateText } from 'ai';
 
 run(async () => {
   const result = await generateText({
-    model: vertex('qwen3-next-80b-a3b-instruct-maas'),
+    model: vertexMaas('qwen/qwen3-next-80b-a3b-instruct-maas'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

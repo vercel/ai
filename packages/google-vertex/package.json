@@ -12,7 +12,9 @@
     "README.md",
     "edge.d.ts",
     "anthropic/edge.d.ts",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "maas/edge.d.ts",
+    "maas/index.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -48,11 +50,22 @@
       "types": "./dist/anthropic/edge/index.d.ts",
       "import": "./dist/anthropic/edge/index.mjs",
       "require": "./dist/anthropic/edge/index.js"
+    },
+    "./maas": {
+      "types": "./dist/maas/index.d.ts",
+      "import": "./dist/maas/index.mjs",
+      "require": "./dist/maas/index.js"
+    },
+    "./maas/edge": {
+      "types": "./dist/maas/edge/index.d.ts",
+      "import": "./dist/maas/edge/index.mjs",
+      "require": "./dist/maas/edge/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
     "google-auth-library": "^10.5.0"

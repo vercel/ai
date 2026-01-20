@@ -12,7 +12,9 @@
     "tsup.config.ts",
     "edge.d.ts",
     "anthropic/edge.d.ts",
-    "anthropic/index.d.ts"
+    "anthropic/index.d.ts",
+    "maas/edge.d.ts",
+    "maas/index.d.ts"
   ],
   "references": [
     {
@@ -20,6 +22,9 @@
     },
     {
       "path": "../google"
+    },
+    {
+      "path": "../openai-compatible"
     },
     {
       "path": "../provider"

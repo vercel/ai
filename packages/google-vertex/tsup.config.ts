@@ -53,4 +53,30 @@ export default defineConfig([
     },
     outDir: 'dist/anthropic/edge',
   },
+  {
+    entry: ['src/maas/index.ts'],
+    format: ['cjs', 'esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/maas',
+  },
+  {
+    entry: ['src/maas/edge/index.ts'],
+    format: ['cjs', 'esm'],
+    dts: true,
+    sourcemap: true,
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+    outDir: 'dist/maas/edge',
+  },
 ]);
