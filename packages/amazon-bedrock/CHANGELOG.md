@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.22
+
+### Patch Changes
+
+- 3318e0d: feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api
+
 ## 4.0.21
 
 ### Patch Changes
