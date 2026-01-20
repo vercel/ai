@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.16
+
+### Patch Changes
+
+- 78555ad: fix(openai-compatible): Accept non-OpenAI provider options
+
 ## 2.0.15
 
 ### Patch Changes
