@@ -118,6 +118,7 @@ jobs:
             --base main \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
             --label backport \
+            --reviewer R-Taneja \
             --reviewer sylviezhang37)
 
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
