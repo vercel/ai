@@ -16,6 +16,7 @@ You encounter the error `AI_MissingToolResultsError` with a message like:
 This error occurs when you attempt to send a new message to the Large Language Model (LLM) while there are pending tool calls from a previous turn that have not yet been resolved.
 
 The AI SDK core logic validates that all `tool-call` parts in the conversation history are resolved before proceeding. "Resolved" typically means:
+
 1. The tool has been executed and a `tool-result` has been added to the history.
 2. Or, the tool call has triggered a `tool-approval-response` (if using tool approvals).
 
