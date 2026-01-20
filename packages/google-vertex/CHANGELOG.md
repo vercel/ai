@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.20
+
+### Patch Changes
+
+- 827f52a: fix(google-vertex): lazy load the env vars for vertexAnthropic
+
 ## 4.0.19
 
 ### Patch Changes
