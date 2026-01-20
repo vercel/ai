@@ -5,6 +5,7 @@ on:
     # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
     - cron: '0 16 * * 1-5'
   workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: write
@@ -117,7 +118,7 @@ jobs:
             --body "This is an automated update of the gateway model settings files." \
             --base main \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
-            --reviewer R-Taneja \
+            --label backport \
             --reviewer sylviezhang37)
 
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
@@ -148,5 +149,5 @@ jobs:
           HAS_CHANGES: ${{ steps.check-changes.outputs.has-changes }}
           TITLE: ${{ steps.create-pr.outputs.pr-title }}
           URL: ${{ steps.create-pr.outputs.pr-url }}
-          CHANNEL_ID: "C099VQB75TP"
+          CHANNEL_ID: "C0A7TF81HS5"
           REVIEWER: "U0A54KMV02E"
