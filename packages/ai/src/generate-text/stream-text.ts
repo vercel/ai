@@ -171,7 +171,10 @@ Callback that is set using the `onFinish` option.
 
 @param event - The event that is passed to the callback.
  */
-export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
+export type StreamTextOnFinishCallback<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output = Output<string, string, never>,
+> = (
   event: StepResult<TOOLS> & {
     /**
      * Details for all steps.
@@ -191,6 +194,17 @@ export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
      * @default undefined
      */
     experimental_context: unknown;
+
+    /**
+     * The parsed output based on the output specification.
+     * Undefined if parsing failed or no output specification was provided.
+     */
+    readonly output: InferCompleteOutput<OUTPUT> | undefined;
+
+    /**
+     * Error that occurred during output parsing, if any.
+     */
+    readonly outputError: unknown | undefined;
   },
 ) => PromiseLike<void> | void;
 
@@ -411,7 +425,7 @@ Callback that is called when the LLM response and all request tool executions
 
 The usage is the combined usage of all steps.
      */
-    onFinish?: StreamTextOnFinishCallback<TOOLS>;
+    onFinish?: StreamTextOnFinishCallback<TOOLS, OUTPUT>;
 
     onAbort?: StreamTextOnAbortCallback<TOOLS>;
 
@@ -684,7 +698,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
-    onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onFinish: undefined | StreamTextOnFinishCallback<TOOLS, OUTPUT>;
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
   }) {
@@ -966,6 +980,24 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+
+          let parsedOutput: InferCompleteOutput<OUTPUT> | undefined;
+          let outputError: unknown | undefined;
+          try {
+            const outputSpec = self.outputSpecification ?? text();
+            parsedOutput = await outputSpec.parseCompleteOutput(
+              { text: finalStep.text },
+              {
+                response: finalStep.response,
+                usage: finalStep.usage,
+                finishReason: finalStep.finishReason,
+              },
+            );
+          } catch (error) {
+            parsedOutput = undefined;
+            outputError = error;
+          }
+
           await onFinish?.({
             finishReason: finalStep.finishReason,
             rawFinishReason: finalStep.rawFinishReason,
@@ -989,6 +1021,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
             experimental_context,
+            output: parsedOutput,
+            outputError,
           });
 
           // Add response information to the root span:
