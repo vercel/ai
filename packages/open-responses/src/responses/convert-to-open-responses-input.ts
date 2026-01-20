@@ -4,6 +4,8 @@ import {
   InputImageContentParam,
   InputTextContentParam,
   OpenResponsesApiRequestBody,
+  OutputTextContentParam,
+  RefusalContentParam,
 } from './open-responses-api';
 
 export async function convertToOpenResponsesInput({
@@ -34,6 +36,28 @@ export async function convertToOpenResponsesInput({
         }
 
         input.push({ type: 'message', role: 'user', content: userContent });
+        break;
+      }
+
+      case 'assistant': {
+        const assistantContent: Array<
+          OutputTextContentParam | RefusalContentParam
+        > = [];
+
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              assistantContent.push({ type: 'output_text', text: part.text });
+              break;
+            }
+          }
+        }
+
+        input.push({
+          type: 'message',
+          role: 'assistant',
+          content: assistantContent,
+        });
         break;
       }
     }
