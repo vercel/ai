@@ -140,23 +140,26 @@ Create a Google Vertex Anthropic provider instance.
 export function createVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
-  const location = loadOptionalSetting({
-    settingValue: options.location,
-    environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-  });
-  const project = loadOptionalSetting({
-    settingValue: options.project,
-    environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
-  });
+  const getBaseURL = () => {
+    const location = loadOptionalSetting({
+      settingValue: options.location,
+      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+    });
+    const project = loadOptionalSetting({
+      settingValue: options.project,
+      environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
+    });
 
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
+    return (
+      withoutTrailingSlash(options.baseURL) ??
+      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+    );
+  };
 
   const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
       provider: 'vertex.anthropic.messages',
-      baseURL,
+      baseURL: getBaseURL(),
       headers: options.headers ?? {},
       fetch: options.fetch,
 
