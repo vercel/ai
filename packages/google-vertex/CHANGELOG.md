@@ -1,5 +1,24 @@
 # @ai-sdk/google-vertex
 
+## 4.0.20
+
+### Patch Changes
+
+- 827f52a: fix(google-vertex): lazy load the env vars for vertexAnthropic
+
+## 4.0.19
+
+### Patch Changes
+
+- 20828dc: fix(google-vertex): add type safety for allowed tools
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [d36fa72]
+  - @ai-sdk/anthropic@3.0.16
+
 ## 4.0.17
 
 ### Patch Changes
