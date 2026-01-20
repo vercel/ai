@@ -3,7 +3,7 @@ import {
   InputFileContentParam,
   InputImageContentParam,
   InputTextContentParam,
-  OpenResponsesApiRequestBody,
+  OpenResponsesRequestBody,
   OutputTextContentParam,
   RefusalContentParam,
 } from './open-responses-api';
@@ -13,10 +13,10 @@ export async function convertToOpenResponsesInput({
 }: {
   prompt: LanguageModelV3Prompt;
 }): Promise<{
-  input: OpenResponsesApiRequestBody['input'];
+  input: OpenResponsesRequestBody['input'];
   warnings: Array<SharedV3Warning>;
 }> {
-  const input: OpenResponsesApiRequestBody['input'] = [];
+  const input: OpenResponsesRequestBody['input'] = [];
   const warnings: Array<SharedV3Warning> = [];
 
   for (const { role, content } of prompt) {

@@ -156,10 +156,10 @@ export type UserMessageItemParam = {
   type: 'message';
   role: 'user';
   content:
-    | string
-    | Array<
-        InputTextContentParam | InputImageContentParam | InputFileContentParam
-      >;
+  | string
+  | Array<
+    InputTextContentParam | InputImageContentParam | InputFileContentParam
+  >;
   status?: string;
 };
 
@@ -216,13 +216,13 @@ export type FunctionCallOutputItemParam = {
   call_id: string;
   type: 'function_call_output';
   output:
-    | string
-    | Array<
-        | InputTextContentParam
-        | InputImageContentParam
-        | InputFileContentParam
-        | InputVideoContent
-      >;
+  | string
+  | Array<
+    | InputTextContentParam
+    | InputImageContentParam
+    | InputFileContentParam
+    | InputVideoContent
+  >;
   status?: FunctionCallStatus;
 };
 
@@ -461,8 +461,8 @@ export type FunctionCallOutput = {
   id: string;
   call_id: string;
   output:
-    | string
-    | Array<InputTextContent | InputImageContent | InputFileContent>;
+  | string
+  | Array<InputTextContent | InputImageContent | InputFileContent>;
   status: FunctionCallStatus;
 };
 
@@ -560,9 +560,9 @@ export type JsonSchemaResponseFormat = {
  */
 export type TextField = {
   format?:
-    | TextResponseFormat
-    | JsonObjectResponseFormat
-    | JsonSchemaResponseFormat;
+  | TextResponseFormat
+  | JsonObjectResponseFormat
+  | JsonSchemaResponseFormat;
   verbosity?: VerbosityEnum;
 };
 
@@ -606,7 +606,7 @@ export type Reasoning = {
 /**
  * Body that is sent to the Open Responses API.
  */
-export type OpenResponsesApiRequestBody = {
+export type OpenResponsesRequestBody = {
   /**
    * The model to use for this request, e.g. 'gpt-5.2'.
    */
@@ -617,17 +617,17 @@ export type OpenResponsesApiRequestBody = {
    * or an array of structured message items.
    */
   input:
-    | string
-    | Array<
-        | ItemReferenceParam
-        | ReasoningItemParam
-        | UserMessageItemParam
-        | SystemMessageItemParam
-        | DeveloperMessageItemParam
-        | AssistantMessageItemParam
-        | FunctionCallItemParam
-        | FunctionCallOutputItemParam
-      >;
+  | string
+  | Array<
+    | ItemReferenceParam
+    | ReasoningItemParam
+    | UserMessageItemParam
+    | SystemMessageItemParam
+    | DeveloperMessageItemParam
+    | AssistantMessageItemParam
+    | FunctionCallItemParam
+    | FunctionCallOutputItemParam
+  >;
 
   /**
    * The ID of the response to use as the prior turn for this request.
@@ -762,7 +762,7 @@ export type OpenResponsesApiRequestBody = {
 /**
  * Response body from the Open Responses API.
  */
-export type OpenResponsesApiResponseBody = {
+export type OpenResponsesResponseBody = {
   /**
    * The unique ID of the response that was created.
    */
@@ -918,3 +918,322 @@ export type OpenResponsesApiResponseBody = {
    */
   prompt_cache_key?: string;
 };
+
+// ============================================================================
+// Streaming Chunk Types
+// ============================================================================
+
+/**
+ * Content part for streaming - output text.
+ */
+export type OutputTextContentPart = {
+  type: 'output_text';
+  text: string;
+  annotations: Annotation[];
+};
+
+/**
+ * Content part for streaming - refusal.
+ */
+export type RefusalContentPart = {
+  type: 'refusal';
+  refusal: string;
+};
+
+/**
+ * Union of content parts that can appear in streaming.
+ */
+export type ContentPart = OutputTextContentPart | RefusalContentPart;
+
+// ----------------------------------------------------------------------------
+// State Machine Events
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when a response is created.
+ */
+export type ResponseCreatedEvent = {
+  type: 'response.created';
+  sequence_number: number;
+  response: OpenResponsesResponseBody;
+};
+
+/**
+ * Emitted when a response transitions to in_progress status.
+ */
+export type ResponseInProgressEvent = {
+  type: 'response.in_progress';
+  sequence_number: number;
+  response: OpenResponsesResponseBody;
+};
+
+/**
+ * Emitted when a response completes successfully.
+ */
+export type ResponseCompletedEvent = {
+  type: 'response.completed';
+  sequence_number: number;
+  response: OpenResponsesResponseBody;
+};
+
+/**
+ * Emitted when a response fails.
+ */
+export type ResponseFailedEvent = {
+  type: 'response.failed';
+  sequence_number: number;
+  response: OpenResponsesResponseBody;
+};
+
+/**
+ * Emitted when a response is incomplete (e.g., token budget exhausted).
+ */
+export type ResponseIncompleteEvent = {
+  type: 'response.incomplete';
+  sequence_number: number;
+  response: OpenResponsesResponseBody;
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Output Items
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when a new output item is added to the response.
+ */
+export type ResponseOutputItemAddedEvent = {
+  type: 'response.output_item.added';
+  sequence_number: number;
+  output_index: number;
+  item: OutputItem;
+};
+
+/**
+ * Emitted when an output item is completed.
+ */
+export type ResponseOutputItemDoneEvent = {
+  type: 'response.output_item.done';
+  sequence_number: number;
+  output_index: number;
+  item: OutputItem;
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Content Parts
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when a new content part is added to an item.
+ */
+export type ResponseContentPartAddedEvent = {
+  type: 'response.content_part.added';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  part: ContentPart;
+};
+
+/**
+ * Emitted when a content part is completed.
+ */
+export type ResponseContentPartDoneEvent = {
+  type: 'response.content_part.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  part: ContentPart;
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Text Output
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when text is appended to an output.
+ */
+export type ResponseOutputTextDeltaEvent = {
+  type: 'response.output_text.delta';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  delta: string;
+  logprobs?: LogProb[];
+};
+
+/**
+ * Emitted when text output is complete.
+ */
+export type ResponseOutputTextDoneEvent = {
+  type: 'response.output_text.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  text: string;
+  logprobs?: LogProb[];
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Refusal
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when refusal text is appended.
+ */
+export type ResponseRefusalDeltaEvent = {
+  type: 'response.refusal.delta';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  delta: string;
+};
+
+/**
+ * Emitted when refusal is complete.
+ */
+export type ResponseRefusalDoneEvent = {
+  type: 'response.refusal.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  content_index: number;
+  refusal: string;
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Function Call Arguments
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when function call arguments are appended.
+ */
+export type ResponseFunctionCallArgumentsDeltaEvent = {
+  type: 'response.function_call_arguments.delta';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  call_id: string;
+  delta: string;
+};
+
+/**
+ * Emitted when function call arguments are complete.
+ */
+export type ResponseFunctionCallArgumentsDoneEvent = {
+  type: 'response.function_call_arguments.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  call_id: string;
+  arguments: string;
+};
+
+// ----------------------------------------------------------------------------
+// Delta Events - Reasoning
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when reasoning summary text is appended.
+ */
+export type ResponseReasoningSummaryTextDeltaEvent = {
+  type: 'response.reasoning_summary_text.delta';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  summary_index: number;
+  delta: string;
+};
+
+/**
+ * Emitted when reasoning summary text is complete.
+ */
+export type ResponseReasoningSummaryTextDoneEvent = {
+  type: 'response.reasoning_summary_text.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  summary_index: number;
+  text: string;
+};
+
+/**
+ * Emitted when a reasoning summary part is added.
+ */
+export type ResponseReasoningSummaryPartAddedEvent = {
+  type: 'response.reasoning_summary_part.added';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  summary_index: number;
+  part: SummaryTextContent;
+};
+
+/**
+ * Emitted when a reasoning summary part is complete.
+ */
+export type ResponseReasoningSummaryPartDoneEvent = {
+  type: 'response.reasoning_summary_part.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  summary_index: number;
+  part: SummaryTextContent;
+};
+
+// ----------------------------------------------------------------------------
+// Error Event
+// ----------------------------------------------------------------------------
+
+/**
+ * Emitted when an error occurs during streaming.
+ */
+export type ResponseErrorEvent = {
+  type: 'error';
+  sequence_number: number;
+  error: ResponseError;
+};
+
+// ----------------------------------------------------------------------------
+// Union Type for All Streaming Chunks
+// ----------------------------------------------------------------------------
+
+/**
+ * Union of all streaming chunk event types from the Open Responses API.
+ *
+ * Streaming events fall into two categories:
+ * - **State Machine Events**: Represent status changes (e.g., `response.in_progress`, `response.completed`)
+ * - **Delta Events**: Represent incremental changes (e.g., `response.output_text.delta`, `response.output_item.added`)
+ */
+export type OpenResponsesChunk =
+  // State Machine Events
+  | ResponseCreatedEvent
+  | ResponseInProgressEvent
+  | ResponseCompletedEvent
+  | ResponseFailedEvent
+  | ResponseIncompleteEvent
+  // Delta Events - Output Items
+  | ResponseOutputItemAddedEvent
+  | ResponseOutputItemDoneEvent
+  // Delta Events - Content Parts
+  | ResponseContentPartAddedEvent
+  | ResponseContentPartDoneEvent
+  // Delta Events - Text Output
+  | ResponseOutputTextDeltaEvent
+  | ResponseOutputTextDoneEvent
+  // Delta Events - Refusal
+  | ResponseRefusalDeltaEvent
+  | ResponseRefusalDoneEvent
+  // Delta Events - Function Call Arguments
+  | ResponseFunctionCallArgumentsDeltaEvent
+  | ResponseFunctionCallArgumentsDoneEvent
+  // Delta Events - Reasoning
+  | ResponseReasoningSummaryTextDeltaEvent
+  | ResponseReasoningSummaryTextDoneEvent
+  | ResponseReasoningSummaryPartAddedEvent
+  | ResponseReasoningSummaryPartDoneEvent
+  // Error Event
+  | ResponseErrorEvent;

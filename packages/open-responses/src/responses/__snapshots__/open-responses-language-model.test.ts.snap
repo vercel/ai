@@ -84,5 +84,1490 @@ exports[`OpenResponsesLanguageModel > doStream > basic generation > should strea
     "type": "stream-start",
     "warnings": [],
   },
+  {
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-start",
+  },
+  {
+    "delta": "##",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " The",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Festival",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Whis",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "pering",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Leaves",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "F",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ea",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "sts",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Forest",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Origin",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ancient",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Sylvan",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " folklore",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " practiced",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " primarily",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " woodland",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " communities",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " across",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " North",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " America",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " since",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " time",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " immemorial",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "***",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Tra",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ditions",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "*",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Gathering",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Berries",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Nuts",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Gather",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " berries",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nuts",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nearby",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forests",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Preparation",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Feast",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Spend",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hours",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " preparing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " communal",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " feast",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " roasted",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " meats",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "often",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wild",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "),",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ste",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ws",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " made",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forest",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " herbs",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " such",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ginseng",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " black",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pepper",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "corn",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cinnamon",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " large",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " clay",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pots",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " over",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " open",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fires",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Activities",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "*",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Bon",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fires",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Storytelling",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Gather",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " around",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " bon",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "fi",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "res",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " share",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stories",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " about",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " land",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "   ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Traditional",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Dancing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Engage",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spirit",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " through",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dancing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rhythmic",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " music",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " accompanied",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " by",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " drum",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "beats",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hollow",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " logs",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " *",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lighting",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lamps",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Candles",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Oil",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lan",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "terns",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".:",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Create",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " warm",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " atmosphere",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lamps",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " made",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " candles",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " in",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " clay",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vases",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "*",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Star",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ga",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "zing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Spend",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " time",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gazing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " at",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " stars",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " planets",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " visible",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " during",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " night",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sky",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Food",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**:",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Roasted",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "deer",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "/",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "elk",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " berries",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " &",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nuts",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " side",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dish",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " -",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Ste",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ws",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prepared",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " from",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wild",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " herbs",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " such",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ginseng",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " black",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pepper",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "corn",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " along",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " potatoes",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " carrots",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " etc",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "..",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+
+
+
+",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "The",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Festival",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Whis",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "pering",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Leaves",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " celebration",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " honors",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " both",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " nature",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " community",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " spirit",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " marking",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " changing",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " seasons",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " It",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "s",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " also",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " opportunity",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " reflect",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " on",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " past",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " traditions",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "  ",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": "and",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " connect",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " your",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " roots",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " through",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " storytelling",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " around",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "delta": " fire",
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": undefined,
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": undefined,
+        "total": undefined,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": undefined,
+      },
+    },
+  },
 ]
 `;

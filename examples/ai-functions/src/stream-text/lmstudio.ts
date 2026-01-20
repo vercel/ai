@@ -1,7 +1,7 @@
 import { createOpenResponses } from '@ai-sdk/open-responses';
 import { streamText } from 'ai';
+import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
-import { saveRawChunks } from '../lib/save-raw-chunks';
 
 const lmstudio = createOpenResponses({
   name: 'lmstudio',
@@ -13,11 +13,7 @@ run(async () => {
     model: lmstudio('gemma-7b-it'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 1,
-    includeRawChunks: true,
   });
 
-  await saveRawChunks({
-    result,
-    filename: 'lmstudio-gemma-7b-it',
-  })
+  printFullStream({ result });
 });

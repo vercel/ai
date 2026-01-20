@@ -5,6 +5,7 @@ import {
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -19,8 +20,9 @@ import {
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
-  OpenResponsesApiRequestBody,
-  OpenResponsesApiResponseBody,
+  OpenResponsesRequestBody,
+  OpenResponsesResponseBody,
+  OpenResponsesChunk,
   openResponsesErrorSchema,
 } from './open-responses-api';
 import { OpenResponsesConfig } from './open-responses-config';
@@ -58,7 +60,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     toolChoice,
     responseFormat,
   }: LanguageModelV3CallOptions): Promise<{
-    body: Omit<OpenResponsesApiRequestBody, 'stream' | 'stream_options'>;
+    body: Omit<OpenResponsesRequestBody, 'stream' | 'stream_options'>;
     warnings: SharedV3Warning[];
   }> {
     const { input, warnings: inputWarnings } =
@@ -96,7 +98,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       }),
       successfulResponseHandler: createJsonResponseHandler(
         // do not validate the response body, only apply types to the response body
-        jsonSchema<OpenResponsesApiResponseBody>(() => {
+        jsonSchema<OpenResponsesResponseBody>(() => {
           throw new Error('json schema not implemented');
         }),
       ),
@@ -182,27 +184,71 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       body: {
         ...body,
         stream: true,
-      } satisfies OpenResponsesApiRequestBody,
+      } satisfies OpenResponsesRequestBody,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: openResponsesErrorSchema,
         errorToMessage: error => error.error.message,
       }),
+      // TODO consider validation
       successfulResponseHandler: createEventSourceResponseHandler(z.any()),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
+    const usage: LanguageModelV3Usage = {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
+    };
+
     return {
       stream: response.pipeThrough(
-        new TransformStream<ParseResult<any>, LanguageModelV3StreamPart>({
+        new TransformStream<ParseResult<OpenResponsesChunk>, LanguageModelV3StreamPart>({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
-          transform(chunk, controller) {
+          transform(parseResult, controller) {
             if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+              controller.enqueue({ type: 'raw', rawValue: parseResult.rawValue });
             }
+
+            if (!parseResult.success) {
+              controller.enqueue({ type: 'error', error: parseResult.error });
+              return;
+            }
+
+
+            const chunk = parseResult.value;
+
+            if (chunk.type === 'response.output_item.added' && chunk.item.type === 'message') {
+              controller.enqueue({ type: 'text-start', id: chunk.item.id });
+            } else if (chunk.type === 'response.output_text.delta') {
+              controller.enqueue({ type: 'text-delta', id: chunk.item_id, delta: chunk.delta });
+            } else if (chunk.type === 'response.output_item.done' && chunk.item.type === 'message') {
+              controller.enqueue({ type: 'text-end', id: chunk.item.id });
+            }
+          },
+
+          flush(controller) {
+
+            controller.enqueue({
+              type: 'finish',
+              finishReason: {
+                unified: 'stop',
+                raw: undefined,
+              },
+              usage,
+              providerMetadata: undefined,
+            });
           },
         }),
       ),
@@ -211,3 +257,4 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     };
   }
 }
+
