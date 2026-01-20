@@ -1140,4 +1140,320 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  describe('parallel tool execution', () => {
+    it('should use toolCallId for tracking (not generateId) to handle parallel tools correctly', async () => {
+      // This test exposes the bug where generateId() returns the same value for all tools
+      // in a batch, causing the outstandingToolResults Set to only track one tool.
+      // The fix uses toolCall.toolCallId instead which is unique per tool call.
+      const constantIdGenerator = () => 'same-id-for-all';
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'unique-call-1',
+            toolName: 'toolA',
+            input: `{ "value": "a" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'unique-call-2',
+            toolName: 'toolB',
+            input: `{ "value": "b" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'unique-call-3',
+            toolName: 'toolC',
+            input: `{ "value": "c" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool_calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: constantIdGenerator,
+        tools: {
+          toolA: {
+            title: 'Tool A',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(30);
+              return `${value}-result`;
+            },
+          },
+          toolB: {
+            title: 'Tool B',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(10);
+              return `${value}-result`;
+            },
+          },
+          toolC: {
+            title: 'Tool C',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(20);
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // All three tool results should be captured
+      // (Bug: without the fix, only 1 result would be captured because
+      // outstandingToolResults Set would use the same ID for all tools)
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(3);
+      expect(toolResults.map(r => r.toolCallId).sort()).toEqual([
+        'unique-call-1',
+        'unique-call-2',
+        'unique-call-3',
+      ]);
+
+      // Finish should be last
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+    });
+
+    it('should capture all results when multiple tools execute in parallel with different delays', async () => {
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'slowTool',
+            input: `{ "value": "slow" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'fastTool',
+            input: `{ "value": "fast" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: 'mediumTool',
+            input: `{ "value": "medium" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool_calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          slowTool: {
+            title: 'Slow Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(50); // Slowest
+              return `${value}-result`;
+            },
+          },
+          fastTool: {
+            title: 'Fast Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(10); // Fastest
+              return `${value}-result`;
+            },
+          },
+          mediumTool: {
+            title: 'Medium Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(30); // Medium
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // All three tool calls should be present
+      const toolCalls = result.filter(r => r.type === 'tool-call');
+      expect(toolCalls).toHaveLength(3);
+
+      // All three tool results should be present
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(3);
+      expect(toolResults.map(r => r.toolCallId).sort()).toEqual([
+        'call-1',
+        'call-2',
+        'call-3',
+      ]);
+
+      // Finish should be last
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+    });
+
+    it('should not close stream prematurely when fast tool completes before slow tool', async () => {
+      const executionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'slow-call',
+            toolName: 'slowTool',
+            input: `{ "value": "slow" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'fast-call',
+            toolName: 'fastTool',
+            input: `{ "value": "fast" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool_calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          slowTool: {
+            title: 'Slow Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(50);
+              executionOrder.push('slow-completed');
+              return `${value}-slow-result`;
+            },
+          },
+          fastTool: {
+            title: 'Fast Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(5);
+              executionOrder.push('fast-completed');
+              return `${value}-fast-result`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Fast tool should complete first
+      expect(executionOrder).toEqual(['fast-completed', 'slow-completed']);
+
+      // Both results should be captured
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(2);
+      expect(toolResults.map(r => r.output).sort()).toEqual([
+        'fast-fast-result',
+        'slow-slow-result',
+      ]);
+
+      // Stream should close properly after all tools complete
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+    });
+
+    it('should handle many parallel tool calls without losing results', async () => {
+      const toolCount = 10;
+      const toolCalls = Array.from({ length: toolCount }, (_, i) => ({
+        type: 'tool-call' as const,
+        toolCallId: `call-${i}`,
+        toolName: 'parallelTool',
+        input: `{ "index": ${i} }`,
+      }));
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          ...toolCalls,
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool_calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          parallelTool: {
+            title: 'Parallel Tool',
+            inputSchema: z.object({ index: z.number() }),
+            execute: async ({ index }) => {
+              // Random delay to simulate real-world variance
+              await delay(Math.random() * 20);
+              return `result-${index}`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // All tool results should be captured
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(toolCount);
+
+      // Verify all results are present (order may vary)
+      const resultOutputs = toolResults.map(r => r.output).sort();
+      const expectedOutputs = Array.from(
+        { length: toolCount },
+        (_, i) => `result-${i}`,
+      ).sort();
+      expect(resultOutputs).toEqual(expectedOutputs);
+
+      // Finish should be last
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+    });
+  });
 });
