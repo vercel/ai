@@ -96,7 +96,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { 'openaiCompatible': { quality: 'hd' } },
+          providerOptions: { openaiCompatible: { quality: 'hd' } },
         }),
       );
 
@@ -114,8 +114,7 @@ describe('OpenAICompatibleImageModel', () => {
       const recraftModel = new OpenAICompatibleImageModel('recraft-v3', {
         provider: 'recraft.image',
         headers: () => ({ Authorization: 'Bearer test-key' }),
-        url: ({ modelId, path }) =>
-          `https://external.api.recraft.ai/v1${path}`,
+        url: ({ modelId, path }) => `https://external.api.recraft.ai/v1${path}`,
       });
 
       await recraftModel.doGenerate(
@@ -308,7 +307,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            'openaiCompatible': {
+            openaiCompatible: {
               user: 'test-user-id',
             },
           },
@@ -331,7 +330,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            'openaiCompatible': {},
+            openaiCompatible: {},
           },
         }),
       );
