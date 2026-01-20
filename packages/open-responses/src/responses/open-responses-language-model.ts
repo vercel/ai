@@ -102,6 +102,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
     for (const part of response.output!) {
       switch (part.type) {
+        // TODO AI SDK 7 adjust reasoning in the specification to better support the reasoning structure from open responses.
+        case 'reasoning': {
+          for (const contentPart of part.content ?? []) {
+            content.push({
+              type: 'reasoning',
+              text: contentPart.text,
+            });
+          }
+          break;
+        }
+
         case 'message': {
           for (const contentPart of part.content) {
             content.push({

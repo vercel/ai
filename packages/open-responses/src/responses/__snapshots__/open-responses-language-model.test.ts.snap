@@ -3,6 +3,10 @@
 exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > should produce correct content 1`] = `
 [
   {
+    "text": "reasoning content",
+    "type": "reasoning",
+  },
+  {
     "text": "text content",
     "type": "text",
   },
