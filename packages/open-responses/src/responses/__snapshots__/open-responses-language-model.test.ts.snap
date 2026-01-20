@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > should produce correct content 1`] = `
+exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should produce correct content 1`] = `
 [
   {
     "text": "reasoning content",
@@ -13,7 +13,7 @@ exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > shoul
 ]
 `;
 
-exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > should send correct request body 1`] = `
+exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should send correct request body 1`] = `
 {
   "input": [
     {
@@ -28,5 +28,25 @@ exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > shoul
     },
   ],
   "model": "gemma-7b-it",
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should send correct request body 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "max_output_tokens": 100,
+  "model": "gemma-7b-it",
+  "temperature": 0.5,
 }
 `;

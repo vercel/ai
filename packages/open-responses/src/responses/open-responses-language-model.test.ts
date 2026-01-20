@@ -42,7 +42,7 @@ describe('OpenResponsesLanguageModel', () => {
       return;
     }
 
-    describe('code interpreter tool', () => {
+    describe('basic generation', () => {
       let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
@@ -59,6 +59,24 @@ describe('OpenResponsesLanguageModel', () => {
 
       it('should produce correct content', async () => {
         expect(result.content).toMatchSnapshot();
+      });
+    });
+
+    describe('request parameters', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          maxOutputTokens: 100,
+          temperature: 0.5,
+        });
+      });
+
+      it('should send correct request body', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
   });

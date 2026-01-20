@@ -13,7 +13,6 @@ import {
   jsonSchema,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   OpenResponsesApiRequestBody,
@@ -67,6 +66,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       body: {
         model: this.modelId,
         input,
+        max_output_tokens: maxOutputTokens,
+        temperature
       },
       warnings: inputWarnings,
     };
@@ -90,6 +91,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         errorToMessage: error => error.error.message,
       }),
       successfulResponseHandler: createJsonResponseHandler(
+        // do not validate the response body, only apply types to the response body
         jsonSchema<OpenResponsesApiResponseBody>(() => {
           throw new Error('json schema not implemented');
         }),
