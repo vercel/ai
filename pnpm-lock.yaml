@@ -29428,6 +29428,13 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
+<<<<<<< HEAD
+=======
+  copy-anything@4.0.5:
+    dependencies:
+      is-what: 5.5.0
+
+>>>>>>> 3318e0d66 (feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api (#11878))
   copy-webpack-plugin@13.0.1(webpack@5.101.2(esbuild@0.25.9)):
     dependencies:
       glob-parent: 6.0.2
