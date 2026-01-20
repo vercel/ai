@@ -1114,4 +1114,136 @@ describe('MCPClient', () => {
       });
     });
   });
+
+  describe('tool title support', () => {
+    it('should use top-level title when provided (MCP spec-compliant)', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'titled-tool',
+            title: 'My Tool Title',
+            description: 'A tool with a title',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['titled-tool'].title).toBe('My Tool Title');
+    });
+
+    it('should fallback to annotations.title for backward compatibility', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'annotated-tool',
+            description: 'A tool with title in annotations',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotation Title',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['annotated-tool'].title).toBe('Annotation Title');
+    });
+
+    it('should prefer top-level title over annotations.title when both present', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'dual-title-tool',
+            title: 'Top Level Title',
+            description: 'A tool with both titles',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotation Title',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['dual-title-tool'].title).toBe('Top Level Title');
+    });
+
+    it('should have undefined title when neither top-level nor annotations.title provided', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'no-title-tool',
+            description: 'A tool without any title',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['no-title-tool'].title).toBeUndefined();
+    });
+
+    it('should pass title through to typed tools with schemas', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'typed-titled-tool',
+            title: 'Typed Tool Title',
+            description: 'A typed tool with a title',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'typed-titled-tool': {
+            inputSchema: z.object({
+              input: z.string(),
+            }),
+          },
+        },
+      });
+
+      expect(tools['typed-titled-tool'].title).toBe('Typed Tool Title');
+    });
+  });
 });
