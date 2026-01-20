@@ -2,7 +2,10 @@ import {
   LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
-import { mockId } from '@ai-sdk/provider-utils/test';
+import {
+  convertReadableStreamToArray,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -81,6 +84,39 @@ describe('OpenResponsesLanguageModel', () => {
 
       it('should send correct request body', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
+  });
+
+  describe('doStream', () => {
+    function prepareChunksFixtureResponse(filename: string) {
+      const chunks = fs
+        .readFileSync(
+          `src/responses/__fixtures__/${filename}.chunks.txt`,
+          'utf8',
+        )
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .map(line => `data: ${line}\n\n`);
+      chunks.push('data: [DONE]\n\n');
+
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks,
+      };
+    }
+
+    describe('basic generation', () => {
+      it('should stream content', async () => {
+        prepareChunksFixtureResponse('lmstudio-basic.1');
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
       });
     });
   });
