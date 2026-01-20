@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.16
+
+### Patch Changes
+
+- d36fa72: Not sending structured output beta header for json response tool
+
 ## 3.0.15
 
 ### Patch Changes
