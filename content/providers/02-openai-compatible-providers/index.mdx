@@ -46,7 +46,7 @@ To use an OpenAI compatible provider, you can create a custom provider instance 
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
   includeUsage: true, // Include usage information in streaming responses
@@ -107,7 +107,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
@@ -173,7 +173,7 @@ added to all requests made by the provider.
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
   queryParams: {
@@ -200,7 +200,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateImage } from 'ai';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
@@ -224,7 +224,7 @@ import { generateImage } from 'ai';
 import fs from 'fs';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
@@ -250,7 +250,7 @@ import { generateImage } from 'ai';
 import fs from 'fs';
 
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
@@ -278,11 +278,11 @@ const { images } = await generateImage({
 
 The OpenAI Compatible provider supports adding provider-specific options to the request body. These are specified with the `providerOptions` field in the request body.
 
-For example, if you create a provider instance with the name `provider-name`, you can add a `custom-option` field to the request body like this:
+For example, if you create a provider instance with the name `providerName`, you can add a `customOption` field to the request body like this:
 
 ```ts
 const provider = createOpenAICompatible({
-  name: 'provider-name',
+  name: 'providerName',
   apiKey: process.env.PROVIDER_API_KEY,
   baseURL: 'https://api.provider.com/v1',
 });
@@ -291,10 +291,12 @@ const { text } = await generateText({
   model: provider('model-id'),
   prompt: 'Hello',
   providerOptions: {
-    'provider-name': { customOption: 'magic-value' },
+    providerName: { customOption: 'magic-value' },
   },
 });
 ```
+
+Note that the `providerOptions` key will be in camelCase. If you set the provider name to `provider-name`, the options still need to be set on `providerOptions.providerName`.
 
 The request body sent to the provider will include the `customOption` field with the value `magic-value`. This gives you an easy way to add provider-specific options to requests without having to modify the provider or AI SDK code.
 
