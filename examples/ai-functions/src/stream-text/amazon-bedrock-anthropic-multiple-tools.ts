@@ -1,35 +1,38 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { Output, stepCountIs, streamText, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-    stopWhen: stepCountIs(20),
-    output: Output.array({
-      element: z.object({
-        location: z.string(),
-        temperature: z.number(),
-        condition: z.string(),
-      }),
-    }),
+    maxOutputTokens: 1024,
     tools: {
       weather: tool({
-        description: 'Get the weather for a location',
+        description: 'Get the weather in a location',
         inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
           location,
-          temperature: Math.floor(Math.random() * 30) + 50,
-          condition: ['sunny', 'cloudy', 'rainy'][
-            Math.floor(Math.random() * 3)
-          ],
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+          unit: 'fahrenheit',
+        }),
+      }),
+      stockPrice: tool({
+        description: 'Get the current stock price',
+        inputSchema: z.object({
+          symbol: z.string().describe('The stock symbol'),
+        }),
+        execute: async ({ symbol }) => ({
+          symbol,
+          price: 150 + Math.floor(Math.random() * 50),
+          currency: 'USD',
         }),
       }),
     },
-    prompt: 'What is the weather in New York, Los Angeles, and Chicago?',
+    prompt:
+      'What is the weather in Tokyo? Also, what is the stock price of GOOGL?',
   });
 
   for await (const part of result.fullStream) {
@@ -39,15 +42,16 @@ run(async () => {
         break;
       case 'tool-call':
         console.log(`\n--- Tool Call: ${part.toolName} ---`);
+        console.log('Input:', JSON.stringify(part.input, null, 2));
         break;
       case 'tool-result':
-        console.log(`--- Tool Result ---`);
-        console.log(JSON.stringify(part.output, null, 2));
+        console.log(`--- Tool Result: ${part.toolName} ---`);
+        console.log('Output:', JSON.stringify(part.output, null, 2));
         break;
     }
   }
 
   console.log('\n\n--- Final ---');
-  console.log('Output:', await result.output);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
 });

@@ -1,35 +1,25 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { Output, stepCountIs, streamText, tool } from 'ai';
+import { streamText, tool } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-    stopWhen: stepCountIs(20),
-    output: Output.array({
-      element: z.object({
-        location: z.string(),
-        temperature: z.number(),
-        condition: z.string(),
-      }),
-    }),
     tools: {
       weather: tool({
-        description: 'Get the weather for a location',
+        description: 'Get the weather in a location',
         inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => ({
           location,
-          temperature: Math.floor(Math.random() * 30) + 50,
-          condition: ['sunny', 'cloudy', 'rainy'][
-            Math.floor(Math.random() * 3)
-          ],
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
         }),
       }),
     },
-    prompt: 'What is the weather in New York, Los Angeles, and Chicago?',
+    prompt: 'What is the weather in San Francisco?',
   });
 
   for await (const part of result.fullStream) {
@@ -38,16 +28,19 @@ run(async () => {
         process.stdout.write(part.text);
         break;
       case 'tool-call':
-        console.log(`\n--- Tool Call: ${part.toolName} ---`);
+        console.log('\n--- Tool Call ---');
+        console.log('Tool:', part.toolName);
+        console.log('Args:', JSON.stringify(part.input));
         break;
       case 'tool-result':
-        console.log(`--- Tool Result ---`);
-        console.log(JSON.stringify(part.output, null, 2));
+        console.log('\n--- Tool Result ---');
+        console.log('Result:', JSON.stringify(part.output));
         break;
     }
   }
 
   console.log('\n\n--- Final ---');
-  console.log('Output:', await result.output);
+  console.log('Text:', await result.text);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
 });
