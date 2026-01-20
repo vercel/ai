@@ -5,6 +5,7 @@ on:
     # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
     - cron: '0 16 * * 1-5'
   workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: write
@@ -78,8 +79,7 @@ jobs:
         if: steps.check-changes.outputs.has-changes == 'true'
         run: |
           # Generate a random changeset filename
-          CHANGESET_ID=$(openssl rand -hex 8)
-          CHANGESET_FILE=".changeset/${CHANGESET_ID}.md"
+          CHANGESET_FILE=".changeset/beige-buses-fry.md"
 
           cat > "$CHANGESET_FILE" << 'EOF'
           ---
