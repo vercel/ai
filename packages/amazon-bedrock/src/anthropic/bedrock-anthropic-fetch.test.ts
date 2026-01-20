@@ -146,7 +146,9 @@ describe('createBedrockAnthropicFetch', () => {
     const { value } = await reader.read();
     const text = new TextDecoder().decode(value);
 
-    expect(text).toBe(`data: {"type":"error","error":${errorData}}\n\n`);
+    expect(text).toBe(
+      `data: ${JSON.stringify({ type: 'error', error: errorData })}\n\n`,
+    );
   });
 
   it('should handle multiple events in sequence', async () => {
