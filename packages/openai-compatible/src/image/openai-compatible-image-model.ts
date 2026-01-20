@@ -48,18 +48,19 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     return this.config.provider.split('.')[0].trim();
   }
 
-
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
   // TODO: deprecate non-camelCase keys and remove in future major version
-  private getArgs(providerOptions: SharedV3ProviderOptions): Record<string, unknown> {
+  private getArgs(
+    providerOptions: SharedV3ProviderOptions,
+  ): Record<string, unknown> {
     return {
       ...providerOptions[this.providerOptionsKey],
       ...providerOptions[toCamelCase(this.providerOptionsKey)],
-    }
+    };
   }
 
   async doGenerate({
