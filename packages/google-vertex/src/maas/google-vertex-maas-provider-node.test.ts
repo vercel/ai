@@ -1,0 +1,224 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  createVertexMaas,
+  vertexMaas,
+} from './google-vertex-maas-provider-node';
+import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+
+// Mock the imported modules
+vi.mock('../google-vertex-auth-google-auth-library', () => ({
+  generateAuthToken: vi.fn(),
+}));
+
+vi.mock('./google-vertex-maas-provider', () => ({
+  createVertexMaas: vi.fn((options) => {
+    // Return a mock provider that captures the fetch function
+    const provider: any = vi.fn();
+    provider.fetch = options.fetch;
+    provider.headers = options.headers;
+    return provider;
+  }),
+}));
+
+vi.mock('@ai-sdk/provider-utils', () => ({
+  resolve: vi.fn().mockImplementation(async (value) => {
+    if (typeof value === 'function') return value();
+    return value;
+  }),
+}));
+
+describe('google-vertex-maas-provider-node', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create provider with auth wrapper', async () => {
+    const provider = createVertexMaas({
+      project: 'test-project',
+    });
+
+    expect(provider).toBeDefined();
+    const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
+      await import('./google-vertex-maas-provider'),
+    );
+    expect(baseCreateVertexMaas).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: 'test-project',
+        fetch: expect.any(Function),
+        headers: undefined,
+      }),
+    );
+  });
+
+  it('should generate auth token and add to request headers', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const provider = createVertexMaas({
+      project: 'test-project',
+    });
+
+    // Get the custom fetch function from the provider
+    const customFetch = (provider as any).fetch;
+    expect(customFetch).toBeDefined();
+
+    // Call the custom fetch
+    await customFetch('https://example.com/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    // Verify auth token was generated
+    expect(generateAuthToken).toHaveBeenCalledWith(undefined);
+
+    // Verify fetch was called with auth header
+    expect(mockFetch).toHaveBeenCalledWith('https://example.com/test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer mock-auth-token',
+      },
+    });
+  });
+
+  it('should pass googleAuthOptions to generateAuthToken', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const googleAuthOptions = { scopes: ['test-scope'] };
+    const provider = createVertexMaas({
+      project: 'test-project',
+      googleAuthOptions,
+    });
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test', {});
+
+    expect(generateAuthToken).toHaveBeenCalledWith(googleAuthOptions);
+  });
+
+  it('should merge custom headers with auth header', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const customHeaders = { 'X-Custom': 'header-value' };
+    const provider = createVertexMaas({
+      project: 'test-project',
+      headers: customHeaders,
+    });
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test', {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith('https://example.com/test', {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Custom': 'header-value',
+        Authorization: 'Bearer mock-auth-token',
+      },
+    });
+  });
+
+  it('should use custom fetch when provided', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const customFetch = vi.fn().mockResolvedValue(new Response('{}'));
+
+    const provider = createVertexMaas({
+      project: 'test-project',
+      fetch: customFetch,
+    });
+
+    const authFetch = (provider as any).fetch;
+    await authFetch('https://example.com/test', {});
+
+    // Verify custom fetch was called instead of global fetch
+    expect(customFetch).toHaveBeenCalledWith(
+      'https://example.com/test',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer mock-auth-token',
+        }),
+      }),
+    );
+  });
+
+  it('should handle async custom headers', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const asyncHeaders = Promise.resolve({ 'X-Async': 'async-value' });
+    const provider = createVertexMaas({
+      project: 'test-project',
+      headers: asyncHeaders,
+    });
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test', {});
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://example.com/test',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Async': 'async-value',
+          Authorization: 'Bearer mock-auth-token',
+        }),
+      }),
+    );
+  });
+
+  it('should preserve headers from init parameter', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const provider = createVertexMaas({
+      project: 'test-project',
+    });
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test', {
+      headers: {
+        'User-Agent': 'test-agent',
+        'X-Request-ID': 'test-id',
+      },
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://example.com/test',
+      expect.objectContaining({
+        headers: {
+          'User-Agent': 'test-agent',
+          'X-Request-ID': 'test-id',
+          Authorization: 'Bearer mock-auth-token',
+        },
+      }),
+    );
+  });
+
+  it('should export default vertexMaas instance', () => {
+    expect(vertexMaas).toBeDefined();
+    expect(typeof vertexMaas).toBe('function');
+  });
+
+  it('should set headers to undefined in base provider call', async () => {
+    createVertexMaas({
+      project: 'test-project',
+      headers: { 'X-Custom': 'value' },
+    });
+
+    const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
+      await import('./google-vertex-maas-provider'),
+    );
+    expect(baseCreateVertexMaas).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: undefined, // Headers handled in fetch wrapper
+      }),
+    );
+  });
+});
