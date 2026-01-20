@@ -49,12 +49,11 @@ const createModelVariants = (
 
 // Model variants to test against
 const CHAT_MODELS = [
-  'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-  // 'us.anthropic.claude-3-7-sonnet-20250219-v1:0', // for computer use tools
+  'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
 ];
 
-// Claude 3.7 for computer use tools
-const COMPUTER_USE_MODELS = ['us.anthropic.claude-3-7-sonnet-20250219-v1:0'];
+// Sonnet 4.5 supports computer use tools
+const COMPUTER_USE_MODELS = ['us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
 
 const createModelsForRuntime = () => ({
   languageModels: [

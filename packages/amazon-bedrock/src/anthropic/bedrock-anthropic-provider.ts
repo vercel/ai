@@ -28,9 +28,14 @@ import { VERSION } from '../version';
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
 const BEDROCK_TOOL_VERSION_MAP = {
   bash_20241022: 'bash_20250124',
-  text_editor_20241022: 'text_editor_20250124',
+  text_editor_20241022: 'text_editor_20250728',
   computer_20241022: 'computer_20250124',
 } as const;
+
+// Tool name mappings when upgrading versions (text_editor_20250728 requires different name)
+const BEDROCK_TOOL_NAME_MAP: Record<string, string> = {
+  text_editor_20250728: 'str_replace_based_edit_tool',
+};
 
 // Map tool types to required anthropic_beta values for Bedrock
 const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
@@ -274,14 +279,26 @@ export function createBedrockAnthropic(
             if (newType in BEDROCK_TOOL_BETA_MAP) {
               requiredBetas.add(BEDROCK_TOOL_BETA_MAP[newType]);
             }
+            const newName =
+              newType in BEDROCK_TOOL_NAME_MAP
+                ? BEDROCK_TOOL_NAME_MAP[newType]
+                : tool.name;
             return {
               ...tool,
               type: newType,
+              name: newName,
             };
           }
 
           if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
             requiredBetas.add(BEDROCK_TOOL_BETA_MAP[toolType]);
+          }
+
+          if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
+            return {
+              ...tool,
+              name: BEDROCK_TOOL_NAME_MAP[toolType],
+            };
           }
 
           return tool;

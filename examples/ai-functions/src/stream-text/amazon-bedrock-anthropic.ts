@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

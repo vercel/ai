@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     tools: {
       bash: bedrockAnthropic.tools.bash_20241022({
         async execute({ command }) {

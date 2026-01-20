@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
-    model: bedrockAnthropic('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

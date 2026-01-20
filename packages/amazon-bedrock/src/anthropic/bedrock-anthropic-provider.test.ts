@@ -340,7 +340,7 @@ describe('bedrock-anthropic-provider', () => {
 
     expect(transformedBody?.tools).toEqual([
       { type: 'bash_20250124', name: 'bash' },
-      { type: 'text_editor_20250124', name: 'str_replace_editor' },
+      { type: 'text_editor_20250728', name: 'str_replace_based_edit_tool' },
       { type: 'computer_20250124', name: 'computer' },
     ]);
   });

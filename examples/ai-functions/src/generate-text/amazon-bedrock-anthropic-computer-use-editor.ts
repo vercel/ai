@@ -7,7 +7,7 @@ run(async () => {
   let editorContent = '## README\nThis is a test file.';
 
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     tools: {
       str_replace_editor: bedrockAnthropic.tools.textEditor_20241022({
         async execute({ command, path, old_str, new_str }) {
