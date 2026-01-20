@@ -83,15 +83,15 @@ export type LanguageModelUsage = {
 const numberOrUndefined = z.union([z.number(), z.undefined()]);
 
 export const languageModelUsageSchema: z.ZodType<LanguageModelUsage> =
-  z.strictObject({
+  z.object({
     inputTokens: numberOrUndefined,
-    inputTokenDetails: z.strictObject({
+    inputTokenDetails: z.object({
       noCacheTokens: numberOrUndefined,
       cacheReadTokens: numberOrUndefined,
       cacheWriteTokens: numberOrUndefined,
     }),
     outputTokens: numberOrUndefined,
-    outputTokenDetails: z.strictObject({
+    outputTokenDetails: z.object({
       textTokens: numberOrUndefined,
       reasoningTokens: numberOrUndefined,
     }),
