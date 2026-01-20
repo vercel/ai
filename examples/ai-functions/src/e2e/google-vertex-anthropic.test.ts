@@ -173,7 +173,7 @@ const toolTests = (model: LanguageModelV3) => {
       const result = await generateText({
         model,
         tools: {
-          bash: vertexAnthropic.tools.bash_20241022({
+          bash: vertexAnthropic.tools.bash_20250124({
             async execute({ command }) {
               return [
                 {
@@ -208,7 +208,7 @@ README.md     build         data          node_modules  package.json  src       
       const result = await generateText({
         model,
         tools: {
-          str_replace_editor: vertexAnthropic.tools.textEditor_20241022({
+          str_replace_editor: vertexAnthropic.tools.textEditor_20250124({
             async execute({ command, path, old_str, new_str }) {
               switch (command) {
                 case 'view': {
