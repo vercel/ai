@@ -42,11 +42,13 @@ export interface OpenAICompatibleContentPartImage extends JsonRecord {
   image_url: { url: string };
 }
 
+// Audio parts for Google API
 export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
   type: 'input_audio';
   input_audio: { data: string; format: 'wav' | 'mp3' };
 }
 
+// File parts for Google API
 export interface OpenAICompatibleContentPartFile extends JsonRecord {
   type: 'file';
   file: { filename: string; file_data: string };
