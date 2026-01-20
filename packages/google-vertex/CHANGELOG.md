@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.19
+
+### Patch Changes
+
+- 20828dc: fix(google-vertex): add type safety for allowed tools
+
 ## 4.0.18
 
 ### Patch Changes
