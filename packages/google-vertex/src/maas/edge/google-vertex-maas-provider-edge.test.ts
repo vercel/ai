@@ -2,15 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createVertexMaas,
   vertexMaas,
-} from './google-vertex-maas-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+} from './google-vertex-maas-provider-edge';
+import { generateAuthToken } from '../../edge/google-vertex-auth-edge';
 
-// Mock the imported modules
-vi.mock('../google-vertex-auth-google-auth-library', () => ({
+vi.mock('../../edge/google-vertex-auth-edge', () => ({
   generateAuthToken: vi.fn(),
 }));
 
-vi.mock('./google-vertex-maas-provider', () => ({
+vi.mock('../google-vertex-maas-provider', () => ({
   createVertexMaas: vi.fn(options => {
     const provider: any = vi.fn();
     provider.fetch = options.fetch;
@@ -26,7 +25,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   }),
 }));
 
-describe('google-vertex-maas-provider-node', () => {
+describe('google-vertex-maas-provider-edge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -38,7 +37,7 @@ describe('google-vertex-maas-provider-node', () => {
 
     expect(provider).toBeDefined();
     const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
-      await import('./google-vertex-maas-provider'),
+      await import('../google-vertex-maas-provider'),
     );
     expect(baseCreateVertexMaas).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -77,21 +76,24 @@ describe('google-vertex-maas-provider-node', () => {
     });
   });
 
-  it('should pass googleAuthOptions to generateAuthToken', async () => {
+  it('should pass googleCredentials to generateAuthToken', async () => {
     vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
 
-    const googleAuthOptions = { scopes: ['test-scope'] };
+    const googleCredentials = {
+      clientEmail: 'test@example.com',
+      privateKey: 'test-key',
+    };
     const provider = createVertexMaas({
       project: 'test-project',
-      googleAuthOptions,
+      googleCredentials,
     });
 
     const customFetch = (provider as any).fetch;
     await customFetch('https://example.com/test', {});
 
-    expect(generateAuthToken).toHaveBeenCalledWith(googleAuthOptions);
+    expect(generateAuthToken).toHaveBeenCalledWith(googleCredentials);
   });
 
   it('should merge custom headers with auth header', async () => {
@@ -207,7 +209,7 @@ describe('google-vertex-maas-provider-node', () => {
     });
 
     const { createVertexMaas: baseCreateVertexMaas } = vi.mocked(
-      await import('./google-vertex-maas-provider'),
+      await import('../google-vertex-maas-provider'),
     );
     expect(baseCreateVertexMaas).toHaveBeenCalledWith(
       expect.objectContaining({

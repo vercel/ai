@@ -87,15 +87,13 @@ describe('google-vertex-maas-provider', () => {
     );
   });
 
-  it('should not pass headers to openai-compatible provider (handled in fetch wrapper)', () => {
+  it('should not pass headers to openai-compatible provider', () => {
     const customHeaders = { 'X-Custom': 'header-value' };
     createVertexMaas({
       project: 'test-project',
       headers: customHeaders,
     });
 
-    // Headers are not passed to createOpenAICompatible because they are
-    // handled by the auth fetch wrapper in Node.js/Edge implementations
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'vertex.maas',
@@ -103,7 +101,6 @@ describe('google-vertex-maas-provider', () => {
         fetch: undefined,
       }),
     );
-    // Verify headers are NOT in the call
     expect(createOpenAICompatible).not.toHaveBeenCalledWith(
       expect.objectContaining({
         headers: expect.anything(),
