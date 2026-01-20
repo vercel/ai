@@ -62,6 +62,18 @@ describe('OpenAICompatibleImageModel', () => {
         },
       },
     },
+    'https://external.api.recraft.ai/v1/images/generations': {
+      response: {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              b64_json: 'recraft-test-image',
+            },
+          ],
+        },
+      },
+    },
   });
 
   describe('constructor', () => {
@@ -82,7 +94,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { openai: { quality: 'hd' } },
+          providerOptions: { openaiCompatible: { quality: 'hd' } },
         }),
       );
 
@@ -92,6 +104,30 @@ describe('OpenAICompatibleImageModel', () => {
         n: 2,
         size: '1024x1024',
         quality: 'hd',
+        response_format: 'b64_json',
+      });
+    });
+
+    it('should use provider name from config for providerOptions key', async () => {
+      const recraftModel = new OpenAICompatibleImageModel('recraft-v3', {
+        provider: 'recraft.image',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://external.api.recraft.ai/v1${path}`,
+      });
+
+      await recraftModel.doGenerate(
+        createDefaultGenerateParams({
+          prompt: 'A beautiful sunset',
+          providerOptions: { recraft: { style: 'vector_illustration' } },
+        }),
+      );
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'recraft-v3',
+        prompt: 'A beautiful sunset',
+        n: 1,
+        size: '1024x1024',
+        style: 'vector_illustration',
         response_format: 'b64_json',
       });
     });
@@ -267,7 +303,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {
+            openaiCompatible: {
               user: 'test-user-id',
             },
           },
@@ -290,7 +326,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {},
+            openaiCompatible: {},
           },
         }),
       );
