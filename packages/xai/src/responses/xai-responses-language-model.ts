@@ -376,7 +376,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     };
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' }> = {};
+    const contentBlocks: Record<string, { type: 'text'; ended: boolean }> = {};
     const seenToolCalls = new Set<string>();
 
     const activeReasoning: Record<
@@ -461,7 +461,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const blockId = `text-${event.item_id}`;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                contentBlocks[blockId] = { type: 'text', ended: false };
                 controller.enqueue({
                   type: 'text-start',
                   id: blockId,
@@ -643,12 +643,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
 
               if (part.type === 'message') {
-                for (const contentPart of part.content) {
-                  if (contentPart.text && contentPart.text.length > 0) {
-                    const blockId = `text-${part.id}`;
+                const blockId = `text-${part.id}`;
 
+                for (const contentPart of part.content) {
+                  // Text fallback (defensive - in case delta events weren't received)
+                  if (contentPart.text && contentPart.text.length > 0) {
                     if (contentBlocks[blockId] == null) {
-                      contentBlocks[blockId] = { type: 'text' };
+                      contentBlocks[blockId] = { type: 'text', ended: false };
                       controller.enqueue({
                         type: 'text-start',
                         id: blockId,
@@ -678,6 +679,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                       }
                     }
                   }
+                }
+
+                // Emit text-end immediately when message completes (like OpenAI pattern)
+                if (
+                  contentBlocks[blockId] != null &&
+                  !contentBlocks[blockId].ended
+                ) {
+                  contentBlocks[blockId].ended = true;
+                  controller.enqueue({
+                    type: 'text-end',
+                    id: blockId,
+                  });
                 }
               } else if (part.type === 'function_call') {
                 if (!seenToolCalls.has(part.call_id)) {
@@ -712,8 +725,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            // Emit text-end for any blocks that weren't ended by response.output_item.done
             for (const [blockId, block] of Object.entries(contentBlocks)) {
-              if (block.type === 'text') {
+              if (block.type === 'text' && !block.ended) {
                 controller.enqueue({
                   type: 'text-end',
                   id: blockId,
