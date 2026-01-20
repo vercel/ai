@@ -44,9 +44,7 @@ function transformBedrockEventStreamToSSE(
         const bytes = (parsed.value as { bytes?: string }).bytes;
         if (bytes) {
           const anthropicEvent = atob(bytes);
-          controller.enqueue(
-            textEncoder.encode(`data: ${anthropicEvent}\n\n`),
-          );
+          controller.enqueue(textEncoder.encode(`data: ${anthropicEvent}\n\n`));
         } else {
           controller.enqueue(textEncoder.encode(`data: ${event.data}\n\n`));
         }
