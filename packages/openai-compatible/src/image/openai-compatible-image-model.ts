@@ -1,13 +1,8 @@
-<<<<<<< HEAD
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-=======
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  SharedV2ProviderOptions,
 } from '@ai-sdk/provider';
->>>>>>> 78555addd (fix(openai-compatible): Accept non-OpenAI provider options (#11838))
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -55,7 +50,7 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
 
   // TODO: deprecate non-camelCase keys and remove in future major version
   private getArgs(
-    providerOptions: SharedV3ProviderOptions,
+    providerOptions: SharedV2ProviderOptions,
   ): Record<string, unknown> {
     return {
       ...providerOptions[this.providerOptionsKey],
@@ -91,51 +86,9 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
     }
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-<<<<<<< HEAD
-=======
 
     const args = this.getArgs(providerOptions);
 
-    // Image editing mode - use form data and /images/edits endpoint
-    if (files != null && files.length > 0) {
-      const { value: response, responseHeaders } = await postFormDataToApi({
-        url: this.config.url({
-          path: '/images/edits',
-          modelId: this.modelId,
-        }),
-        headers: combineHeaders(this.config.headers(), headers),
-        formData: convertToFormData<OpenAICompatibleFormDataInput>({
-          model: this.modelId,
-          prompt,
-          image: await Promise.all(files.map(file => fileToBlob(file))),
-          mask: mask != null ? await fileToBlob(mask) : undefined,
-          n,
-          size,
-          ...args,
-        }),
-        failedResponseHandler: createJsonErrorResponseHandler(
-          this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
-        ),
-        successfulResponseHandler: createJsonResponseHandler(
-          openaiCompatibleImageResponseSchema,
-        ),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
-
-      return {
-        images: response.data.map(item => item.b64_json),
-        warnings,
-        response: {
-          timestamp: currentDate,
-          modelId: this.modelId,
-          headers: responseHeaders,
-        },
-      };
-    }
-
-    // Standard image generation mode - use JSON and /images/generations endpoint
->>>>>>> 78555addd (fix(openai-compatible): Accept non-OpenAI provider options (#11838))
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: '/images/generations',
@@ -177,33 +130,7 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
 const openaiCompatibleImageResponseSchema = z.object({
   data: z.array(z.object({ b64_json: z.string() })),
 });
-<<<<<<< HEAD
-=======
-
-type OpenAICompatibleFormDataInput = {
-  model: string;
-  prompt: string | undefined;
-  image: Blob | Blob[];
-  mask?: Blob;
-  n: number;
-  size: `${number}x${number}` | undefined;
-  [key: string]: unknown;
-};
-
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
-  if (file.type === 'url') {
-    return downloadBlob(file.url);
-  }
-
-  const data =
-    file.data instanceof Uint8Array
-      ? file.data
-      : convertBase64ToUint8Array(file.data);
-
-  return new Blob([data as BlobPart], { type: file.mediaType });
-}
 
 function toCamelCase(str: string): string {
   return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
 }
->>>>>>> 78555addd (fix(openai-compatible): Accept non-OpenAI provider options (#11838))
