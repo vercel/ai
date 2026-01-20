@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.31
+
+### Patch Changes
+
+- fcb9d27: feat(openai-compatible): Allow non-openai `providerOptions` keys
+
 ## 1.0.30
 
 ### Patch Changes
