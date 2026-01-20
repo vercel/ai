@@ -834,7 +834,7 @@ importers:
         specifier: 4.0.21
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 3.0.11
+        specifier: 3.0.12
         version: link:../../packages/groq
       '@ai-sdk/mcp':
         specifier: 1.0.10
