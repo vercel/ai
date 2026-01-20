@@ -37,6 +37,7 @@ async function main() {
     'pi-ai': ['@mariozechner/pi-ai'],
     OpenRouter: ['@openrouter/sdk'],
     Mastra: ['@mastra/core'],
+    Apertis: ['@apertis/ai-sdk-provider'],
   };
 
   // Helper for flattened package to group map
