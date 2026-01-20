@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.11
+
+### Patch Changes
+
+- d80fc3b: feat(mcp): capture server title from top level
+
 ## 1.0.10
 
 ### Patch Changes
