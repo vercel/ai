@@ -78,7 +78,7 @@ jobs:
         if: steps.check-changes.outputs.has-changes == 'true'
         run: |
           # Generate a random changeset filename with three random lowercase strings
-          # Format: xxxxx-yyyyy-zzzzz.md
+          # Format: xxxxx-yyyyyy-zzzzz.md
           WORD1=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
           WORD2=$(tr -dc 'a-z' < /dev/urandom | head -c 6)
           WORD3=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
