@@ -82,7 +82,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           n: 2,
-          providerOptions: { openai: { quality: 'hd' } },
+          providerOptions: { 'openai-compatible': { quality: 'hd' } },
         }),
       );
 
@@ -267,7 +267,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {
+            'openai-compatible': {
               user: 'test-user-id',
             },
           },
@@ -290,7 +290,7 @@ describe('OpenAICompatibleImageModel', () => {
       await model.doGenerate(
         createDefaultGenerateParams({
           providerOptions: {
-            openai: {},
+            'openai-compatible': {},
           },
         }),
       );
