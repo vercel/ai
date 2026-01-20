@@ -1,5 +1,23 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.16
+
+### Patch Changes
+
+- 78555ad: fix(openai-compatible): Accept non-OpenAI provider options
+
+## 2.0.15
+
+### Patch Changes
+
+- 7116ef3: Use consistent camelCase `openaiCompatible` key for providerOptions. The kebab-case `openai-compatible` key is now deprecated but still supported with a console warning.
+
+## 2.0.14
+
+### Patch Changes
+
+- 1612a57: feat(openai-compat): support passing multiple file types
+
 ## 2.0.13
 
 ### Patch Changes

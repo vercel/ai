@@ -7,4 +7,6 @@ export type GatewayImageModelId =
   | 'google/imagen-4.0-fast-generate-001'
   | 'google/imagen-4.0-generate-001'
   | 'google/imagen-4.0-ultra-generate-001'
+  | 'recraft/recraft-v2'
+  | 'recraft/recraft-v3'
   | (string & {});
