@@ -42,9 +42,13 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
   /**
    * The provider options key used to extract provider-specific options.
+   * Convert "openai-compatible" to "openaiCompatible".
    */
   private get providerOptionsKey(): string {
-    return this.config.provider.split('.')[0].trim();
+    const key = this.config.provider.split('.')[0].trim()
+    return {
+      'openai-compatible': 'openaiCompatible'
+    }[key] ?? key;
   }
 
   constructor(
