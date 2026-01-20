@@ -26,7 +26,7 @@ describe('convertToOpenResponsesInput', () => {
             "type": "message",
           },
         ]
-      `)
+      `);
     });
   });
 });

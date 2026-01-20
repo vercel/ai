@@ -1,5 +1,10 @@
 import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
-import { InputFileContentParam, InputImageContentParam, InputTextContentParam, OpenResponsesApiRequestBody } from './open-responses-api';
+import {
+  InputFileContentParam,
+  InputImageContentParam,
+  InputTextContentParam,
+  OpenResponsesApiRequestBody,
+} from './open-responses-api';
 
 export async function convertToOpenResponsesInput({
   prompt,
@@ -15,7 +20,9 @@ export async function convertToOpenResponsesInput({
   for (const { role, content } of prompt) {
     switch (role) {
       case 'user': {
-        const userContent: Array<InputTextContentParam | InputImageContentParam | InputFileContentParam> = [];
+        const userContent: Array<
+          InputTextContentParam | InputImageContentParam | InputFileContentParam
+        > = [];
 
         for (const part of content) {
           switch (part.type) {
