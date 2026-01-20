@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.12
+
+### Patch Changes
+
+- 25f5da3: feat(groq): expose reasoningTokens in usage data
+
 ## 3.0.11
 
 ### Patch Changes
