@@ -48,9 +48,7 @@ const createModelVariants = (
 ];
 
 // Model variants to test against
-const CHAT_MODELS = [
-  'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
-];
+const CHAT_MODELS = ['us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
 
 // Sonnet 4.5 supports computer use tools
 const COMPUTER_USE_MODELS = ['us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
