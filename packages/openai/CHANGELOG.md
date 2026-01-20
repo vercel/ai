@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.13
+
+### Patch Changes
+
+- 000fa96: fix(openai): filter duplicate items when passing conversationID
+
 ## 3.0.12
 
 ### Patch Changes
