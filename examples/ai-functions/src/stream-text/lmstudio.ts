@@ -1,10 +1,11 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { createOpenResponses } from '@ai-sdk/open-responses';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
+import { saveRawChunks } from '../lib/save-raw-chunks';
 
-const lmstudio = createOpenAICompatible({
+const lmstudio = createOpenResponses({
   name: 'lmstudio',
-  baseURL: 'http://localhost:1234/v1',
+  url: 'http://localhost:1234/v1/responses',
 });
 
 run(async () => {
@@ -12,13 +13,11 @@ run(async () => {
     model: lmstudio('gemma-7b-it'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 1,
+    includeRawChunks: true,
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
-  }
-
-  console.log();
-  console.log('Token usage:', await result.usage);
-  console.log('Finish reason:', await result.finishReason);
+  await saveRawChunks({
+    result,
+    filename: 'lmstudio-gemma-7b-it',
+  })
 });

@@ -3,16 +3,20 @@ import {
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3GenerateResult,
+  LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   jsonSchema,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   OpenResponsesApiRequestBody,
@@ -67,7 +71,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         model: this.modelId,
         input,
         max_output_tokens: maxOutputTokens,
-        temperature
+        temperature,
       },
       warnings: inputWarnings,
     };
@@ -170,6 +174,40 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    throw new Error('Not implemented');
+    const { body, warnings } = await this.getArgs(options);
+
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url,
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        ...body,
+        stream: true,
+      } satisfies OpenResponsesApiRequestBody,
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: openResponsesErrorSchema,
+        errorToMessage: error => error.error.message,
+      }),
+      successfulResponseHandler: createEventSourceResponseHandler(z.any()),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<ParseResult<any>, LanguageModelV3StreamPart>({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
+          transform(chunk, controller) {
+            if (options.includeRawChunks) {
+              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
+            }
+          },
+        }),
+      ),
+      request: { body },
+      response: { headers: responseHeaders },
+    };
   }
 }
