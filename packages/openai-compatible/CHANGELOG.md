@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.14
+
+### Patch Changes
+
+- 1612a57: feat(openai-compat): support passing multiple file types
+
 ## 2.0.13
 
 ### Patch Changes
