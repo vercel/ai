@@ -9,7 +9,7 @@ const lmstudio = createOpenAICompatible({
 
 run(async () => {
   const result = streamText({
-    model: lmstudio('bartowski/gemma-2-9b-it-GGUF'),
+    model: lmstudio('gemma-7b-it'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 1,
   });

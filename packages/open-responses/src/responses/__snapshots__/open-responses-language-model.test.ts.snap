@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > should produce correct content 1`] = `
+[
+  {
+    "text": "text content",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > code interpreter tool > should send correct request body 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+}
+`;

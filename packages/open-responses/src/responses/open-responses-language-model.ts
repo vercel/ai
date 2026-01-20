@@ -1,6 +1,7 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
+  LanguageModelV3Content,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
   SharedV3Warning,
@@ -8,11 +9,15 @@ import {
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  jsonSchema,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
   OpenResponsesApiRequestBody,
+  OpenResponsesApiResponseBody,
   openResponsesErrorSchema,
 } from './open-responses-api';
 import { OpenResponsesConfig } from './open-responses-config';
@@ -84,14 +89,62 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         errorSchema: openResponsesErrorSchema,
         errorToMessage: error => error.error.message,
       }),
-      successfulResponseHandler: () => {
-        throw new Error('Not implemented');
-      },
+      successfulResponseHandler: createJsonResponseHandler(
+        jsonSchema<OpenResponsesApiResponseBody>(() => {
+          throw new Error('json schema not implemented');
+        }),
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
-    throw new Error('Not implemented');
+    const content: Array<LanguageModelV3Content> = [];
+
+    for (const part of response.output!) {
+      switch (part.type) {
+        case 'message': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'text',
+              text: contentPart.text,
+            });
+          }
+
+          break;
+        }
+      }
+    }
+
+    return {
+      content,
+      finishReason: {
+        unified: 'stop',
+        raw: undefined,
+      },
+      usage: {
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
+      },
+      request: { body },
+      response: {
+        id: response.id,
+        timestamp: new Date(response.created_at! * 1000),
+        modelId: response.model,
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+      providerMetadata: undefined,
+      warnings,
+    };
   }
 
   async doStream(
