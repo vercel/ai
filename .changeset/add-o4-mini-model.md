@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/openai": patch
+'@ai-sdk/openai': patch
 ---
 
-feat(openai): add o4-mini model to OpenAIChatModelId and OpenAIResponsesModelId types
+feat(openai): add o4-mini model to OpenAIChatModelId type
