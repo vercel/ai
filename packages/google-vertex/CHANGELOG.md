@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.19
+
+### Patch Changes
+
+- 20828dc: fix(google-vertex): add type safety for allowed tools
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [d36fa72]
+  - @ai-sdk/anthropic@3.0.16
+
 ## 4.0.17
 
 ### Patch Changes
