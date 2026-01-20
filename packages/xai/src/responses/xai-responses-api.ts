@@ -83,7 +83,15 @@ export type XaiResponsesTool =
   | { type: 'view_image' }
   | { type: 'view_x_video' }
   | { type: 'file_search' }
-  | { type: 'mcp' }
+  | {
+      type: 'mcp';
+      server_url: string;
+      server_label?: string;
+      server_description?: string;
+      allowed_tools?: string[];
+      headers?: Record<string, string>;
+      authorization?: string;
+    }
   | {
       type: 'function';
       name: string;
@@ -124,6 +132,16 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
+const mcpCallSchema = z.object({
+  name: z.string().optional(),
+  arguments: z.string().optional(),
+  output: z.string().optional(),
+  error: z.string().optional(),
+  id: z.string(),
+  status: z.string(),
+  server_label: z.string().optional(),
+});
+
 const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('web_search_call'),
@@ -152,6 +170,10 @@ const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('custom_tool_call'),
     ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('mcp_call'),
+    ...mcpCallSchema.shape,
   }),
   z.object({
     type: z.literal('message'),
@@ -377,6 +399,62 @@ export const xaiResponsesChunkSchema = z.union([
     item_id: z.string(),
     output_index: z.number(),
     code: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    input: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.executing'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.failed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    output: z.string().optional(),
   }),
   z.object({
     type: z.literal('response.done'),
