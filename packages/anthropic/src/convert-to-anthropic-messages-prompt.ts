@@ -802,14 +802,35 @@ export async function convertToAnthropicMessagesPrompt({
                   const output = part.output;
 
                   if (output.type === 'error-json') {
-                    const errorValue = JSON.parse(output.value as string);
+                    let errorValue: { errorCode?: string } = {};
+                    try {
+                      if (typeof output.value === 'string') {
+                        errorValue = JSON.parse(output.value);
+                      } else if (
+                        typeof output.value === 'object' &&
+                        output.value !== null
+                      ) {
+                        errorValue = output.value as typeof errorValue;
+                      }
+                    } catch {
+                      // If parsing fails, treat the value as-is
+                      const extractedErrorCode = (
+                        output.value as Record<string, unknown>
+                      )?.errorCode;
+                      errorValue = {
+                        errorCode:
+                          typeof extractedErrorCode === 'string'
+                            ? extractedErrorCode
+                            : 'unknown',
+                      };
+                    }
 
                     anthropicContent.push({
                       type: 'web_fetch_tool_result',
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode,
+                        error_code: errorValue.errorCode ?? 'unknown',
                       },
                       cache_control: cacheControl,
                     });

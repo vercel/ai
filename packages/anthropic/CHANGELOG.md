@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 3.0.17
+
+### Patch Changes
+
+- 4729bed: Fix JSON parsing crash when handling Anthropic web_fetch tool error results
+
+## 3.0.16
+
+### Patch Changes
+
+- d36fa72: Not sending structured output beta header for json response tool
+
 ## 3.0.15
 
 ### Patch Changes
