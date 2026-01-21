@@ -155,4 +155,5 @@ export type GatewayModelId =
   | 'zai/glm-4.6v'
   | 'zai/glm-4.6v-flash'
   | 'zai/glm-4.7'
+  | 'zai/glm-4.7-flashx'
   | (string & {});
