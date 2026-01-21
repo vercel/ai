@@ -22,14 +22,20 @@ import { googleVertexTools } from './google-vertex-tools';
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
 
+// set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
   apiKey: string,
   customFetch?: FetchFunction,
 ): FetchFunction {
   return async (url, init) => {
-    const urlWithKey = new URL(url.toString());
-    urlWithKey.searchParams.set('key', apiKey);
-    return (customFetch ?? fetch)(urlWithKey.toString(), init);
+    const modifiedInit: RequestInit = {
+      ...init,
+      headers: {
+        ...(init?.headers ?? {}),
+        'x-goog-api-key': apiKey,
+      },
+    };
+    return (customFetch ?? fetch)(url.toString(), modifiedInit);
   };
 }
 
