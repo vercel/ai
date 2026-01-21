@@ -246,4 +246,54 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+<<<<<<< HEAD
+=======
+
+  it('should use express mode base URL when apiKey is provided', () => {
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+    });
+    provider('test-model-id');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL: 'https://aiplatform.googleapis.com/v1/publishers/google',
+      }),
+    );
+  });
+
+  it('should add API key as query parameter via custom fetch', async () => {
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+    });
+    provider('test-model-id');
+
+    const calledConfig = vi.mocked(GoogleGenerativeAILanguageModel).mock
+      .calls[0][1];
+    const customFetch = calledConfig.fetch;
+
+    expect(customFetch).toBeDefined();
+
+    const mockResponse = new Response('{}');
+    const originalFetch = vi.fn().mockResolvedValue(mockResponse);
+    vi.stubGlobal('fetch', originalFetch);
+
+    await customFetch!(
+      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
+      {},
+    );
+
+    expect(originalFetch).toHaveBeenCalledWith(
+      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
+      {
+        headers: {
+          'x-goog-api-key': 'test-api-key',
+        },
+      },
+    );
+
+    vi.unstubAllGlobals();
+  });
+>>>>>>> 689557c88 (fix(google-vertex): pass express API key as header instead of URL search parameter (#11919))
 });

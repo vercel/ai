@@ -4,6 +4,7 @@ import {
   FetchFunction,
   generateId,
   loadSetting,
+  normalizeHeaders,
   resolve,
   Resolvable,
   withoutTrailingSlash,
@@ -18,7 +19,31 @@ import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
 
+<<<<<<< HEAD
 export interface GoogleVertexProvider extends ProviderV2 {
+=======
+const EXPRESS_MODE_BASE_URL =
+  'https://aiplatform.googleapis.com/v1/publishers/google';
+
+// set `x-goog-api-key` header to API key for express mode
+function createExpressModeFetch(
+  apiKey: string,
+  customFetch?: FetchFunction,
+): FetchFunction {
+  return async (url, init) => {
+    const modifiedInit: RequestInit = {
+      ...init,
+      headers: {
+        ...(init?.headers ? normalizeHeaders(init.headers) : {}),
+        'x-goog-api-key': apiKey,
+      },
+    };
+    return (customFetch ?? fetch)(url.toString(), modifiedInit);
+  };
+}
+
+export interface GoogleVertexProvider extends ProviderV3 {
+>>>>>>> 689557c88 (fix(google-vertex): pass express API key as header instead of URL search parameter (#11919))
   /**
 Creates a model for text generation.
    */
