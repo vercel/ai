@@ -5,6 +5,7 @@ import {
   generateId,
   loadOptionalSetting,
   loadSetting,
+  normalizeHeaders,
   resolve,
   Resolvable,
   withoutTrailingSlash,
@@ -31,7 +32,7 @@ function createExpressModeFetch(
     const modifiedInit: RequestInit = {
       ...init,
       headers: {
-        ...(init?.headers ?? {}),
+        ...(init?.headers ? normalizeHeaders(init.headers) : {}),
         'x-goog-api-key': apiKey,
       },
     };
