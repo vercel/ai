@@ -68,8 +68,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       prompt,
-      files: undefined,
-      mask: undefined,
       n: 3,
       size: '1024x1024',
       seed: 42,
