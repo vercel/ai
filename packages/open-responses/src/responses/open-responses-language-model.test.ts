@@ -242,6 +242,64 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('multi-turn tool conversation', () => {
+      it('should send correct request body with user, assistant tool-call, and tool result', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        const toolConversationPrompt: LanguageModelV3Prompt = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_weather_123',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_weather_123',
+                toolName: 'get_weather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 22, condition: 'sunny', humidity: 65 },
+                },
+              },
+            ],
+          },
+        ];
+
+        await createModel().doGenerate({
+          prompt: toolConversationPrompt,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather for a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+              },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {

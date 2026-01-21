@@ -58,6 +58,53 @@ exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should sen
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > multi-turn tool conversation > should send correct request body with user, assistant tool-call, and tool result 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "What is the weather in Tokyo?",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+    {
+      "arguments": "{"location":"Tokyo"}",
+      "call_id": "call_weather_123",
+      "name": "get_weather",
+      "type": "function_call",
+    },
+    {
+      "call_id": "call_weather_123",
+      "output": "{"temperature":22,"condition":"sunny","humidity":65}",
+      "type": "function_call_output",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tools": [
+    {
+      "description": "Get the current weather for a location",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+  ],
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should send correct request body 1`] = `
 {
   "input": [

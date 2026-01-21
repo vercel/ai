@@ -91,6 +91,367 @@ describe('convertToOpenResponsesInput', () => {
     });
   });
 
+  describe('assistant messages with tool calls', () => {
+    it('should convert assistant message with a single tool-call', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                input: { location: 'San Francisco' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{"location":"San Francisco"}",
+            "call_id": "call_123",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert assistant message with text and tool-call', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'text', text: 'Let me check the weather for you.' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_456',
+                toolName: 'get_weather',
+                input: { location: 'New York' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Let me check the weather for you.",
+                "type": "output_text",
+              },
+            ],
+            "role": "assistant",
+            "type": "message",
+          },
+          {
+            "arguments": "{"location":"New York"}",
+            "call_id": "call_456",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
+    it('should convert assistant message with multiple tool-calls', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_001',
+                toolName: 'get_weather',
+                input: { location: 'Paris' },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call_002',
+                toolName: 'get_time',
+                input: { timezone: 'Europe/Paris' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{"location":"Paris"}",
+            "call_id": "call_001",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+          {
+            "arguments": "{"timezone":"Europe/Paris"}",
+            "call_id": "call_002",
+            "name": "get_time",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('tool messages', () => {
+    it('should convert tool message with json output', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'get_weather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 72, condition: 'sunny' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": "{"temperature":72,"condition":"sunny"}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with text output', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_456',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'Search results: Found 5 items',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_456",
+            "output": "Search results: Found 5 items",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with error-text output', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_789',
+                toolName: 'api_call',
+                output: {
+                  type: 'error-text',
+                  value: 'API request failed: timeout',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_789",
+            "output": "API request failed: timeout",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with execution-denied output', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied',
+                toolName: 'dangerous_action',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User declined the action',
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_denied",
+            "output": "User declined the action",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with content output containing text', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_content',
+                toolName: 'multi_output',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'First result' },
+                    { type: 'text', text: 'Second result' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_content",
+            "output": [
+              {
+                "text": "First result",
+                "type": "input_text",
+              },
+              {
+                "text": "Second result",
+                "type": "input_text",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with content output containing image-url', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_image',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/image.png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_image",
+            "output": [
+              {
+                "image_url": "https://example.com/image.png",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert tool message with multiple tool results', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_001',
+                toolName: 'get_weather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_002',
+                toolName: 'get_time',
+                output: { type: 'text', value: '3:00 PM' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_001",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+          {
+            "call_id": "call_002",
+            "output": "3:00 PM",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('message chains', () => {
     it('should convert user - assistant - user message chain', async () => {
       const result = await convertToOpenResponsesInput({
@@ -143,6 +504,68 @@ describe('convertToOpenResponsesInput', () => {
             ],
             "role": "user",
             "type": "message",
+          },
+        ]
+      `);
+    });
+
+    it('should convert user - assistant (tool call) - tool message chain', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_weather',
+                toolName: 'get_weather',
+                input: { location: 'Tokyo' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_weather',
+                toolName: 'get_weather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 25, condition: 'cloudy' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+          {
+            "arguments": "{"location":"Tokyo"}",
+            "call_id": "call_weather",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+          {
+            "call_id": "call_weather",
+            "output": "{"temperature":25,"condition":"cloudy"}",
+            "type": "function_call_output",
           },
         ]
       `);

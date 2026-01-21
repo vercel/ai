@@ -27,7 +27,7 @@ run(async () => {
     }
 
     const { text, toolCalls, toolResults, response } = await generateText({
-      model: lmstudio('mistralai/ministral-3-14b-reasoning'),
+      model: lmstudio('zai-org/glm-4.7-flash'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
       messages,
