@@ -28,16 +28,30 @@ export interface OpenAICompatibleUserMessage
 
 export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
-  | OpenAICompatibleContentPartImage;
+  | OpenAICompatibleContentPartImage
+  | OpenAICompatibleContentPartInputAudio
+  | OpenAICompatibleContentPartFile;
+
+export interface OpenAICompatibleContentPartText extends JsonRecord {
+  type: 'text';
+  text: string;
+}
 
 export interface OpenAICompatibleContentPartImage extends JsonRecord {
   type: 'image_url';
   image_url: { url: string };
 }
 
-export interface OpenAICompatibleContentPartText extends JsonRecord {
-  type: 'text';
-  text: string;
+// Audio parts for Google API
+export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
+  type: 'input_audio';
+  input_audio: { data: string; format: 'wav' | 'mp3' };
+}
+
+// File parts for Google API
+export interface OpenAICompatibleContentPartFile extends JsonRecord {
+  type: 'file';
+  file: { filename: string; file_data: string };
 }
 
 export interface OpenAICompatibleAssistantMessage

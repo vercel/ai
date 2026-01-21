@@ -871,6 +871,35 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
       });
+
+      it('should NOT include beta header when using json response tool (jsonTool mode)', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
     });
 
     it('should extract text response', async () => {

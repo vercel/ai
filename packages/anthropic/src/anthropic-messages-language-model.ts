@@ -542,7 +542,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
-            supportsStructuredOutput,
+            supportsStructuredOutput: false,
           }
         : {
             tools: tools ?? [],
