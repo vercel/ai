@@ -26,7 +26,7 @@ export const cohereEmbeddingOptions = z.object({
   /**
    * Specifies the types of embeddings you want to get back. Default is `float`
    *
-   * - "float": Reurns default float embeddings.
+   * - "float": Returns default float embeddings.
    * - "int8": Returns signed int8 embeddings.
    * - "uint8": Returns unsigned int8 embeddings.
    * - "binary": Returns signed binary embeddings.
