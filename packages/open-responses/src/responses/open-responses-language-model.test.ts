@@ -86,6 +86,54 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('tools', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather for a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: {
+                    type: 'string',
+                    description: 'The city and state',
+                  },
+                },
+                required: ['location'],
+              },
+            },
+            {
+              type: 'function',
+              name: 'search',
+              description: 'Search for information',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                  },
+                },
+                required: ['query'],
+              },
+              strict: true,
+            },
+          ],
+        });
+      });
+
+      it('should send correct request body with tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {

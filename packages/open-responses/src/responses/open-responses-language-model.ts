@@ -20,6 +20,7 @@ import {
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import {
+  FunctionToolParam,
   OpenResponsesRequestBody,
   OpenResponsesResponseBody,
   OpenResponsesChunk,
@@ -68,12 +69,25 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         prompt,
       });
 
+    // Convert function tools to the Open Responses format
+    const functionTools: FunctionToolParam[] | undefined =
+      tools
+        ?.filter(tool => tool.type === 'function')
+        .map(tool => ({
+          type: 'function' as const,
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          ...(tool.strict != null ? { strict: tool.strict } : {}),
+        }));
+
     return {
       body: {
         model: this.modelId,
         input,
         max_output_tokens: maxOutputTokens,
         temperature,
+        tools: functionTools?.length ? functionTools : undefined,
       },
       warnings: inputWarnings,
     };

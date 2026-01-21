@@ -78,6 +78,60 @@ exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should s
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > tools > should send correct request body with tools 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tools": [
+    {
+      "description": "Get the current weather for a location",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "description": "The city and state",
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+    {
+      "description": "Search for information",
+      "name": "search",
+      "parameters": {
+        "properties": {
+          "query": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "query",
+        ],
+        "type": "object",
+      },
+      "strict": true,
+      "type": "function",
+    },
+  ],
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doStream > basic generation > should stream content 1`] = `
 [
   {
