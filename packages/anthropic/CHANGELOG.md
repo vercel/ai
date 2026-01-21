@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.18
+
+### Patch Changes
+
+- c10bd49: fix(anthropic): handle web_search_result_location citations and add webFetch documents to citationDocuments
+
 ## 3.0.17
 
 ### Patch Changes
