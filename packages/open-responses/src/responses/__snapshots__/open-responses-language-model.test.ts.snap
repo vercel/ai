@@ -125,6 +125,45 @@ exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should s
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > system messages > should join multiple system messages with newlines 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "instructions": "You are a helpful assistant.
+Always be concise.",
+  "model": "gemma-7b-it",
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > system messages > should send instructions from system message 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "instructions": "You are a helpful assistant.",
+  "model": "gemma-7b-it",
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > tool call parsing > should extract usage correctly 1`] = `
 {
   "inputTokens": {

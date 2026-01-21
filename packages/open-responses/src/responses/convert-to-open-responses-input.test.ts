@@ -2,6 +2,100 @@ import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
 import { describe, it, expect } from 'vitest';
 
 describe('convertToOpenResponsesInput', () => {
+  describe('system messages', () => {
+    it('should convert a single system message to instructions', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+          },
+        ],
+      });
+
+      expect(result.instructions).toBe('You are a helpful assistant.');
+      expect(result.input).toEqual([]);
+    });
+
+    it('should join multiple system messages with newlines', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+          },
+          {
+            role: 'system',
+            content: 'Always be concise.',
+          },
+        ],
+      });
+
+      expect(result.instructions).toBe(
+        'You are a helpful assistant.\nAlways be concise.',
+      );
+      expect(result.input).toEqual([]);
+    });
+
+    it('should return undefined instructions when no system messages', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+        ],
+      });
+
+      expect(result.instructions).toBeUndefined();
+    });
+
+    it('should handle system message with user and assistant messages', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant.',
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hi there!' }],
+          },
+        ],
+      });
+
+      expect(result.instructions).toBe('You are a helpful assistant.');
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+          {
+            "content": [
+              {
+                "text": "Hi there!",
+                "type": "output_text",
+              },
+            ],
+            "role": "assistant",
+            "type": "message",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
       const result = await convertToOpenResponsesInput({

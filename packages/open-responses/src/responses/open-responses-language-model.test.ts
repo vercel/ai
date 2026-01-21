@@ -243,6 +243,44 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('system messages', () => {
+      it('should send instructions from system message', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should join multiple system messages with newlines', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant.',
+            },
+            {
+              role: 'system',
+              content: 'Always be concise.',
+            },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
+
     describe('multi-turn tool conversation', () => {
       it('should send correct request body with user, assistant tool-call, and tool result', async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');

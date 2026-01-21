@@ -66,7 +66,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     body: Omit<OpenResponsesRequestBody, 'stream' | 'stream_options'>;
     warnings: SharedV3Warning[];
   }> {
-    const { input, warnings: inputWarnings } =
+    const { input, instructions, warnings: inputWarnings } =
       await convertToOpenResponsesInput({
         prompt,
       });
@@ -95,6 +95,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       body: {
         model: this.modelId,
         input,
+        instructions,
         max_output_tokens: maxOutputTokens,
         temperature,
         tools: functionTools?.length ? functionTools : undefined,

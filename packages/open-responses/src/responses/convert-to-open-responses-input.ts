@@ -16,13 +16,20 @@ export async function convertToOpenResponsesInput({
   prompt: LanguageModelV3Prompt;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
+  instructions: string | undefined;
   warnings: Array<SharedV3Warning>;
 }> {
   const input: OpenResponsesRequestBody['input'] = [];
   const warnings: Array<SharedV3Warning> = [];
+  const systemMessages: string[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
+      case 'system': {
+        systemMessages.push(content);
+        break;
+      }
+
       case 'user': {
         const userContent: Array<
           InputTextContentParam | InputImageContentParam | InputFileContentParam
@@ -158,5 +165,10 @@ export async function convertToOpenResponsesInput({
     }
   }
 
-  return { input, warnings };
+  return {
+    input,
+    instructions:
+      systemMessages.length > 0 ? systemMessages.join('\n') : undefined,
+    warnings,
+  };
 }
