@@ -1,5 +1,11 @@
 # @ai-sdk/togetherai
 
+## 1.0.33
+
+### Patch Changes
+
+- ebd1f21: fix(package/togetherai): only include `n` when requesting multiple images
+
 ## 1.0.32
 
 ### Patch Changes
