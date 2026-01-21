@@ -13,7 +13,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/angular": "2.0.44",
-    "@ai-sdk/openai": "3.0.13",
+    "@ai-sdk/openai": "3.0.14",
     "@angular/common": "^20.3.2",
     "@angular/compiler": "^20.3.2",
     "@angular/core": "^20.3.2",
