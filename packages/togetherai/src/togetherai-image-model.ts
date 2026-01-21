@@ -64,7 +64,7 @@ export class TogetherAIImageModel implements ImageModelV2 {
         model: this.modelId,
         prompt,
         seed,
-        n,
+        ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
           height: parseInt(splitSize[1]),
