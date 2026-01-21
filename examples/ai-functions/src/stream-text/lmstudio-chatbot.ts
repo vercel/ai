@@ -67,6 +67,19 @@ run(async () => {
           process.stderr.write('\x1b[0m');
           break;
 
+        case 'reasoning-start':
+          process.stdout.write('\x1b[34m');
+          break;
+
+        case 'reasoning-delta':
+          process.stdout.write(chunk.text);
+          break;
+
+        case 'reasoning-end':
+          process.stdout.write('\x1b[0m');
+          console.log();
+          break;
+
         case 'text-start':
           process.stdout.write('\x1b[32m');
           break;

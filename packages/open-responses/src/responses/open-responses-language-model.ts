@@ -249,6 +249,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       },
     };
 
+    let isActiveReasoning = false;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<ParseResult<OpenResponsesChunk>, LanguageModelV3StreamPart>({
@@ -266,10 +268,22 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
-
             const chunk = parseResult.value;
 
-            if (chunk.type === 'response.output_item.added' && chunk.item.type === 'message') {
+            // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)
+            if (chunk.type === 'response.output_item.added' && chunk.item.type === 'reasoning') {
+              controller.enqueue({ type: 'reasoning-start', id: chunk.item.id });
+              isActiveReasoning = true;
+            } else if ((chunk as { type: string }).type === 'response.reasoning_text.delta') {
+              const reasoningChunk = chunk as { item_id: string; delta: string };
+              controller.enqueue({ type: 'reasoning-delta', id: reasoningChunk.item_id, delta: reasoningChunk.delta });
+            } else if (chunk.type === 'response.output_item.done' && chunk.item.type === 'reasoning') {
+              controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
+              isActiveReasoning = false;
+            }
+
+            // Text events
+            else if (chunk.type === 'response.output_item.added' && chunk.item.type === 'message') {
               controller.enqueue({ type: 'text-start', id: chunk.item.id });
             } else if (chunk.type === 'response.output_text.delta') {
               controller.enqueue({ type: 'text-delta', id: chunk.item_id, delta: chunk.delta });
@@ -279,6 +293,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
+            if (isActiveReasoning) {
+              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+            }
 
             controller.enqueue({
               type: 'finish',

@@ -333,5 +333,19 @@ describe('OpenResponsesLanguageModel', () => {
         ).toMatchSnapshot();
       });
     });
+
+    describe('reasoning with tool call', () => {
+      it('should stream reasoning and tool call content', async () => {
+        prepareChunksFixtureResponse('lmstudio-tool-call.1');
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
   });
 });
