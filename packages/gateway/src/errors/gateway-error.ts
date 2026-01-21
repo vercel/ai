@@ -21,9 +21,7 @@ export abstract class GatewayError extends Error {
     cause?: unknown;
     generationId?: string;
   }) {
-    // Include generationId in message so it's visible in stack traces
-    const fullMessage = generationId ? `${message} [${generationId}]` : message;
-    super(fullMessage);
+    super(generationId ? `${message} [${generationId}]` : message);
     this.statusCode = statusCode;
     this.cause = cause;
     this.generationId = generationId;
