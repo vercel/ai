@@ -206,6 +206,17 @@ The following provider options are available:
   - `classification`: Used for embeddings passed through a text classifier.
   - `clustering`: Used for embeddings run through a clustering algorithm.
 
+- **embeddingTypes** _['float', 'int8', 'uint8', 'binary', 'ubinary']_
+
+  Specifies the types of embeddings you want to get back. Can be one or more of the following types.
+
+  - `float`: Use this when you want to get back the default float embeddings. Supported with all Embed models.
+  - `int8`: Use this when you want to get back signed int8 embeddings. Supported with Embed v3.0 and newer Embed models.
+  - `uint8`: Use this when you want to get back unsigned int8 embeddings. Supported with Embed v3.0 and newer Embed models.
+  - `binary`: Use this when you want to get back signed binary embeddings. Supported with Embed v3.0 and newer Embed models.
+  - `ubinary`: Use this when you want to get back unsigned binary embeddings. Supported with Embed v3.0 and newer Embed models.
+  - `base64`: Use this when you want to get back base64 embeddings. Supported with Embed v3.0 and newer Embed models.
+
 - **truncate** _'NONE' | 'START' | 'END'_
 
   Specifies how the API will handle inputs longer than the maximum token length.
