@@ -24,6 +24,20 @@ export const cohereEmbeddingOptions = z.object({
     .optional(),
 
   /**
+   * Specifies the types of embeddings you want to get back. Default is `float`
+   *
+   * - "float": Reurns default float embeddings.
+   * - "int8": Returns signed int8 embeddings.
+   * - "uint8": Returns unsigned int8 embeddings.
+   * - "binary": Returns signed binary embeddings.
+   * - "ubinary":  Returns unsigned binary embeddings.
+   * - "base64": Returns base64 embeddings.
+   * */
+  embeddingTypes: z
+    .array(z.enum(['float', 'int8', 'uint8', 'binary', 'ubinary', 'base64']))
+    .optional(),
+
+  /**
    * Specifies how the API will handle inputs longer than the maximum token length.
    * Default is `END`.
    *
