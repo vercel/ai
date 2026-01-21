@@ -25,6 +25,7 @@ import {
   OpenResponsesResponseBody,
   OpenResponsesChunk,
   openResponsesErrorSchema,
+  ToolChoiceParam,
 } from './open-responses-api';
 import { OpenResponsesConfig } from './open-responses-config';
 
@@ -81,6 +82,14 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           ...(tool.strict != null ? { strict: tool.strict } : {}),
         }));
 
+    // Convert tool choice to the Open Responses format
+    const convertedToolChoice: ToolChoiceParam | undefined =
+      toolChoice == null
+        ? undefined
+        : toolChoice.type === 'tool'
+          ? { type: 'function', name: toolChoice.toolName }
+          : toolChoice.type; // 'auto' | 'none' | 'required'
+
     return {
       body: {
         model: this.modelId,
@@ -88,6 +97,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         max_output_tokens: maxOutputTokens,
         temperature,
         tools: functionTools?.length ? functionTools : undefined,
+        tool_choice: convertedToolChoice,
       },
       warnings: inputWarnings,
     };

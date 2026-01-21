@@ -134,6 +134,69 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('tool choice', () => {
+      const TEST_TOOL = {
+        type: 'function' as const,
+        name: 'get_weather',
+        description: 'Get the current weather',
+        inputSchema: {
+          type: 'object' as const,
+          properties: {
+            location: { type: 'string' as const },
+          },
+          required: ['location'],
+        },
+      };
+
+      it('should send tool_choice auto', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: { type: 'auto' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should send tool_choice none', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: { type: 'none' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should send tool_choice required', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: { type: 'required' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should send tool_choice with specific tool', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [TEST_TOOL],
+          toolChoice: { type: 'tool', toolName: 'get_weather' },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {

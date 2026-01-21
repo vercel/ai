@@ -78,6 +78,157 @@ exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should s
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > tool choice > should send tool_choice auto 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tool_choice": "auto",
+  "tools": [
+    {
+      "description": "Get the current weather",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+  ],
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > tool choice > should send tool_choice none 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tool_choice": "none",
+  "tools": [
+    {
+      "description": "Get the current weather",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+  ],
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > tool choice > should send tool_choice required 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tool_choice": "required",
+  "tools": [
+    {
+      "description": "Get the current weather",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+  ],
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > tool choice > should send tool_choice with specific tool 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "Hello",
+          "type": "input_text",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gemma-7b-it",
+  "tool_choice": {
+    "name": "get_weather",
+    "type": "function",
+  },
+  "tools": [
+    {
+      "description": "Get the current weather",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "location",
+        ],
+        "type": "object",
+      },
+      "type": "function",
+    },
+  ],
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > tools > should send correct request body with tools 1`] = `
 {
   "input": [
