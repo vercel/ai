@@ -27,6 +27,7 @@ import {
   openResponsesErrorSchema,
   ToolChoiceParam,
 } from './open-responses-api';
+import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
@@ -131,6 +132,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const content: Array<LanguageModelV3Content> = [];
+    let hasToolCalls = false;
 
     for (const part of response.output!) {
       switch (part.type) {
@@ -155,6 +157,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
           break;
         }
+
+        case 'function_call': {
+          hasToolCalls = true;
+          content.push({
+            type: 'tool-call',
+            toolCallId: part.call_id,
+            toolName: part.name,
+            input: part.arguments,
+          });
+          break;
+        }
       }
     }
 
@@ -167,8 +180,11 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: 'stop',
-        raw: undefined,
+        unified: mapOpenResponsesFinishReason({
+          finishReason: response.status,
+          hasToolCalls,
+        }),
+        raw: response.status,
       },
       usage: {
         inputTokens: {

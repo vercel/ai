@@ -78,6 +78,44 @@ exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should s
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > tool call parsing > should extract usage correctly 1`] = `
+{
+  "inputTokens": {
+    "cacheRead": 891,
+    "cacheWrite": undefined,
+    "noCache": 298,
+    "total": 1189,
+  },
+  "outputTokens": {
+    "reasoning": 0,
+    "text": 11,
+    "total": 11,
+  },
+  "raw": {
+    "input_tokens": 1189,
+    "input_tokens_details": {
+      "cached_tokens": 891,
+    },
+    "output_tokens": 11,
+    "output_tokens_details": {
+      "reasoning_tokens": 0,
+    },
+    "total_tokens": 1200,
+  },
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > tool call parsing > should parse tool call from response 1`] = `
+[
+  {
+    "input": "{"location":"San Francisco"}",
+    "toolCallId": "call_2866856768160095",
+    "toolName": "weather",
+    "type": "tool-call",
+  },
+]
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > tool choice > should send tool_choice auto 1`] = `
 {
   "input": [

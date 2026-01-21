@@ -135,6 +135,51 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('tool call parsing', () => {
+      let result: LanguageModelV3GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('lmstudio-tool-call.1');
+
+        result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: {
+                    type: 'string',
+                    description: 'The location to get the weather for',
+                  },
+                },
+                required: ['location'],
+              },
+            },
+          ],
+          toolChoice: { type: 'required' },
+        });
+      });
+
+      it('should parse tool call from response', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+
+      it('should return tool-calls finish reason', async () => {
+        expect(result.finishReason).toStrictEqual({
+          unified: 'tool-calls',
+          raw: 'completed',
+        });
+      });
+
+      it('should extract usage correctly', async () => {
+        expect(result.usage).toMatchSnapshot();
+      });
+    });
+
     describe('tool choice', () => {
       const TEST_TOOL = {
         type: 'function' as const,
