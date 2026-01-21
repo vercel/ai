@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { run } from '../lib/run';
 
 run(async () => {
+  let stepNumber = 0;
+
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
     prompt: `You have access to a note-taking system. Please:
@@ -13,8 +15,17 @@ run(async () => {
             The noteId is "d10aa585-982b-4bd9-984e-420f9b3717f7".
             Remember, you may need to search for the right tools to perform editor operations.`,
     stopWhen: stepCountIs(20),
+    onStepFinish: step => {
+      stepNumber++;
+      console.log(`\n========== STEP ${stepNumber} ==========`);
+      console.log('Response body (JSON):');
+      console.log(JSON.stringify(step.response.body, null, 2));
+      console.log('\nTool calls:', step.toolCalls.map(tc => tc.toolName));
+      console.log('Tool results:', step.toolResults.map(tr => tr.toolName));
+      console.log(`========== END STEP ${stepNumber} ==========\n`);
+    },
     tools: {
-      toolSearch: anthropic.tools.toolSearchRegex_20251119(),
+      toolSearch: anthropic.tools.toolSearchBm25_20251119(),
 
       readNoteTree: tool({
         description:
@@ -59,5 +70,6 @@ run(async () => {
     },
   });
 
-  console.log(result.text);
+  console.log('\n=== FINAL RESULT ===');
+  console.log('Text:', result.text);
 });
