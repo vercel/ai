@@ -139,4 +139,11 @@ export type GatewayModelId =
   | 'zai/glm-4.5-air'
   | 'zai/glm-4.5v'
   | 'zai/glm-4.6'
+<<<<<<< HEAD
+=======
+  | 'zai/glm-4.6v'
+  | 'zai/glm-4.6v-flash'
+  | 'zai/glm-4.7'
+  | 'zai/glm-4.7-flashx'
+>>>>>>> 7af4eb4cf (chore(provider/gateway): update gateway model settings files (#11925))
   | (string & {});
