@@ -305,8 +305,12 @@ describe('google-vertex-provider', () => {
     );
 
     expect(originalFetch).toHaveBeenCalledWith(
-      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent?key=test-api-key',
-      {},
+      'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
+      {
+        headers: {
+       "x-goog-api-key": "test-api-key",
+     },
+   },
     );
 
     vi.unstubAllGlobals();
