@@ -77,9 +77,12 @@ jobs:
       - name: Create changeset
         if: steps.check-changes.outputs.has-changes == 'true'
         run: |
-          # Generate a random changeset filename
-          CHANGESET_ID=$(openssl rand -hex 8)
-          CHANGESET_FILE=".changeset/${CHANGESET_ID}.md"
+          # Generate a random changeset filename with three random lowercase strings
+          # Format: xxxxx-yyyyy-zzzzz.md
+          WORD1=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          WORD2=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          WORD3=$(tr -dc 'a-z' < /dev/urandom | head -c 5)
+          CHANGESET_FILE=".changeset/${WORD1}-${WORD2}-${WORD3}.md"
 
           cat > "$CHANGESET_FILE" << 'EOF'
           ---
@@ -114,6 +117,7 @@ jobs:
             --body "This is an automated update of the gateway model settings files." \
             --base main \
             --head "${{ steps.create-branch.outputs.branch-name }}" \
+            --label backport \
             --reviewer R-Taneja \
             --reviewer sylviezhang37)
 
