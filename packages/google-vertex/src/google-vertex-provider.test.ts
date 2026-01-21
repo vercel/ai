@@ -308,9 +308,9 @@ describe('google-vertex-provider', () => {
       'https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-pro:streamGenerateContent',
       {
         headers: {
-       "x-goog-api-key": "test-api-key",
-     },
-   },
+          'x-goog-api-key': 'test-api-key',
+        },
+      },
     );
 
     vi.unstubAllGlobals();
