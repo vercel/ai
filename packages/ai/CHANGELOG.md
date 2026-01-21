@@ -1,5 +1,42 @@
 # ai
 
+## 6.0.44
+
+### Patch Changes
+
+- Updated dependencies [7af4eb4]
+  - @ai-sdk/gateway@3.0.18
+
+## 6.0.43
+
+### Patch Changes
+
+- 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
+
+  - Skip validation for tool calls with `providerExecuted: true` (deferred results)
+  - Map approvalId to toolCallId for proper tool-approval-response handling
+  - Filter out empty tool messages after content filtering
+  - Fixes MissingToolResultError for async and approval-based tool flows
+
+## 6.0.42
+
+### Patch Changes
+
+- Updated dependencies [66d78d5]
+  - @ai-sdk/gateway@3.0.17
+
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
 ## 6.0.39
 
 ### Patch Changes

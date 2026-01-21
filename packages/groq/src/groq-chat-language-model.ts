@@ -283,6 +283,12 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
               }
             | null
             | undefined;
+          completion_tokens_details?:
+            | {
+                reasoning_tokens?: number | null | undefined;
+              }
+            | null
+            | undefined;
         }
       | undefined = undefined;
     let isFirstChunk = true;
@@ -585,6 +591,11 @@ const groqChatResponseSchema = z.object({
           cached_tokens: z.number().nullish(),
         })
         .nullish(),
+      completion_tokens_details: z
+        .object({
+          reasoning_tokens: z.number().nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
 });
@@ -631,6 +642,11 @@ const groqChatChunkSchema = z.union([
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+              })
+              .nullish(),
+            completion_tokens_details: z
+              .object({
+                reasoning_tokens: z.number().nullish(),
               })
               .nullish(),
           })

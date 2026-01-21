@@ -1,5 +1,17 @@
 # @ai-sdk/groq
 
+## 3.0.12
+
+### Patch Changes
+
+- 25f5da3: feat(groq): expose reasoningTokens in usage data
+
+## 3.0.11
+
+### Patch Changes
+
+- 7c98577: fix timestamp_granularities handling in groq transcription
+
 ## 3.0.10
 
 ### Patch Changes

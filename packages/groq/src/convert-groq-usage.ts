@@ -11,6 +11,12 @@ export function convertGroqUsage(
             }
           | null
           | undefined;
+        completion_tokens_details?:
+          | {
+              reasoning_tokens?: number | null | undefined;
+            }
+          | null
+          | undefined;
       }
     | undefined
     | null,
@@ -34,6 +40,12 @@ export function convertGroqUsage(
 
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
+  const reasoningTokens =
+    usage.completion_tokens_details?.reasoning_tokens ?? undefined;
+  const textTokens =
+    reasoningTokens != null
+      ? completionTokens - reasoningTokens
+      : completionTokens;
 
   return {
     inputTokens: {
@@ -44,8 +56,8 @@ export function convertGroqUsage(
     },
     outputTokens: {
       total: completionTokens,
-      text: completionTokens,
-      reasoning: undefined,
+      text: textTokens,
+      reasoning: reasoningTokens,
     },
     raw: usage,
   };
