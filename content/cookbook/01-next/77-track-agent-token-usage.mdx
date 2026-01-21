@@ -291,7 +291,12 @@ export const agent = new ToolLoopAgent({
       0;
     console.log('Last step input tokens:', lastStepUsage);
     // You can use this to implement context compaction strategies
-    return { experimental_context: { lastStepUsage } };
+    return {
+      experimental_context: {
+        ...experimental_context,
+        lastStepUsage,
+      },
+    };
   },
 });
 
