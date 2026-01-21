@@ -29,11 +29,8 @@ export type GatewayModelId =
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-sonnet-4.5'
   | 'arcee-ai/trinity-mini'
-<<<<<<< HEAD
-=======
   | 'bytedance/seed-1.6'
   | 'bytedance/seed-1.8'
->>>>>>> 66d78d5d6 (chore(provider/gateway): update gateway model settings files (#11876))
   | 'cohere/command-a'
   | 'deepseek/deepseek-r1'
   | 'deepseek/deepseek-v3'
@@ -106,12 +103,9 @@ export type GatewayModelId =
   | 'openai/gpt-5.1-instant'
   | 'openai/gpt-5.1-thinking'
   | 'openai/gpt-5.2'
-<<<<<<< HEAD
   | 'openai/gpt-5.2-chat-latest'
-=======
   | 'openai/gpt-5.2-chat'
   | 'openai/gpt-5.2-codex'
->>>>>>> 66d78d5d6 (chore(provider/gateway): update gateway model settings files (#11876))
   | 'openai/gpt-5.2-pro'
   | 'openai/gpt-oss-120b'
   | 'openai/gpt-oss-20b'
