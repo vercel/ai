@@ -965,8 +965,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
         // tool search tool results:
         case 'tool_search_tool_result': {
-          const providerToolName =
-            serverToolCalls[part.tool_use_id] ?? 'tool_search_tool_regex';
+          let providerToolName = serverToolCalls[part.tool_use_id];
+
+          if (providerToolName == null) {
+            const bm25CustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_bm25',
+            );
+            const regexCustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_regex',
+            );
+
+            if (bm25CustomName !== 'tool_search_tool_bm25') {
+              providerToolName = 'tool_search_tool_bm25';
+            } else if (regexCustomName !== 'tool_search_tool_regex') {
+              providerToolName = 'tool_search_tool_regex';
+            } else {
+              providerToolName = 'tool_search_tool_regex';
+            }
+          }
+
           if (part.content.type === 'tool_search_tool_search_result') {
             content.push({
               type: 'tool-result',
@@ -1452,9 +1469,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 // tool search tool results:
                 case 'tool_search_tool_result': {
-                  const providerToolName =
-                    serverToolCalls[part.tool_use_id] ??
-                    'tool_search_tool_regex';
+                  let providerToolName = serverToolCalls[part.tool_use_id];
+
+                  if (providerToolName == null) {
+                    const bm25CustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_bm25',
+                    );
+                    const regexCustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_regex',
+                    );
+
+                    if (bm25CustomName !== 'tool_search_tool_bm25') {
+                      providerToolName = 'tool_search_tool_bm25';
+                    } else if (regexCustomName !== 'tool_search_tool_regex') {
+                      providerToolName = 'tool_search_tool_regex';
+                    } else {
+                      providerToolName = 'tool_search_tool_regex';
+                    }
+                  }
+
                   if (part.content.type === 'tool_search_tool_search_result') {
                     controller.enqueue({
                       type: 'tool-result',
