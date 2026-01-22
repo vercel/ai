@@ -105,15 +105,18 @@ The files included are determined by:
 ## Troubleshooting
 
 **Tarball larger than expected?**
+
 - Check if `src/` is included (common for source maps)
 - Check if `docs/` or other non-essential directories are listed in `files`
 - Use `tar -tvzf *.tgz | sort -k3 -n` to find largest files
 
 **Missing files?**
+
 - Verify the file/directory is listed in the `files` field of `package.json`
 - Check `.npmignore` isn't excluding it
 - Ensure the file exists after build
 
 **prepack script failing?**
+
 - Some packages copy files during prepack (e.g., docs)
 - Ensure source files exist before running `pnpm pack`
