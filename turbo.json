@@ -67,17 +67,20 @@
         ".vinxi/**"
       ]
     },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["transit"]
     },
     "type-check": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "transit"]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build", "transit"]
     },
     "test:update": {
-      "dependsOn": ["^build", "build"]
+      "dependsOn": ["^build"]
     },
     "publint": {
       "dependsOn": ["^build", "build"]
