@@ -1197,7 +1197,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "tool-result",
   },
   {
-    "id": "id-11",
+    "id": "id-14",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1209,7 +1209,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://developer.apple.com/news/",
   },
   {
-    "id": "id-12",
+    "id": "id-15",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1221,7 +1221,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://acecomments.mu.nu/?post=411647",
   },
   {
-    "id": "id-13",
+    "id": "id-16",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1233,7 +1233,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.weforum.org/stories/2024/12/top-technology-stories-from-2024/",
   },
   {
-    "id": "id-14",
+    "id": "id-17",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1245,7 +1245,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://scitechdaily.com/",
   },
   {
-    "id": "id-15",
+    "id": "id-18",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1257,7 +1257,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
-    "id": "id-16",
+    "id": "id-19",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 21, 2015",
@@ -1269,7 +1269,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.cnbc.com/technology/",
   },
   {
-    "id": "id-17",
+    "id": "id-20",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 days ago",
@@ -1281,7 +1281,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.sciencedaily.com/news/matter_energy/technology/",
   },
   {
-    "id": "id-18",
+    "id": "id-21",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -1293,7 +1293,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://www.technologyreview.com/",
   },
   {
-    "id": "id-19",
+    "id": "id-22",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 31, 2024",
@@ -1305,7 +1305,7 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "url": "https://techstartups.com/2024/12/30/top-tech-news-stories-of-2024/",
   },
   {
-    "id": "id-20",
+    "id": "id-23",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "January 25, 2025",
@@ -1347,6 +1347,19 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > web search tool > with fi
     "type": "text",
   },
   {
+    "id": "id-24",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Daily Tech News 26 September 2024 · Top Story Caroline Ellison, Sam Bankman-Fried&#x27;s right-hand woman in the FTX kerfuffle, has been sentenced to ...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDDULr5oJyZTXVnDn8RoMK4nGlIB5/8KPBQftIjBoGwKgdBO0xPobCWf4FMQZeJZTexZ2PVubA2Jakj1ei+PHwsUHeXLU+KWVSskeWpEqE9LEcU8cVMZsafx5pIdH1s4Fzo8YBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Daily Tech News 26 September 2024",
+    "type": "source",
+    "url": "https://acecomments.mu.nu/?post=411647",
+  },
+  {
     "text": "
 
 Unfortunately, the search results don't show many other specific breaking tech news stories from today, September 26, 2024. However, here are some broader tech trends and recent developments that have been making headlines:
@@ -1360,6 +1373,19 @@ Unfortunately, the search results don't show many other specific breaking tech n
     "type": "text",
   },
   {
+    "id": "id-25",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Date: August 26, 2025 Summary: Anthropic has launched a Chrome extension enabling its Claude AI agent to interact directly with the browser, manipulat...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDH/NVmfefWyzakcthBoMkqoT8aytDBV0FvAFIjClSipbNID/zEFscAaakdLn5Z6i5W8sJbYqg4XzUNd6572B59pBEvD8haJbwNgojhoqF8z5/oae4RSDzdKPWa4FX1t3q5E8tYfPGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
+  },
+  {
     "text": "
 
 - ",
@@ -1368,6 +1394,19 @@ Unfortunately, the search results don't show many other specific breaking tech n
   {
     "text": "Chinese AI firm DeepSeek has unveiled its R1 model, a significant leap in AI performance trained at a cost 70% lower than comparable U.S. models. The company attributes its efficiency to custom hardware, proprietary optimization techniques, and low energy costs in China. Analysts see this as a direct challenge to Western dominance in large language models, especially OpenAI and Anthropic.",
     "type": "text",
+  },
+  {
+    "id": "id-26",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Date: September 19, 2025 Summary: Chinese AI firm DeepSeek has unveiled its R1 model, a significant leap in AI performance trained at a cost 70% lower...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDBWUYk1OFyII3dq4JRoM0dCF2bTcT1OwCwSqIjBvViA7Pv/gvLgQlu7pNnhAHjHaThPZ1V7eor1hdefQF/ibzwrZ5o6VFZrPznm3pbEqF8cYd5F85vVDLY++URAQ//xwtev9Lt3kGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The Latest AI News and AI Breakthroughs that Matter Most: 2025 | News",
+    "type": "source",
+    "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
     "text": "
@@ -15872,7 +15911,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "type": "tool-result",
   },
   {
-    "id": "id-21",
+    "id": "id-27",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -15884,7 +15923,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://www.crescendo.ai/news/latest-ai-news-and-updates",
   },
   {
-    "id": "id-22",
+    "id": "id-28",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "3 hours ago",
@@ -15896,7 +15935,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
-    "id": "id-23",
+    "id": "id-29",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 day ago",
@@ -15908,7 +15947,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
   },
   {
-    "id": "id-24",
+    "id": "id-30",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -15920,7 +15959,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://www.techradar.com/news/archive",
   },
   {
-    "id": "id-25",
+    "id": "id-31",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "4 days ago",
@@ -15932,7 +15971,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
   },
   {
-    "id": "id-26",
+    "id": "id-32",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "2 weeks ago",
@@ -15944,7 +15983,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://www.cnbc.com/2025/09/09/live-updates-apple-event-iphone17-airpods-ios26.html",
   },
   {
-    "id": "id-27",
+    "id": "id-33",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "15 hours ago",
@@ -15956,7 +15995,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
   },
   {
-    "id": "id-28",
+    "id": "id-34",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "1 week ago",
@@ -15968,7 +16007,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://9to5mac.com/2025/09/16/ios-26-1-beta-is-coming-when-to-expect-the-next-update/",
   },
   {
-    "id": "id-29",
+    "id": "id-35",
     "providerMetadata": {
       "anthropic": {
         "pageAge": null,
@@ -15980,7 +16019,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "url": "https://scitechdaily.com/",
   },
   {
-    "id": "id-30",
+    "id": "id-36",
     "providerMetadata": {
       "anthropic": {
         "pageAge": "December 21, 2015",
@@ -16032,6 +16071,45 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "type": "text-start",
   },
   {
+    "id": "id-37",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vibrant Ginza district.",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDN+3yPep8hrW9WwANxoMO/sEZvNTf/xpoyVuIjDRoNaRlBo0z68VAiTpUeOWF+P5edPT3/3i60mbhvTMOTWMAyGiNjnSf0/ceg9FvmcqE5T//6pWT15OO5PH9g/jQaotEHkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-38",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "TOKYO Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vibrant Ginza district where Apple’s retail jou...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPhQNm231kpbwvo5GxoM7h/deBh9okrXVy+0IjCF8Fu6pVDoxH5kEHYnDxHcXjYGxUWsqPa7zWJj63JvpbcAnqR54Fuu/j7sEf52c3gqE4+wq/aNt50hD3nwsq0nGX7XZFoYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-39",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple Ginza opens to customers Friday, September 26, at 10 a.m. JST. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLbB+GC68MPUyjdjEBoMxbiOu598WzwdiRCJIjAAhTSlAu9Es/ErWBtEgie/Mp5VktMqh/JvZ//uprZEXDRnbmLUPROzgt7MC+BHPFcqE4mv+hJs7CQQtjFEovk32MFh4QIYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
     "delta": "Apple today announced the grand reopening of Apple Ginza on Friday, September 26, located in the vib",
     "id": "3",
     "type": "text-delta",
@@ -16076,6 +16154,32 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
   {
     "id": "5",
     "type": "text-start",
+  },
+  {
+    "id": "id-40",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Opened in 2003 as Apple’s first store outside the U.S., Apple Ginza now returns in an all-new four-story design that brings together the best of Apple...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDInhmZCA7JQw90CQiBoMZdhuGlh0urSfikIlIjAOfQluExdSLykntVUY5/QUlAIPpun6DAqXn9jxHbTB/GTMr7QuGMGbT+5fwdMk/U0qEwvQELJf9hlOYKENgMoheizRBfgYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
+  },
+  {
+    "id": "id-41",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Opened in 2003 as Apple’s first store outside the U.S., Apple Ginza now returns in an all-new four-story design that brings together the best of Apple...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPdYUCIhgQkfi58EphoMC8P48MQ3sQFlcnfKIjDPwLNXEt13Rqsgkakpa0pFH+se7uElXxWFBumPnCSJebZSZBCdBelu8VeP32khIMAqFLCf9j+bfA9UCuOfz3TCRcqVUYbnGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "The all-new Apple Ginza opens this Friday, September 26, in Tokyo - Apple",
+    "type": "source",
+    "url": "https://www.apple.com/newsroom/2025/09/the-all-new-apple-ginza-opens-this-friday-september-26-in-tokyo/",
   },
   {
     "delta": "Opened in 2003 as Apple's first store outside the U.S., Apple Ginza now",
@@ -16125,6 +16229,19 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
   {
     "id": "7",
     "type": "text-start",
+  },
+  {
+    "id": "id-42",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple is considering building a pilot production line for a foldable iPhone in Taiwan, with plans to launch the new foldable iPhone in 2026. Currently...",
+        "encryptedIndex": "EpEBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDN9RRNtj1Qp6RaNu1xoM99Hpd9h5/iiAHVV1IjACHitA/CndYvvQF5mFfD37nMJCc2Dt9+WarXhj7MOp0SULX1XGU/UsFAkp+LFUxWwqFUTSJ7/UKDtvO7kikg9WL6iVvVicxhgE",
+      },
+    },
+    "sourceType": "url",
+    "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
     "delta": "Apple is considering building a pilot production line for a foldable iPhone in Taiwan, with plans to launch the new",
@@ -16178,6 +16295,19 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
   {
     "id": "9",
     "type": "text-start",
+  },
+  {
+    "id": "id-43",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "OpenAI launches ChatGPT Pulse, proactively writing your morning briefing. OpenAI is rolling out a new feature in ChatGPT called Pulse, which generates...",
+        "encryptedIndex": "EpMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDLi26WjvZzuqNWkZGBoMN2xRMzTInXpgc+N0IjBV5WkXoe+qIbxhn3ZuE4vKJxW1DxkaVK1FOzOsZl5XK9Wl2IRhbEGLpqKsJF2uSNgqF8CAJjYkYVTQUPqU4JKD7jE6ZgE6NwvhGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "Fang Junyu's Technology Weekly - September 26, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/junyu_fang_a216509a97501d/fang-junyus-technology-weekly-september-26-2025-2ndd",
   },
   {
     "delta": "OpenAI launches ChatGPT",
@@ -16255,6 +16385,32 @@ exports[`AnthropicMessagesLanguageModel > doStream > web search tool > should st
     "type": "text-start",
   },
   {
+    "id": "id-44",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential blockbuster partnerships between legacy chip giants,...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDOQ/NQu+nnBHHIkVuhoMXqvV+iEabI/JvCcEIjDan9SLf1kUDEjapUM3Tstq5f3nrHJSMRj+XdWWzrlUVfLX4K6afVpgOK6pZzKJ8/4qEwZgT6oJF/sGnrdCPAA8mlKGdxkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
+    "id": "id-45",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential blockbuster partnerships between legacy chip giants,...",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDPTNFSUt4rkCaRmBiBoM8HcdQPJstID+PCGGIjBLhIRYpaD2k2EGRa++jM2pLq1TF7VFh2pj20i5gpPW7qKG8awi0bxnbUHJh6kI7hcqE63MfpB43d2a081kYEEtnpCMjDkYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "On September 25, 2025, headlines were dominated by seismic shifts in AI infrastructure, potential block",
     "id": "11",
     "type": "text-delta",
@@ -16294,6 +16450,19 @@ Key highlights include:
     "type": "text-start",
   },
   {
+    "id": "id-46",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Microsoft shook up its AI stack by integrating Anthropic's models into Copilot for Microsoft 365, reducing OpenAI dependency and boosting productivity...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDAC88THJtPYWws/AnRoM9vnyF6Cv1kG0w+zfIjABi6xlH9yl/cfwW1kVKxEww0QSITFKBixiNoGIEoEOPy/unW0Jt1KgaQ5X8sdVDBwqFB1AfiWedfrXpRtEghZYy+a3LIanGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "Microsoft shook up its AI stack by integrating Anthropic's models into Copilot for Microsoft 365, reducing OpenAI dependency and boosting productivity tools like real-time",
     "id": "13",
     "type": "text-delta",
@@ -16326,6 +16495,19 @@ Key highlights include:
     "type": "text-start",
   },
   {
+    "id": "id-47",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Oracle followed with a $15 billion bond raise for cloud expansion, riding AI demand waves. ",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDFusGSC0EOZjZBGgARoMfOwWDOch04HX9MVdIjBZ3DN9EtoEgYz3dKM+oRWK2bhrg/5/O0JBbumO0HMXLjwnoFzD25fvVr3ic1VLcB8qFL0kqPObH+ugPBuuh8a/3gCs5xApGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
+  },
+  {
     "delta": "Oracle followed with a $15 billion bond raise for cloud expansion, riding AI demand waves.",
     "id": "15",
     "type": "text-delta",
@@ -16351,6 +16533,19 @@ Key highlights include:
   {
     "id": "17",
     "type": "text-start",
+  },
+  {
+    "id": "id-48",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Google launched Mixboard, an AI mood board app with Gemini-powered suggestions for designers, and rolled conversational editing to more Android phones...",
+        "encryptedIndex": "EpABCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDKTAT7cc6BiCx6BdmRoMkVcS4u/F+dWR3K8bIjCBixw1ZX30TadhFVj+NE2sUZLJjkKxJtNtYPIyQBhIpZoOhTIvkp2lsbwkzR/CtWMqFIABgH01yvhMEvw4JGr9mx6g+XhBGAQ=",
+      },
+    },
+    "sourceType": "url",
+    "title": "📰 Major Tech News: September 25, 2025 - Future",
+    "type": "source",
+    "url": "https://future.forem.com/om_shree_0709/major-tech-news-september-25-2025-5h38",
   },
   {
     "delta": "Google launched Mixboard, an AI mood board app with Gemini-powered suggestions for designers, and rolled conversational editing to more Android phones in",
@@ -16385,6 +16580,32 @@ Key highlights include:
   {
     "id": "19",
     "type": "text-start",
+  },
+  {
+    "id": "id-49",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "With iOS 26 officially launched, Apple is moving forward with iOS 26.1. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDIPB/AN3fJlbLwK8RhoMuar7jkDtGlWf2zAqIjDhSubMgOqlu9mQga+JzkQPW2Kq/+Lc2PPJarWoWOwpvAhd0wEkDbe+tvffGYUvH0gqE2r0uwM2Ab9FL7pYWlhK9dXq7NYYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
+  },
+  {
+    "id": "id-50",
+    "providerMetadata": {
+      "anthropic": {
+        "citedText": "Apple released iOS 26 on September 15, bringing the Liquid Glass redesign to the iPhone. ",
+        "encryptedIndex": "Eo8BCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDKwFwl13npJwcmRCphoM51Qmc4OrGRffab8VIjD6jLriOpBhiA1tmErisXQlR3pDvzabIE/sUXyiW8bv5d+URlUm8GQRQOGdMY82kscqE7REcFDzGjDki9CZFMNYpjMkKXIYBA==",
+      },
+    },
+    "sourceType": "url",
+    "title": "Apple releases first iOS 26.1 developer beta for iPhone - 9to5Mac",
+    "type": "source",
+    "url": "https://9to5mac.com/2025/09/22/ios-26-1-beta-1/",
   },
   {
     "delta": "With iOS 26 officially launched, Apple is moving forward with iOS 26.1.",
