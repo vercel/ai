@@ -100,6 +100,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
       });
 
       return {
+        warnings: [],
         embeddings: [response.embedding.values],
         usage: undefined,
         response: { headers: responseHeaders, body: rawValue },
@@ -130,6 +131,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV3 {
     });
 
     return {
+      warnings: [],
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
       response: { headers: responseHeaders, body: rawValue },

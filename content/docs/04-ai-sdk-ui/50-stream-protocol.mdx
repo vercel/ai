@@ -85,7 +85,7 @@ export default function Chat() {
 
 ```ts filename='app/api/chat/route.ts'
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -94,8 +94,8 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toTextStreamResponse();
@@ -378,6 +378,19 @@ data: {"type":"finish"}
 
 ```
 
+### Abort Part
+
+Indicates the stream was aborted.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"abort","reason":"user cancelled"}
+
+```
+
 ### Stream Termination
 
 The stream ends with a special `[DONE]` marker.
@@ -445,8 +458,8 @@ export default function Chat() {
 ```
 
 ```ts filename='app/api/chat/route.ts'
-import { openai } from '@ai-sdk/openai';
 import { streamText, UIMessage, convertToModelMessages } from 'ai';
+__PROVIDER_IMPORT__;
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -455,8 +468,8 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4.5',
-    messages: convertToModelMessages(messages),
+    model: __MODEL__,
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

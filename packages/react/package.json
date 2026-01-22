@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "3.0.0-beta.134",
+  "version": "3.0.50",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,6 +27,12 @@
   },
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
@@ -55,7 +61,7 @@
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "react": "^18 || ^19"
+    "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1"
   },
   "engines": {
     "node": ">=18"

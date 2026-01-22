@@ -1,4 +1,4 @@
-export type { CallSettings } from './call-settings';
+export type { CallSettings, TimeoutConfiguration } from './call-settings';
 export {
   assistantModelMessageSchema,
   modelMessageSchema,

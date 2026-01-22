@@ -1,9 +1,13 @@
 import { LanguageModelV2 } from '@ai-sdk/provider';
-import { asLanguageModelV3 } from './as-language-model-v3';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
+import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { asLanguageModelV3 } from './as-language-model-v3';
 
 describe('asLanguageModelV3', () => {
   let logWarningSpy: ReturnType<typeof vi.spyOn>;
@@ -157,26 +161,116 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.content).toHaveLength(1);
-      expect(response.finishReason).toBe('stop');
-      expect(response.usage.inputTokens).toBe(10);
+      expect(response).toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "text",
+            },
+          ],
+          "finishReason": {
+            "raw": undefined,
+            "unified": "stop",
+          },
+          "usage": {
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": undefined,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": undefined,
+              "total": 5,
+            },
+          },
+          "warnings": [],
+        }
+      `);
     });
 
-    it('should make doStream method callable', async () => {
-      const mockStream = new ReadableStream();
-      const v2Model = new MockLanguageModelV2({
-        provider: 'test-provider',
-        modelId: 'test-model-id',
-        doStream: async () => ({ stream: mockStream }),
+    describe('doStream', () => {
+      it('should convert v2 stream to v3 stream', async () => {
+        const v2Model = new MockLanguageModelV2({
+          doStream: async ({ prompt }) => {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: `world!` },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: {
+                    inputTokens: 3,
+                    outputTokens: 10,
+                    totalTokens: 13,
+                    reasoningTokens: 2,
+                    cachedInputTokens: 4,
+                  },
+                },
+              ]),
+            };
+          },
+        });
+
+        const { stream } = await asLanguageModelV3(v2Model).doStream({
+          prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "delta": ", ",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "delta": "world!",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
+                "id": "1",
+                "type": "text-end",
+              },
+              {
+                "finishReason": {
+                  "raw": undefined,
+                  "unified": "stop",
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 4,
+                    "cacheWrite": undefined,
+                    "noCache": undefined,
+                    "total": 3,
+                  },
+                  "outputTokens": {
+                    "reasoning": 2,
+                    "text": undefined,
+                    "total": 10,
+                  },
+                },
+              },
+            ]
+          `);
       });
-
-      const result = asLanguageModelV3(v2Model);
-
-      const { stream } = await result.doStream({
-        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
-      });
-
-      expect(stream).toBe(mockStream);
     });
 
     it('should preserve prototype methods when using class instances', async () => {
@@ -317,7 +411,7 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.usage.reasoningTokens).toBe(5);
+      expect(response.usage?.outputTokens?.reasoning).toBe(5);
     });
 
     it('should handle response with cached input tokens in usage', async () => {
@@ -343,7 +437,7 @@ describe('asLanguageModelV3', () => {
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
       });
 
-      expect(response.usage.cachedInputTokens).toBe(8);
+      expect(response.usage?.inputTokens?.cacheRead).toBe(8);
     });
 
     it('should handle response with different finish reasons', async () => {
@@ -383,7 +477,10 @@ describe('asLanguageModelV3', () => {
           prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
         });
 
-        expect(response.finishReason).toBe(finishReason);
+        expect(response.finishReason).toStrictEqual({
+          raw: undefined,
+          unified: finishReason === 'unknown' ? 'other' : finishReason,
+        });
       }
     });
 

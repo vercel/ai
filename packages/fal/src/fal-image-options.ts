@@ -5,7 +5,15 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
-        imageUrl: z.string().nullish(),
+        /** @deprecated use prompt.images instead */
+        imageUrl: z.string().nullish().meta({
+          deprecated: true,
+          description: 'Use `prompt.images` instead',
+        }),
+        maskUrl: z
+          .string()
+          .nullish()
+          .meta({ deprecated: true, description: 'Use `prompt.mask` instead' }),
         guidanceScale: z.number().min(1).max(20).nullish(),
         numInferenceSteps: z.number().min(1).max(50).nullish(),
         enableSafetyChecker: z.boolean().nullish(),
@@ -17,9 +25,14 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
           .enum(['1', '2', '3', '4', '5', '6'])
           .or(z.number().min(1).max(6))
           .nullish(),
+        /**
+         * When true, converts multiple input images to `image_urls` array instead of `image_url` string.
+         */
+        useMultipleImages: z.boolean().nullish(),
 
         // Deprecated snake_case versions
         image_url: z.string().nullish(),
+        mask_url: z.string().nullish(),
         guidance_scale: z.number().min(1).max(20).nullish(),
         num_inference_steps: z.number().min(1).max(50).nullish(),
         enable_safety_checker: z.boolean().nullish(),
@@ -50,6 +63,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
 
         // Map all known parameters
         mapKey('image_url', 'imageUrl');
+        mapKey('mask_url', 'maskUrl');
         mapKey('guidance_scale', 'guidanceScale');
         mapKey('num_inference_steps', 'numInferenceSteps');
         mapKey('enable_safety_checker', 'enableSafetyChecker');
@@ -64,12 +78,19 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
         if (data.acceleration !== undefined && data.acceleration !== null) {
           result.acceleration = data.acceleration;
         }
+        if (
+          data.useMultipleImages !== undefined &&
+          data.useMultipleImages !== null
+        ) {
+          result.useMultipleImages = data.useMultipleImages;
+        }
 
         for (const [key, value] of Object.entries(data)) {
           if (
             ![
               // camelCase known keys
               'imageUrl',
+              'maskUrl',
               'guidanceScale',
               'numInferenceSteps',
               'enableSafetyChecker',
@@ -78,8 +99,10 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
               'strength',
               'acceleration',
               'safetyTolerance',
+              'useMultipleImages',
               // snake_case known keys
               'image_url',
+              'mask_url',
               'guidance_scale',
               'num_inference_steps',
               'enable_safety_checker',

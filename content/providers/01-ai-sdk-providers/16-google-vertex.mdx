@@ -61,7 +61,7 @@ const vertex = createVertex({
 });
 ```
 
-Google Vertex supports two different authentication implementations depending on your runtime environment.
+Google Vertex supports multiple authentication methods depending on your runtime environment and requirements.
 
 #### Node.js Runtime
 
@@ -229,6 +229,25 @@ You can use the following optional settings to customize the provider instance:
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+#### Express Mode
+
+Express mode provides a simplified authentication method using an API key instead of OAuth or service account credentials. When using express mode, the `project` and `location` settings are not required.
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+
+const vertex = createVertex({
+  apiKey: process.env.GOOGLE_VERTEX_API_KEY,
+});
+```
+
+##### Optional Provider Settings
+
+- **apiKey** _string_
+
+  The API key for Google Vertex AI. When provided, the provider uses express mode with API key authentication instead of OAuth.
+  It uses the `GOOGLE_VERTEX_API_KEY` environment variable by default.
+
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
@@ -382,6 +401,49 @@ const result = await generateText({
 });
 ```
 
+#### Enterprise Web Search
+
+[Enterprise Web Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/web-grounding-enterprise) provides grounding using a compliance-focused web index designed for highly-regulated industries such as finance, healthcare, and the public sector. Unlike standard Google Search grounding, Enterprise Web Search does not log customer data and supports VPC service controls. Supported models: Gemini 2.0 and newer.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
+  },
+  prompt: 'What are the latest FDA regulations for clinical trials?',
+});
+```
+
+#### Google Maps
+
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    google_maps: vertex.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt: 'What are the best Italian restaurants nearby?',
+});
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
+
 #### Reasoning (Thinking Tokens)
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
@@ -394,7 +456,7 @@ import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google'; // Note: imp
 import { generateText, streamText } from 'ai';
 
 // For generateText:
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
   providerOptions: {
     google: {
@@ -408,8 +470,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   prompt: 'Explain quantum computing in simple terms.',
 });
 
-console.log('Reasoning:', reasoning);
-console.log('Reasoning Details:', reasoningDetails);
+console.log('Reasoning:', reasoningText);
+console.log('Reasoning Details:', reasoning);
 console.log('Final Text:', text);
 
 // For streamText:
@@ -438,7 +500,7 @@ for await (const part of result.fullStream) {
 
 When `includeThoughts` is true, parts of the API response marked with `thought: true` will be processed as reasoning.
 
-- In `generateText`, these contribute to the `reasoning` (string) and `reasoningDetails` (array) fields.
+- In `generateText`, these contribute to the `reasoningText` (string) and `reasoning` (array) fields.
 - In `streamText`, these are emitted as `reasoning` stream parts.
 
 <Note>
@@ -577,8 +639,10 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
@@ -663,10 +727,10 @@ using the `.image()` factory method. For more on image generation with the AI SD
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -677,10 +741,10 @@ Further configuration can be done using Google Vertex provider options. You can 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
@@ -717,10 +781,10 @@ Additional information about the images can be retrieved using Google Vertex met
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -730,16 +794,125 @@ console.log(
 );
 ```
 
+#### Image Editing
+
+Google Vertex Imagen models support image editing through inpainting, outpainting, and other edit modes. Pass input images via `prompt.images` and optionally a mask via `prompt.mask`.
+
+<Note>
+  Image editing is supported by `imagen-3.0-capability-001`. The
+  `imagen-4.0-generate-001` model does not currently support editing operations.
+</Note>
+
+##### Inpainting (Insert Objects)
+
+Insert or replace objects in specific areas using a mask:
+
+```ts
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./mask.png'); // White = edit area
+
+const { images } = await generateImage({
+  model: vertex.image('imagen-3.0-capability-001'),
+  prompt: {
+    text: 'A sunlit indoor lounge area with a pool containing a flamingo',
+    images: [image],
+    mask,
+  },
+  providerOptions: {
+    vertex: {
+      edit: {
+        baseSteps: 50,
+        mode: 'EDIT_MODE_INPAINT_INSERTION',
+        maskMode: 'MASK_MODE_USER_PROVIDED',
+        maskDilation: 0.01,
+      },
+    } satisfies GoogleVertexImageProviderOptions,
+  },
+});
+```
+
+##### Outpainting (Extend Image)
+
+Extend an image beyond its original boundaries:
+
+```ts
+import {
+  vertex,
+  GoogleVertexImageProviderOptions,
+} from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+import fs from 'fs';
+
+const image = fs.readFileSync('./input-image.png');
+const mask = fs.readFileSync('./outpaint-mask.png'); // White = extend area
+
+const { images } = await generateImage({
+  model: vertex.image('imagen-3.0-capability-001'),
+  prompt: {
+    text: 'Extend the scene with more of the forest background',
+    images: [image],
+    mask,
+  },
+  providerOptions: {
+    vertex: {
+      edit: {
+        baseSteps: 50,
+        mode: 'EDIT_MODE_OUTPAINT',
+        maskMode: 'MASK_MODE_USER_PROVIDED',
+      },
+    } satisfies GoogleVertexImageProviderOptions,
+  },
+});
+```
+
+##### Edit Provider Options
+
+The following options are available under `providerOptions.vertex.edit`:
+
+- **mode** - The edit mode to use:
+
+  - `EDIT_MODE_INPAINT_INSERTION` - Insert objects into masked areas
+  - `EDIT_MODE_INPAINT_REMOVAL` - Remove objects from masked areas
+  - `EDIT_MODE_OUTPAINT` - Extend image beyond boundaries
+  - `EDIT_MODE_CONTROLLED_EDITING` - Controlled editing
+  - `EDIT_MODE_PRODUCT_IMAGE` - Product image editing
+  - `EDIT_MODE_BGSWAP` - Background swap
+
+- **baseSteps** _number_ - Number of sampling steps (35-75). Higher values = better quality but slower.
+
+- **maskMode** - How to interpret the mask:
+
+  - `MASK_MODE_USER_PROVIDED` - Use the provided mask directly
+  - `MASK_MODE_DEFAULT` - Default mask mode
+  - `MASK_MODE_DETECTION_BOX` - Mask from detected bounding boxes
+  - `MASK_MODE_CLOTHING_AREA` - Mask from clothing segmentation
+  - `MASK_MODE_PARSED_PERSON` - Mask from person parsing
+
+- **maskDilation** _number_ - Percentage (0-1) to grow the mask. Recommended: 0.01.
+
+<Note>
+  Input images must be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings. URL-based images are not supported for Google Vertex
+  image editing.
+</Note>
+
 #### Model Capabilities
 
-| Model                                     | Aspect Ratios             |
-| ----------------------------------------- | ------------------------- |
-| `imagen-3.0-generate-001`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-generate-002`                 | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-3.0-fast-generate-001`            | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-generate-preview-06-06`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-fast-generate-preview-06-06`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
-| `imagen-4.0-ultra-generate-preview-06-06` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                           | Aspect Ratios             |
+| ------------------------------- | ------------------------- |
+| `imagen-3.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
 
@@ -970,7 +1143,7 @@ and specifying a thinking budget in tokens.
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
-const { text, reasoning, reasoningDetails } = await generateText({
+const { text, reasoningText, reasoning } = await generateText({
   model: vertexAnthropic('claude-3-7-sonnet@20250219'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
@@ -980,8 +1153,8 @@ const { text, reasoning, reasoningDetails } = await generateText({
   },
 });
 
-console.log(reasoning); // reasoning text
-console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
 console.log(text); // text response
 ```
 
@@ -1063,24 +1236,29 @@ const result = await generateText({
 
 For more on prompt caching with Anthropic, see [Google Vertex AI's Claude prompt caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching) and [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
-### Computer Use
+### Tools
 
-Anthropic provides three built-in tools that can be used to interact with external systems:
+Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The following tools are available via the `tools` property of the provider instance:
 
 1. **Bash Tool**: Allows running bash commands.
 2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
 3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
+4. **Web Search Tool**: Provides access to real-time web content.
 
-They are available via the `tools` property of the provider instance.
+<Note>
+  Only a subset of Anthropic tools are supported on Google Vertex. Tools like
+  Code Execution, Memory, and Web Fetch are not available. Use the regular
+  `@ai-sdk/anthropic` provider if you need access to all Anthropic tools.
+</Note>
 
-For more background see [Anthropic's Computer Use documentation](https://docs.anthropic.com/en/docs/build-with-claude/computer-use).
+For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
 
 #### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
 ```ts
-const bashTool = vertexAnthropic.tools.bash_20241022({
+const bashTool = vertexAnthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => {
     // Implement your bash command execution logic here
     // Return the result of the command execution
@@ -1098,7 +1276,7 @@ Parameters:
 The Text Editor Tool provides functionality for viewing and editing text files:
 
 ```ts
-const textEditorTool = vertexAnthropic.tools.textEditor_20241022({
+const textEditorTool = vertexAnthropic.tools.textEditor_20250124({
   execute: async ({
     command,
     path,
@@ -1116,13 +1294,14 @@ const textEditorTool = vertexAnthropic.tools.textEditor_20241022({
 
 Parameters:
 
-- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run.
+- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run. Note: `undo_edit` is not supported in `textEditor_20250429` and `textEditor_20250728`.
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
 - `new_str` (string, optional): New string for `str_replace` or `insert` commands.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
+- `max_characters` (number, optional): Optional maximum number of characters to view in the file (only available in `textEditor_20250728`).
 
 #### Computer Tool
 
@@ -1159,10 +1338,10 @@ const computerTool = vertexAnthropic.tools.computer_20241022({
   },
 
   // map to tool result content for LLM consumption:
-  toModelOutput(result) {
-    return typeof result === 'string'
-      ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'image', data: output.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -1173,7 +1352,39 @@ Parameters:
 - `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
 - `text` (string, optional): Required for `type` and `key` actions.
 
-These tools can be used in conjunction with the `claude-3-5-sonnet-v2@20241022` model to enable more complex interactions and tasks.
+#### Web Search Tool
+
+The Web Search Tool provides Claude with direct access to real-time web content:
+
+```ts
+const webSearchTool = vertexAnthropic.tools.webSearch_20250305({
+  maxUses: 5, // Optional: Maximum number of web searches Claude can perform
+  allowedDomains: ['example.com'], // Optional: Only search these domains
+  blockedDomains: ['spam.com'], // Optional: Never search these domains
+  userLocation: {
+    // Optional: Provide location for geographically relevant results
+    type: 'approximate',
+    city: 'San Francisco',
+    region: 'CA',
+    country: 'US',
+    timezone: 'America/Los_Angeles',
+  },
+});
+```
+
+Parameters:
+
+- `maxUses` (number, optional): Maximum number of web searches Claude can perform during the conversation.
+- `allowedDomains` (string[], optional): Optional list of domains that Claude is allowed to search.
+- `blockedDomains` (string[], optional): Optional list of domains that Claude should avoid when searching.
+- `userLocation` (object, optional): Optional user location information to provide geographically relevant search results.
+  - `type` ('approximate'): The type of location (must be approximate).
+  - `city` (string, optional): The city name.
+  - `region` (string, optional): The region or state.
+  - `country` (string, optional): The country.
+  - `timezone` (string, optional): The IANA timezone ID.
+
+These tools can be used in conjunction with supported Claude models to enable more complex interactions and tasks.
 
 ### Model Capabilities
 

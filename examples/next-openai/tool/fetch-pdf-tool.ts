@@ -8,7 +8,7 @@ export const fetchPdfTool = tool({
   inputSchema: z.object({}),
   async execute() {
     const response = await fetch(
-      'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-core/data/ai.pdf',
+      'https://raw.githubusercontent.com/vercel/ai/main/examples/ai-functions/data/ai.pdf',
     );
 
     const arrayBuffer = await response.arrayBuffer();
@@ -20,7 +20,7 @@ export const fetchPdfTool = tool({
       base64,
     };
   },
-  toModelOutput: ({ mediaType, base64 }) => ({
+  toModelOutput: ({ output: { mediaType, base64 } }) => ({
     type: 'content',
     value: [{ type: 'file-data', data: base64, mediaType }],
   }),

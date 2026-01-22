@@ -2,9 +2,12 @@ import {
   APICallError,
   InvalidResponseDataError,
   LanguageModelV3,
+  LanguageModelV3CallOptions,
   LanguageModelV3Content,
   LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,6 +24,7 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
+import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
@@ -84,7 +88,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     seed,
     toolChoice,
     tools,
-  }: Parameters<LanguageModelV3['doGenerate']>[0]) {
+  }: LanguageModelV3CallOptions) {
     const deepseekOptions =
       (await parseProviderOptions({
         provider: this.providerOptionsName,
@@ -138,8 +142,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const {
@@ -193,17 +197,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
     return {
       content,
-      finishReason: mapDeepSeekFinishReason(choice.finish_reason),
-      usage: {
-        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
-        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
-        totalTokens: responseBody.usage?.total_tokens ?? undefined,
-        reasoningTokens:
-          responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
-          undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
+      finishReason: {
+        unified: mapDeepSeekFinishReason(choice.finish_reason),
+        raw: choice.finish_reason ?? undefined,
       },
+      usage: convertDeepSeekUsage(responseBody.usage),
       providerMetadata: {
         [this.providerOptionsName]: {
           promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
@@ -221,8 +219,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV3['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = {
@@ -256,7 +254,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = 'unknown';
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     let usage: DeepSeekChatTokenUsage | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
@@ -281,7 +282,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -289,7 +290,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error.message });
               return;
             }
@@ -310,7 +311,10 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
             const choice = value.choices[0];
 
             if (choice?.finish_reason != null) {
-              finishReason = mapDeepSeekFinishReason(choice.finish_reason);
+              finishReason = {
+                unified: mapDeepSeekFinishReason(choice.finish_reason),
+                raw: choice.finish_reason,
+              };
             }
 
             if (choice?.delta == null) {
@@ -510,15 +514,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                inputTokens: usage?.prompt_tokens ?? undefined,
-                outputTokens: usage?.completion_tokens ?? undefined,
-                totalTokens: usage?.total_tokens ?? undefined,
-                reasoningTokens:
-                  usage?.completion_tokens_details?.reasoning_tokens ??
-                  undefined,
-                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
-              },
+              usage: convertDeepSeekUsage(usage),
               providerMetadata: {
                 [providerOptionsName]: {
                   promptCacheHitTokens:

@@ -1000,7 +1000,7 @@ describe('validateUIMessages', () => {
       `);
     });
 
-    it('should validate tool input when state is output-error', async () => {
+    it('should validate tool input when state is output-error and there is input', async () => {
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1044,6 +1044,79 @@ describe('validateUIMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should skip tool input validation when state is output-error and there is no input', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'output-error',
+                input: undefined,
+                errorText: 'Tool input validation failed',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool input validation failed",
+                "input": undefined,
+                "providerExecuted": false,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-foo",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve rawInput when state is output-error', async () => {
+      const inputMessages = [
+        {
+          id: '1',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-foo' as const,
+              toolCallId: '1',
+              state: 'output-error' as const,
+              input: undefined,
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool input validation failed',
+              providerExecuted: false,
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
     });
 
     it('should throw error when no tool schema is found', async () => {

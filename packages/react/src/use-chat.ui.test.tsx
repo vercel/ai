@@ -6,12 +6,12 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
   FinishReason,
-  isToolUIPart,
+  isStaticToolUIPart,
   TextStreamChatTransport,
   UIMessage,
   UIMessageChunk,
@@ -756,7 +756,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => (
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-${toolIdx}`}>
                 {JSON.stringify(toolPart)}
               </div>
@@ -822,6 +822,57 @@ describe('onToolCall', () => {
       });
     });
   });
+
+  it('should call the latest onToolCall after prop change (no stale closure)', async () => {
+    const onToolCallA = vi.fn(async () => {});
+    const onToolCallB = vi.fn(async () => {});
+
+    const Test = () => {
+      const [useB, setUseB] = React.useState(false);
+      const { sendMessage } = useChat({
+        onToolCall: useB ? onToolCallB : onToolCallA,
+      });
+
+      return (
+        <div>
+          <button data-testid="toggle" onClick={() => setUseB(true)} />
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({
+                parts: [{ text: 'hi', type: 'text' }],
+              });
+            }}
+          />
+        </div>
+      );
+    };
+
+    render(<Test />);
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      ],
+    };
+
+    await userEvent.click(screen.getByTestId('toggle'));
+    const sendButtons = screen.getAllByTestId('do-send');
+    await userEvent.click(sendButtons[sendButtons.length - 1]);
+
+    await vi.waitUntil(() => onToolCallB.mock.calls.length > 0, {
+      timeout: 2000,
+    });
+
+    expect(onToolCallA).toHaveBeenCalledTimes(0);
+    expect(onToolCallB).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('tool invocations', () => {
@@ -834,7 +885,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.parts.filter(isToolUIPart).map((toolPart, toolIdx) => {
+            {m.parts.filter(isStaticToolUIPart).map((toolPart, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
@@ -2313,6 +2364,71 @@ describe('chat instance changes', () => {
     await userEvent.click(screen.getByTestId('do-change-chat'));
 
     expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+  });
+
+  it('should handle streaming correctly when the id changes', async () => {
+    const controller = new TestResponseController();
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    // First, change the ID
+    await userEvent.click(screen.getByTestId('do-change-chat'));
+
+    // Then send a message
+    await userEvent.click(screen.getByTestId('do-send'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write(formatChunk({ type: 'text-start', id: '0' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+    );
+
+    // Verify streaming is working - text should appear immediately
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: ',' }));
+    controller.write(
+      formatChunk({ type: 'text-delta', id: '0', delta: ' world' }),
+    );
+    controller.write(formatChunk({ type: 'text-delta', id: '0', delta: '.' }));
+    controller.write(formatChunk({ type: 'text-end', id: '0' }));
+    controller.close();
+
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toContainEqual(
+        expect.objectContaining({
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'text',
+              text: 'Hello, world.',
+              state: 'done',
+            }),
+          ]),
+        }),
+      );
+    });
   });
 });
 

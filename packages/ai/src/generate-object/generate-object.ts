@@ -32,7 +32,7 @@ import {
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
-import { LanguageModelUsage } from '../types/usage';
+import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
@@ -366,8 +366,8 @@ via tool or schema description.
                   message:
                     'No object generated: the model did not return a response.',
                   response: responseData,
-                  usage: result.usage,
-                  finishReason: result.finishReason,
+                  usage: asLanguageModelUsage(result.usage),
+                  finishReason: result.finishReason.unified,
                 });
               }
 
@@ -376,7 +376,7 @@ via tool or schema description.
                 await selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.response.finishReason': result.finishReason,
+                    'ai.response.finishReason': result.finishReason.unified,
                     'ai.response.object': { output: () => text },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -387,15 +387,19 @@ via tool or schema description.
                     ),
 
                     // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens,
-                    'ai.usage.completionTokens': result.usage.outputTokens,
+                    'ai.usage.promptTokens': result.usage.inputTokens.total,
+                    'ai.usage.completionTokens':
+                      result.usage.outputTokens.total,
 
                     // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [result.finishReason],
+                    'gen_ai.response.finish_reasons': [
+                      result.finishReason.unified,
+                    ],
                     'gen_ai.response.id': responseData.id,
                     'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                    'gen_ai.usage.output_tokens': result.usage.outputTokens,
+                    'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
+                    'gen_ai.usage.output_tokens':
+                      result.usage.outputTokens.total,
                   },
                 }),
               );
@@ -411,8 +415,8 @@ via tool or schema description.
         );
 
         result = generateResult.objectText;
-        finishReason = generateResult.finishReason;
-        usage = generateResult.usage;
+        finishReason = generateResult.finishReason.unified;
+        usage = asLanguageModelUsage(generateResult.usage);
         warnings = generateResult.warnings;
         resultProviderMetadata = generateResult.providerMetadata;
         request = generateResult.request ?? {};

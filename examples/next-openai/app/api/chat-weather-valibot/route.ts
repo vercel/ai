@@ -8,6 +8,6 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: weatherValibotAgent,
-    messages,
+    uiMessages: messages,
   });
 }

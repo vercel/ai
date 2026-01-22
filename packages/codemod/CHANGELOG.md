@@ -1,5 +1,76 @@
 # @ai-sdk/codemod
 
+## 3.0.3
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
+## 3.0.2
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.1
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+
+## 3.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 10128fd: feat(codemods): v5 -> v6 codemods
+- 9f3216e: feat(codemod): add remaining codemods for v5 -> v6 migration
+- 32044aa: feat(codemods): add codemods for providerMetadata key change
+- b586bf4: chore(codemod): add codemod for making convertToModelMessages async
+- 9061dc0: feat: image editing
+- 7e4eb2e: chore(codemod): add codemod for destructuring the toModelOutput param
+- 740d4bf: feat(codemod): add usechat input state transformation for v5
+- 437ab50: feat(codemod): add usechat api to transport transformation
+- 9b4457c: feat(codemod): add tool invocations migration to v5 codemods
+- adbeac4: feat(codemod): add datastream to uimessagestream transformation
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+
+## 3.0.0-beta.7
+
+### Patch Changes
+
+- b586bf4: chore(codemod): add codemod for making convertToModelMessages async
+
+## 3.0.0-beta.6
+
+### Patch Changes
+
+- 7e4eb2e: chore(codemod): add codemod for destructuring the toModelOutput param
+
+## 3.0.0-beta.5
+
+### Patch Changes
+
+- 32044aa: feat(codemods): add codemods for providerMetadata key change
+
+## 3.0.0-beta.4
+
+### Patch Changes
+
+- 9f3216e: feat(codemod): add remaining codemods for v5 -> v6 migration
+
 ## 3.0.0-beta.3
 
 ### Patch Changes

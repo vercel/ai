@@ -38,6 +38,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.1-chat-latest',
   'gpt-5.1-codex-mini',
   'gpt-5.1-codex',
+  'gpt-5.1-codex-max',
+  'gpt-5.2',
+  'gpt-5.2-chat-latest',
+  'gpt-5.2-pro',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -102,6 +106,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.1-chat-latest'
   | 'gpt-5.1-codex-mini'
   | 'gpt-5.1-codex'
+  | 'gpt-5.1-codex-max'
+  | 'gpt-5.2'
+  | 'gpt-5.2-chat-latest'
+  | 'gpt-5.2-pro'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -213,10 +221,11 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
-       * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high'
+       * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
        *
-       * Note: The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-       * models. Setting `reasoningEffort` to 'none' with other models will result in
+       * The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
+       * models. Also, the 'xhigh' type for `reasoningEffort` is only available for
+       * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
        * an error.
        */
       reasoningEffort: z.string().nullish(),
@@ -273,6 +282,27 @@ export const openaiResponsesProviderOptionsSchema = lazySchema(() =>
        * @see https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids
        */
       user: z.string().nullish(),
+
+      /**
+       * Override the system message mode for this model.
+       * - 'system': Use the 'system' role for system messages (default for most models)
+       * - 'developer': Use the 'developer' role for system messages (used by reasoning models)
+       * - 'remove': Remove system messages entirely
+       *
+       * If not specified, the mode is automatically determined based on the model.
+       */
+      systemMessageMode: z.enum(['system', 'developer', 'remove']).optional(),
+
+      /**
+       * Force treating this model as a reasoning model.
+       *
+       * This is useful for "stealth" reasoning models (e.g. via a custom baseURL)
+       * where the model ID is not recognized by the SDK's allowlist.
+       *
+       * When enabled, the SDK applies reasoning-model parameter compatibility rules
+       * and defaults `systemMessageMode` to `developer` unless overridden.
+       */
+      forceReasoning: z.boolean().optional(),
     }),
   ),
 );

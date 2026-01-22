@@ -82,6 +82,12 @@ const bundle = [
   'v5/rename-addtoolresult-to-addtooloutput',
   'v6/rename-text-embedding-to-embedding',
   'v6/rename-mock-v2-to-v3',
+  'v6/rename-tool-call-options-to-tool-execution-options',
+  'v6/rename-core-message-to-model-message',
+  'v6/rename-converttocoremessages-to-converttomodelmessages',
+  'v6/rename-vertex-provider-metadata-key',
+  'v6/wrap-tomodeloutput-parameter',
+  'v6/add-await-converttomodelmessages',
 ];
 
 const log = debug('codemod:upgrade');

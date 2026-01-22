@@ -4,6 +4,7 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import fs from 'node:fs';
 import { createMistral } from './mistral-provider';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -74,8 +75,17 @@ describe('doGenerate', () => {
     };
   }
 
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
   it('should extract text content', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
+    prepareJsonFixtureResponse('mistral-generate-text.1');
 
     const { content } = await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -84,7 +94,39 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "text": "Hello, World!",
+          "text": "**Holiday Name: "World Kindness Day of Sharing"**
+
+      **Date:** The third Saturday in October
+
+      **Purpose:** To celebrate and promote acts of kindness, generosity, and connection by sharing something meaningful with others—whether it's time, skills, stories, or physical items.
+
+      ### **Traditions & Customs:**
+
+      1. **"Share a Skill" Exchanges:**
+         - People teach others something they're good at—cooking, crafting, gardening, or even life advice—free of charge. Community centers, schools, and online platforms host skill-sharing sessions.
+
+      2. **"Story Swap" Gatherings:**
+         - Friends and strangers meet in parks, cafes, or virtual spaces to share personal stories, jokes, or wisdom. The goal is to foster empathy and connection through storytelling.
+
+      3. **"Kindness Kits" for Strangers:**
+         - People assemble small care packages (handwritten notes, snacks, seeds, or handmade crafts) and leave them in public places (libraries, bus stops, parks) for others to find.
+
+      4. **"Pay It Forward" Chains:**
+         - Individuals perform random acts of kindness (buying coffee for the next person, donating to a cause, or helping a neighbor) and encourage others to do the same.
+
+      5. **"Memory Lane" Sharing:**
+         - Families and friends gather to share old photos, heirlooms, or family recipes, passing down traditions and creating new ones.
+
+      6. **"Global Kindness Map":**
+         - An interactive online map where people pin acts of kindness they've done or received, inspiring others to contribute.
+
+      **Symbol:** A **hand holding a heart** (representing giving and compassion).
+
+      **Food & Drink:** "Kindness Cookies" (homemade treats shared with neighbors) and "Unity Tea" (a blend of herbs from different cultures, symbolizing harmony).
+
+      **Why It's Special:** Unlike commercial holidays, this day focuses on **meaningful human connection**—reminding everyone that kindness is a universal language.
+
+      Would you celebrate it? What would you share? 😊",
           "type": "text",
         },
       ]
@@ -336,9 +378,22 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "inputTokens": 20,
-        "outputTokens": 5,
-        "totalTokens": 25,
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 20,
+          "total": 20,
+        },
+        "outputTokens": {
+          "reasoning": undefined,
+          "text": 5,
+          "total": 5,
+        },
+        "raw": {
+          "completion_tokens": 5,
+          "prompt_tokens": 20,
+          "total_tokens": 25,
+        },
       }
     `);
   });
@@ -811,12 +866,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 4,
-            "outputTokens": 32,
-            "totalTokens": 36,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 4,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 32,
+              "total": 32,
+            },
+            "raw": {
+              "completion_tokens": 32,
+              "prompt_tokens": 4,
+              "total_tokens": 36,
+            },
           },
         },
       ]
@@ -873,12 +944,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 4,
-            "outputTokens": 32,
-            "totalTokens": 36,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 4,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 32,
+              "total": 32,
+            },
+            "raw": {
+              "completion_tokens": 32,
+              "prompt_tokens": 4,
+              "total_tokens": 36,
+            },
           },
         },
       ]
@@ -954,12 +1041,28 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 183,
-            "outputTokens": 133,
-            "totalTokens": 316,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 183,
+              "total": 183,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 133,
+              "total": 133,
+            },
+            "raw": {
+              "completion_tokens": 133,
+              "prompt_tokens": 183,
+              "total_tokens": 316,
+            },
           },
         },
       ]
@@ -1120,12 +1223,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 4,
-            "outputTokens": 32,
-            "totalTokens": 36,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 4,
+              "total": 4,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 32,
+              "total": 32,
+            },
+            "raw": {
+              "completion_tokens": 32,
+              "prompt_tokens": 4,
+              "total_tokens": 36,
+            },
           },
         },
       ]
@@ -1187,12 +1306,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 5,
-            "outputTokens": 20,
-            "totalTokens": 25,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 5,
+              "total": 5,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 20,
+              "total": 20,
+            },
+            "raw": {
+              "completion_tokens": 20,
+              "prompt_tokens": 5,
+              "total_tokens": 25,
+            },
           },
         },
       ]
@@ -1282,12 +1417,28 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 30,
-            "totalTokens": 40,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 30,
+              "total": 30,
+            },
+            "raw": {
+              "completion_tokens": 30,
+              "prompt_tokens": 10,
+              "total_tokens": 40,
+            },
           },
         },
       ]
@@ -1404,12 +1555,28 @@ describe('doStream with raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
-            "inputTokens": 10,
-            "outputTokens": 5,
-            "totalTokens": 15,
+            "inputTokens": {
+              "cacheRead": undefined,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": undefined,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "completion_tokens": 5,
+              "prompt_tokens": 10,
+              "total_tokens": 15,
+            },
           },
         },
       ]
@@ -1479,6 +1646,110 @@ describe('tool result format support', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Here is the result' },
     ]);
-    expect(result.finishReason).toBe('stop');
+
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
+  });
+});
+
+describe('reference content parsing', () => {
+  it('should handle reference_ids as numbers', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                { type: 'reference', reference_ids: [1, 2, 3] },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
+  });
+
+  it('should handle reference_ids as strings', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                {
+                  type: 'reference',
+                  reference_ids: ['ref-1', 'ref-2', 'ref-3'],
+                },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
+  });
+
+  it('should handle mixed reference_ids (numbers and strings)', async () => {
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        object: 'chat.completion',
+        id: 'test-id',
+        created: 1711113008,
+        model: 'mistral-small-latest',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'text', text: 'Here is the info' },
+                { type: 'reference', reference_ids: [1, 'ref-2', 3] },
+              ],
+              tool_calls: null,
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 4, total_tokens: 34, completion_tokens: 30 },
+      },
+    };
+
+    const { content } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(content).toStrictEqual([{ type: 'text', text: 'Here is the info' }]);
   });
 });

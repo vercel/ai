@@ -1,5 +1,812 @@
 # ai
 
+## 6.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/gateway@3.0.22
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 6.0.47
+
+### Patch Changes
+
+- Updated dependencies [2b8369d]
+  - @ai-sdk/gateway@3.0.21
+
+## 6.0.46
+
+### Patch Changes
+
+- Updated dependencies [8dc54db]
+  - @ai-sdk/gateway@3.0.20
+
+## 6.0.45
+
+### Patch Changes
+
+- Updated dependencies [c60fdd8]
+  - @ai-sdk/gateway@3.0.19
+
+## 6.0.44
+
+### Patch Changes
+
+- Updated dependencies [7af4eb4]
+  - @ai-sdk/gateway@3.0.18
+
+## 6.0.43
+
+### Patch Changes
+
+- 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
+
+  - Skip validation for tool calls with `providerExecuted: true` (deferred results)
+  - Map approvalId to toolCallId for proper tool-approval-response handling
+  - Filter out empty tool messages after content filtering
+  - Fixes MissingToolResultError for async and approval-based tool flows
+
+## 6.0.42
+
+### Patch Changes
+
+- Updated dependencies [66d78d5]
+  - @ai-sdk/gateway@3.0.17
+
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
+## 6.0.39
+
+### Patch Changes
+
+- 4e28ba0: fix(ai): propagate providerMetadata during input-streaming state
+
+  Provider-executed tools (like MCP tools) need to send metadata during the streaming phase, but the implementation only set `callProviderMetadata` when `part.state === "input-available"`. This fix removes the overly-restrictive state check and adds `callProviderMetadata` to the input-streaming state types and schemas.
+
+## 6.0.38
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/gateway@3.0.16
+  - @ai-sdk/provider-utils@4.0.8
+
+## 6.0.37
+
+### Patch Changes
+
+- b5dab9b: fix(ai): maintain OpenTelemetry context across async generator yields
+
+  Fixes an issue where OpenTelemetry context was lost at async generator yield boundaries, causing nested ToolLoopAgent spans to escape to the parent agent's level in observability platforms.
+
+  The fix ensures that when `recordSpan` is used with async generators (e.g., in tool execution), the active context is explicitly maintained using `context.with()`, preventing span hierarchy corruption in nested agent scenarios.
+
+  Closes #11720
+
+## 6.0.36
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/gateway@3.0.15
+
+## 6.0.35
+
+### Patch Changes
+
+- d7e7f1f: Add descriptive error messages for malformed UIMessageStream chunks.
+
+## 6.0.34
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/gateway@3.0.14
+
+## 6.0.33
+
+### Patch Changes
+
+- 0ca078c: fix(ai): pass providerMetadata in smooth stream to preserve thinking tag
+
+## 6.0.32
+
+### Patch Changes
+
+- ec24401: chore(ai): include docs in npm package
+
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
+## 6.0.19
+
+### Patch Changes
+
+- Updated dependencies [2696fd2]
+  - @ai-sdk/gateway@3.0.10
+
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
+## 6.0.15
+
+### Patch Changes
+
+- 3a73fb3: Include abort reason in stream chunks and document the new field
+
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
+## 6.0.12
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/gateway@3.0.9
+  - @ai-sdk/provider-utils@4.0.4
+
+## 6.0.11
+
+### Patch Changes
+
+- Updated dependencies [8ec1984]
+  - @ai-sdk/gateway@3.0.8
+
+## 6.0.10
+
+### Patch Changes
+
+- ae26f95: Add missing `.catch()` handler to `executeToolCall` promise in `runToolsTransformation` to prevent potential stream hang when the promise rejects.
+
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/gateway@3.0.7
+
+## 6.0.7
+
+### Patch Changes
+
+- Updated dependencies [74c0157]
+  - @ai-sdk/gateway@3.0.6
+
+## 6.0.6
+
+### Patch Changes
+
+- Updated dependencies [7ee2d12]
+  - @ai-sdk/gateway@3.0.5
+
+## 6.0.5
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/gateway@3.0.4
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 6.0.4
+
+### Patch Changes
+
+- Updated dependencies [1dad057]
+  - @ai-sdk/gateway@3.0.3
+
+## 6.0.3
+
+### Patch Changes
+
+- 29264a3: feat: add MCP tool approval
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+  - @ai-sdk/gateway@3.0.2
+
+## 6.0.2
+
+### Patch Changes
+
+- 129ff26: fix(ai): skip tool input validation in `safeValidateUIMessages` when `output-error` state has undefined input
+
+  Fixes #11392
+
+- Updated dependencies [c0c8a0e]
+  - @ai-sdk/gateway@3.0.1
+
+## 6.0.1
+
+### Patch Changes
+
+- Updated dependencies [387980f]
+  - @ai-sdk/gateway@3.0.0
+
+## 6.0.0
+
+### Major Changes
+
+- dee8b05: ai SDK 6 beta
+
+### Minor Changes
+
+- 78928cb: release: start 5.1 beta
+
+### Patch Changes
+
+- 0c3b58b: fix(provider): add specificationVersion to ProviderV3
+- 58920e0: fix(ai): do not drop custom headers in HttpChatTransport
+- a7da2b6: feat(agent): change output generics
+- 0adc679: feat(provider): shared spec v3
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- 2d28066: chore(agent): limit agent call parameters
+- fca786b: feat(agent): configurable call options
+- 046aa3b: feat(provider): speech model v3 spec
+- e1f6e8e: feat(ai): add Output.json()
+- 8d9e8ad: chore(provider): remove generics from EmbeddingModelV3
+
+  Before
+
+  ```ts
+  model.textEmbeddingModel('my-model-id');
+  ```
+
+  After
+
+  ```ts
+  model.embeddingModel('my-model-id');
+  ```
+
+- b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
+- ab6f01a: Improve ai gateway error message when api key is not present
+- 9388ff1: feat(ui): add isDataUIPart helper
+- dce03c4: feat: tool input examples
+- 2625a04: feat(openai); update spec for mcp approval
+- 37c58a0: This release introduces `wrapEmbeddingModel`, a new helper that brings embedding model customization capabilities similar to `wrapLanguageModel`.
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+- ab1087b: feat(ai): `chat.addToolResult()` is now `chat.addToolOutput()`
+- bb10a89: fix(ai): mcp errors to be jsonrpc 2.0 compliant
+- 457f1c6: feat(ai): onFinish callback for generateText
+- 95f65c2: chore: use import \* from zod/v4
+- 754df61: fix(ai): correct type field in arrayOutputStrategy from 'enum' to 'array'
+- 58920e0: refactor: consolidate header normalization across packages, remove duplicates, preserve custom headers
+- 954c356: feat(openai): allow custom names for provider-defined tools
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+- 90e5bdd: chore(ai): restructure agent files
+- 42cf7ed: fix(agent): use tool.toModelOutput when available
+- 544d4e8: chore(specification): rename v3 provider defined tool to provider tool
+- 4812235: fix(ai): add missing export for `LoadSettingError`
+- 7f2c9b6: fix(ui): do not submit automatically when server return with error
+- 614599a: chore(ai): deprecate generateObject and streamObject
+- 0c4822d: feat: `EmbeddingModelV3`
+- e062079: chore(agent): move Agent.respond into createAgentStreamResponse function
+- 2b49dae: feat(agent): support UIMessageStreamOptions in createAgentStreamResponse
+- ee651d7: `https://v6.ai-sdk.dev` -> `https://ai-sdk.dev`
+- 5a4e732: Export `parseJsonEventStream` and `uiMessageChunkSchema` from "ai" package
+- f733285: fix(ai): only parse experimental_output in generateText when finishReason is stop
+- 9b83947: feat(ai): add convertDataPart option to convertToModelMessages
+
+  Add optional convertDataPart callback for converting custom data parts (URLs, code files, etc.) to text or file parts that models can process. Fully type-safe using existing UIMessage generics.
+
+- 7eca093: fix(ai): update `uiMessageChunkSchema` to satisfy the `UIMessageChunk` type
+- 077aea3: feat(ai): stable structured output on generateText, streamText, and ToolLoopAgent
+- 9f20c87: chore: updated README
+- 521c537: feat(ai): Tool.needsApproval can be a function
+- 7169511: feat(agent): support context in onFinish callback
+- e8109d3: feat: tool execution approval
+- 03849b0: move DelayedPromise into provider utils
+- ed329cb: feat: `Provider-V3`
+- 22ef5c6: feat(ai): Output.text() is default output mode
+- 9ba4324: feat(ai): support SystemModelMessage[] in system and instructions properties
+- 3bd2689: feat: extended token usage
+- 293a6b7: Added a title to the tools
+- 7c3c216: fixed docs and exported NoSpeechGeneratedError
+- c62ecf0: feat(ai): add support for v2 specs in transcription and speech models
+- d1bdadb: Added experimental_rerank support
+- 703459a: feat: tool execution approval for dynamic tools
+- 3071620: fix header loss when statusText is undefined in writeHead
+- 7e4649f: fix(core): Fix image download behavior when the initial model is swapped out during prepareStep
+- 48454ab: fix(ai): handle backpressure in `writeToServerResponse`
+- e06b663: feat(agent): support experimental stream transforms
+- 83e5744: feat: support async Tool.toModelOutput
+- 8c98371: Extend addToolResult to support error results
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+- a5e152d: fix(ai): back version support for V2 providers
+- aa0515c: feat(ai): move Agent to stable
+- f6f0c5a: chore: remove zod from ui packages
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- eb8d1cb: fix not catching of empty arrays in validateUIMessage
+- e7d9b00: feat(agent): add optional name property to agent
+- d5b25ee: feat(ai): add Output.array()
+- d7bae86: feat(ai): add Output.choice()
+- 8dac895: feat: `LanguageModelV3`
+- a755db5: feat(ai): improve warnings with provider and model id
+- 1c2a4c1: fix(ai): remove outdated jsdoc param descriptions
+- 686103c: chore(ai): export ContentPart type
+- 0d6c0d8: chore(ai): remove deprecated CodeMessage type and related types and functions
+- 9b8d17e: fix(agent): move provider options to main agent config
+- 79a8e7f: feat(agent): support abortSignal in createAgentUIStream
+- d59ce25: fix(ai): do not mutate middleware array argument when wrapping
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+- 457318b: chore(provider,ai): switch to SharedV3Warning and unified warnings
+- b681d7d: feat: expose usage tokens for 'generateImage' function
+- c99da05: feat(ai): add onFinish to Agent
+- db913bd: fix(google): add thought signature to gemini 3 pro image parts
+- 9061dc0: feat: image editing
+- 8445d70: feat: export GatewayModelId and use to type LanguageModel
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- 8370068: fix(provider/google): preserve thoughtSignature through tool execution
+- 5e313e3: fix(agent): do not allow static tools when tools is empty
+- db62f7d: Added schema name and description for generateText and output
+- a7f6f81: Add safeValidateUIMessages utility to validate UI messages without throwing, returning a success/failure result object like Zod’s safeParse
+- 79ba99f: feat(agent): add message metadata support when inferring UI messages
+- c98373a: chore(agent): rename createAgentStreamResponse to createAgentUIStreamResponse
+- 846e80e: fix(ai): bind functions for v2 -> v3 adapter
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+- 67a407c: chore(ai): add warning when using v2 models with AISDK v6
+- 9524761: chore(ai): rename relevanceScore to score
+- ca13d26: feat(ai): add output to StreamTextResult
+- 4616b86: chore: update zod peer depenedency version
+- a322efa: Added finishReason on useChat onFinish callbck
+- 2d166e4: feat(provider/gateway): add support for image models
+- 384142c: feat(agent): add abortSignal parameter to generate and stream
+- 36b175c: chore(ai): change output generics
+- 2b1bf9d: feat(ai): add pruneMessages helper function
+- 81d4308: feat: provider-executed dynamic tools
+- e0d1ea9: fix(ai): align logic of text-end with reasoning-end
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- dce4e7b: chore(agent): rename system to instructions
+- 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
+- a417a34: feat(agent): introduce version property
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+- 177b475: fix(ai): download files when intermediate file cannot be downloaded
+- 21e20c0: feat(provider): transcription model v3 spec
+- afe7093: feat: add middleware for tool input examples
+- 61f7b0f: chore(agent): rename BasicAgent to ToolLoopAgent
+- af9dab3: fix(ai): remove unused mode setting from generateObject and streamObject
+- 522f6b8: feat: `ImageModelV3`
+- 97b1d77: fix(ui): Don't resend messages for providerExecuted tools in lastAssistantMessageIsCompleteWithToolCalls and lastAssistantMessageIsCompleteWithApprovalResponses
+- 69768c2: chore(ai): remove UI message reference from model message validation
+- 27e8c3a: chore(ai): rename Agent to BasicAgent, introduce Agent interface
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- 7da02d2: fix(ai): prune messages properly when toolCalls set to 'before-last-message'
+- 763d04a: feat: Standard JSON Schema support
+- 95b77e2: feat(agent): extract createAgentUIStream, add pipeAgentUIStreamToResponse
+- 3794514: feat: flexible tool output content support
+- cbf52cd: feat: expose raw finish reason
+- 14ca35d: feat: add support for v2 specs
+- 10c1322: fix: moved dependency `@ai-sdk/test-server` to devDependencies
+- dcdac8c: chore(ai): rename tool helpers
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- b59d924: feat(ai): support SystemModelMessage in system and instructions properties
+- 1bd7d32: feat: tool-specific strict mode
+- 95f65c2: chore: load zod schemas lazily
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/gateway@2.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
+## 6.0.0-beta.169
+
+### Patch Changes
+
+- ee651d7: `https://v6.ai-sdk.dev` -> `https://ai-sdk.dev`
+
+## 6.0.0-beta.168
+
+### Patch Changes
+
+- Updated dependencies [7294355]
+  - @ai-sdk/gateway@2.0.0-beta.93
+
+## 6.0.0-beta.167
+
+### Patch Changes
+
+- 475189e: chore(specification): rename EmbeddingModelCallOptions
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/gateway@2.0.0-beta.92
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
+## 6.0.0-beta.166
+
+### Patch Changes
+
+- 9f20c87: chore: updated README
+
+## 6.0.0-beta.165
+
+### Patch Changes
+
+- 2625a04: feat(openai); update spec for mcp approval
+- Updated dependencies [2625a04]
+  - @ai-sdk/provider@3.0.0-beta.31
+  - @ai-sdk/gateway@2.0.0-beta.91
+  - @ai-sdk/provider-utils@4.0.0-beta.58
+
+## 6.0.0-beta.164
+
+### Patch Changes
+
+- cbf52cd: feat: expose raw finish reason
+- Updated dependencies [cbf52cd]
+  - @ai-sdk/provider@3.0.0-beta.30
+  - @ai-sdk/gateway@2.0.0-beta.90
+  - @ai-sdk/provider-utils@4.0.0-beta.57
+
+## 6.0.0-beta.163
+
+### Patch Changes
+
+- Updated dependencies [9549c9e]
+  - @ai-sdk/provider@3.0.0-beta.29
+  - @ai-sdk/gateway@2.0.0-beta.89
+  - @ai-sdk/provider-utils@4.0.0-beta.56
+
+## 6.0.0-beta.162
+
+### Patch Changes
+
+- 50b70d6: feat(anthropic): add programmatic tool calling
+- Updated dependencies [50b70d6]
+  - @ai-sdk/provider-utils@4.0.0-beta.55
+  - @ai-sdk/gateway@2.0.0-beta.88
+
+## 6.0.0-beta.161
+
+### Patch Changes
+
+- Updated dependencies [ee71658]
+  - @ai-sdk/gateway@2.0.0-beta.87
+
+## 6.0.0-beta.160
+
+### Patch Changes
+
+- 9061dc0: feat: image editing
+- Updated dependencies [9061dc0]
+  - @ai-sdk/provider-utils@4.0.0-beta.54
+  - @ai-sdk/provider@3.0.0-beta.28
+  - @ai-sdk/gateway@2.0.0-beta.86
+
+## 6.0.0-beta.159
+
+### Patch Changes
+
+- 3071620: fix header loss when statusText is undefined in writeHead
+- Updated dependencies [870297d]
+  - @ai-sdk/gateway@2.0.0-beta.85
+
+## 6.0.0-beta.158
+
+### Patch Changes
+
+- Updated dependencies [366f50b]
+  - @ai-sdk/provider@3.0.0-beta.27
+  - @ai-sdk/gateway@2.0.0-beta.84
+  - @ai-sdk/provider-utils@4.0.0-beta.53
+
+## 6.0.0-beta.157
+
+### Patch Changes
+
+- 763d04a: feat: Standard JSON Schema support
+- Updated dependencies [763d04a]
+  - @ai-sdk/provider-utils@4.0.0-beta.52
+  - @ai-sdk/gateway@2.0.0-beta.83
+
+## 6.0.0-beta.156
+
+### Patch Changes
+
+- 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
+
+## 6.0.0-beta.155
+
+### Patch Changes
+
+- Updated dependencies [c1efac4]
+  - @ai-sdk/provider-utils@4.0.0-beta.51
+  - @ai-sdk/gateway@2.0.0-beta.82
+
+## 6.0.0-beta.154
+
+### Patch Changes
+
+- 32223c8: feat: add toolCallId arg to toModelOutput
+- Updated dependencies [32223c8]
+  - @ai-sdk/provider-utils@4.0.0-beta.50
+  - @ai-sdk/gateway@2.0.0-beta.81
+
+## 6.0.0-beta.153
+
+### Patch Changes
+
+- 83e5744: feat: support async Tool.toModelOutput
+- Updated dependencies [83e5744]
+  - @ai-sdk/provider-utils@4.0.0-beta.49
+  - @ai-sdk/gateway@2.0.0-beta.80
+
+## 6.0.0-beta.152
+
+### Patch Changes
+
+- 960ec8f: chore: change argument of toModelOutput to parameter object
+- Updated dependencies [960ec8f]
+  - @ai-sdk/provider-utils@4.0.0-beta.48
+  - @ai-sdk/gateway@2.0.0-beta.79
+
+## 6.0.0-beta.151
+
+### Patch Changes
+
+- dcdac8c: chore(ai): rename tool helpers
+
+## 6.0.0-beta.150
+
+### Patch Changes
+
+- db62f7d: Added schema name and description for generateText and output
+
+## 6.0.0-beta.149
+
+### Patch Changes
+
+- 4e2b04d: fix(gateway): throw error with user-friendly message in non-production environments if `AI_GATEWAY_API_KEY` is not configured
+
+## 6.0.0-beta.148
+
+### Patch Changes
+
+- Updated dependencies [f18ef7f]
+  - @ai-sdk/gateway@2.0.0-beta.78
+
+## 6.0.0-beta.147
+
+### Patch Changes
+
+- 637eaa4: feat(ai): print model warnings in embed and embedMany
+
+## 6.0.0-beta.146
+
+### Patch Changes
+
+- Updated dependencies [e9e157f]
+  - @ai-sdk/provider-utils@4.0.0-beta.47
+  - @ai-sdk/gateway@2.0.0-beta.77
+
+## 6.0.0-beta.145
+
+### Patch Changes
+
+- Updated dependencies [34ee8d0]
+  - @ai-sdk/gateway@2.0.0-beta.76
+
+## 6.0.0-beta.144
+
+### Patch Changes
+
+- ab6f01a: Improve ai gateway error message when api key is not present
+
+## 6.0.0-beta.143
+
+### Patch Changes
+
+- 81e29ab: feat(ai): allow modifying experimental context in prepareStep
+- Updated dependencies [81e29ab]
+  - @ai-sdk/provider-utils@4.0.0-beta.46
+  - @ai-sdk/gateway@2.0.0-beta.75
+
+## 6.0.0-beta.142
+
+### Patch Changes
+
+- 7169511: feat(agent): support context in onFinish callback
+- bbdcb81: Add experimental_context parameter to prepareStep callback
+
+## 6.0.0-beta.141
+
+### Patch Changes
+
+- b1405bf: feat(ai): send context into streamText / generateText onFinish callbacks
+
+## 6.0.0-beta.140
+
+### Patch Changes
+
+- 7fdd89d: feat(agent): export AgentCallParameters and AgentStreamParameters types
+
+## 6.0.0-beta.139
+
+### Patch Changes
+
+- 3bd2689: feat: extended token usage
+- Updated dependencies [3bd2689]
+  - @ai-sdk/provider@3.0.0-beta.26
+  - @ai-sdk/gateway@2.0.0-beta.74
+  - @ai-sdk/provider-utils@4.0.0-beta.45
+
+## 6.0.0-beta.138
+
+### Patch Changes
+
+- Updated dependencies [53f3368]
+  - @ai-sdk/provider@3.0.0-beta.25
+  - @ai-sdk/gateway@2.0.0-beta.73
+  - @ai-sdk/provider-utils@4.0.0-beta.44
+
+## 6.0.0-beta.137
+
+### Patch Changes
+
+- 9ba4324: feat(ai): support SystemModelMessage[] in system and instructions properties
+
+## 6.0.0-beta.136
+
+### Patch Changes
+
+- 3d83f38: chore(ai): improve addToolInputExamplesMiddleware
+
+## 6.0.0-beta.135
+
+### Patch Changes
+
+- afe7093: feat: add middleware for tool input examples
+
+## 6.0.0-beta.134
+
+### Patch Changes
+
+- 686103c: chore(ai): export ContentPart type
+
 ## 6.0.0-beta.133
 
 ### Patch Changes
@@ -770,8 +1577,7 @@
 
 - 95f65c2: chore: use import \* from zod/v4
 - 95f65c2: chore: load zod schemas lazily
-- Updated dependencies [95f65c2]
-- Updated dependencies [95f65c2]
+- Updated dependencies
   - @ai-sdk/provider-utils@4.0.0-beta.11
   - @ai-sdk/gateway@2.0.0-beta.22
 
@@ -845,8 +1651,7 @@
 - e8109d3: feat: tool execution approval
 - a5e152d: fix(ai): back version support for V2 providers
 - 21e20c0: feat(provider): transcription model v3 spec
-- Updated dependencies [046aa3b]
-- Updated dependencies [e8109d3]
+- Updated dependencies
   - @ai-sdk/provider@2.1.0-beta.5
   - @ai-sdk/provider-utils@3.1.0-beta.7
   - @ai-sdk/gateway@1.1.0-beta.16
@@ -880,8 +1685,7 @@
 
 - 0adc679: feat(provider): shared spec v3
 - 9b8d17e: fix(agent): move provider options to main agent config
-- Updated dependencies [0adc679]
-- Updated dependencies [2b0caef]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.4
   - @ai-sdk/gateway@1.1.0-beta.13
@@ -956,9 +1760,7 @@
 - ed329cb: feat: `Provider-V3`
 - 177b475: fix(ai): download files when intermediate file cannot be downloaded
 - 522f6b8: feat: `ImageModelV3`
-- Updated dependencies [aaf5ebf]
-- Updated dependencies [ed329cb]
-- Updated dependencies [522f6b8]
+- Updated dependencies
   - @ai-sdk/gateway@1.1.0-beta.6
   - @ai-sdk/provider@2.1.0-beta.2
   - @ai-sdk/provider-utils@3.1.0-beta.3
@@ -980,9 +1782,7 @@
 ### Patch Changes
 
 - 0c4822d: feat: `EmbeddingModelV3`
-- Updated dependencies [5d21222]
-- Updated dependencies [0c4822d]
-- Updated dependencies [1cad0ab]
+- Updated dependencies
   - @ai-sdk/gateway@1.1.0-beta.5
   - @ai-sdk/provider@2.1.0-beta.1
   - @ai-sdk/provider-utils@3.1.0-beta.2
@@ -991,8 +1791,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [7ccb36f]
-- Updated dependencies [6c766ef]
+- Updated dependencies
   - @ai-sdk/gateway@1.1.0-beta.4
 
 ## 5.1.0-beta.4
@@ -1006,16 +1805,14 @@
 
 ### Patch Changes
 
-- Updated dependencies [3e83633]
-- Updated dependencies [f83903d]
+- Updated dependencies
   - @ai-sdk/gateway@1.1.0-beta.2
 
 ## 5.1.0-beta.2
 
 ### Patch Changes
 
-- Updated dependencies [953d0f2]
-- Updated dependencies [cbb1d35]
+- Updated dependencies
   - @ai-sdk/test-server@1.0.0-beta.0
   - @ai-sdk/provider-utils@3.1.0-beta.1
   - @ai-sdk/gateway@1.1.0-beta.1
@@ -1117,8 +1914,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [034287f]
-- Updated dependencies [dee1afe]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.19
 
 ## 5.0.33
@@ -1173,8 +1969,7 @@
 ### Patch Changes
 
 - 33cf848: feat(ai): pass messages to `useChat({ onFinish })`
-- Updated dependencies [980633d]
-- Updated dependencies [1c5b88d]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.15
 
 ## 5.0.25
@@ -1194,8 +1989,7 @@
 
   Previously, onFinish was only called on normal stream completion. Now it's also called when the reader is cancelled (e.g., browser close, navigation), ensuring partial messages are persisted.
 
-- Updated dependencies [1b5a3d3]
-- Updated dependencies [c9994f9]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.6
   - @ai-sdk/gateway@1.0.13
 
@@ -1205,16 +1999,14 @@
 
 - 5099b3d: fix(ai): make `chat.addToolResult()` compatible with dynamic tool calls
 - 7a2bf8d: fix(ai): support loop breaking behavior in async iterable stream
-- Updated dependencies [50e2029]
-- Updated dependencies [b8478f0]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.12
 
 ## 5.0.22
 
 ### Patch Changes
 
-- Updated dependencies [926259f]
-- Updated dependencies [c000f96]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.11
 
 ## 5.0.21
@@ -1290,9 +2082,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [eefa730]
-- Updated dependencies [034e229]
-- Updated dependencies [f25040d]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.6
   - @ai-sdk/provider-utils@3.0.3
 
@@ -1302,8 +2092,7 @@
 
 - 38ac190: feat(ai): preliminary tool results
 - e3a63cb: fix(ai): streamText promises reject when stream has errors
-- Updated dependencies [38ac190]
-- Updated dependencies [cf7b2ad]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.2
   - @ai-sdk/gateway@1.0.5
 
@@ -1357,9 +2146,7 @@
 ### Patch Changes
 
 - 90d212f: feat (ai): add experimental tool call context
-- Updated dependencies [028fb9c]
-- Updated dependencies [90d212f]
-- Updated dependencies [6331826]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.1
   - @ai-sdk/provider-utils@3.0.1
 
@@ -1703,130 +2490,7 @@
 
 - f2c7f19: feat (ui): add Chat.clearError()
 - 7bd025b: fix (ai): fix sync tool execute with streamText
-- Updated dependencies [a571d6e]
-- Updated dependencies [742b7be]
-- Updated dependencies [9e16bfd]
-- Updated dependencies [e7fcc86]
-- Updated dependencies [0477a13]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [95857aa]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [6f6bb89]
-- Updated dependencies [26b6dd0]
-- Updated dependencies [060370c]
-- Updated dependencies [dc714f3]
-- Updated dependencies [b5da06a]
-- Updated dependencies [d1a1aa1]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [5d142ab]
-- Updated dependencies [d5f588f]
-- Updated dependencies [30ab1de]
-- Updated dependencies [e025824]
-- Updated dependencies [0571b98]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [4fef487]
-- Updated dependencies [48d257a]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [0d2c085]
-- Updated dependencies [40acf9b]
-- Updated dependencies [9222aeb]
-- Updated dependencies [e2aceaf]
-- Updated dependencies [411e483]
-- Updated dependencies [97fedf9]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [c91586a]
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [a166433]
-- Updated dependencies [3cbcbb7]
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [abf9a79]
-- Updated dependencies [14c9410]
-- Updated dependencies [e86be6f]
-- Updated dependencies [9bf7291]
-- Updated dependencies [2e13791]
-- Updated dependencies [9f95b35]
-- Updated dependencies [66962ed]
-- Updated dependencies [fedb55e]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [6c2c708]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [05d2819]
-- Updated dependencies [9301f86]
-- Updated dependencies [0a87932]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [957b739]
-- Updated dependencies [721775e]
-- Updated dependencies [70ebead]
-- Updated dependencies [79457bd]
-- Updated dependencies [a3f768e]
-- Updated dependencies [f3639fa]
-- Updated dependencies [7435eb5]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [4617fab]
-- Updated dependencies [ac34802]
-- Updated dependencies [0054544]
-- Updated dependencies [cb68df0]
-- Updated dependencies [ad80501]
-- Updated dependencies [8bd3624]
-- Updated dependencies [68ecf2f]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [6dc848c]
-- Updated dependencies [6b98118]
-- Updated dependencies [d0f9495]
-- Updated dependencies [c145d62]
-- Updated dependencies [63d791d]
-- Updated dependencies [87b828f]
-- Updated dependencies [3f2f00c]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [0ff02bb]
-- Updated dependencies [7979f7f]
-- Updated dependencies [f77bc38]
-- Updated dependencies [989ac75]
-- Updated dependencies [39a4fab]
-- Updated dependencies [44f4aba]
-- Updated dependencies [7742ba3]
-- Updated dependencies [9bd5ab5]
-- Updated dependencies [57edfcb]
-- Updated dependencies [faf8446]
-- Updated dependencies [c190907]
-- Updated dependencies [7ea4132]
-- Updated dependencies [d1a034f]
-- Updated dependencies [d454e4b]
-- Updated dependencies [5c56081]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [cf1e00e]
-- Updated dependencies [023ba40]
-- Updated dependencies [cc21603]
-- Updated dependencies [ea7a7c9]
-- Updated dependencies [26535e0]
-- Updated dependencies [e030615]
-- Updated dependencies [5e57fae]
-- Updated dependencies [393138b]
-- Updated dependencies [c57e248]
-- Updated dependencies [88a8ee5]
-- Updated dependencies [41fa418]
-- Updated dependencies [205077b]
-- Updated dependencies [71f938d]
-- Updated dependencies [e001ea1]
-- Updated dependencies [3795467]
-- Updated dependencies [28a5ed5]
-- Updated dependencies [7182d14]
-- Updated dependencies [c1e6647]
-- Updated dependencies [1766ede]
-- Updated dependencies [811dff3]
-- Updated dependencies [f10304b]
-- Updated dependencies [dd5fd43]
-- Updated dependencies [33f4a6a]
-- Updated dependencies [383cbfa]
-- Updated dependencies [27deb4d]
-- Updated dependencies [c4df419]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0
   - @ai-sdk/provider@2.0.0
   - @ai-sdk/gateway@1.0.0
@@ -1838,8 +2502,7 @@
 - 53569b8: feat (ai): add experimental repairText function to streamObject
 - 88a8ee5: fix (ai): support abort during retry waits
 - f2c7f19: feat (ui): add Chat.clearError()
-- Updated dependencies [721775e]
-- Updated dependencies [88a8ee5]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.0-beta.19
   - @ai-sdk/provider-utils@3.0.0-beta.10
 
@@ -1908,9 +2571,7 @@
 ### Patch Changes
 
 - d5ae088: feat (ui): add sendAutomaticallyWhen to Chat
-- Updated dependencies [0477a13]
-- Updated dependencies [cf1e00e]
-- Updated dependencies [cc21603]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.0-beta.13
 
 ## 5.0.0-beta.26
@@ -1930,8 +2591,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [8bd3624]
-- Updated dependencies [e001ea1]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.0-beta.11
 
 ## 5.0.0-beta.24
@@ -1942,8 +2602,7 @@
 - ff1c81a: feat (ai): add streamText onAbort callback
 - e4c8647: feat (ui): allow asynchronous onFinish in createUIMessageStream
 - 383cbfa: feat (ai): add isAborted to onFinish callback for ui message streams
-- Updated dependencies [57edfcb]
-- Updated dependencies [383cbfa]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.5
   - @ai-sdk/gateway@1.0.0-beta.10
 
@@ -2113,8 +2772,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [f3639fa]
-- Updated dependencies [d454e4b]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.0-beta.3
 
 ## 5.0.0-beta.2
@@ -2125,10 +2783,7 @@
 - c6b64a7: feat (ai): allow async prepareRequest on HttpChatTransport
 - cb3b9c9: fix (ai): catch errors in ui message stream
 - d1a034f: feature: using Zod 4 for internal stuff
-- Updated dependencies [0571b98]
-- Updated dependencies [c91586a]
-- Updated dependencies [39a4fab]
-- Updated dependencies [d1a034f]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-beta.2
   - @ai-sdk/gateway@1.0.0-beta.2
 
@@ -2149,24 +2804,7 @@
 - 102b066: fix (ai): fix invalid fetch call
 - e862b5b: feat (ai): allow sync tool.execute
 - 7bd025b: fix (ai): fix sync tool execute with streamText
-- Updated dependencies [742b7be]
-- Updated dependencies [7cddb72]
-- Updated dependencies [ccce59b]
-- Updated dependencies [e2b9e4b]
-- Updated dependencies [45c1ea2]
-- Updated dependencies [e025824]
-- Updated dependencies [0d06df6]
-- Updated dependencies [472524a]
-- Updated dependencies [dd3ff01]
-- Updated dependencies [7435eb5]
-- Updated dependencies [cb68df0]
-- Updated dependencies [bfdca8d]
-- Updated dependencies [f77bc38]
-- Updated dependencies [44f4aba]
-- Updated dependencies [023ba40]
-- Updated dependencies [5e57fae]
-- Updated dependencies [71f938d]
-- Updated dependencies [28a5ed5]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-beta.1
   - @ai-sdk/provider-utils@3.0.0-beta.1
   - @ai-sdk/gateway@1.0.0-beta.1
@@ -2186,9 +2824,7 @@
 - b1e3abd: feat (ai): expose ui message stream headers
 - 142576e: feat (ui): support message replacement in chat via messageId param on sendMessage
 - 395c85e: feat (ai): add consumeSseStream option to UI message stream responses
-- Updated dependencies [48d257a]
-- Updated dependencies [8ba77a7]
-- Updated dependencies [c145d62]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.15
   - @ai-sdk/provider-utils@3.0.0-alpha.15
   - @ai-sdk/gateway@1.0.0-alpha.15
@@ -2201,9 +2837,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [b5da06a]
-- Updated dependencies [63f9e9b]
-- Updated dependencies [2e13791]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.14
   - @ai-sdk/gateway@1.0.0-alpha.14
   - @ai-sdk/provider-utils@3.0.0-alpha.14
@@ -2280,8 +2914,7 @@
 
   pull request: https://github.com/vercel/ai/pull/6609
 
-- Updated dependencies [26b6dd0]
-- Updated dependencies [811dff3]
+- Updated dependencies
   - @ai-sdk/gateway@1.0.0-alpha.9
   - @ai-sdk/provider@2.0.0-alpha.9
   - @ai-sdk/provider-utils@3.0.0-alpha.9
@@ -2306,11 +2939,7 @@
 
 - 6b1c55c: feat (ai): introduce GLOBAL_DEFAULT_PROVIDER
 - 2e4f9e4: feat (ai): improved error messages when using gateway
-- Updated dependencies [4fef487]
-- Updated dependencies [9222aeb]
-- Updated dependencies [3cbcbb7]
-- Updated dependencies [989ac75]
-- Updated dependencies [7742ba3]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-alpha.8
   - @ai-sdk/provider@2.0.0-alpha.8
   - @ai-sdk/gateway@1.0.0-alpha.8
@@ -2336,8 +2965,7 @@
 
 - 0d2c085: feat (ai): support string model ids through gateway
 - 48a7606: feat (ai): support changing the system prompt in prepareSteps
-- Updated dependencies [0d2c085]
-- Updated dependencies [6c2c708]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-alpha.6
   - @ai-sdk/gateway@1.0.0-alpha.6
   - @ai-sdk/provider-utils@3.0.0-alpha.6
@@ -2552,10 +3180,7 @@
 - a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
 - 332167b: chore (ai): move maxSteps into UseChatOptions
 - a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
-- Updated dependencies [a571d6e]
-- Updated dependencies [a8c8bd5]
-- Updated dependencies [7979f7f]
-- Updated dependencies [41fa418]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.15
   - @ai-sdk/provider@2.0.0-canary.14
 
@@ -2594,8 +3219,7 @@
   });
   ```
 
-- Updated dependencies [957b739]
-- Updated dependencies [9bd5ab5]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.14
   - @ai-sdk/provider@2.0.0-canary.13
 
@@ -2626,8 +3250,7 @@
 - d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
 - ea27cc6: chore (ai): use JSONValue definition from provider
 - 0ff02bb: chore(provider-utils): move over jsonSchema
-- Updated dependencies [7b3ae3f]
-- Updated dependencies [0ff02bb]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.12
   - @ai-sdk/provider-utils@3.0.0-canary.13
 
@@ -2638,9 +3261,7 @@
 - 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
 - 4617fab: chore(embedding-models): remove remaining settings
 - a76a62b: feat (ai): add experimental prepareStep callback to generateText
-- Updated dependencies [9bf7291]
-- Updated dependencies [4617fab]
-- Updated dependencies [e030615]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.11
   - @ai-sdk/provider-utils@3.0.0-canary.12
 
@@ -2651,9 +3272,7 @@
 - 14cb3be: chore(providers/llamaindex): extract to separate package
 - 66962ed: fix(packages): export node10 compatible types
 - 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
-- Updated dependencies [66962ed]
-- Updated dependencies [9301f86]
-- Updated dependencies [a3f768e]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.11
   - @ai-sdk/provider@2.0.0-canary.10
 
@@ -2670,8 +3289,7 @@
 ### Patch Changes
 
 - 8e64e9c: feat (ai): allow using provider default temperature by specifying null
-- Updated dependencies [95857aa]
-- Updated dependencies [7ea4132]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.8
   - @ai-sdk/provider-utils@3.0.0-canary.9
 
@@ -2693,10 +3311,7 @@
 
 - cb9c9e4: remove deprecated `experimental_wrapLanguageModel`
 - 8aa9e20: feat: add speech with experimental_generateSpeech
-- Updated dependencies [5d142ab]
-- Updated dependencies [b6b43c7]
-- Updated dependencies [8aa9e20]
-- Updated dependencies [3795467]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.8
   - @ai-sdk/provider@2.0.0-canary.7
 
@@ -2722,18 +3337,7 @@
   +cosineSimilarity(vector1, vector2)
   ```
 
-- Updated dependencies [26735b5]
-- Updated dependencies [443d8ec]
-- Updated dependencies [14c9410]
-- Updated dependencies [d9c98f4]
-- Updated dependencies [c4a2fec]
-- Updated dependencies [0054544]
-- Updated dependencies [9e9c809]
-- Updated dependencies [32831c6]
-- Updated dependencies [d0f9495]
-- Updated dependencies [fd65bc6]
-- Updated dependencies [393138b]
-- Updated dependencies [7182d14]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.6
   - @ai-sdk/provider-utils@3.0.0-canary.7
 
@@ -2749,11 +3353,7 @@
 - 0b78e17: chore(ai/generateObject): simplify function signature
 - 3e3b9df: fix (ai/mcp): better support for zero-argument MCP tools
 - f10304b: feat(tool-calling): don't require the user to have to pass parameters
-- Updated dependencies [411e483]
-- Updated dependencies [79457bd]
-- Updated dependencies [ad80501]
-- Updated dependencies [1766ede]
-- Updated dependencies [f10304b]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.5
   - @ai-sdk/provider-utils@3.0.0-canary.6
 
@@ -2786,11 +3386,7 @@
 - 225f087: fix (ai/mcp): prevent mutation of customEnv
 - a166433: feat: add transcription with experimental_transcribe
 - 0a87932: core (ai): change transcription model mimeType to mediaType
-- Updated dependencies [a166433]
-- Updated dependencies [abf9a79]
-- Updated dependencies [9f95b35]
-- Updated dependencies [0a87932]
-- Updated dependencies [6dc848c]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.3
   - @ai-sdk/provider@2.0.0-canary.2
   - @ai-sdk/ui-utils@2.0.0-canary.3
@@ -2799,8 +3395,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [c57e248]
-- Updated dependencies [33f4a6a]
+- Updated dependencies
   - @ai-sdk/provider@2.0.0-canary.1
   - @ai-sdk/provider-utils@3.0.0-canary.2
   - @ai-sdk/ui-utils@2.0.0-canary.2
@@ -2821,9 +3416,7 @@
 
 - c22ad54: feat(smooth-stream): chunking callbacks
 - a4f3007: chore: remove ai/react
-- Updated dependencies [060370c]
-- Updated dependencies [0c0c0b3]
-- Updated dependencies [63d791d]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.1
   - @ai-sdk/ui-utils@2.0.0-canary.1
 
@@ -2837,8 +3430,7 @@
 ### Patch Changes
 
 - 8026705: fix (core): send buffered text in smooth stream when stream parts change
-- Updated dependencies [d5f588f]
-- Updated dependencies [9477ebb]
+- Updated dependencies
   - @ai-sdk/provider-utils@3.0.0-canary.0
   - @ai-sdk/ui-utils@2.0.0-canary.0
   - @ai-sdk/react@2.0.0-canary.0
@@ -2848,8 +3440,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [a043b14]
-- Updated dependencies [28be004]
+- Updated dependencies
   - @ai-sdk/react@1.2.5
   - @ai-sdk/provider-utils@2.2.3
   - @ai-sdk/ui-utils@1.2.4
@@ -3327,8 +3918,7 @@
 ### Patch Changes
 
 - 0d2d9bf: fix (ui): single assistant message with multiple tool steps
-- Updated dependencies [0d2d9bf]
-- Updated dependencies [0d2d9bf]
+- Updated dependencies
   - @ai-sdk/react@1.1.7
   - @ai-sdk/ui-utils@1.1.7
 
@@ -3408,9 +3998,7 @@
 
 - 3c5fafa: chore (ai/core): move streamText toolCallStreaming option to stable
 - 3a58a2e: feat (ai/core): throw NoImageGeneratedError from generateImage when no predictions are returned.
-- Updated dependencies [ed012d2]
-- Updated dependencies [6f4d063]
-- Updated dependencies [3a58a2e]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.1.2
   - @ai-sdk/react@1.1.2
   - @ai-sdk/provider@1.0.6
@@ -3421,8 +4009,7 @@
 ### Patch Changes
 
 - 0a699f1: feat: add reasoning token support
-- Updated dependencies [e7a9ec9]
-- Updated dependencies [0a699f1]
+- Updated dependencies
   - @ai-sdk/ui-utils@1.1.1
   - @ai-sdk/provider-utils@2.1.1
   - @ai-sdk/provider@1.0.5
@@ -3463,8 +4050,7 @@
 
 - 00114c5: feat: expose IDGenerator and createIdGenerator
 - 00114c5: feat (ui): generate and forward message ids for response messages
-- Updated dependencies [00114c5]
-- Updated dependencies [00114c5]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.8
   - @ai-sdk/ui-utils@1.0.11
   - @ai-sdk/react@1.0.12
@@ -3502,8 +4088,7 @@
 
 - 2495973: feat (ai/core): use openai compatible mode for json schema conversion
 - 2495973: fix (ai/core): duplicate instead of using reference in json schema
-- Updated dependencies [2495973]
-- Updated dependencies [2495973]
+- Updated dependencies
   - @ai-sdk/ui-utils@1.0.9
   - @ai-sdk/react@1.0.10
 
@@ -3523,9 +4108,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [90fb95a]
-- Updated dependencies [e6dfef4]
-- Updated dependencies [6636db6]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.7
   - @ai-sdk/react@1.0.9
   - @ai-sdk/ui-utils@1.0.8
@@ -3549,9 +4132,7 @@
 - 19a2ce7: feat (ai/core): add aspectRatio and seed options to generateImage
 - 6337688: feat: change image generation errors to warnings
 - 8b422ea: feat (ai/core): add caching to generated images
-- Updated dependencies [19a2ce7]
-- Updated dependencies [19a2ce7]
-- Updated dependencies [6337688]
+- Updated dependencies
   - @ai-sdk/provider@1.0.4
   - @ai-sdk/provider-utils@2.0.6
   - @ai-sdk/ui-utils@1.0.7
@@ -3678,8 +4259,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [953469c]
-- Updated dependencies [a3dd2ed]
+- Updated dependencies
   - @ai-sdk/ui-utils@1.0.3
   - @ai-sdk/react@1.0.4
 
@@ -3732,8 +4312,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [88b364b]
-- Updated dependencies [b446ae5]
+- Updated dependencies
   - @ai-sdk/ui-utils@1.0.2
   - @ai-sdk/provider@1.0.1
   - @ai-sdk/react@1.0.2
@@ -3797,27 +4376,7 @@
 - f0ec721: chore (ai): remove openai peer dependency
 - f9bb30c: chore (ai): remove unnecessary dev dependencies
 - b053413: chore (ui): refactorings & README update
-- Updated dependencies [e117b54]
-- Updated dependencies [8bf5756]
-- Updated dependencies [b469a7e]
-- Updated dependencies [79c6dd9]
-- Updated dependencies [9f81e66]
-- Updated dependencies [70f28f6]
-- Updated dependencies [dce4158]
-- Updated dependencies [d3ae4f6]
-- Updated dependencies [68d30e9]
-- Updated dependencies [7814c4b]
-- Updated dependencies [ca3e586]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [fe4f109]
-- Updated dependencies [84edae5]
-- Updated dependencies [b1da952]
-- Updated dependencies [04d3747]
-- Updated dependencies [dce4158]
-- Updated dependencies [7e89ccb]
-- Updated dependencies [8426f55]
-- Updated dependencies [db46ce5]
-- Updated dependencies [b053413]
+- Updated dependencies
   - @ai-sdk/react@1.0.0
   - @ai-sdk/ui-utils@1.0.0
   - @ai-sdk/provider-utils@2.0.0
@@ -3831,8 +4390,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [79c6dd9]
-- Updated dependencies [04d3747]
+- Updated dependencies
   - @ai-sdk/react@1.0.0-canary.9
   - @ai-sdk/ui-utils@1.0.0-canary.9
 
@@ -3917,9 +4475,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9f81e66]
-- Updated dependencies [d3ae4f6]
-- Updated dependencies [8426f55]
+- Updated dependencies
   - @ai-sdk/ui-utils@1.0.0-canary.5
   - @ai-sdk/react@1.0.0-canary.5
   - @ai-sdk/provider-utils@2.0.0-canary.3
@@ -3938,9 +4494,7 @@
 ### Patch Changes
 
 - dce4158: chore (dependencies): update eventsource-parser to 3.0.0
-- Updated dependencies [dce4158]
-- Updated dependencies [ca3e586]
-- Updated dependencies [dce4158]
+- Updated dependencies
   - @ai-sdk/provider-utils@2.0.0-canary.2
   - @ai-sdk/react@1.0.0-canary.4
   - @ai-sdk/ui-utils@1.0.0-canary.4
@@ -3949,8 +4503,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [68d30e9]
-- Updated dependencies [b1da952]
+- Updated dependencies
   - @ai-sdk/react@1.0.0-canary.3
   - @ai-sdk/provider-utils@2.0.0-canary.1
   - @ai-sdk/ui-utils@1.0.0-canary.3
@@ -3964,11 +4517,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [e117b54]
-- Updated dependencies [b469a7e]
-- Updated dependencies [7814c4b]
-- Updated dependencies [c0ddc24]
-- Updated dependencies [db46ce5]
+- Updated dependencies
   - @ai-sdk/react@1.0.0-canary.2
   - @ai-sdk/provider-utils@2.0.0-canary.0
   - @ai-sdk/provider@1.0.0-canary.0
@@ -3997,8 +4546,7 @@
 
 - a7ad35a: chore: remove legacy providers & rsc render
 - 7e89ccb: chore: remove nanoid export
-- Updated dependencies [84edae5]
-- Updated dependencies [7e89ccb]
+- Updated dependencies
   - @ai-sdk/react@1.0.0-canary.0
   - @ai-sdk/ui-utils@1.0.0-canary.0
 
@@ -4105,11 +4653,7 @@
 - 85b98da: revert fix (ai/core): handle tool calls without results in message conversion
 - 7ceed77: feat (ai/core): expose response message for each step
 - 811a317: feat (ai/core): multi-part tool results (incl. images)
-- Updated dependencies [aa98cdb]
-- Updated dependencies [1486128]
-- Updated dependencies [7b937c5]
-- Updated dependencies [3b1b69a]
-- Updated dependencies [811a317]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.22
   - @ai-sdk/provider@0.0.26
   - @ai-sdk/ui-utils@0.0.48
@@ -4336,8 +4880,7 @@
 - a3882f5: feat (ai/core): add steps property to streamText result and onFinish callback
 - 1f590ef: chore (ai): rename roundtrips to steps
 - 7e82d36: fix (ai/core): pass topK to providers
-- Updated dependencies [54862e4]
-- Updated dependencies [1f590ef]
+- Updated dependencies
   - @ai-sdk/react@0.0.58
   - @ai-sdk/ui-utils@0.0.43
   - @ai-sdk/solid@0.0.46
@@ -4408,8 +4951,7 @@
 
 - 03313cd: feat (ai): expose response id, response model, response timestamp in telemetry and api
 - 3be7c1c: fix (provider/anthropic): support prompt caching on assistant messages
-- Updated dependencies [03313cd]
-- Updated dependencies [3be7c1c]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.18
   - @ai-sdk/provider@0.0.23
   - @ai-sdk/react@0.0.55
@@ -4621,9 +5163,7 @@
 
 - e9c891d: feat (ai/react): useObject supports non-Zod schemas
 - 3719e8a: chore (ai/core): provider registry code improvements
-- Updated dependencies [e9c891d]
-- Updated dependencies [4bd27a9]
-- Updated dependencies [845754b]
+- Updated dependencies
   - @ai-sdk/ui-utils@0.0.30
   - @ai-sdk/react@0.0.42
   - @ai-sdk/provider-utils@1.0.10
@@ -4693,8 +5233,7 @@
 
 - 9614584: fix (ai/core): use Symbol.for
 - 0762a22: feat (ai/core): support zod transformers in generateObject & streamObject
-- Updated dependencies [9614584]
-- Updated dependencies [0762a22]
+- Updated dependencies
   - @ai-sdk/provider-utils@1.0.6
   - @ai-sdk/react@0.0.37
   - @ai-sdk/solid@0.0.28
@@ -4783,8 +5322,7 @@
 - c450fcf7: feat (ui): invoke useChat onFinish with finishReason and tokens
 - e4a1719f: chore (ai/ui): rename streamMode to streamProtocol
 - 10158bf2: fix (ai/core): generateObject.doGenerate sets object telemetry attribute
-- Updated dependencies [c450fcf7]
-- Updated dependencies [e4a1719f]
+- Updated dependencies
   - @ai-sdk/ui-utils@0.0.21
   - @ai-sdk/svelte@0.0.25
   - @ai-sdk/react@0.0.31
@@ -4841,10 +5379,7 @@
 - 420f170f: chore (ai/core): use interfaces for core function results
 - 13b27ec6: chore (ai/core): remove grammar mode
 - 644f6582: feat (ai/core): add telemetry to generateObject
-- Updated dependencies [2b9da0f0]
-- Updated dependencies [a5b58845]
-- Updated dependencies [4aa8deb3]
-- Updated dependencies [13b27ec6]
+- Updated dependencies
   - @ai-sdk/provider@0.0.13
   - @ai-sdk/provider-utils@1.0.3
   - @ai-sdk/react@0.0.27
@@ -4859,8 +5394,7 @@
 
 - 4b2c09d9: feat (ai/ui): add mutator function support to useChat / setMessages
 - 281e7662: chore: add description to ai package
-- Updated dependencies [f63829fe]
-- Updated dependencies [4b2c09d9]
+- Updated dependencies
   - @ai-sdk/ui-utils@0.0.17
   - @ai-sdk/svelte@0.0.20
   - @ai-sdk/react@0.0.26
@@ -5011,9 +5545,7 @@
 - 3db90c3d: allow empty handleSubmit submissions for useChat
 - abb22602: feat (ai): verify that system messages have string content
 - 5c1f0bd3: fix unclosed streamable value console message
-- Updated dependencies [6a11cfaa]
-- Updated dependencies [3db90c3d]
-- Updated dependencies [d481729f]
+- Updated dependencies
   - @ai-sdk/react@0.0.17
   - @ai-sdk/svelte@0.0.13
   - @ai-sdk/solid@0.0.12
@@ -5040,8 +5572,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [9b50003d]
-- Updated dependencies [1894f811]
+- Updated dependencies
   - @ai-sdk/react@0.0.14
   - @ai-sdk/ui-utils@0.0.9
   - @ai-sdk/solid@0.0.11
@@ -5065,9 +5596,7 @@
 ### Patch Changes
 
 - 5edc6110: feat (ai/core): add custom request header support
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
-- Updated dependencies [5edc6110]
+- Updated dependencies
   - @ai-sdk/provider@0.0.11
   - @ai-sdk/provider-utils@1.0.0
   - @ai-sdk/react@0.0.12
@@ -5082,8 +5611,7 @@
 
 - c908f741: chore (ui/solid): update solidjs useChat and useCompletion to feature parity with React
 - 827ef450: feat (ai/ui): improve error handling in useAssistant
-- Updated dependencies [c908f741]
-- Updated dependencies [827ef450]
+- Updated dependencies
   - @ai-sdk/solid@0.0.8
   - @ai-sdk/svelte@0.0.9
   - @ai-sdk/react@0.0.11
@@ -5092,8 +5620,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [5b04204b]
-- Updated dependencies [8f482903]
+- Updated dependencies
   - @ai-sdk/react@0.0.10
 
 ## 3.2.9
@@ -5101,9 +5628,7 @@
 ### Patch Changes
 
 - 82d9c8de: feat (ai/ui): make event in useAssistant submitMessage optional
-- Updated dependencies [82d9c8de]
-- Updated dependencies [321a7d0e]
-- Updated dependencies [82d9c8de]
+- Updated dependencies
   - @ai-sdk/svelte@0.0.8
   - @ai-sdk/react@0.0.9
   - @ai-sdk/vue@0.0.8
@@ -5175,8 +5700,7 @@
 
 - 008725ec: feat (ai): add textStream, toTextStreamResponse(), and pipeTextStreamToResponse() to streamObject
 - 520fb2d5: feat (rsc): add streamUI onFinish callback
-- Updated dependencies [008725ec]
-- Updated dependencies [008725ec]
+- Updated dependencies
   - @ai-sdk/react@0.0.4
   - @ai-sdk/ui-utils@0.0.4
   - @ai-sdk/solid@0.0.4
@@ -5198,8 +5722,7 @@
 ### Patch Changes
 
 - 85712895: chore (@ai-sdk/provider-utils): move test helper to provider utils
-- Updated dependencies [85712895]
-- Updated dependencies [85712895]
+- Updated dependencies
   - @ai-sdk/provider-utils@0.0.15
   - @ai-sdk/react@0.0.3
   - @ai-sdk/svelte@0.0.3
@@ -5286,9 +5809,7 @@
 ### Patch Changes
 
 - c9198d4d: feat (ui): send annotation and data fields in useChat when sendExtraMessageFields is true
-- Updated dependencies [09295e2e]
-- Updated dependencies [09295e2e]
-- Updated dependencies [043a5de2]
+- Updated dependencies
   - @ai-sdk/provider@0.0.9
   - @ai-sdk/provider-utils@0.0.12
 
@@ -5388,8 +5909,7 @@
 ### Patch Changes
 
 - 60117c9: dependencies (ai/ui): add React 18.3 and 19 support (peer dependency)
-- Updated dependencies [6a50ac4]
-- Updated dependencies [6a50ac4]
+- Updated dependencies
   - @ai-sdk/provider@0.0.6
   - @ai-sdk/provider-utils@0.0.9
 
@@ -5537,8 +6057,7 @@
 
 - d6431ae: ai/core: add logprobs support (thanks @SamStenner for the contribution)
 - 25f3350: ai/core: add support for getting raw response headers.
-- Updated dependencies [d6431ae]
-- Updated dependencies [25f3350]
+- Updated dependencies
   - @ai-sdk/provider@0.0.2
   - @ai-sdk/provider-utils@0.0.3
 

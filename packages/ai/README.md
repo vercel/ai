@@ -2,7 +2,7 @@
 
 # AI SDK
 
-The [AI SDK](https://ai-sdk.dev/docs) is a TypeScript toolkit designed to help you build AI-powered applications and agents using popular frameworks like Next.js, React, Svelte, Vue and runtimes like Node.js.
+The [AI SDK](https://ai-sdk.dev/docs) is a provider-agnostic TypeScript toolkit designed to help you build AI-powered applications and agents using popular UI frameworks like Next.js, React, Svelte, Vue, Angular, and runtimes like Node.js.
 
 To learn more about how to use the AI SDK, check out our [API Reference](https://ai-sdk.dev/docs/reference) and [Documentation](https://ai-sdk.dev/docs).
 
@@ -18,11 +18,29 @@ npm install ai
 
 The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
 
+By default, the AI SDK uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to give you access to all major providers out of the box. Just pass a model string for any supported model:
+
+```ts
+const result = await generateText({
+  model: 'anthropic/claude-opus-4.5', // or 'openai/gpt-5.2', 'google/gemini-3-flash', etc.
+  prompt: 'Hello!',
+});
+```
+
+You can also connect to providers directly using their SDK packages:
+
 ```shell
 npm install @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 ```
 
-Alternatively you can use the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway).
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-5-20250414'), // or openai('gpt-5.2'), google('gemini-3-flash'), etc.
+  prompt: 'Hello!',
+});
+```
 
 ## Usage
 
@@ -50,16 +68,20 @@ const { text } = await generateText({
 ### Generating Structured Data
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
-  model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+const { output } = await generateText({
+  model: 'openai/gpt-5',
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -72,10 +94,10 @@ const { object } = await generateObject({
 import { ToolLoopAgent } from 'ai';
 
 const sandboxAgent = new ToolLoopAgent({
-  model: 'openai/gpt-5-codex',
+  model: 'openai/gpt-5',
   system: 'You are an agent with access to a shell environment.',
   tools: {
-    local_shell: openai.tools.localShell({
+    shell: openai.tools.localShell({
       execute: async ({ action }) => {
         const [cmd, ...args] = action.command;
         const sandbox = await getSandbox(); // Vercel Sandbox
@@ -106,7 +128,7 @@ import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 export const imageGenerationAgent = new ToolLoopAgent({
   model: openai('gpt-5'),
   tools: {
-    image_generation: openai.tools.imageGeneration({
+    generateImage: openai.tools.imageGeneration({
       partialImages: 3,
     }),
   },
@@ -182,7 +204,7 @@ export default function Page() {
             switch (part.type) {
               case 'text':
                 return <div key={index}>{part.text}</div>;
-              case 'tool-image_generation':
+              case 'tool-generateImage':
                 return <ImageGenerationView key={index} invocation={part} />;
             }
           })}

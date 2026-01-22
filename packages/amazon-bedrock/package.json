@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "4.0.0-beta.84",
+  "version": "4.0.29",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,13 +8,25 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "docs/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
-    "README.md"
+    "README.md",
+    "anthropic/index.d.ts"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "clean": "del-cli dist docs *.tsbuildinfo",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/08-amazon-bedrock.mdx ./docs/",
+    "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -30,6 +42,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./anthropic": {
+      "types": "./dist/anthropic/index.d.ts",
+      "import": "./dist/anthropic/index.mjs",
+      "require": "./dist/anthropic/index.js"
     }
   },
   "dependencies": {

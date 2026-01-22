@@ -38,7 +38,10 @@ export type LanguageModelV3Message =
       }
     | {
         role: 'tool';
-        content: Array<LanguageModelV3ToolResultPart>;
+        content: Array<
+          | LanguageModelV3ToolResultPart
+          | LanguageModelV3ToolApprovalResponsePart
+        >;
       }
   ) & {
     /**
@@ -175,6 +178,36 @@ Name of the tool that generated this result.
 Result of the tool call.
    */
   output: LanguageModelV3ToolResultOutput;
+
+  /**
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
+  providerOptions?: SharedV3ProviderOptions;
+}
+
+/**
+ * Tool approval response content part of a prompt. It contains the user's
+ * decision to approve or deny a provider-executed tool call.
+ */
+export interface LanguageModelV3ToolApprovalResponsePart {
+  type: 'tool-approval-response';
+
+  /**
+   * ID of the approval request that this response refers to.
+   */
+  approvalId: string;
+
+  /**
+   * Whether the approval was granted (true) or denied (false).
+   */
+  approved: boolean;
+
+  /**
+   * Optional reason for approval or denial.
+   */
+  reason?: string;
 
   /**
    * Additional provider-specific options. They are passed through

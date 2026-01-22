@@ -1,7 +1,11 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import {
+  asSchema,
   dynamicTool,
+  FlexibleSchema,
   jsonSchema,
+  safeParseJSON,
+  safeValidateTypes,
   Tool,
   tool,
   ToolExecutionOptions,
@@ -100,12 +104,12 @@ export interface MCPClient {
     options?: RequestOptions;
   }): Promise<ListResourceTemplatesResult>;
 
-  listPrompts(options?: {
+  experimental_listPrompts(options?: {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListPromptsResult>;
 
-  getPrompt(args: {
+  experimental_getPrompt(args: {
     name: string;
     arguments?: Record<string, unknown>;
     options?: RequestOptions;
@@ -499,31 +503,40 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
       for (const {
         name,
+        title,
         description,
         inputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
-        const title = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
 
         const self = this;
+        const outputSchema =
+          schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
 
         const execute = async (
           args: any,
           options: ToolExecutionOptions,
-        ): Promise<CallToolResult> => {
+        ): Promise<unknown> => {
           options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
+          const result = await self.callTool({ name, args, options });
+
+          if (outputSchema != null) {
+            return self.extractStructuredContent(result, outputSchema, name);
+          }
+
+          return result;
         };
 
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
@@ -533,8 +546,9 @@ class DefaultMCPClient implements MCPClient {
               })
             : tool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: schemas[name].inputSchema,
+                ...(outputSchema != null ? { outputSchema } : {}),
                 execute,
               });
 
@@ -545,6 +559,55 @@ class DefaultMCPClient implements MCPClient {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Extracts and validates structuredContent from a tool result.
+   */
+  private async extractStructuredContent(
+    result: CallToolResult,
+    outputSchema: FlexibleSchema<unknown>,
+    toolName: string,
+  ): Promise<unknown> {
+    if ('structuredContent' in result && result.structuredContent != null) {
+      const validationResult = await safeValidateTypes({
+        value: result.structuredContent,
+        schema: asSchema(outputSchema),
+      });
+
+      if (!validationResult.success) {
+        throw new MCPClientError({
+          message: `Tool "${toolName}" returned structuredContent that does not match the expected outputSchema`,
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
+    }
+
+    // Fallback
+    if ('content' in result && Array.isArray(result.content)) {
+      const textContent = result.content.find(c => c.type === 'text');
+      if (textContent && 'text' in textContent) {
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
+
+        if (!parseResult.success) {
+          throw new MCPClientError({
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
+          });
+        }
+
+        return parseResult.value;
+      }
+    }
+
+    throw new MCPClientError({
+      message: `Tool "${toolName}" did not return structuredContent or parseable text content`,
+    });
   }
 
   listResources({
@@ -575,7 +638,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listResourceTemplatesInternal({ options });
   }
 
-  listPrompts({
+  experimental_listPrompts({
     params,
     options,
   }: {
@@ -585,7 +648,7 @@ class DefaultMCPClient implements MCPClient {
     return this.listPromptsInternal({ params, options });
   }
 
-  getPrompt({
+  experimental_getPrompt({
     name,
     arguments: args,
     options,

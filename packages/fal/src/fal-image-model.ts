@@ -1,12 +1,13 @@
 import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
-  FetchFunction,
   combineHeaders,
+  convertImageModelFileToDataUri,
   createBinaryResponseHandler,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
+  FetchFunction,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -46,6 +47,8 @@ export class FalImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
+    files,
+    mask,
   }: Parameters<ImageModelV3['doGenerate']>[0]) {
     const warnings: Array<SharedV3Warning> = [];
 
@@ -70,6 +73,36 @@ export class FalImageModel implements ImageModelV3 {
       num_images: n,
     };
 
+    // Handle image editing: convert files to image_url or image_urls
+    if (files != null && files.length > 0) {
+      const useMultipleImages = falOptions?.useMultipleImages === true;
+
+      if (useMultipleImages) {
+        // Use image_urls array for models that support multiple images (e.g., flux-2/edit)
+        requestBody.image_urls = files.map(file =>
+          convertImageModelFileToDataUri(file),
+        );
+      } else {
+        // Use single image_url for standard image editing models
+        requestBody.image_url = convertImageModelFileToDataUri(files[0]);
+
+        if (files.length > 1) {
+          warnings.push({
+            type: 'other',
+            message:
+              'Multiple input images provided but useMultipleImages is not enabled. ' +
+              'Only the first image will be used. Set providerOptions.fal.useMultipleImages ' +
+              'to true for models that support multiple images (e.g., fal-ai/flux-2/edit).',
+          });
+        }
+      }
+    }
+
+    // Handle mask for inpainting
+    if (mask != null) {
+      requestBody.mask_url = convertImageModelFileToDataUri(mask);
+    }
+
     if (falOptions) {
       const deprecatedKeys =
         '__deprecatedKeys' in falOptions
@@ -92,6 +125,7 @@ export class FalImageModel implements ImageModelV3 {
 
       const fieldMapping: Record<string, string> = {
         imageUrl: 'image_url',
+        maskUrl: 'mask_url',
         guidanceScale: 'guidance_scale',
         numInferenceSteps: 'num_inference_steps',
         enableSafetyChecker: 'enable_safety_checker',
@@ -102,6 +136,7 @@ export class FalImageModel implements ImageModelV3 {
 
       for (const [key, value] of Object.entries(falOptions)) {
         if (key === '__deprecatedKeys') continue;
+        if (key === 'useMultipleImages') continue; // Don't send to API
         const apiKey = fieldMapping[key] ?? key;
 
         if (value !== undefined) {
