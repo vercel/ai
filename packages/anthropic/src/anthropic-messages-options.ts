@@ -22,11 +22,7 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-6'
   | (string & {});
 
-/**
- * Anthropic file part provider options for document-specific features.
- * These options apply to individual file parts (documents).
- */
-export const anthropicFilePartProviderOptions = z.object({
+const anthropicFilePartCommonOptions = z.object({
   /**
    * Citation configuration for this document.
    * When enabled, this document will generate citations in the response.
@@ -53,6 +49,74 @@ export const anthropicFilePartProviderOptions = z.object({
    */
   context: z.string().optional(),
 });
+
+const anthropicSearchResultOptions = z.object({
+  /**
+   * Interpret this file part as a search result block.
+   */
+  type: z.literal('search_result'),
+
+  /**
+   * Source URL or identifier for this search result.
+   */
+  source: z.string(),
+
+  /**
+   * Search result content blocks (defaults to a single block from file data).
+   * If not provided, the data will be used.
+   */
+  content: z
+    .array(
+      z.object({
+        type: z.literal('text'),
+        text: z.string(),
+      }),
+    )
+    .min(1)
+    .optional(),
+});
+
+const anthropicCustomContentDocumentOptions = z.object({
+  /**
+   * Interpret this file part as a custom content document.
+   */
+  type: z.literal('document').optional(),
+
+  /**
+   * Custom content blocks for document citations.
+   */
+  source: z.object({
+    type: z.literal('content'),
+    content: z
+      .array(
+        z.object({
+          type: z.literal('text'),
+          text: z.string(),
+        }),
+      )
+      .min(1),
+  }),
+  content: z.undefined().optional(),
+});
+
+/**
+ * Anthropic file part provider options for document-specific features.
+ * These options apply to individual file parts (documents).
+ */
+export const anthropicFilePartProviderOptions =
+  anthropicFilePartCommonOptions.and(
+    z.union([
+      z.object({
+        type: z.undefined().optional(),
+        source: z.undefined().optional(),
+        content: z.undefined().optional(),
+      }),
+      z.discriminatedUnion('type', [
+        anthropicSearchResultOptions,
+        anthropicCustomContentDocumentOptions,
+      ]),
+    ]),
+  );
 
 export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions

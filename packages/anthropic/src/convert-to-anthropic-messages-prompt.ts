@@ -1,17 +1,16 @@
 import {
-  SharedV3Warning,
   LanguageModelV3DataContent,
   LanguageModelV3Message,
   LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
-  parseProviderOptions,
-  validateTypes,
   isNonNullable,
+  parseProviderOptions,
   ToolNameMapping,
+  validateTypes,
 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
@@ -31,7 +30,12 @@ import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
 function convertToString(data: LanguageModelV3DataContent): string {
   if (typeof data === 'string') {
-    return Buffer.from(data, 'base64').toString('utf-8');
+    const decoded = Buffer.from(data, 'base64').toString('utf-8');
+    const encoded = Buffer.from(decoded, 'utf-8').toString('base64');
+    if (encoded === data) {
+      return decoded;
+    }
+    return data;
   }
 
   if (data instanceof Uint8Array) {
@@ -88,33 +92,6 @@ export async function convertToAnthropicMessagesPrompt({
 
   let system: AnthropicMessagesPrompt['system'] = undefined;
   const messages: AnthropicMessagesPrompt['messages'] = [];
-
-  async function shouldEnableCitations(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
-  ): Promise<boolean> {
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions: providerMetadata,
-      schema: anthropicFilePartProviderOptions,
-    });
-
-    return anthropicOptions?.citations?.enabled ?? false;
-  }
-
-  async function getDocumentMetadata(
-    providerMetadata: SharedV3ProviderMetadata | undefined,
-  ): Promise<{ title?: string; context?: string }> {
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions: providerMetadata,
-      schema: anthropicFilePartProviderOptions,
-    });
-
-    return {
-      title: anthropicOptions?.title,
-      context: anthropicOptions?.context,
-    };
-  }
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -181,6 +158,60 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
+                    const filePartOptions = await parseProviderOptions({
+                      provider: 'anthropic',
+                      providerOptions: part.providerOptions,
+                      schema: anthropicFilePartProviderOptions,
+                    });
+                    const citationsEnabled =
+                      filePartOptions?.citations?.enabled ?? false;
+                    if (filePartOptions?.type === 'search_result') {
+                      const fileContentBlocks = filePartOptions.content;
+
+                      const resolvedContent =
+                        fileContentBlocks && fileContentBlocks.length > 0
+                          ? fileContentBlocks
+                          : [
+                              {
+                                type: 'text' as const,
+                                text: convertToString(part.data),
+                              },
+                            ];
+
+                      anthropicContent.push({
+                        type: 'search_result',
+                        source: filePartOptions.source,
+                        title:
+                          filePartOptions?.title ??
+                          part.filename ??
+                          'Untitled Search Result',
+                        content: resolvedContent,
+                        ...(citationsEnabled && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+
+                      break;
+                    }
+
+                    if (filePartOptions?.source?.type === 'content') {
+                      anthropicContent.push({
+                        type: 'document',
+                        source: filePartOptions.source,
+                        title: filePartOptions?.title ?? part.filename,
+                        ...(filePartOptions?.context && {
+                          context: filePartOptions.context,
+                        }),
+                        ...(citationsEnabled && {
+                          citations: { enabled: true },
+                        }),
+                        cache_control: cacheControl,
+                      });
+
+                      break;
+                    }
+
                     if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
@@ -202,14 +233,6 @@ export async function convertToAnthropicMessagesPrompt({
                     } else if (part.mediaType === 'application/pdf') {
                       betas.add('pdfs-2024-09-25');
 
-                      const enableCitations = await shouldEnableCitations(
-                        part.providerOptions,
-                      );
-
-                      const metadata = await getDocumentMetadata(
-                        part.providerOptions,
-                      );
-
                       anthropicContent.push({
                         type: 'document',
                         source: isUrlData(part.data)
@@ -222,22 +245,16 @@ export async function convertToAnthropicMessagesPrompt({
                               media_type: 'application/pdf',
                               data: convertToBase64(part.data),
                             },
-                        title: metadata.title ?? part.filename,
-                        ...(metadata.context && { context: metadata.context }),
-                        ...(enableCitations && {
+                        title: filePartOptions?.title ?? part.filename,
+                        ...(filePartOptions?.context && {
+                          context: filePartOptions.context,
+                        }),
+                        ...(citationsEnabled && {
                           citations: { enabled: true },
                         }),
                         cache_control: cacheControl,
                       });
                     } else if (part.mediaType === 'text/plain') {
-                      const enableCitations = await shouldEnableCitations(
-                        part.providerOptions,
-                      );
-
-                      const metadata = await getDocumentMetadata(
-                        part.providerOptions,
-                      );
-
                       anthropicContent.push({
                         type: 'document',
                         source: isUrlData(part.data)
@@ -250,9 +267,11 @@ export async function convertToAnthropicMessagesPrompt({
                               media_type: 'text/plain',
                               data: convertToString(part.data),
                             },
-                        title: metadata.title ?? part.filename,
-                        ...(metadata.context && { context: metadata.context }),
-                        ...(enableCitations && {
+                        title: filePartOptions?.title ?? part.filename,
+                        ...(filePartOptions?.context && {
+                          context: filePartOptions.context,
+                        }),
+                        ...(citationsEnabled && {
                           citations: { enabled: true },
                         }),
                         cache_control: cacheControl,

@@ -547,6 +547,143 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
   [here](/docs/foundations/prompts#provider-options).
 </Note>
 
+### Search Results and Citations
+
+Anthropic supports search result blocks and custom content documents that enable Claude to cite specific passages in its responses. You can provide these using file parts with the `providerOptions` property.
+
+```ts highlight="12-18"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          data: 'Search result snippet about quarterly revenue growth.',
+          providerOptions: {
+            anthropic: {
+              type: 'search_result',
+              source: 'https://example.com/search/result1',
+              citations: { enabled: true },
+              title: 'Quarterly Results',
+            },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the search result and include citations.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Configuration Options
+
+The following options are available for search result blocks:
+
+- **type** _'search_result'_
+
+  Required. Indicates this is a search result block.
+
+- **source** _string_
+
+  Required. The URL or identifier for the search result.
+
+- **citations** _object_
+
+  Set `{ enabled: true }` to enable citations. Anthropic's API requires this setting to be consistent across all search results in a request; inconsistent values will result in an API error.
+
+- **title** _string_
+
+  A title for the search result. Prefer `title` over `filename`.
+
+- **content** _array_
+
+  Custom content blocks. If not provided, the SDK derives a single text block from the file `data`.
+
+#### Custom Content Documents
+
+For pre-chunked text blocks that should be used as-is for citations without additional processing, use `source: { type: 'content', content: [...] }` with a `text/plain` file part:
+
+```ts highlight="14-21"
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          mediaType: 'text/plain',
+          data: 'Placeholder text for the file part.',
+          providerOptions: {
+            anthropic: {
+              source: {
+                type: 'content',
+                content: [
+                  { type: 'text', text: 'First custom chunk.' },
+                  { type: 'text', text: 'Second custom chunk.' },
+                ],
+              },
+              citations: { enabled: true },
+              title: 'Custom Content Doc',
+            },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Summarize the custom content and include citations.',
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Citation Metadata
+
+When citations are enabled, the response `content` array includes `source` parts with citation metadata:
+
+```ts
+const citations = result.content.filter(part => part.type === 'source');
+
+for (const citation of citations) {
+  if (
+    citation.sourceType === 'document' &&
+    citation.providerMetadata?.anthropic
+  ) {
+    const meta = citation.providerMetadata.anthropic;
+    console.log(`Cited: "${meta.citedText}"`);
+    console.log(`Title: ${citation.title}`);
+
+    // Search results include source URL and index
+    if ('searchResultIndex' in meta) {
+      console.log(`Source: ${meta.source}`);
+      console.log(`Search result index: ${meta.searchResultIndex}`);
+    }
+  }
+}
+```
+
+The `providerMetadata.anthropic` object includes:
+
+- **citedText** _string_ - The exact text that was cited
+- **source** _string_ - The source URL (search results only)
+- **searchResultIndex** _number_ - Index of the cited search result (search results only)
+- **startBlockIndex** / **endBlockIndex** _number_ - Block range of the citation
+
+For more details, see [Anthropic's Search Results documentation](https://docs.anthropic.com/en/docs/build-with-claude/search-results) and [Citations documentation](https://docs.anthropic.com/en/docs/build-with-claude/citations).
+
 ### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:

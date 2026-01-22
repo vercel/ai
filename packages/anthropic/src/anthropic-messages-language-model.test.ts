@@ -1939,6 +1939,167 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should process search_result citation responses', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'search-result-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'The answer references a search result.',
+            citations: [
+              {
+                type: 'search_result_location',
+                cited_text: 'Search result snippet',
+                source: 'https://example.com/result',
+                title: 'Example Result',
+                search_result_index: 0,
+                start_block_index: 0,
+                end_block_index: 1,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'c2VhcmNoIHJlc3VsdCBjb250ZW50',
+                mediaType: 'text/plain',
+                filename: 'search-result.txt',
+                providerOptions: {
+                  anthropic: {
+                    type: 'search_result',
+                    source: 'https://example.com/result',
+                    citations: { enabled: true },
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does the search result say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The answer references a search result.",
+            "type": "text",
+          },
+          {
+            "id": "search-result-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "Search result snippet",
+                "endBlockIndex": 1,
+                "searchResultIndex": 0,
+                "source": "https://example.com/result",
+                "startBlockIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Example Result",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
+    it('should process custom content citation responses', async () => {
+      const mockProvider = createAnthropic({
+        apiKey: 'test-api-key',
+        generateId: () => 'custom-content-id',
+      });
+      const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+      prepareJsonResponse({
+        content: [
+          {
+            type: 'text',
+            text: 'The custom content cites the first block.',
+            citations: [
+              {
+                type: 'content_block_location',
+                cited_text: 'First chunk',
+                document_index: 0,
+                document_title: null,
+                start_block_index: 0,
+                end_block_index: 1,
+              },
+            ],
+          },
+        ],
+      });
+
+      const result = await modelWithMockId.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'dW51c2Vk',
+                mediaType: 'text/plain',
+                filename: 'custom.txt',
+                providerOptions: {
+                  anthropic: {
+                    source: {
+                      type: 'content',
+                      content: [{ type: 'text', text: 'First chunk' }],
+                    },
+                    citations: { enabled: true },
+                    title: 'Custom Content Doc',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'What does the first chunk say?',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "The custom content cites the first block.",
+            "type": "text",
+          },
+          {
+            "filename": "custom.txt",
+            "id": "custom-content-id",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "First chunk",
+                "endBlockIndex": 1,
+                "startBlockIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Custom Content Doc",
+            "type": "source",
+          },
+        ]
+      `);
+    });
+
     describe('function tool', () => {
       it('should extract tool calls', async () => {
         prepareJsonResponse({
@@ -6642,6 +6803,151 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             },
           ]
+        `);
+      });
+
+      it('should process search_result citation responses in streaming', async () => {
+        const mockProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId(),
+        });
+        const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_search","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":20,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"According to the search results"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"search_result_location","cited_text":"Revenue grew 25%","source":"https://example.com/result","title":"Q4 Results","search_result_index":0,"start_block_index":0,"end_block_index":1}}}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await modelWithMockId.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'c2VhcmNoIHJlc3VsdA==',
+                  mediaType: 'text/plain',
+                  filename: 'search.txt',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'search_result',
+                      source: 'https://example.com/result',
+                      citations: { enabled: true },
+                      title: 'Q4 Results',
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'What do the results show?',
+                },
+              ],
+            },
+          ],
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        // Find the source part in the stream
+        const sourcePart = result.find(chunk => chunk.type === 'source');
+        expect(sourcePart).toMatchInlineSnapshot(`
+          {
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "Revenue grew 25%",
+                "endBlockIndex": 1,
+                "searchResultIndex": 0,
+                "source": "https://example.com/result",
+                "startBlockIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Q4 Results",
+            "type": "source",
+          }
+        `);
+      });
+
+      it('should process content_block_location citation responses in streaming', async () => {
+        const mockProvider = createAnthropic({
+          apiKey: 'test-api-key',
+          generateId: mockId(),
+        });
+        const modelWithMockId = mockProvider('claude-3-haiku-20240307');
+
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_content","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":25,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"The document states"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"citations_delta","citation":{"type":"content_block_location","cited_text":"First chunk text","document_index":0,"document_title":"Custom Doc","start_block_index":0,"end_block_index":1}}}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":40}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await modelWithMockId.doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'dW51c2Vk',
+                  mediaType: 'text/plain',
+                  filename: 'custom.txt',
+                  providerOptions: {
+                    anthropic: {
+                      source: {
+                        type: 'content',
+                        content: [{ type: 'text', text: 'First chunk text' }],
+                      },
+                      citations: { enabled: true },
+                      title: 'Custom Doc',
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'What does the document say?',
+                },
+              ],
+            },
+          ],
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        // Find the source part in the stream
+        const sourcePart = result.find(chunk => chunk.type === 'source');
+        expect(sourcePart).toMatchInlineSnapshot(`
+          {
+            "filename": "custom.txt",
+            "id": "id-0",
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "anthropic": {
+                "citedText": "First chunk text",
+                "endBlockIndex": 1,
+                "startBlockIndex": 0,
+              },
+            },
+            "sourceType": "document",
+            "title": "Custom Doc",
+            "type": "source",
+          }
         `);
       });
     });
