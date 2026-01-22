@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   LanguageModelV3,
   NoSuchModelError,
   ProviderV3,
@@ -52,8 +53,16 @@ The default prefix is `https://api.anthropic.com/v1`.
   /**
 API key that is being send using the `x-api-key` header.
 It defaults to the `ANTHROPIC_API_KEY` environment variable.
+Only one of `apiKey` or `authToken` is required.
    */
   apiKey?: string;
+
+  /**
+Auth token that is being sent using the `Authorization: Bearer` header.
+It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+Only one of `apiKey` or `authToken` is required.
+   */
+  authToken?: string;
 
   /**
 Custom headers to include in the requests.
@@ -91,19 +100,35 @@ export function createAnthropic(
 
   const providerName = options.name ?? 'anthropic.messages';
 
-  const getHeaders = () =>
-    withUserAgentSuffix(
+  // Only error if both are explicitly provided in options
+  if (options.apiKey && options.authToken) {
+    throw new InvalidArgumentError({
+      argument: 'apiKey/authToken',
+      message:
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+    });
+  }
+
+  const getHeaders = () => {
+    const authHeaders: Record<string, string> = options.authToken
+      ? { Authorization: `Bearer ${options.authToken}` }
+      : {
+          'x-api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'ANTHROPIC_API_KEY',
+            description: 'Anthropic',
+          }),
+        };
+
+    return withUserAgentSuffix(
       {
         'anthropic-version': '2023-06-01',
-        'x-api-key': loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'ANTHROPIC_API_KEY',
-          description: 'Anthropic',
-        }),
+        ...authHeaders,
         ...options.headers,
       },
       `ai-sdk/anthropic/${VERSION}`,
     );
+  };
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {
