@@ -1,5 +1,30 @@
 # @ai-sdk/google-vertex
 
+## 4.0.25
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+  - @ai-sdk/google@3.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/anthropic@3.0.19
+  - @ai-sdk/google@3.0.11
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [c10bd49]
+  - @ai-sdk/anthropic@3.0.18
+
 ## 4.0.22
 
 ### Patch Changes

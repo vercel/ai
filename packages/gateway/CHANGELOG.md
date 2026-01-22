@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 3.0.21
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.20
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.19
+
+### Patch Changes
+
+- c60fdd8: Inline fullMessage variable in GatewayError constructor
+
 ## 3.0.18
 
 ### Patch Changes

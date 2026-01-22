@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.15
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.14
+
+### Patch Changes
+
+- d21d016: feat(openai): add o4-mini model to OpenAIChatModelId type
+
 ## 3.0.13
 
 ### Patch Changes

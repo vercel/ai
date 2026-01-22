@@ -1,5 +1,19 @@
 # @ai-sdk/baseten
 
+## 1.0.19
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 1.0.18
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
 ## 1.0.17
 
 ### Patch Changes

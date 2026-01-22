@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.7
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 0.0.6
 
 ### Patch Changes
