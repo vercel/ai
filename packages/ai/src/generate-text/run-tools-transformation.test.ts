@@ -1307,5 +1307,153 @@ describe('runToolsTransformation', () => {
       const toolResults = result.filter(r => r.type === 'tool-result');
       expect(toolResults).toHaveLength(3);
     });
+
+    it('should not close stream while tool results are pending', async () => {
+      // This test uses deferred promises to precisely control when tools complete
+      // and verify the stream doesn't close prematurely.
+      // Without the close guard, the stream could close after the first tool completes
+      // if there's a race in the attemptClose logic.
+
+      function createDeferred<T>() {
+        let resolve!: (value: T) => void;
+        const promise = new Promise<T>(res => {
+          resolve = res;
+        });
+        return { promise, resolve };
+      }
+
+      const slowToolA = createDeferred<string>();
+      const slowToolB = createDeferred<string>();
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-a',
+            toolName: 'deferredTool',
+            input: `{ "id": "a" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-b',
+            toolName: 'deferredTool',
+            input: `{ "id": "b" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          deferredTool: {
+            title: 'Deferred Tool',
+            inputSchema: z.object({ id: z.string() }),
+            execute: async ({ id }) => {
+              if (id === 'a') {
+                return slowToolA.promise;
+              }
+              return slowToolB.promise;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const reader = transformedStream.getReader();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chunks: any[] = [];
+
+      // Read tool-call chunks first (they should be immediately available)
+      const toolCall1 = await reader.read();
+      if (!toolCall1.done) chunks.push(toolCall1.value);
+      const toolCall2 = await reader.read();
+      if (!toolCall2.done) chunks.push(toolCall2.value);
+
+      // Now both tools are executing but neither has resolved
+      // Try to read - it should NOT resolve because tools are still pending
+      const pendingRead = reader.read();
+
+      // Race against a short timeout - if stream closes prematurely, read would resolve
+      const timeoutResult = await Promise.race([
+        pendingRead.then(r => ({ source: 'read', result: r })),
+        delay(20).then(() => ({ source: 'timeout', result: null })),
+      ]);
+
+      // We expect timeout to win because tools are still pending
+      expect(timeoutResult.source).toBe('timeout');
+
+      // Now resolve first tool - stream should still be open
+      slowToolA.resolve('result-a');
+      await delay(5); // Let microtasks run
+
+      // Read the first tool result
+      const toolResult1 = await Promise.race([
+        pendingRead.then(r => ({ source: 'read', result: r })),
+        delay(20).then(() => ({ source: 'timeout', result: null })),
+      ]);
+      expect(toolResult1.source).toBe('read');
+      if (
+        toolResult1.source === 'read' &&
+        toolResult1.result &&
+        !toolResult1.result.done
+      ) {
+        chunks.push(toolResult1.result.value);
+      }
+
+      // Try another read - should still wait for second tool
+      const pendingRead2 = reader.read();
+      const timeoutResult2 = await Promise.race([
+        pendingRead2.then(r => ({ source: 'read', result: r })),
+        delay(20).then(() => ({ source: 'timeout', result: null })),
+      ]);
+      // Could be either - second tool not resolved, so might timeout
+      // or there could be queued chunks
+
+      // Resolve second tool
+      slowToolB.resolve('result-b');
+
+      // Now read remaining chunks until done
+      let done = false;
+      if (
+        timeoutResult2.source === 'read' &&
+        timeoutResult2.result &&
+        !timeoutResult2.result.done
+      ) {
+        chunks.push(timeoutResult2.result.value);
+      } else if (timeoutResult2.source === 'timeout') {
+        // Need to continue waiting for pendingRead2
+        const r = await pendingRead2;
+        if (!r.done) chunks.push(r.value);
+      }
+
+      while (!done) {
+        const r = await reader.read();
+        if (r.done) {
+          done = true;
+        } else {
+          chunks.push(r.value);
+        }
+      }
+
+      // Verify we got all expected chunks
+      const toolCalls = chunks.filter(c => c.type === 'tool-call');
+      const toolResults = chunks.filter(c => c.type === 'tool-result');
+      const finishChunks = chunks.filter(c => c.type === 'finish');
+
+      expect(toolCalls).toHaveLength(2);
+      expect(toolResults).toHaveLength(2);
+      expect(finishChunks).toHaveLength(1); // Finish emitted exactly once
+    });
   });
 });
