@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
     "CHANGELOG.md",
     "README.md"
   ],
