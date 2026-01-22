@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 2.0.16
 
 ### Patch Changes

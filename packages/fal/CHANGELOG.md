@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 2.0.10
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 2.0.9
 
 ### Patch Changes

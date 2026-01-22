@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.20
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.19
 
 ### Patch Changes
