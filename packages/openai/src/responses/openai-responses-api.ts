@@ -10,6 +10,7 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesMcpApprovalResponse
   | OpenAIResponsesComputerCall
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
@@ -33,6 +34,21 @@ export type OpenAIResponsesIncludeOptions =
   | Array<OpenAIResponsesIncludeValue>
   | undefined
   | null;
+
+export type OpenAIResponsesApplyPatchOperationDiffDeltaChunk = {
+  type: 'response.apply_patch_call_operation_diff.delta';
+  item_id: string;
+  output_index: number;
+  delta: string;
+  obfuscation?: string | null;
+};
+
+export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
+  type: 'response.apply_patch_call_operation_diff.done';
+  item_id: string;
+  output_index: number;
+  diff: string;
+};
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -75,6 +91,12 @@ export type OpenAIResponsesFunctionCallOutput = {
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
       >;
+};
+
+export type OpenAIResponsesMcpApprovalResponse = {
+  type: 'mcp_approval_response';
+  approval_request_id: string;
+  approve: boolean;
 };
 
 export type OpenAIResponsesComputerCall = {
@@ -295,8 +317,7 @@ export type OpenAIResponsesTool =
         | 'always'
         | 'never'
         | {
-            read_only?: boolean;
-            tool_names?: string[];
+            never?: { tool_names?: string[] };
           }
         | undefined;
       server_description: string | undefined;
@@ -424,6 +445,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             type: z.literal('mcp_call'),
             id: z.string(),
             status: z.string(),
+            approval_request_id: z.string().nullish(),
           }),
           z.object({
             type: z.literal('mcp_list_tools'),
@@ -591,6 +613,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
                   .loose(),
               ])
               .nullish(),
+            approval_request_id: z.string().nullish(),
           }),
           z.object({
             type: z.literal('mcp_list_tools'),
@@ -623,7 +646,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             server_label: z.string(),
             name: z.string(),
             arguments: z.string(),
-            approval_request_id: z.string(),
+            approval_request_id: z.string().optional(),
           }),
           z.object({
             type: z.literal('apply_patch_call'),
@@ -695,25 +718,21 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('file_citation'),
             file_id: z.string(),
-            filename: z.string().nullish(),
-            index: z.number().nullish(),
-            start_index: z.number().nullish(),
-            end_index: z.number().nullish(),
-            quote: z.string().nullish(),
+            filename: z.string(),
+            index: z.number(),
           }),
           z.object({
             type: z.literal('container_file_citation'),
             container_id: z.string(),
             file_id: z.string(),
-            filename: z.string().nullish(),
-            start_index: z.number().nullish(),
-            end_index: z.number().nullish(),
-            index: z.number().nullish(),
+            filename: z.string(),
+            start_index: z.number(),
+            end_index: z.number(),
           }),
           z.object({
             type: z.literal('file_path'),
             file_id: z.string(),
-            index: z.number().nullish(),
+            index: z.number(),
           }),
         ]),
       }),
@@ -732,6 +751,19 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         type: z.literal('response.reasoning_summary_part.done'),
         item_id: z.string(),
         summary_index: z.number(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.delta'),
+        item_id: z.string(),
+        output_index: z.number(),
+        delta: z.string(),
+        obfuscation: z.string().nullish(),
+      }),
+      z.object({
+        type: z.literal('response.apply_patch_call_operation_diff.done'),
+        item_id: z.string(),
+        output_index: z.number(),
+        diff: z.string(),
       }),
       z.object({
         type: z.literal('error'),
@@ -823,25 +855,21 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                       z.object({
                         type: z.literal('file_citation'),
                         file_id: z.string(),
-                        filename: z.string().nullish(),
-                        index: z.number().nullish(),
-                        start_index: z.number().nullish(),
-                        end_index: z.number().nullish(),
-                        quote: z.string().nullish(),
+                        filename: z.string(),
+                        index: z.number(),
                       }),
                       z.object({
                         type: z.literal('container_file_citation'),
                         container_id: z.string(),
                         file_id: z.string(),
-                        filename: z.string().nullish(),
-                        start_index: z.number().nullish(),
-                        end_index: z.number().nullish(),
-                        index: z.number().nullish(),
+                        filename: z.string(),
+                        start_index: z.number(),
+                        end_index: z.number(),
                       }),
                       z.object({
                         type: z.literal('file_path'),
                         file_id: z.string(),
-                        index: z.number().nullish(),
+                        index: z.number(),
                       }),
                     ]),
                   ),
@@ -970,6 +998,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
                     .loose(),
                 ])
                 .nullish(),
+              approval_request_id: z.string().nullish(),
             }),
             z.object({
               type: z.literal('mcp_list_tools'),
@@ -1002,7 +1031,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               server_label: z.string(),
               name: z.string(),
               arguments: z.string(),
-              approval_request_id: z.string(),
+              approval_request_id: z.string().optional(),
             }),
             z.object({
               type: z.literal('apply_patch_call'),

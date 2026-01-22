@@ -35,7 +35,7 @@ describe('extractReasoningMiddleware', () => {
                 text: '<think>analyzing the request</think>Here is the response',
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             warnings: [],
           };
@@ -74,7 +74,7 @@ describe('extractReasoningMiddleware', () => {
                 text: '<think>analyzing the request\n</think>',
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             warnings: [],
           };
@@ -114,7 +114,7 @@ describe('extractReasoningMiddleware', () => {
                 text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             warnings: [],
           };
@@ -155,7 +155,7 @@ describe('extractReasoningMiddleware', () => {
                 text: 'analyzing the request</think>Here is the response',
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             warnings: [],
           };
@@ -216,7 +216,7 @@ describe('extractReasoningMiddleware', () => {
                 text: '<think>analyzing the request</think>Here is the response',
               },
             ],
-            finishReason: 'stop',
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: testUsage,
             reasoning: undefined,
             warnings: [],
@@ -269,7 +269,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -339,6 +339,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -366,6 +367,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -409,7 +411,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -489,6 +491,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -516,6 +519,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -557,7 +561,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -616,6 +620,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -643,6 +648,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -684,7 +690,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -760,6 +766,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -787,6 +794,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -855,6 +863,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -882,6 +891,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -920,7 +930,7 @@ describe('extractReasoningMiddleware', () => {
               { type: 'text-end', id: '1' },
               {
                 type: 'finish',
-                finishReason: 'stop',
+                finishReason: { unified: 'stop', raw: 'stop' },
                 usage: testUsage,
               },
             ]),
@@ -964,6 +974,7 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "providerMetadata": undefined,
+              "rawFinishReason": "stop",
               "response": {
                 "headers": undefined,
                 "id": "id-0",
@@ -991,6 +1002,7 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
+              "rawFinishReason": "stop",
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {

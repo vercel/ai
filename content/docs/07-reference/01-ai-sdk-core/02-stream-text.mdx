@@ -437,6 +437,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration, useful for detecting stalled streams. Can be used alongside abortSignal.',
+    },
+    {
       name: 'headers',
       type: 'Record<string, string>',
       isOptional: true,
@@ -661,6 +668,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
+            },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Can be used to pass provider-specific configuration such as container IDs for Anthropic code execution.',
             },
           ],
         },
@@ -1086,9 +1100,15 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
-                'The reason the model finished generating the text for the step.',
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1343,8 +1363,15 @@ To see `streamText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
-              description: 'The reason the model finished generating the text.',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
+              description:
+                'The unified finish reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1716,9 +1743,15 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "Promise<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'>",
+      type: "PromiseLike<'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'>",
       description:
         'The reason why the generation finished. Automatically consumes the stream.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'PromiseLike<string | undefined>',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -2149,8 +2182,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -2731,8 +2770,14 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'providerMetadata',
@@ -2763,15 +2808,21 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'totalUsage',
               type: 'LanguageModelUsage',
               description: 'The total token usage of the generated text.',
               properties: [
-          {
+                {
                   type: 'LanguageModelUsage',
                   parameters: [
                     {
@@ -2889,6 +2940,13 @@ To see `streamText` in action, check out [these examples](#examples).
               type: "'abort'",
               description: 'The type to identify the object as abort.',
             },
+            {
+              name: 'reason',
+              type: 'unknown',
+              isOptional: true,
+              description:
+                'Optional abort reason (from AbortSignal.reason) when the stream is aborted.',
+            },
           ],
         },
       ],
@@ -2898,6 +2956,12 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AsyncIterableStream<PARTIAL_OUTPUT>',
       description:
         'A stream of partial parsed outputs. It uses the `output` specification. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
+    },
+    {
+      name: 'elementStream',
+      type: 'AsyncIterableStream<ELEMENT_OUTPUT>',
+      description:
+        'A stream of individual array elements as they complete. Only available when using `output: Output.array()`. Each element is complete and validated against the element schema. AsyncIterableStream is defined as AsyncIterable<T> & ReadableStream<T>.',
     },
     {
       name: 'output',

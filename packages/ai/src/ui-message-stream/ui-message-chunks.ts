@@ -41,6 +41,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolCallId: z.string(),
         toolName: z.string(),
         providerExecuted: z.boolean().optional(),
+        providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -162,13 +163,13 @@ export const uiMessageChunkSchema = lazySchema(() =>
             'tool-calls',
             'error',
             'other',
-            'unknown',
           ] as const satisfies readonly FinishReason[])
           .optional(),
         messageMetadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('abort'),
+        reason: z.string().optional(),
       }),
       z.strictObject({
         type: z.literal('message-metadata'),
@@ -277,6 +278,7 @@ export type UIMessageChunk<
       toolCallId: string;
       toolName: string;
       providerExecuted?: boolean;
+      providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
       title?: string;
     }
@@ -325,6 +327,7 @@ export type UIMessageChunk<
     }
   | {
       type: 'abort';
+      reason?: string;
     }
   | {
       type: 'message-metadata';

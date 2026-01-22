@@ -28,7 +28,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 const { text } = await transcribe({
   model: assemblyai.transcription('best'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
   ),
 });
 ```

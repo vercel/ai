@@ -1,4 +1,7 @@
-import { EmbeddingModelV3, EmbeddingModelCallOptions } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV3,
+  EmbeddingModelV3CallOptions,
+} from '@ai-sdk/provider';
 import { EmbeddingModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
@@ -53,7 +56,7 @@ const doWrap = ({
   async function doTransform({
     params,
   }: {
-    params: EmbeddingModelCallOptions;
+    params: EmbeddingModelV3CallOptions;
   }) {
     return transformParams ? await transformParams({ params, model }) : params;
   }
@@ -67,7 +70,7 @@ const doWrap = ({
     supportsParallelCalls:
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(
-      params: EmbeddingModelCallOptions,
+      params: EmbeddingModelV3CallOptions,
     ): Promise<Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>> {
       const transformedParams = await doTransform({ params });
       const doEmbed = async () => model.doEmbed(transformedParams);

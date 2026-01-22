@@ -1,4 +1,4 @@
-import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
 import { openai } from '@ai-sdk/openai';
 import { generateText, stepCountIs } from 'ai';
 

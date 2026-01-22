@@ -27,12 +27,15 @@ export function getOpenAILanguageModelCapabilities(
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
 
-  const isReasoningModel = !(
-    modelId.startsWith('gpt-3') ||
-    modelId.startsWith('gpt-4') ||
-    modelId.startsWith('chatgpt-4o') ||
-    modelId.startsWith('gpt-5-chat')
-  );
+  // Use allowlist approach: only known reasoning models should use 'developer' role
+  // This prevents issues with fine-tuned models, third-party models, and custom models
+  const isReasoningModel =
+    modelId.startsWith('o1') ||
+    modelId.startsWith('o3') ||
+    modelId.startsWith('o4-mini') ||
+    modelId.startsWith('codex-mini') ||
+    modelId.startsWith('computer-use-preview') ||
+    (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
 
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
   // GPT-5.1 and GPT-5.2 support temperature, topP, logProbs when reasoningEffort is none

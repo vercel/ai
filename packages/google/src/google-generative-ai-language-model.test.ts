@@ -435,7 +435,12 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`[]`);
-    expect(finishReason).toStrictEqual('error');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "MALFORMED_FUNCTION_CALL",
+        "unified": "error",
+      }
+    `);
   });
 
   it('should extract tool calls', async () => {
@@ -492,7 +497,12 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(finishReason).toStrictEqual('tool-calls');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -1495,6 +1505,184 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should return stop finish reason for code execution (provider-executed tool)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Provider-executed tools should not trigger 'tool-calls' finish reason
+    // since they don't require SDK iteration
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+  });
+
+  it('should return stop finish reason for code execution with text response (structured output scenario)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'primes = [2, 3, 5, 7, 11]\nprint(sum(primes))',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '28',
+                  },
+                },
+                {
+                  text: '{"answer": 28, "explanation": "Sum of first 5 primes"}',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason, content } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Should return 'stop' so structured output can be parsed
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+
+    // Verify text content is included
+    const textPart = content.find(part => part.type === 'text');
+    expect(textPart).toBeDefined();
+    expect((textPart as { type: 'text'; text: string }).text).toBe(
+      '{"answer": 28, "explanation": "Sum of first 5 primes"}',
+    );
+  });
+
+  it('should return tool-calls finish reason when code execution is combined with function tools', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: 'print(1+1)',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: '2',
+                  },
+                },
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'test' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    // Should return 'tool-calls' because there's a client-executed function tool
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
+  });
+
   describe('search tool selection', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -2242,6 +2430,52 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass thinkingLevel "minimal" in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'minimal',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'minimal',
+        },
+      },
+    });
+  });
+
+  it('should pass thinkingLevel "medium" in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          thinkingConfig: {
+            thinkingLevel: 'medium',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        thinkingConfig: {
+          thinkingLevel: 'medium',
+        },
+      },
+    });
+  });
+
   describe('providerMetadata key based on provider string', () => {
     it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -2652,7 +2886,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -2851,6 +3088,77 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should return stop finish reason for streamed code execution (provider-executed tool)', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: 'print("hello")',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: 'hello\n',
+                    },
+                  },
+                  {
+                    text: '{"result": "hello"}',
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const finishEvent = events.find(e => e.type === 'finish');
+
+    // Provider-executed tools should not trigger 'tool-calls' finish reason
+    // since they don't require SDK iteration - allows structured output to work
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        raw: 'STOP',
+        unified: 'stop',
+      },
+    });
   });
 
   describe('search tool selection', () => {
@@ -3190,7 +3498,10 @@ describe('doStream', () => {
           "type": "file",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3395,9 +3706,12 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const finishEvent = events.find(event => event.type === 'finish');
 
-    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
-      'tool-calls',
-    );
+    expect(finishEvent?.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "tool-calls",
+      }
+    `);
   });
 
   it('should only pass valid provider options', async () => {
@@ -3572,7 +3886,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
@@ -3713,7 +4030,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,

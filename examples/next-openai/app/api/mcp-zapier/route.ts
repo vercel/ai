@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, stepCountIs, streamText } from 'ai';
-import { experimental_createMCPClient as createMCPClient } from '@ai-sdk/mcp';
+import { createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
 
