@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/togetherai",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -10,6 +10,10 @@
     "dist/**/*",
     "docs/**/*",
     "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],

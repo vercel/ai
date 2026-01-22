@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai-compatible",
-  "version": "2.0.17",
+  "version": "2.0.18",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,6 +9,10 @@
   "files": [
     "dist/**/*",
     "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md",
     "internal.d.ts"

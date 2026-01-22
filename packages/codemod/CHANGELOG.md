@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.3
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
 ## 3.0.2
 
 ### Patch Changes
