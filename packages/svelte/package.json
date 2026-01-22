@@ -25,6 +25,8 @@
     "src",
     "!src/**/*.test.*",
     "!src/**/*.spec.*",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
