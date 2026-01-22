@@ -1,5 +1,14 @@
 # @ai-sdk/react
 
+## 3.0.50
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+  - @ai-sdk/provider-utils@4.0.9
+
 ## 3.0.49
 
 ### Patch Changes
