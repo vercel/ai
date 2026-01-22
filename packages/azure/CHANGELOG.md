@@ -1,5 +1,28 @@
 # @ai-sdk/azure
 
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [4218f86]
+  - @ai-sdk/openai@3.0.17
+
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/openai@3.0.16
+
+## 3.0.15
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai@3.0.15
+
 ## 3.0.14
 
 ### Patch Changes

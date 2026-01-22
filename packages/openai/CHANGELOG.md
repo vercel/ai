@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 3.0.17
+
+### Patch Changes
+
+- 4218f86: fix(openai): preserve tool id for apply patch tool
+
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.15
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.14
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @ai-sdk/groq
 
+## 3.0.14
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.13
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.12
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @ai-sdk/langchain
 
+## 2.0.52
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 2.0.51
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
 ## 2.0.50
 
 ### Patch Changes
