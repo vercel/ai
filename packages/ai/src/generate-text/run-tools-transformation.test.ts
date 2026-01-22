@@ -1140,4 +1140,172 @@ describe('runToolsTransformation', () => {
       });
     });
   });
+
+  describe('stream close guard', () => {
+    it('should not throw when multiple tools complete simultaneously', async () => {
+      // This test verifies the close guard prevents "Controller is already closed" errors
+      // when multiple tools' finally() blocks call attemptClose() at nearly the same time.
+      //
+      // We use a barrier pattern: all tools wait for a shared promise, then complete
+      // in the same microtask to maximize race condition likelihood.
+      let releaseBarrier: () => void;
+      const barrier = new Promise<void>(resolve => {
+        releaseBarrier = resolve;
+      });
+      let toolsWaiting = 0;
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'barrierTool',
+            input: `{ "value": "a" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'barrierTool',
+            input: `{ "value": "b" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-3',
+            toolName: 'barrierTool',
+            input: `{ "value": "c" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          barrierTool: {
+            title: 'Barrier Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              toolsWaiting++;
+              // Release barrier when all 3 tools are waiting
+              if (toolsWaiting === 3) {
+                releaseBarrier!();
+              }
+              await barrier;
+              // All tools complete in the same microtask after barrier releases
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      // Should not throw "Controller is already closed"
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Verify stream completed successfully
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+
+      // All tool results should be present
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(3);
+    });
+
+    it('should handle tools completing in reverse order without errors', async () => {
+      const completionOrder: string[] = [];
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-slow',
+            toolName: 'slowTool',
+            input: `{ "value": "slow" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-medium',
+            toolName: 'mediumTool',
+            input: `{ "value": "medium" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-fast',
+            toolName: 'fastTool',
+            input: `{ "value": "fast" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools: {
+          slowTool: {
+            title: 'Slow Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(30);
+              completionOrder.push('slow');
+              return `${value}-result`;
+            },
+          },
+          mediumTool: {
+            title: 'Medium Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(15);
+              completionOrder.push('medium');
+              return `${value}-result`;
+            },
+          },
+          fastTool: {
+            title: 'Fast Tool',
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              await delay(5);
+              completionOrder.push('fast');
+              return `${value}-result`;
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      // Tools should complete in reverse order (fast first, slow last)
+      expect(completionOrder).toEqual(['fast', 'medium', 'slow']);
+
+      // Stream should close properly after slowest tool
+      expect(result[result.length - 1]).toMatchObject({
+        type: 'finish',
+      });
+
+      // All results captured
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      expect(toolResults).toHaveLength(3);
+    });
+  });
 });
