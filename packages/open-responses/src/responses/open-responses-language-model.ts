@@ -66,22 +66,24 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     body: Omit<OpenResponsesRequestBody, 'stream' | 'stream_options'>;
     warnings: SharedV3Warning[];
   }> {
-    const { input, instructions, warnings: inputWarnings } =
-      await convertToOpenResponsesInput({
-        prompt,
-      });
+    const {
+      input,
+      instructions,
+      warnings: inputWarnings,
+    } = await convertToOpenResponsesInput({
+      prompt,
+    });
 
     // Convert function tools to the Open Responses format
-    const functionTools: FunctionToolParam[] | undefined =
-      tools
-        ?.filter(tool => tool.type === 'function')
-        .map(tool => ({
-          type: 'function' as const,
-          name: tool.name,
-          description: tool.description,
-          parameters: tool.inputSchema,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-        }));
+    const functionTools: FunctionToolParam[] | undefined = tools
+      ?.filter(tool => tool.type === 'function')
+      .map(tool => ({
+        type: 'function' as const,
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.inputSchema,
+        ...(tool.strict != null ? { strict: tool.strict } : {}),
+      }));
 
     // Convert tool choice to the Open Responses format
     const convertedToolChoice: ToolChoiceParam | undefined =
@@ -254,14 +256,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
     return {
       stream: response.pipeThrough(
-        new TransformStream<ParseResult<OpenResponsesChunk>, LanguageModelV3StreamPart>({
+        new TransformStream<
+          ParseResult<OpenResponsesChunk>,
+          LanguageModelV3StreamPart
+        >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
           transform(parseResult, controller) {
             if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: parseResult.rawValue });
+              controller.enqueue({
+                type: 'raw',
+                rawValue: parseResult.rawValue,
+              });
             }
 
             if (!parseResult.success) {
@@ -272,23 +280,52 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
             const chunk = parseResult.value;
 
             // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)
-            if (chunk.type === 'response.output_item.added' && chunk.item.type === 'reasoning') {
-              controller.enqueue({ type: 'reasoning-start', id: chunk.item.id });
+            if (
+              chunk.type === 'response.output_item.added' &&
+              chunk.item.type === 'reasoning'
+            ) {
+              controller.enqueue({
+                type: 'reasoning-start',
+                id: chunk.item.id,
+              });
               isActiveReasoning = true;
-            } else if ((chunk as { type: string }).type === 'response.reasoning_text.delta') {
-              const reasoningChunk = chunk as { item_id: string; delta: string };
-              controller.enqueue({ type: 'reasoning-delta', id: reasoningChunk.item_id, delta: reasoningChunk.delta });
-            } else if (chunk.type === 'response.output_item.done' && chunk.item.type === 'reasoning') {
+            } else if (
+              (chunk as { type: string }).type ===
+              'response.reasoning_text.delta'
+            ) {
+              const reasoningChunk = chunk as {
+                item_id: string;
+                delta: string;
+              };
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: reasoningChunk.item_id,
+                delta: reasoningChunk.delta,
+              });
+            } else if (
+              chunk.type === 'response.output_item.done' &&
+              chunk.item.type === 'reasoning'
+            ) {
               controller.enqueue({ type: 'reasoning-end', id: chunk.item.id });
               isActiveReasoning = false;
             }
 
             // Text events
-            else if (chunk.type === 'response.output_item.added' && chunk.item.type === 'message') {
+            else if (
+              chunk.type === 'response.output_item.added' &&
+              chunk.item.type === 'message'
+            ) {
               controller.enqueue({ type: 'text-start', id: chunk.item.id });
             } else if (chunk.type === 'response.output_text.delta') {
-              controller.enqueue({ type: 'text-delta', id: chunk.item_id, delta: chunk.delta });
-            } else if (chunk.type === 'response.output_item.done' && chunk.item.type === 'message') {
+              controller.enqueue({
+                type: 'text-delta',
+                id: chunk.item_id,
+                delta: chunk.delta,
+              });
+            } else if (
+              chunk.type === 'response.output_item.done' &&
+              chunk.item.type === 'message'
+            ) {
               controller.enqueue({ type: 'text-end', id: chunk.item.id });
             }
           },
@@ -315,4 +352,3 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     };
   }
 }
-

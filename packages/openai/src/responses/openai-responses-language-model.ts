@@ -283,12 +283,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             format:
               responseFormat.schema != null
                 ? {
-                  type: 'json_schema',
-                  strict: strictJsonSchema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
+                    type: 'json_schema',
+                    strict: strictJsonSchema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                    schema: responseFormat.schema,
+                  }
                 : { type: 'json_object' },
           }),
           ...(openaiOptions?.textVerbosity && {
@@ -318,15 +318,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       ...(isReasoningModel &&
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
-        reasoning: {
-          ...(openaiOptions?.reasoningEffort != null && {
-            effort: openaiOptions.reasoningEffort,
-          }),
-          ...(openaiOptions?.reasoningSummary != null && {
-            summary: openaiOptions.reasoningSummary,
-          }),
-        },
-      }),
+          reasoning: {
+            ...(openaiOptions?.reasoningEffort != null && {
+              effort: openaiOptions.reasoningEffort,
+            }),
+            ...(openaiOptions?.reasoningSummary != null && {
+              summary: openaiOptions.reasoningSummary,
+            }),
+          },
+        }),
     };
 
     // remove unsupported settings for reasoning models
@@ -705,8 +705,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           const toolCallId =
             part.approval_request_id != null
               ? (approvalRequestIdToDummyToolCallIdFromPrompt[
-                part.approval_request_id
-              ] ?? part.id)
+                  part.approval_request_id
+                ] ?? part.id)
               : part.id;
 
           const toolName = `mcp.${part.name}`;
@@ -951,16 +951,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const ongoingToolCalls: Record<
       number,
       | {
-        toolName: string;
-        toolCallId: string;
-        codeInterpreter?: {
-          containerId: string;
-        };
-        applyPatch?: {
-          hasDiff: boolean;
-          endEmitted: boolean;
-        };
-      }
+          toolName: string;
+          toolCallId: string;
+          codeInterpreter?: {
+            containerId: string;
+          };
+          applyPatch?: {
+            hasDiff: boolean;
+            endEmitted: boolean;
+          };
+        }
       | undefined
     > = {};
 
@@ -1314,10 +1314,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 const aliasedToolCallId =
                   approvalRequestId != null
                     ? (approvalRequestIdToDummyToolCallIdFromStream.get(
-                      approvalRequestId,
-                    ) ??
+                        approvalRequestId,
+                      ) ??
                       approvalRequestIdToDummyToolCallIdFromPrompt[
-                      approvalRequestId
+                        approvalRequestId
                       ] ??
                       value.item.id)
                     : value.item.id;

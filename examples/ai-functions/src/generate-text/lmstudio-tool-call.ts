@@ -16,7 +16,7 @@ run(async () => {
     },
     toolChoice: 'required',
     prompt: 'What is the weather in San Francisco?',
-    maxRetries: 0
+    maxRetries: 0,
   });
 
   console.log('Content:', JSON.stringify(result.content, null, 2));

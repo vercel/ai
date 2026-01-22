@@ -16,7 +16,7 @@ run(async () => {
 
   console.log(JSON.stringify(result.response.body, null, 2));
 
-  console.log("Reasoning:", result.reasoning);
+  console.log('Reasoning:', result.reasoning);
   console.log(result.text);
   console.log();
   console.log('Token usage:', result.usage);

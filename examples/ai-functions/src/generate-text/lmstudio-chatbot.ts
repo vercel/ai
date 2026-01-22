@@ -9,7 +9,6 @@ const lmstudio = createOpenResponses({
   url: 'http://localhost:1234/v1/responses',
 });
 
-
 const terminal = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
