@@ -8,14 +8,20 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "docs/**/*",
     "src",
     "CHANGELOG.md",
     "README.md"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "tsup --tsconfig tsconfig.build.json",
     "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
-    "clean": "del-cli dist && del-cli internal/dist",
+    "clean": "del-cli dist docs && del-cli internal/dist",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/90-elevenlabs.mdx ./docs/",
+    "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
