@@ -1,5 +1,13 @@
 # @ai-sdk/llamaindex
 
+## 2.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+
 ## 2.0.47
 
 ### Patch Changes
