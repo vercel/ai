@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.21
+
+### Patch Changes
+
+- 662d359: feat(anthropic): deferred results for tool search tool
+
 ## 3.0.20
 
 ### Patch Changes
