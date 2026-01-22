@@ -309,7 +309,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+              // Use toolCallId for tracking - it's unique per tool call from the LLM.
+              // Don't use generateId() here because frameworks can override it for
+              // message grouping (returning the same ID for all tools in a request),
+              // which would cause the Set to track only one tool instead of all.
+              const toolExecutionId = toolCall.toolCallId;
               outstandingToolResults.add(toolExecutionId);
 
               // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
