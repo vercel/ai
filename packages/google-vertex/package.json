@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "4.0.23",
+  "version": "4.0.24",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
     "CHANGELOG.md",
     "README.md",
     "edge.d.ts",

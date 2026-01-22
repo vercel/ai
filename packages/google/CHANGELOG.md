@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.11
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.10
 
 ### Patch Changes
