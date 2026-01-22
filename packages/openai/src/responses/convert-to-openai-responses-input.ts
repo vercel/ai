@@ -12,7 +12,10 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { applyPatchOutputSchema } from '../tool/apply-patch';
+import {
+  applyPatchInputSchema,
+  applyPatchOutputSchema,
+} from '../tool/apply-patch';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -248,6 +251,22 @@ export async function convertToOpenAIResponsesInput({
                     timeout_ms: parsedInput.action.timeoutMs,
                     max_output_length: parsedInput.action.maxOutputLength,
                   },
+                });
+
+                break;
+              }
+
+              if (hasApplyPatchTool && resolvedToolName === 'apply_patch') {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: applyPatchInputSchema,
+                });
+                input.push({
+                  type: 'apply_patch_call',
+                  call_id: parsedInput.callId,
+                  id: id!,
+                  status: 'completed',
+                  operation: parsedInput.operation,
                 });
 
                 break;
