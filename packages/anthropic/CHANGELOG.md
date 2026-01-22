@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.22
+
+### Patch Changes
+
+- 8ccf04b: Add `authToken` option to support `Authorization: Bearer` authentication as an alternative to `x-api-key` header authentication.
+
 ## 3.0.21
 
 ### Patch Changes
