@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [c10bd49]
+  - @ai-sdk/anthropic@3.0.18
+
+## 4.0.22
+
+### Patch Changes
+
+- 689557c: set Google Vertex Express API key as header instead of URL argument
+
 ## 4.0.21
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.14
+
+### Patch Changes
+
+- d21d016: feat(openai): add o4-mini model to OpenAIChatModelId type
+
 ## 3.0.13
 
 ### Patch Changes
