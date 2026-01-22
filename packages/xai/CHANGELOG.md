@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.30
 
 ### Patch Changes

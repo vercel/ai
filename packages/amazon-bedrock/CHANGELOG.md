@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.26
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+
 ## 4.0.25
 
 ### Patch Changes

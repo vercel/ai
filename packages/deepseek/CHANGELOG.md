@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.10
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 2.0.9
 
 ### Patch Changes
