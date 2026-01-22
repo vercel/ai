@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 4.0.24
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/anthropic@3.0.19
+  - @ai-sdk/google@3.0.11
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [c10bd49]
+  - @ai-sdk/anthropic@3.0.18
+
+## 4.0.22
+
+### Patch Changes
+
+- 689557c: set Google Vertex Express API key as header instead of URL argument
+
 ## 4.0.21
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/llamaindex",
-  "version": "2.0.43",
+  "version": "2.0.46",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
     "CHANGELOG.md",
     "README.md"
   ],

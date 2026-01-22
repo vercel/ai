@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 3.0.19
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.18
+
+### Patch Changes
+
+- c10bd49: fix(anthropic): handle web_search_result_location citations and add webFetch documents to citationDocuments
+
 ## 3.0.17
 
 ### Patch Changes

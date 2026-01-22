@@ -22,6 +22,7 @@ import {
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
+import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
   providerMetadata: SharedV3ProviderMetadata | undefined,
@@ -43,6 +44,7 @@ async function shouldEnableCitations(
 
 export async function convertToBedrockChatMessages(
   prompt: LanguageModelV3Prompt,
+  isMistral: boolean = false,
 ): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
@@ -204,7 +206,7 @@ export async function convertToBedrockChatMessages(
 
                 bedrockContent.push({
                   toolResult: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     content: toolResultContent,
                   },
                 });
@@ -305,7 +307,7 @@ export async function convertToBedrockChatMessages(
               case 'tool-call': {
                 bedrockContent.push({
                   toolUse: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: part.toolName,
                     input: part.input as JSONObject,
                   },

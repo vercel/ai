@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "3.0.17",
+  "version": "3.0.20",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
     "CHANGELOG.md",
     "README.md"
   ],
