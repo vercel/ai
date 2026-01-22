@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.19
+
+### Patch Changes
+
+- c60fdd8: Inline fullMessage variable in GatewayError constructor
+
 ## 3.0.18
 
 ### Patch Changes
