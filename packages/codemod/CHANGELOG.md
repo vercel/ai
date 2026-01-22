@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.2
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.1
 
 ### Patch Changes
