@@ -20,8 +20,14 @@ run(async () => {
       console.log(`\n========== STEP ${stepNumber} ==========`);
       console.log('Response body (JSON):');
       console.log(JSON.stringify(step.response.body, null, 2));
-      console.log('\nTool calls:', step.toolCalls.map(tc => tc.toolName));
-      console.log('Tool results:', step.toolResults.map(tr => tr.toolName));
+      console.log(
+        '\nTool calls:',
+        step.toolCalls.map(tc => tc.toolName),
+      );
+      console.log(
+        'Tool results:',
+        step.toolResults.map(tr => tr.toolName),
+      );
       console.log(`========== END STEP ${stepNumber} ==========\n`);
     },
     tools: {
