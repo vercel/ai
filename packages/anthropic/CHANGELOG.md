@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.19
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.18
 
 ### Patch Changes

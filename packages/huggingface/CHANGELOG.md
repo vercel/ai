@@ -1,5 +1,13 @@
 # @ai-sdk/huggingface
 
+## 1.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
 ## 1.0.16
 
 ### Patch Changes

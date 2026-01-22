@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 1.0.6
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 1.0.5
 
 ### Patch Changes

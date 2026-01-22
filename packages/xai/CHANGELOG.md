@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 3.0.30
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
 ## 3.0.29
 
 ### Patch Changes

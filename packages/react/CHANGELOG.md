@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 3.0.48
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
 ## 3.0.47
 
 ### Patch Changes
