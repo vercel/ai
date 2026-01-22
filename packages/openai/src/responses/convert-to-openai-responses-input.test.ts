@@ -2317,6 +2317,253 @@ describe('convertToOpenAIResponsesInput', () => {
         `);
       });
     });
+
+    describe('apply_patch', () => {
+      it('should convert apply_patch tool call into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                    operation: {
+                      type: 'create_file',
+                      path: 'index.html',
+                      diff: '+<!doctype html>\n+<html></html>',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  output: {
+                    type: 'json',
+                    value: {
+                      status: 'completed',
+                      output: 'Created index.html',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798",
+              "type": "item_reference",
+            },
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "output": "Created index.html",
+              "status": "completed",
+              "type": "apply_patch_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call to apply_patch_call with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                    operation: {
+                      type: 'create_file',
+                      path: 'index.html',
+                      diff: '+<!doctype html>\n+<html></html>',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  output: {
+                    type: 'json',
+                    value: {
+                      status: 'completed',
+                      output: 'Created index.html',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "id": "apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798",
+              "operation": {
+                "diff": "+<!doctype html>
+          +<html></html>",
+                "path": "index.html",
+                "type": "create_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "output": "Created index.html",
+              "status": "completed",
+              "type": "apply_patch_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call with update_file operation with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_UpdateFile123',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_UpdateFile123',
+                    operation: {
+                      type: 'update_file',
+                      path: 'src/app.ts',
+                      diff: '-old line\n+new line',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId: 'apc_update_file_item_id',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_UpdateFile123",
+              "id": "apc_update_file_item_id",
+              "operation": {
+                "diff": "-old line
+          +new line",
+                "path": "src/app.ts",
+                "type": "update_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call with delete_file operation with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_DeleteFile456',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_DeleteFile456',
+                    operation: {
+                      type: 'delete_file',
+                      path: 'temp.txt',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId: 'apc_delete_file_item_id',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_DeleteFile456",
+              "id": "apc_delete_file_item_id",
+              "operation": {
+                "path": "temp.txt",
+                "type": "delete_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('provider tool outputs', () => {
