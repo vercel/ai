@@ -21,3 +21,17 @@ To find specific files:
 Use these resources for current API details, usage patterns, and examples.
 
 For common errors and troubleshooting, see [Common Errors Reference](references/common-errors.md).
+
+## Provider-Specific Information
+
+For questions about specific providers (OpenAI, Anthropic, Google, etc.), search their dedicated packages:
+
+1. **Provider documentation**: `grep "your query" node_modules/@ai-sdk/<provider>/docs/`
+2. **Provider source code**: `grep "your query" node_modules/@ai-sdk/<provider>/src/`
+
+To find provider files:
+
+- `glob "node_modules/@ai-sdk/<provider>/docs/**/*.mdx"` for provider documentation
+- `glob "node_modules/@ai-sdk/<provider>/src/**/*.ts"` for provider source files
+
+This is especially important for `providerOptions`, which are provider-specific settings passed to model calls. Each provider has unique options documented in their package.
