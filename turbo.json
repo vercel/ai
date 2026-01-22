@@ -80,7 +80,7 @@
       "dependsOn": ["^build", "transit"]
     },
     "test:update": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "build"]
     },
     "publint": {
       "dependsOn": ["^build", "build"]
