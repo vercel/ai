@@ -1,5 +1,11 @@
 # @ai-sdk/baseten
 
+## 1.0.19
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 1.0.18
 
 ### Patch Changes

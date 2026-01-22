@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.12
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.11
 
 ### Patch Changes
