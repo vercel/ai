@@ -1,5 +1,23 @@
 # @ai-sdk/anthropic
 
+## 3.0.18
+
+### Patch Changes
+
+- c10bd49: fix(anthropic): handle web_search_result_location citations and add webFetch documents to citationDocuments
+
+## 3.0.17
+
+### Patch Changes
+
+- 4729bed: Fix JSON parsing crash when handling Anthropic web_fetch tool error results
+
+## 3.0.16
+
+### Patch Changes
+
+- d36fa72: Not sending structured output beta header for json response tool
+
 ## 3.0.15
 
 ### Patch Changes

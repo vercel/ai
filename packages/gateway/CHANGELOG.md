@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 3.0.19
+
+### Patch Changes
+
+- c60fdd8: Inline fullMessage variable in GatewayError constructor
+
+## 3.0.18
+
+### Patch Changes
+
+- 7af4eb4: chore(provider/gateway): update gateway model settings files
+
+## 3.0.17
+
+### Patch Changes
+
+- 66d78d5: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.16
 
 ### Patch Changes
