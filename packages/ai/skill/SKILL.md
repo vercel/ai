@@ -14,6 +14,7 @@ When you need up-to-date information about the AI SDK, search the bundled docume
 2. **Source code**: `grep "your query" node_modules/ai/src/`
 
 To find specific files:
+
 - `glob "node_modules/ai/docs/**/*.mdx"` for documentation files
 - `glob "node_modules/ai/src/**/*.ts"` for source files
 
