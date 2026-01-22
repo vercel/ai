@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
 ## 3.0.31
 
 ### Patch Changes
