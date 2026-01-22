@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/revai",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,6 +8,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "docs/**/*",
     "src",
     "!src/**/*.test.ts",
     "!src/**/*.test-d.ts",
@@ -16,10 +17,15 @@
     "CHANGELOG.md",
     "README.md"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "tsup --tsconfig tsconfig.build.json",
     "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
-    "clean": "del-cli dist",
+    "clean": "del-cli dist docs",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/160-revai.mdx ./docs/",
+    "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",

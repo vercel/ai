@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.20
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.19
 
 ### Patch Changes

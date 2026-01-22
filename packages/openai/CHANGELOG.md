@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.15
 
 ### Patch Changes
