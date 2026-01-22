@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.17
+
+### Patch Changes
+
+- 4218f86: fix(openai): preserve tool id for apply patch tool
+
 ## 3.0.16
 
 ### Patch Changes
