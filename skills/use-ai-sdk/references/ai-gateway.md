@@ -9,7 +9,7 @@ The Vercel AI Gateway is the fastest way to get started with the AI SDK. It prov
 
 ## Authentication
 
-Authenticate with OIDC (for Vercel deployments) or an AI Gateway API key:
+Authenticate with OIDC (for Vercel deployments) or an [AI Gateway API key](https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai-gateway%2Fapi-keys&title=AI+Gateway+API+Keys):
 
 ```env filename=".env.local"
 AI_GATEWAY_API_KEY=your_api_key_here
