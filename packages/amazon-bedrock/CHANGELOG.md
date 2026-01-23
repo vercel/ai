@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.30
+
+### Patch Changes
+
+- 6ece44c: Fix Cohere embedding model request format on Bedrock by sending the required `input_type` and parsing Cohere-style responses.
+
 ## 4.0.29
 
 ### Patch Changes
