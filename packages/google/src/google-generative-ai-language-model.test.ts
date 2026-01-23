@@ -2046,6 +2046,78 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass logprobs options in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseLogprobs: true,
+          logprobs: 5,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        responseLogprobs: true,
+        logprobs: 5,
+      },
+    });
+  });
+
+  it('should extract logprobsResult and avgLogprobs from response', async () => {
+    const logprobsResult = {
+      chosenCandidates: [
+        { logProbability: -0.5, token: 'Hello', tokenId: 123 },
+        { logProbability: -0.3, token: ',', tokenId: 456 },
+      ],
+      topCandidates: [
+        {
+          candidates: [
+            { logProbability: -0.5, token: 'Hello', tokenId: 123 },
+            { logProbability: -0.8, token: 'Hi', tokenId: 789 },
+          ],
+        },
+      ],
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'Hello' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+            logprobsResult,
+            avgLogprobs: -0.4,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.logprobsResult).toStrictEqual(
+      logprobsResult,
+    );
+    expect(providerMetadata?.google.avgLogprobs).toBe(-0.4);
+  });
+
   it('should pass retrievalConfig in provider options', async () => {
     prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
 
@@ -2844,6 +2916,61 @@ describe('doStream', () => {
     });
   });
 
+  it('should expose logprobs in provider metadata on finish', async () => {
+    const logprobsResult = {
+      chosenCandidates: [{ logProbability: -0.5, token: 'test', tokenId: 123 }],
+      topCandidates: [
+        {
+          candidates: [
+            { logProbability: -0.5, token: 'test', tokenId: 123 },
+            { logProbability: -0.8, token: 'Test', tokenId: 456 },
+          ],
+        },
+      ],
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'test' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+              logprobsResult,
+              avgLogprobs: -0.5,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.logprobsResult,
+    ).toStrictEqual(logprobsResult);
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.avgLogprobs,
+    ).toBe(-0.5);
+  });
+
   it('should stream text deltas', async () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
@@ -2892,7 +3019,9 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobsResult": null,
               "promptFeedback": null,
               "safetyRatings": [
                 {
@@ -3504,7 +3633,9 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobsResult": null,
               "promptFeedback": null,
               "safetyRatings": [
                 {
@@ -3738,6 +3869,38 @@ describe('doStream', () => {
     });
   });
 
+  it('should warn about logprobs when streaming but still send them', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        google: {
+          responseLogprobs: true,
+          logprobs: 5,
+        },
+      },
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    // Check that warning was emitted
+    const startEvent = events.find(event => event.type === 'stream-start');
+    expect(startEvent?.type === 'stream-start' && startEvent.warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'Logprobs are not supported for streaming. Use generateText instead of streamText.',
+      },
+    ]);
+
+    // Check that logprobs were still sent in request (for models that support it)
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.generationConfig.responseLogprobs).toBe(true);
+    expect(requestBody.generationConfig.logprobs).toBe(5);
+  });
+
   it('should stream reasoning parts separately from text parts', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
@@ -3892,7 +4055,9 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobsResult": null,
               "promptFeedback": null,
               "safetyRatings": null,
               "urlContextMetadata": null,
@@ -4036,7 +4201,9 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobsResult": null,
               "promptFeedback": null,
               "safetyRatings": [
                 {

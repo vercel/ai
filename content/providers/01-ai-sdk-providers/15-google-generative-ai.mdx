@@ -200,6 +200,19 @@ The following optional provider options are available for Google Generative AI m
   - 16:9
   - 21:9
 
+- **responseLogprobs** _boolean_
+
+  Optional. If true, returns log probabilities for the generated tokens in `providerMetadata`.
+
+- **logprobs** _number (1-20)_
+
+  Optional. Only valid if `responseLogprobs` is true.
+  Specifies the number of top logprobs to return at each decoding step.
+
+  <Note>
+    Logprobs are only supported with `generateText`, not `streamText`.
+  </Note>
+
 ### Thinking
 
 The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).

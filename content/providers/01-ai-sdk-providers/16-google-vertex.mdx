@@ -336,6 +336,21 @@ The following optional provider options are available for Google Vertex models:
 
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls) for usage details.
 
+- **responseLogprobs** _boolean_
+
+  Optional. If true, returns log probabilities for the generated tokens in `providerMetadata`.
+
+- **logprobs** _number (1-20)_
+
+  Optional. Only valid if `responseLogprobs` is true.
+  Specifies the number of top logprobs to return at each decoding step.
+
+  <Note>
+    Logprobs are only supported with `generateText`, not `streamText`.
+  </Note>
+
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig) for usage details.
+
 You can use Google Vertex language models to generate text with the `generateText` function:
 
 ```ts highlight="1,4"
@@ -507,6 +522,44 @@ When `includeThoughts` is true, parts of the API response marked with `thought: 
   Refer to the [Google Vertex AI documentation on
   "thinking"](https://cloud.google.com/vertex-ai/generative-ai/docs/thinking)
   for model compatibility and further details.
+</Note>
+
+#### Logprobs
+
+Google Vertex AI supports returning log probabilities for generated tokens. This is useful for analyzing model confidence, filtering outputs, or evaluating generation quality.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  prompt: 'Say hello.',
+  providerOptions: {
+    vertex: {
+      responseLogprobs: true,
+      logprobs: 5, // Return top 5 logprobs per token
+    },
+  },
+});
+
+// Access logprobs from providerMetadata
+const logprobsResult = providerMetadata?.vertex?.logprobsResult;
+const avgLogprobs = providerMetadata?.vertex?.avgLogprobs;
+
+console.log('Chosen tokens:', logprobsResult?.chosenCandidates);
+console.log('Top candidates:', logprobsResult?.topCandidates);
+console.log('Average logprobs:', avgLogprobs);
+```
+
+The `logprobsResult` contains:
+
+- **chosenCandidates**: Array of chosen tokens with their log probabilities
+- **topCandidates**: Array of decoding steps, each with top-K candidate tokens
+
+<Note>
+  Logprobs are only supported with `generateText`, not `streamText`. Gemini 3
+  models require the `global` location.
 </Note>
 
 #### File Inputs

@@ -179,6 +179,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
+          responseLogprobs: googleOptions?.responseLogprobs,
+          logprobs: googleOptions?.logprobs,
           thinkingConfig: googleOptions?.thinkingConfig,
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
@@ -339,6 +341,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          logprobsResult: candidate.logprobsResult ?? null,
+          avgLogprobs: candidate.avgLogprobs ?? null,
           usageMetadata: usageMetadata ?? null,
         },
       },
@@ -355,6 +359,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
+
+    // Logprobs may not be supported for streaming on all models - warn but allow
+    if (
+      args.generationConfig.responseLogprobs != null ||
+      args.generationConfig.logprobs != null
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          'Logprobs are not supported for streaming. Use generateText instead of streamText.',
+      });
+    }
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
@@ -630,6 +646,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   urlContextMetadata: candidate.urlContextMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  logprobsResult: candidate.logprobsResult ?? null,
+                  avgLogprobs: candidate.avgLogprobs ?? null,
                 },
               };
               if (usageMetadata != null) {
@@ -937,6 +955,35 @@ export const getUrlContextMetadataSchema = () =>
     ),
   });
 
+// https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#LogprobsResult
+const getLogprobsResultSchema = () =>
+  z.object({
+    chosenCandidates: z
+      .array(
+        z.object({
+          logProbability: z.number().nullish(),
+          token: z.string().nullish(),
+          tokenId: z.number().nullish(),
+        }),
+      )
+      .nullish(),
+    topCandidates: z
+      .array(
+        z.object({
+          candidates: z
+            .array(
+              z.object({
+                logProbability: z.number().nullish(),
+                token: z.string().nullish(),
+                tokenId: z.number().nullish(),
+              }),
+            )
+            .nullish(),
+        }),
+      )
+      .nullish(),
+  });
+
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
@@ -947,6 +994,8 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
           groundingMetadata: getGroundingMetadataSchema().nullish(),
           urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          logprobsResult: getLogprobsResultSchema().nullish(),
+          avgLogprobs: z.number().nullish(),
         }),
       ),
       usageMetadata: usageSchema.nullish(),
@@ -992,6 +1041,8 @@ const chunkSchema = lazySchema(() =>
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+            logprobsResult: getLogprobsResultSchema().nullish(),
+            avgLogprobs: z.number().nullish(),
           }),
         )
         .nullish(),

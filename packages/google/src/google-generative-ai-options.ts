@@ -50,6 +50,24 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
     z.object({
       responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
 
+      /**
+       * Optional. If true, export the logprobs results in the response.
+       *
+       * Note: Logprobs are only supported with `generateText`, not `streamText`.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig
+       */
+      responseLogprobs: z.boolean().optional(),
+
+      /**
+       * Optional. Only valid if responseLogprobs is set to true.
+       * This specifies the number of top logprobs to return at each decoding step.
+       * Valid range is 1-20.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig
+       */
+      logprobs: z.number().min(1).max(20).optional(),
+
       thinkingConfig: z
         .object({
           thinkingBudget: z.number().optional(),
