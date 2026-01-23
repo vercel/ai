@@ -7,9 +7,9 @@ import { withSpinner } from '../lib/spinner';
 run(async () => {
   const { videos } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
-      model: fal.video('luma-dream-machine'),
+      model: fal.video('hunyuan-video'),
       prompt:
-        'An echidna looking out at San Francisco Bay at sunrise from Crissy Field.',
+        'A raven surveying downtown San Francisco at night with neon lights in the style of ukiyo-e.',
       aspectRatio: '16:9',
       duration: 5,
     }),

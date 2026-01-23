@@ -251,6 +251,7 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       });
     }
 
+
     const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
     const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
 
@@ -277,8 +278,13 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
         });
       }
 
-      // Poll operation status - use the full operation name
-      const statusUrl = `${this.config.baseURL}/${operationName}`;
+      // Poll operation status
+      // For publisher models, the operation name is the full resource path
+      // Poll using v1beta1 API (same as the initial request) with the complete operation name
+      const baseUrlMatch = this.config.baseURL.match(/^(https?:\/\/[^\/]+)\//);
+      const baseHost = baseUrlMatch ? baseUrlMatch[1] : 'https://us-central1-aiplatform.googleapis.com';
+      const statusUrl = `${baseHost}/v1beta1/${operationName}`;
+
 
       const { value: statusOperation } = await getFromApi({
         url: statusUrl,

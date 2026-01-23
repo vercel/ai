@@ -126,7 +126,10 @@ export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
             : convertUint8ArrayToBase64(firstFile.data);
 
         instance.image = {
-          bytesBase64Encoded: base64Data,
+          inlineData: {
+            mimeType: firstFile.mediaType || 'image/png',
+            data: base64Data,
+          },
         };
       }
 
@@ -141,7 +144,21 @@ export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
 
     // Add reference images if provided
     if (googleOptions?.referenceImages != null) {
-      instance.referenceImages = googleOptions.referenceImages;
+      instance.referenceImages = googleOptions.referenceImages.map(refImg => {
+        if (refImg.bytesBase64Encoded) {
+          return {
+            inlineData: {
+              mimeType: 'image/png',
+              data: refImg.bytesBase64Encoded,
+            },
+          };
+        } else if (refImg.gcsUri) {
+          return {
+            gcsUri: refImg.gcsUri,
+          };
+        }
+        return refImg;
+      });
     }
 
     // Build parameters object
@@ -260,8 +277,8 @@ export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
         });
       }
 
-      // Poll operation status
-      const statusUrl = `${this.config.baseURL}/operations/${operationName}`;
+      // Poll operation status - use the full operation name
+      const statusUrl = `${this.config.baseURL}/${operationName}`;
 
       const { value: statusOperation } = await getFromApi({
         url: statusUrl,
@@ -290,27 +307,39 @@ export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
 
     // Extract videos from response
     const response = finalOperation.response;
-    if (!response?.generated_videos || response.generated_videos.length === 0) {
+    if (
+      !response?.generateVideoResponse?.generatedSamples ||
+      response.generateVideoResponse.generatedSamples.length === 0
+    ) {
       throw new AISDKError({
         name: 'GOOGLE_VIDEO_GENERATION_ERROR',
         message: 'No videos in response',
       });
     }
 
-    // Process videos - Google returns base64 encoded videos
-    const videos: Array<{ type: 'base64'; data: string; mediaType: string }> =
-      [];
+    // Process videos - Google returns video URLs
+    const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
     const videoMetadata: any[] = [];
 
-    for (const generatedVideo of response.generated_videos) {
-      if (generatedVideo.video?.bytesBase64Encoded) {
+    // Get API key from headers to append to download URLs
+    const resolvedHeaders = await resolve(this.config.headers);
+    const apiKey = resolvedHeaders?.['x-goog-api-key'];
+
+    for (const generatedSample of response.generateVideoResponse
+      .generatedSamples) {
+      if (generatedSample.video?.uri) {
+        // Append API key to URL for authentication during download
+        const urlWithAuth = apiKey
+          ? `${generatedSample.video.uri}${generatedSample.video.uri.includes('?') ? '&' : '?'}key=${apiKey}`
+          : generatedSample.video.uri;
+
         videos.push({
-          type: 'base64',
-          data: generatedVideo.video.bytesBase64Encoded,
-          mediaType: generatedVideo.video.mimeType || 'video/mp4',
+          type: 'url',
+          url: urlWithAuth,
+          mediaType: 'video/mp4',
         });
         videoMetadata.push({
-          mimeType: generatedVideo.video.mimeType,
+          uri: generatedSample.video.uri,
         });
       }
     }
@@ -354,17 +383,20 @@ const googleOperationSchema = z.object({
     .nullish(),
   response: z
     .object({
-      generated_videos: z
-        .array(
-          z.object({
-            video: z
-              .object({
-                bytesBase64Encoded: z.string().nullish(),
-                mimeType: z.string().nullish(),
-              })
-              .nullish(),
-          }),
-        )
+      generateVideoResponse: z
+        .object({
+          generatedSamples: z
+            .array(
+              z.object({
+                video: z
+                  .object({
+                    uri: z.string().nullish(),
+                  })
+                  .nullish(),
+              }),
+            )
+            .nullish(),
+        })
         .nullish(),
     })
     .nullish(),
