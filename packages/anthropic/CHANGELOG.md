@@ -1,5 +1,64 @@
 # @ai-sdk/anthropic
 
+## 3.0.23
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.22
+
+### Patch Changes
+
+- 8ccf04b: Add `authToken` option to support `Authorization: Bearer` authentication as an alternative to `x-api-key` header authentication.
+
+## 3.0.21
+
+### Patch Changes
+
+- 662d359: feat(anthropic): deferred results for tool search tool
+
+## 3.0.20
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.19
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.18
+
+### Patch Changes
+
+- c10bd49: fix(anthropic): handle web_search_result_location citations and add webFetch documents to citationDocuments
+
+## 3.0.17
+
+### Patch Changes
+
+- 4729bed: Fix JSON parsing crash when handling Anthropic web_fetch tool error results
+
+## 3.0.16
+
+### Patch Changes
+
+- d36fa72: Not sending structured output beta header for json response tool
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
 ## 3.0.14
 
 ### Patch Changes

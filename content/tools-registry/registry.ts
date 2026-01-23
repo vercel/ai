@@ -31,7 +31,7 @@ export const tools: Tool[] = [
     tags: ['code-execution', 'sandbox'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ai-sdk-tool-code-execution',
+      pnpm: 'pnpm add ai-sdk-tool-code-execution',
       npm: 'npm install ai-sdk-tool-code-execution',
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
@@ -63,7 +63,7 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'EXA_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @exalabs/ai-sdk',
+      pnpm: 'pnpm add @exalabs/ai-sdk',
       npm: 'npm install @exalabs/ai-sdk',
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
@@ -95,7 +95,7 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @parallel-web/ai-sdk-tools',
+      pnpm: 'pnpm add @parallel-web/ai-sdk-tools',
       npm: 'npm install @parallel-web/ai-sdk-tools',
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
@@ -127,7 +127,7 @@ console.log(text);`,
     tags: ['code-execution', 'sandbox', 'mcp', 'code-mode'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ctx-zip',
+      pnpm: 'pnpm add ctx-zip',
       npm: 'npm install ctx-zip',
       yarn: 'yarn add ctx-zip',
       bun: 'bun add ctx-zip',
@@ -180,7 +180,7 @@ console.log(text);
     tags: ['search', 'web'],
     apiKeyEnvName: 'PERPLEXITY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @perplexity-ai/ai-sdk',
+      pnpm: 'pnpm add @perplexity-ai/ai-sdk',
       npm: 'npm install @perplexity-ai/ai-sdk',
       yarn: 'yarn add @perplexity-ai/ai-sdk',
       bun: 'bun add @perplexity-ai/ai-sdk',
@@ -212,7 +212,7 @@ console.log(text);`,
     tags: ['search', 'extract', 'crawl'],
     apiKeyEnvName: 'TAVILY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @tavily/ai-sdk',
+      pnpm: 'pnpm add @tavily/ai-sdk',
       npm: 'npm install @tavily/ai-sdk',
       yarn: 'yarn add @tavily/ai-sdk',
       bun: 'bun add @tavily/ai-sdk',
@@ -244,7 +244,7 @@ console.log(text);`,
     tags: ['scraping', 'search', 'crawling', 'extraction', 'web'],
     apiKeyEnvName: 'FIRECRAWL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install firecrawl-aisdk',
+      pnpm: 'pnpm add firecrawl-aisdk',
       npm: 'npm install firecrawl-aisdk',
       yarn: 'yarn add firecrawl-aisdk',
       bun: 'bun add firecrawl-aisdk',
@@ -276,7 +276,7 @@ console.log(text);`,
     tags: ['code-execution', 'browser-automation', 'sandbox'],
     apiKeyEnvName: 'AWS_ROLE_ARN',
     installCommand: {
-      pnpm: 'pnpm install bedrock-agentcore',
+      pnpm: 'pnpm add bedrock-agentcore',
       npm: 'npm install bedrock-agentcore',
       yarn: 'yarn add bedrock-agentcore',
       bun: 'bun add bedrock-agentcore',
@@ -325,7 +325,7 @@ try {
     tags: ['security', 'guardrails', 'pii', 'prompt-injection', 'verification'],
     apiKeyEnvName: 'SUPERAGENT_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @superagent-ai/ai-sdk',
+      pnpm: 'pnpm add @superagent-ai/ai-sdk',
       npm: 'npm install @superagent-ai/ai-sdk',
       yarn: 'yarn add @superagent-ai/ai-sdk',
       bun: 'bun add @superagent-ai/ai-sdk',
@@ -352,6 +352,38 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
   },
   {
+    slug: 'tako-search',
+    name: 'Tako Search',
+    description:
+      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+    packageName: '@takoviz/ai-sdk',
+    installCommand: {
+      pnpm: 'pnpm install @takoviz/ai-sdk',
+      npm: 'npm install @takoviz/ai-sdk',
+      yarn: 'yarn add @takoviz/ai-sdk',
+      bun: 'bun add @takoviz/ai-sdk',
+    },
+    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
+import { generateText, stepCountIs } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt: 'What is the stock price of Nvidia?',
+  tools: {
+    takoSearch: takoSearch(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
+    websiteUrl: 'https://tako.com',
+    apiKeyEnvName: 'TAKO_API_KEY',
+    apiKeyUrl: 'https://tako.com',
+    tags: ['search', 'data', 'visualization', 'analytics'],
+  },
+  {
     slug: 'valyu',
     name: 'Valyu',
     description:
@@ -360,7 +392,7 @@ console.log(text);`,
     tags: ['search', 'web', 'domain-search'],
     apiKeyEnvName: 'VALYU_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @valyu/ai-sdk',
+      pnpm: 'pnpm add @valyu/ai-sdk',
       npm: 'npm install @valyu/ai-sdk',
       yarn: 'yarn add @valyu/ai-sdk',
       bun: 'bun add @valyu/ai-sdk',

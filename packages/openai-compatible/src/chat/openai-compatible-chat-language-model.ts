@@ -58,6 +58,13 @@ export type OpenAICompatibleChatConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV3['supportedUrls'];
+
+  /**
+   * Optional function to transform the request body before sending it to the API.
+   * This is useful for proxy providers that may require a different request format
+   * than the official OpenAI API.
+   */
+  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
@@ -100,6 +107,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
+  private transformRequestBody(args: Record<string, any>): Record<string, any> {
+    return this.config.transformRequestBody?.(args) ?? args;
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -117,10 +128,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
+    // Parse provider options - check for deprecated 'openai-compatible' key
+    const deprecatedOptions = await parseProviderOptions({
+      provider: 'openai-compatible',
+      providerOptions,
+      schema: openaiCompatibleProviderOptions,
+    });
+
+    if (deprecatedOptions != null) {
+      warnings.push({
+        type: 'other',
+        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+      });
+    }
+
     const compatibleOptions = Object.assign(
+      deprecatedOptions ?? {},
       (await parseProviderOptions({
-        provider: 'openai-compatible',
+        provider: 'openaiCompatible',
         providerOptions,
         schema: openaiCompatibleProviderOptions,
       })) ?? {},
@@ -219,7 +244,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   ): Promise<LanguageModelV3GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify(args);
+    const transformedBody = this.transformRequestBody(args);
+    const body = JSON.stringify(transformedBody);
 
     const {
       responseHeaders,
@@ -231,7 +257,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         OpenAICompatibleChatResponseSchema,
@@ -321,7 +347,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   ): Promise<LanguageModelV3StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = {
+    const body = this.transformRequestBody({
       ...args,
       stream: true,
 
@@ -329,7 +355,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       stream_options: this.config.includeUsage
         ? { include_usage: true }
         : undefined,
-    };
+    });
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();

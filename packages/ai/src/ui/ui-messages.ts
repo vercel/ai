@@ -233,6 +233,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
       output?: never;
       errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
   | {
@@ -337,6 +338,7 @@ export type DynamicToolUIPart = {
       input: unknown | undefined;
       output?: never;
       errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }
   | {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -434,6 +434,25 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
+        openaiCompatible: {
+          user: 'test-user-id',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      user: 'test-user-id',
+    });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-beta').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
         'openai-compatible': {
           user: 'test-user-id',
         },
@@ -444,6 +463,11 @@ describe('doGenerate', () => {
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
@@ -3132,5 +3156,137 @@ describe('raw chunks', () => {
         },
       ]
     `);
+  });
+});
+
+describe('transformRequestBody', () => {
+  function prepareTransformJsonResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-beta',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello!',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+      },
+    };
+  }
+
+  function prepareTransformStreamResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+  }
+
+  it('should transform request body in doGenerate when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should transform request body in doStream when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformStreamResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    // Consume the stream
+    await convertReadableStreamToArray(stream);
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: true,
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should work without transformRequestBody', async () => {
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      model: 'grok-beta',
+    });
+    expect(requestBody).not.toHaveProperty('custom_field');
   });
 });

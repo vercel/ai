@@ -303,6 +303,50 @@ prepareStep: async ({
 },
 ```
 
+## Forced Tool Calling
+
+You can force the agent to always use tools by combining `toolChoice: 'required'` with a `done` tool that has no `execute` function. This pattern ensures the agent uses tools for every step and stops only when it explicitly signals completion.
+
+```ts
+import { ToolLoopAgent, tool } from 'ai';
+import { z } from 'zod';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    search: searchTool,
+    analyze: analyzeTool,
+    done: tool({
+      description: 'Signal that you have finished your work',
+      inputSchema: z.object({
+        answer: z.string().describe('The final answer'),
+      }),
+      // No execute function - stops the agent when called
+    }),
+  },
+  toolChoice: 'required', // Force tool calls at every step
+});
+
+const result = await agent.generate({
+  prompt: 'Research and analyze this topic, then provide your answer.',
+});
+
+// extract answer from done tool call
+const toolCall = result.staticToolCalls[0]; // tool call from final step
+if (toolCall?.toolName === 'done') {
+  console.log(toolCall.input.answer);
+}
+```
+
+Key aspects of this pattern:
+
+- **`toolChoice: 'required'`**: Forces the model to call a tool at every step instead of generating text directly. This ensures the agent follows a structured workflow.
+- **`done` tool without `execute`**: A tool that has no `execute` function acts as a termination signal. When the agent calls this tool, the loop stops because there's no function to execute.
+- **Accessing results**: The final answer is available in `result.staticToolCalls`, which contains tool calls that weren't executed.
+
+This pattern is useful when you want the agent to always use specific tools for operations (like code execution or data retrieval) rather than attempting to answer directly.
+
 ## Manual Loop Control
 
 For scenarios requiring complete control over the agent loop, you can use AI SDK Core functions (`generateText` and `streamText`) to implement your own loop management instead of using `stopWhen` and `prepareStep`. This approach provides maximum flexibility for complex workflows.

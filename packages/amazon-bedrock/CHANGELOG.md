@@ -1,5 +1,95 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.30
+
+### Patch Changes
+
+- 6ece44c: Fix Cohere embedding model request format on Bedrock by sending the required `input_type` and parsing Cohere-style responses.
+
+## 4.0.29
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/anthropic@3.0.23
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [8ccf04b]
+  - @ai-sdk/anthropic@3.0.22
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [662d359]
+  - @ai-sdk/anthropic@3.0.21
+
+## 4.0.26
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+
+## 4.0.25
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/anthropic@3.0.19
+
+## 4.0.24
+
+### Patch Changes
+
+- d5466df: fix(amazon-bedrock): normalize tool call IDs for Mistral models
+
+  Mistral models on Bedrock require tool call IDs to match exactly 9 alphanumeric characters. This fix normalizes Bedrock-generated tool call IDs when using Mistral models to prevent validation errors during multi-turn tool calling.
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [c10bd49]
+  - @ai-sdk/anthropic@3.0.18
+
+## 4.0.22
+
+### Patch Changes
+
+- 3318e0d: feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [4729bed]
+  - @ai-sdk/anthropic@3.0.17
+
+## 4.0.20
+
+### Patch Changes
+
+- Updated dependencies [d36fa72]
+  - @ai-sdk/anthropic@3.0.16
+
+## 4.0.19
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/anthropic@3.0.15
+  - @ai-sdk/provider-utils@4.0.8
+
 ## 4.0.18
 
 ### Patch Changes
