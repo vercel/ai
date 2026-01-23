@@ -1,0 +1,7 @@
+# Skip formatting if ARTISANAL_MODE is set
+if [ -n "$ARTISANAL_MODE" ]; then
+  echo "ARTISANAL_MODE is set, skipping lint-staged"
+  exit 0
+fi
+
+pnpm lint-staged

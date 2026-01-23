@@ -118,7 +118,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 - **Tool**: Prettier
 - **Config**: Defined in root `package.json`
 - **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Run**: `pnpm prettier-fix` before committing
+- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`
 
 ### Testing
 
@@ -229,6 +229,5 @@ The SDK uses a layered provider architecture following the adapter pattern:
 
 - Add minor/major changesets without maintainer approval
 - Change public APIs without updating documentation
-- Commit without running `pnpm prettier-fix`
 - Use `require()` for Zod imports
 - Add new dependencies without running `pnpm update-references`
