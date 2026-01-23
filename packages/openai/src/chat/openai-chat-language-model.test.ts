@@ -3690,7 +3690,7 @@ describe('custom provider name support', () => {
       });
     });
 
-    it('should include custom provider name key in providerMetadata output', async () => {
+    it('should only include "openai" key in providerMetadata when custom providerOptions key is not used', async () => {
       prepareCustomJsonResponse({
         usage: {
           prompt_tokens: 4,
@@ -3713,7 +3713,44 @@ describe('custom provider name support', () => {
         prompt: TEST_PROMPT,
       });
 
-      // providerMetadata should include BOTH keys
+      // When custom key not used in providerOptions, only 'openai' key in output
+      expect(result.providerMetadata).toHaveProperty('openai');
+      expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+        'openai',
+      ]);
+      expect(result.providerMetadata?.openai).toStrictEqual({
+        acceptedPredictionTokens: 10,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should include both "openai" and custom key in providerMetadata when custom providerOptions key is used', async () => {
+      prepareCustomJsonResponse({
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 10,
+            rejected_prediction_tokens: 5,
+          },
+        },
+      });
+
+      const customProvider = createOpenAI({
+        apiKey: 'test-api-key',
+        name: 'my-custom-openai',
+      });
+      const customModel = customProvider.chat('gpt-4o-mini');
+
+      const result = await customModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'my-custom-openai': {}, // Using custom key
+        },
+      });
+
+      // providerMetadata should include BOTH keys when custom key used
       expect(result.providerMetadata).toHaveProperty('openai');
       expect(result.providerMetadata).toHaveProperty('my-custom-openai');
 
@@ -3783,7 +3820,7 @@ describe('custom provider name support', () => {
       });
     });
 
-    it('should include custom provider name key in providerMetadata in finish chunk', async () => {
+    it('should only include "openai" key in providerMetadata in finish chunk when custom providerOptions key is not used', async () => {
       prepareCustomStreamResponse({
         usage: {
           prompt_tokens: 4,
@@ -3810,7 +3847,48 @@ describe('custom provider name support', () => {
       const chunks = await convertReadableStreamToArray(stream);
       const finishChunk = chunks.find(chunk => chunk.type === 'finish');
 
-      // providerMetadata in finish chunk should include both keys
+      // When custom key not used in providerOptions, only 'openai' key in output
+      expect(finishChunk?.providerMetadata).toHaveProperty('openai');
+      expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+        'openai',
+      ]);
+      expect(finishChunk?.providerMetadata?.openai).toStrictEqual({
+        acceptedPredictionTokens: 10,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should include both "openai" and custom key in providerMetadata in finish chunk when custom providerOptions key is used', async () => {
+      prepareCustomStreamResponse({
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 10,
+            rejected_prediction_tokens: 5,
+          },
+        },
+      });
+
+      const customProvider = createOpenAI({
+        apiKey: 'test-api-key',
+        name: 'my-custom-openai',
+      });
+      const customModel = customProvider.chat('gpt-4o-mini');
+
+      const { stream } = await customModel.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'my-custom-openai': {}, // Using custom key
+        },
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+      // providerMetadata in finish chunk should include both keys when custom key used
       expect(finishChunk?.providerMetadata).toHaveProperty('openai');
       expect(finishChunk?.providerMetadata).toHaveProperty('my-custom-openai');
 
