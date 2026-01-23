@@ -409,6 +409,9 @@ export async function POST(req: Request) {
         },
       }),
     },
+    onStepFinish: ({ toolResults }) => {
+      console.log(toolResults);
+    },
   });
 
   return result.toUIMessageStreamResponse();
