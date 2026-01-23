@@ -538,6 +538,23 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
+            // go through all tool calls and send the ones that are not finished
+            for (const toolCall of toolCalls.filter(
+              toolCall => !toolCall.hasFinished,
+            )) {
+              controller.enqueue({
+                type: 'tool-input-end',
+                id: toolCall.id,
+              });
+
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId: toolCall.id ?? generateId(),
+                toolName: toolCall.function.name,
+                input: toolCall.function.arguments,
+              });
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
