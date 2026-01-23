@@ -1,0 +1,27 @@
+import { vertex } from '@ai-sdk/google-vertex';
+import { experimental_generateVideo } from 'ai';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
+import { withSpinner } from '../../lib/spinner';
+
+// ⚠️ CURRENTLY NOT WORKING ⚠️
+// Vertex AI Veo models have an issue with operation polling that prevents them from working.
+// The operation is created successfully but cannot be polled for completion.
+//
+// RECOMMENDATION: Use Google Generative AI instead (see google-veo.ts)
+//
+// Note: Requires GOOGLE_VERTEX_LOCATION to be set to a specific region (e.g., us-central1)
+// Veo models are not available in the 'global' region
+run(async () => {
+  const { video } = await withSpinner('Generating video...', () =>
+    experimental_generateVideo({
+      model: vertex.video('veo-3.1-fast-generate-001'),
+      prompt: 'A salamander in a forest pond at dusk surrounded by fireflies.',
+      aspectRatio: '16:9',
+      resolution: '1920x1080',
+      duration: 8,
+    }),
+  );
+
+  await presentVideos([video]);
+});

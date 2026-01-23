@@ -1,7 +1,8 @@
 import { fal } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
-import { presentVideos } from '../lib/present-video';
-import { run } from '../lib/run';
+import { presentVideos } from '../../lib/present-video';
+import { run } from '../../lib/run';
+import { withSpinner } from '../../lib/spinner';
 import fs from 'node:fs';
 
 run(async () => {
@@ -16,12 +17,14 @@ run(async () => {
     );
     console.log('Falling back to text-to-video generation...\n');
 
-    const { video } = await experimental_generateVideo({
-      model: fal.video('luma-dream-machine'),
-      prompt: 'A bird flying over a mountain range at sunrise',
-      aspectRatio: '16:9',
-      duration: 5,
-    });
+    const { video } = await withSpinner('Generating video...', () =>
+      experimental_generateVideo({
+        model: fal.video('luma-dream-machine'),
+        prompt: 'A bird flying over a mountain range at sunrise',
+        aspectRatio: '16:9',
+        duration: 5,
+      }),
+    );
 
     await presentVideos([video]);
     return;
