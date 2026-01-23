@@ -6924,4 +6924,341 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
   });
+
+  describe('custom provider name support', () => {
+    function createCustomModel(providerName: string) {
+      return new OpenAIResponsesLanguageModel('gpt-4o', {
+        provider: `${providerName}.responses`,
+        url: ({ path }) => `https://api.openai.com/v1${path}`,
+        headers: () => ({ Authorization: `Bearer APIKEY` }),
+        generateId: mockId(),
+      });
+    }
+
+    function prepareCustomJsonResponse() {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_custom_test',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          error: null,
+          incomplete_details: null,
+          input: [],
+          model: 'gpt-4o',
+          output: [
+            {
+              id: 'msg_custom_test',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello, World!',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            total_tokens: 30,
+          },
+        },
+      };
+    }
+
+    function prepareCustomStreamResponse() {
+      const chunks = [
+        `{"type":"response.created","response":{"id":"resp_custom_stream","object":"response","created_at":1741257730,"status":"in_progress","model":"gpt-4o","output":[]}}`,
+        `{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_custom_stream","type":"message","status":"in_progress","role":"assistant","content":[]}}`,
+        `{"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":"msg_custom_stream","delta":"Hello"}`,
+        `{"type":"response.output_text.delta","output_index":0,"content_index":0,"item_id":"msg_custom_stream","delta":" World!"}`,
+        `{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_custom_stream","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello World!","annotations":[]}]}}`,
+        `{"type":"response.completed","response":{"id":"resp_custom_stream","object":"response","created_at":1741257730,"status":"completed","model":"gpt-4o","output":[{"id":"msg_custom_stream","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello World!","annotations":[]}]}],"usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30}}}`,
+      ];
+
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [...chunks.map(c => `data: ${c}\n\n`), 'data: [DONE]\n\n'],
+      };
+    }
+
+    describe('doGenerate', () => {
+      // Case 1: providerOptions with 'openai' key → only 'openai' in providerMetadata
+      it('should only include "openai" key in providerMetadata when providerOptions uses "openai" key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              user: 'test-user',
+            },
+          },
+        });
+
+        // Only 'openai' key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('openai');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'openai',
+        ]);
+        expect(result.providerMetadata?.openai).toMatchObject({
+          responseId: 'resp_custom_test',
+        });
+      });
+
+      // Case 2: Azure providers always output 'azure' key regardless of providerOptions
+      it('should always include only "azure" key in providerMetadata for Azure providers', async () => {
+        prepareCustomJsonResponse();
+
+        const azureModel = new OpenAIResponsesLanguageModel('gpt-4o', {
+          provider: 'my-azure-openai.responses',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: () => ({ Authorization: `Bearer APIKEY` }),
+          generateId: mockId(),
+        });
+
+        const result = await azureModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              user: 'test-user',
+            },
+          },
+        });
+
+        // Azure providers always output 'azure' key
+        expect(result.providerMetadata).toHaveProperty('azure');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'azure',
+        ]);
+        expect(result.providerMetadata?.azure).toMatchObject({
+          responseId: 'resp_custom_test',
+        });
+      });
+
+      // Case 3: providerOptions with custom key → both 'openai' and custom key in providerMetadata
+      it('should include both "openai" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-openai': {
+              user: 'test-user',
+            },
+          },
+        });
+
+        // Both 'openai' and custom key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('openai');
+        expect(result.providerMetadata).toHaveProperty('my-custom-openai');
+        expect(result.providerMetadata?.openai).toMatchObject({
+          responseId: 'resp_custom_test',
+        });
+        expect(result.providerMetadata?.['my-custom-openai']).toMatchObject({
+          responseId: 'resp_custom_test',
+        });
+      });
+
+      // Fallback: no providerOptions → only 'openai' in providerMetadata
+      it('should only include "openai" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Only 'openai' key should be in providerMetadata (default)
+        expect(result.providerMetadata).toHaveProperty('openai');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'openai',
+        ]);
+      });
+
+      // providerOptions precedence tests
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-openai': {
+              user: 'custom-user-id',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          user: 'custom-user-id',
+        });
+      });
+
+      it('should accept providerOptions with canonical "openai" key for backward compatibility', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              user: 'canonical-user-id',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          user: 'canonical-user-id',
+        });
+      });
+    });
+
+    describe('doStream', () => {
+      // Case 1: providerOptions with 'openai' key → only 'openai' in providerMetadata
+      it('should only include "openai" key in providerMetadata when providerOptions uses "openai" key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              user: 'test-user',
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'openai' key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('openai');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'openai',
+        ]);
+        expect(finishChunk?.providerMetadata?.openai).toMatchObject({
+          responseId: 'resp_custom_stream',
+        });
+      });
+
+      // Case 2: Azure providers always output 'azure' key regardless of providerOptions
+      it('should always include only "azure" key in providerMetadata for Azure providers', async () => {
+        prepareCustomStreamResponse();
+
+        const azureModel = new OpenAIResponsesLanguageModel('gpt-4o', {
+          provider: 'my-azure-openai.responses',
+          url: ({ path }) => `https://api.openai.com/v1${path}`,
+          headers: () => ({ Authorization: `Bearer APIKEY` }),
+          generateId: mockId(),
+        });
+
+        const { stream } = await azureModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            azure: {
+              user: 'test-user',
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Azure providers always output 'azure' key
+        expect(finishChunk?.providerMetadata).toHaveProperty('azure');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'azure',
+        ]);
+        expect(finishChunk?.providerMetadata?.azure).toMatchObject({
+          responseId: 'resp_custom_stream',
+        });
+      });
+
+      // Case 3: providerOptions with custom key → both 'openai' and custom key in providerMetadata
+      it('should include both "openai" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-openai': {
+              user: 'test-user',
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Both 'openai' and custom key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('openai');
+        expect(finishChunk?.providerMetadata).toHaveProperty(
+          'my-custom-openai',
+        );
+        expect(finishChunk?.providerMetadata?.openai).toMatchObject({
+          responseId: 'resp_custom_stream',
+        });
+        expect(
+          finishChunk?.providerMetadata?.['my-custom-openai'],
+        ).toMatchObject({
+          responseId: 'resp_custom_stream',
+        });
+      });
+
+      // Fallback: no providerOptions → only 'openai' in providerMetadata
+      it('should only include "openai" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'openai' key should be in providerMetadata (default)
+        expect(finishChunk?.providerMetadata).toHaveProperty('openai');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'openai',
+        ]);
+      });
+
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-openai');
+
+        await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-openai': {
+              user: 'custom-stream-user',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          user: 'custom-stream-user',
+        });
+      });
+    });
+  });
 });
