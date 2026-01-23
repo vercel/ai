@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.49
+
+### Patch Changes
+
+- ded661b: feat(ai): add onStepFinish to agent.generate and agent.stream
+
 ## 6.0.48
 
 ### Patch Changes
