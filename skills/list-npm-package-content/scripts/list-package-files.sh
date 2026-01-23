@@ -3,6 +3,6 @@ set -e
 
 # Build, pack, list contents, cleanup
 pnpm build
-pnpm pack
-tar -tzf *.tgz
-rm *.tgz
+tarball=$(pnpm pack | tail -1)
+tar -tzf "$tarball"
+rm "$tarball"
