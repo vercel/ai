@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3Embedding,
   LanguageModelV3,
   LanguageModelV3FunctionTool,
+  LanguageModelV3GenerateResult,
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import {
@@ -998,7 +999,7 @@ describe('responses', () => {
         .doGenerate({
           prompt: TEST_PROMPT,
           providerOptions: {
-            openai: {
+            azure: {
               include: ['file_search_call.results'],
             },
           },
@@ -1016,7 +1017,7 @@ describe('responses', () => {
     });
 
     describe('code interpreter tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-code-interpreter-tool.1');
@@ -1070,7 +1071,7 @@ describe('responses', () => {
     });
 
     describe('file search tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       describe('without results include', () => {
         beforeEach(async () => {
@@ -1170,7 +1171,7 @@ describe('responses', () => {
               },
             ],
             providerOptions: {
-              openai: {
+              azure: {
                 include: ['file_search_call.results'],
               },
             },
@@ -1224,7 +1225,7 @@ describe('responses', () => {
     });
 
     describe('web search preview tool', () => {
-      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      let result: LanguageModelV3GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('azure-web-search-preview-tool.1');
@@ -1245,13 +1246,53 @@ describe('responses', () => {
         expect(result.content).toMatchSnapshot();
       });
     });
+
+    describe('reasoning', async () => {
+      let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-reasoning-encrypted-content.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'calculator',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  a: { type: 'number' },
+                  b: { type: 'number' },
+                  op: { type: 'string' },
+                },
+                required: ['a', 'b'],
+                additionalProperties: false,
+              },
+            },
+          ],
+          providerOptions: {
+            azure: {
+              reasoningEffort: 'high',
+              maxCompletionTokens: 32_000,
+              store: false,
+              include: ['reasoning.encrypted_content'],
+              reasoningSummary: 'auto',
+              forceReasoning: true,
+            },
+          },
+        });
+      });
+      it('should generate with reasoning encrypted content', async () => {
+        expect(result).toMatchSnapshot();
+      });
+    });
   });
 
   describe('image generation tool', () => {
-    let result: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
+    let result: LanguageModelV3GenerateResult;
 
     beforeEach(async () => {
-      prepareJsonFixtureResponse('openai-image-generation-tool.1');
+      prepareJsonFixtureResponse('azure-image-generation-tool.1');
 
       result = await createModel('test-deployment').doGenerate({
         prompt: TEST_PROMPT,
@@ -1370,7 +1411,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
@@ -1518,7 +1562,10 @@ describe('responses', () => {
             "type": "tool-call",
           },
           {
-            "finishReason": "tool-calls",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "tool-calls",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
@@ -1587,6 +1634,8 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 145,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1600,6 +1649,8 @@ describe('responses', () => {
             "providerMetadata": {
               "azure": {
                 "fileId": "assistant-YRcoCqn3Fo2K4JgraG",
+                "index": 192,
+                "type": "file_citation",
               },
             },
             "sourceType": "document",
@@ -1630,7 +1681,10 @@ describe('responses', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "stop",
+            },
             "providerMetadata": {
               "azure": {
                 "responseId": null,
@@ -1678,6 +1732,44 @@ describe('responses', () => {
             args: {},
           },
         ],
+      });
+
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+
+    it('should stream with reasoning encrypted content include reasoning-delta part', async () => {
+      prepareChunksFixtureResponse('azure-reasoning-encrypted-content.1');
+
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'calculator',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                a: { type: 'number' },
+                b: { type: 'number' },
+                op: { type: 'string' },
+              },
+              required: ['a', 'b'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'high',
+            maxCompletionTokens: 32_000,
+            store: false,
+            include: ['reasoning.encrypted_content'],
+            reasoningSummary: 'auto',
+            forceReasoning: true,
+          },
+        },
       });
 
       expect(
@@ -1749,6 +1841,26 @@ describe('responses', () => {
           },
         ],
       });
+      expect(
+        await convertReadableStreamToArray(result.stream),
+      ).toMatchSnapshot();
+    });
+  });
+  describe('image generation tool', () => {
+    it('should stream image generation tool results include', async () => {
+      prepareChunksFixtureResponse('azure-image-generation-tool.1');
+      const result = await createModel('test-deployment').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.image_generation',
+            name: 'image_generation',
+            args: {},
+          },
+        ],
+      });
+
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();

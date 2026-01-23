@@ -44,16 +44,16 @@ Install `ai` and `@ai-sdk/react`, the AI package and AI SDK's React hooks. The A
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet text="pnpm add ai@beta @ai-sdk/react@beta zod" dark />
+      <Snippet text="pnpm add ai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai@beta @ai-sdk/react@beta zod" dark />
+      <Snippet text="npm install ai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai@beta @ai-sdk/react@beta zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/react zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="bun add ai@beta @ai-sdk/react@beta zod" dark />
+      <Snippet text="bun add ai @ai-sdk/react zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 Let's take a look at what is happening in this code:
 
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the chatbot and provides the chatbot with the necessary context to make the next generation.
-2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `ai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
+2. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `ai`) and `messages` (defined in step 1). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customize the model's behavior.
 3. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
 4. Finally, return the result to the client to stream the response.
 
@@ -140,17 +140,17 @@ To use a different provider, install its package and create a provider instance.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
     <Tab>
-      <Snippet text="pnpm add @ai-sdk/openai@beta" dark />
+      <Snippet text="pnpm add @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install @ai-sdk/openai@beta" dark />
+      <Snippet text="npm install @ai-sdk/openai" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add @ai-sdk/openai@beta" dark />
+      <Snippet text="yarn add @ai-sdk/openai" dark />
     </Tab>
 
     <Tab>
-      <Snippet text="bun add @ai-sdk/openai@beta" dark />
+      <Snippet text="bun add @ai-sdk/openai" dark />
     </Tab>
 
   </Tabs>

@@ -131,7 +131,12 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "COMPLETE",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should extract usage', async () => {
@@ -218,7 +223,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(finishReason).toStrictEqual('length');
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "MAX_TOKENS",
+        "unified": "length",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -925,7 +935,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "COMPLETE",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1034,7 +1047,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "COMPLETE",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1178,7 +1194,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "COMPLETE",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {
@@ -1237,7 +1256,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "type": "finish",
             "usage": {
               "inputTokens": {
@@ -1426,7 +1448,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "COMPLETE",
+            "unified": "stop",
+          },
           "type": "finish",
           "usage": {
             "inputTokens": {

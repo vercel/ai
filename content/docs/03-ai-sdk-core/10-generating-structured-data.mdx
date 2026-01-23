@@ -201,21 +201,18 @@ const { output } = await generateText({
 // ]
 ```
 
-With `streamText`, you can also iterate over the generated array elements using `elementStream`:
+When streaming arrays with `streamText`, you can use `elementStream` to receive each completed element as it is generated:
 
-```ts highlight="7,18"
+```ts
 import { streamText, Output } from 'ai';
-__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamText({
-  model: __MODEL__,
+  // ...
   output: Output.array({
     element: z.object({
       name: z.string(),
-      class: z
-        .string()
-        .describe('Character class, e.g. warrior, mage, or thief.'),
+      class: z.string(),
       description: z.string(),
     }),
   }),
@@ -223,13 +220,14 @@ const { elementStream } = streamText({
 });
 
 for await (const hero of elementStream) {
-  console.log(hero);
+  console.log(hero); // Each hero is complete and validated
 }
 ```
 
 <Note>
   Each element emitted by `elementStream` is complete and validated against your
-  element schema, ensuring type safety for each item as it is generated.
+  element schema. This differs from `partialOutputStream`, which streams the
+  entire partial array including incomplete elements.
 </Note>
 
 ### `Output.choice()`

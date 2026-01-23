@@ -5,8 +5,6 @@ description: Learn how to generate images with the AI SDK.
 
 # Image Generation
 
-<Note type="warning">Image generation is an experimental feature.</Note>
-
 The AI SDK provides the [`generateImage`](/docs/reference/ai-sdk-core/generate-image)
 function to generate images based on a given prompt using an image model.
 
@@ -227,6 +225,34 @@ try {
     console.log('Responses:', error.responses);
   }
 }
+```
+
+## Image Middleware
+
+You can enhance image models, e.g. to set default values or implement logging, using
+`wrapImageModel` and `ImageModelV3Middleware`.
+
+Here is an example that sets a default size when none is provided:
+
+```ts
+import { generateImage, wrapImageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const model = wrapImageModel({
+  model: openai.image('gpt-image-1'),
+  middleware: {
+    specificationVersion: 'v3',
+    transformParams: async ({ params }) => ({
+      ...params,
+      size: params.size ?? '1024x1024',
+    }),
+  },
+});
+
+const { image } = await generateImage({
+  model,
+  prompt: 'Santa Claus driving a Cadillac',
+});
 ```
 
 ## Generating Images with Language Models

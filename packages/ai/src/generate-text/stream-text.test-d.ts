@@ -14,7 +14,7 @@ describe('streamText types', () => {
         prompt: 'Hello, world!',
       });
 
-      expectTypeOf<typeof result.output>().toEqualTypeOf<Promise<string>>();
+      expectTypeOf<typeof result.output>().toEqualTypeOf<PromiseLike<string>>();
     });
 
     it('should infer text output type', async () => {
@@ -24,7 +24,7 @@ describe('streamText types', () => {
         output: Output.text(),
       });
 
-      expectTypeOf<typeof result.output>().toEqualTypeOf<Promise<string>>();
+      expectTypeOf<typeof result.output>().toEqualTypeOf<PromiseLike<string>>();
     });
 
     it('should infer object output type', async () => {
@@ -35,7 +35,7 @@ describe('streamText types', () => {
       });
 
       expectTypeOf<typeof result.output>().toEqualTypeOf<
-        Promise<{ value: string }>
+        PromiseLike<{ value: string }>
       >();
     });
 
@@ -46,7 +46,9 @@ describe('streamText types', () => {
         output: Output.array({ element: z.string() }),
       });
 
-      expectTypeOf<typeof result.output>().toEqualTypeOf<Promise<string[]>>();
+      expectTypeOf<typeof result.output>().toEqualTypeOf<
+        PromiseLike<string[]>
+      >();
     });
 
     it('should infer choice output type', async () => {
@@ -57,7 +59,7 @@ describe('streamText types', () => {
       });
 
       expectTypeOf<typeof result.output>().toEqualTypeOf<
-        Promise<'a' | 'b' | 'c'>
+        PromiseLike<'a' | 'b' | 'c'>
       >();
     });
 
@@ -68,7 +70,9 @@ describe('streamText types', () => {
         output: Output.json(),
       });
 
-      expectTypeOf<typeof result.output>().toEqualTypeOf<Promise<JSONValue>>();
+      expectTypeOf<typeof result.output>().toEqualTypeOf<
+        PromiseLike<JSONValue>
+      >();
     });
   });
 
@@ -141,6 +145,55 @@ describe('streamText types', () => {
 
       expectTypeOf<typeof result.partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<JSONValue>
+      >();
+    });
+  });
+
+  describe('elementStream', () => {
+    it('should infer element type for array output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.array({ element: z.object({ value: z.string() }) }),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<{ value: string }>
+      >();
+    });
+
+    it('should infer never for text output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.text(),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
+      >();
+    });
+
+    it('should infer never for object output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+        output: Output.object({ schema: z.object({ value: z.string() }) }),
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
+      >();
+    });
+
+    it('should infer never for default output', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3(),
+        prompt: 'Hello, world!',
+      });
+
+      expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
+        AsyncIterableStream<never>
       >();
     });
   });

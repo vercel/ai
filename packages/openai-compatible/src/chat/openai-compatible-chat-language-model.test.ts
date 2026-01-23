@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -85,6 +85,11 @@ describe('doGenerate', () => {
       function: {
         name: string;
         arguments: string;
+      };
+      extra_content?: {
+        google?: {
+          thought_signature?: string;
+        };
       };
     }>;
     function_call?: {
@@ -366,7 +371,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('stop');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -378,7 +388,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+          {
+            "raw": "eos",
+            "unified": "other",
+          }
+        `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -419,6 +434,25 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
+        openaiCompatible: {
+          user: 'test-user-id',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      user: 'test-user-id',
+    });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-beta').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
         'openai-compatible': {
           user: 'test-user-id',
         },
@@ -429,6 +463,11 @@ describe('doGenerate', () => {
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
@@ -592,6 +631,173 @@ describe('doGenerate', () => {
     `);
   });
 
+  describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
+    it('should parse thought signature from extra_content and include in providerMetadata', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'function-call-1',
+            type: 'function',
+            function: {
+              name: 'check_flight',
+              arguments: '{"flight":"AA100"}',
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'check_flight',
+            inputSchema: {
+              type: 'object',
+              properties: { flight: { type: 'string' } },
+              required: ['flight'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"flight":"AA100"}",
+            "providerMetadata": {
+              "test-provider": {
+                "thoughtSignature": "<Signature A>",
+              },
+            },
+            "toolCallId": "function-call-1",
+            "toolName": "check_flight",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
+
+    it('should handle parallel tool calls with signature only on first call', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'function-call-paris',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: '{"location":"Paris"}',
+            },
+            extra_content: {
+              google: {
+                thought_signature: '<Signature A>',
+              },
+            },
+          },
+          {
+            id: 'function-call-london',
+            type: 'function',
+            function: {
+              name: 'get_current_temperature',
+              arguments: '{"location":"London"}',
+            },
+            // No extra_content - parallel calls don't have signatures
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_current_temperature',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"location":"Paris"}",
+            "providerMetadata": {
+              "test-provider": {
+                "thoughtSignature": "<Signature A>",
+              },
+            },
+            "toolCallId": "function-call-paris",
+            "toolName": "get_current_temperature",
+            "type": "tool-call",
+          },
+          {
+            "input": "{"location":"London"}",
+            "toolCallId": "function-call-london",
+            "toolName": "get_current_temperature",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
+
+    it('should not include providerMetadata when no thought signature is present', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: {
+              name: 'some_tool',
+              arguments: '{"param":"value"}',
+            },
+            // No extra_content
+          },
+        ],
+      });
+
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'some_tool',
+            inputSchema: {
+              type: 'object',
+              properties: { param: { type: 'string' } },
+              required: ['param'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "input": "{"param":"value"}",
+            "toolCallId": "call-1",
+            "toolName": "some_tool",
+            "type": "tool-call",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('response format', () => {
     it('should not send a response_format when response format is text', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
@@ -702,6 +908,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -845,6 +1052,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -890,6 +1098,59 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+    });
+
+    it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          'test-provider': {
+            strictJsonSchema: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            strict: false,
             name: 'test-name',
             description: 'test description',
             schema: {
@@ -1176,7 +1437,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1255,6 +1519,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1269,15 +1537,14 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1355,6 +1622,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1369,15 +1640,14 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1446,6 +1716,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1455,15 +1729,14 @@ describe('doStream', () => {
           "type": "text-delta",
         },
         {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
-        },
-        {
           "id": "txt-0",
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1608,7 +1881,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1634,6 +1910,144 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should stream tool call with thought signature from extra_content', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First chunk with tool call start and thought signature in extra_content
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"function-call-1","type":"function","function":{"name":"check_flight","arguments":""},` +
+          `"extra_content":{"google":{"thought_signature":"<Signature A>"}}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Subsequent chunks with arguments
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"flight\\":"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"AA100\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-thought","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'check_flight',
+          inputSchema: {
+            type: 'object',
+            properties: { flight: { type: 'string' } },
+            required: ['flight'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    // Find the tool-call event and verify it has the thought signature in providerMetadata
+    const toolCallEvent = result.find(
+      (event: { type: string }) => event.type === 'tool-call',
+    );
+    expect(toolCallEvent).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'function-call-1',
+      toolName: 'check_flight',
+      input: '{"flight":"AA100"}',
+      providerMetadata: {
+        'test-provider': {
+          thoughtSignature: '<Signature A>',
+        },
+      },
+    });
+  });
+
+  it('should stream parallel tool calls with signature only on first call', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First chunk with two tool calls - only first has thought signature
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[` +
+          `{"index":0,"id":"call-paris","type":"function","function":{"name":"get_weather","arguments":""},` +
+          `"extra_content":{"google":{"thought_signature":"<Signature A>"}}},` +
+          `{"index":1,"id":"call-london","type":"function","function":{"name":"get_weather","arguments":""}}` +
+          `]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Arguments for first call
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"location\\":\\"Paris\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Arguments for second call
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":1,"function":{"arguments":"{\\"location\\":\\"London\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-gemini-parallel","object":"chat.completion.chunk","created":1711357598,"model":"gemini-3-pro",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    const toolCallEvents = result.filter(
+      (event: { type: string }) => event.type === 'tool-call',
+    );
+
+    expect(toolCallEvents).toHaveLength(2);
+
+    // First tool call should have thought signature
+    expect(toolCallEvents[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-paris',
+      toolName: 'get_weather',
+      providerMetadata: {
+        'test-provider': {
+          thoughtSignature: '<Signature A>',
+        },
+      },
+    });
+
+    // Second tool call should NOT have thought signature
+    expect(toolCallEvents[1]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-london',
+      toolName: 'get_weather',
+    });
+    expect(
+      (toolCallEvents[1] as { providerMetadata?: unknown }).providerMetadata,
+    ).toBeUndefined();
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
@@ -1759,7 +2173,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1901,7 +2318,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -1996,7 +2416,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -2085,7 +2508,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -2138,7 +2564,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -2187,7 +2616,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "test-provider": {},
             },
@@ -2382,7 +2814,10 @@ describe('doStream', () => {
 
       expect(finishPart).toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {
               "acceptedPredictionTokens": 15,
@@ -2465,7 +2900,10 @@ describe('doStream', () => {
 
       expect(finishPart).toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -2693,7 +3131,10 @@ describe('raw chunks', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "test-provider": {},
           },
@@ -2715,5 +3156,137 @@ describe('raw chunks', () => {
         },
       ]
     `);
+  });
+});
+
+describe('transformRequestBody', () => {
+  function prepareTransformJsonResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-beta',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello!',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+      },
+    };
+  }
+
+  function prepareTransformStreamResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+  }
+
+  it('should transform request body in doGenerate when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should transform request body in doStream when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformStreamResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    // Consume the stream
+    await convertReadableStreamToArray(stream);
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: true,
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should work without transformRequestBody', async () => {
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      model: 'grok-beta',
+    });
+    expect(requestBody).not.toHaveProperty('custom_field');
   });
 });

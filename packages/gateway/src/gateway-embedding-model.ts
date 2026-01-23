@@ -57,7 +57,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
           await resolve(this.config.o11yHeaders),
         ),
         body: {
-          input: values.length === 1 ? values[0] : values,
+          values,
           ...(providerOptions ? { providerOptions } : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
@@ -90,7 +90,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-embedding-model-specification-version': '2',
+      'ai-embedding-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }

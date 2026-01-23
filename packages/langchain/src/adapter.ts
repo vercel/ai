@@ -16,6 +16,7 @@ import {
   processModelChunk,
   processLangGraphEvent,
   isToolResultPart,
+  extractReasoningFromContentBlocks,
 } from './utils';
 import { type LangGraphEventState } from './types';
 import { type StreamCallbacks } from './stream-callbacks';
@@ -90,13 +91,207 @@ export function convertModelMessages(
 }
 
 /**
+ * Type guard to check if a value is a streamEvents event object.
+ * streamEvents produces objects with `event` and `data` properties.
+ *
+ * @param value - The value to check.
+ * @returns True if the value is a streamEvents event object.
+ */
+function isStreamEventsEvent(
+  value: unknown,
+): value is { event: string; data: Record<string, unknown> } {
+  if (value == null || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  // Check for event property being a string
+  if (!('event' in obj) || typeof obj.event !== 'string') return false;
+  // Check for data property being an object (but allow null/undefined)
+  if (!('data' in obj)) return false;
+  // data can be null in some events, treat as empty object
+  return obj.data === null || typeof obj.data === 'object';
+}
+
+/**
+ * Processes a streamEvents event and emits UI message chunks.
+ *
+ * @param event - The streamEvents event to process.
+ * @param state - The state for tracking stream progress.
+ * @param controller - The controller to emit UI message chunks.
+ */
+function processStreamEventsEvent(
+  event: {
+    event: string;
+    data: Record<string, unknown> | null;
+    run_id?: string;
+    name?: string;
+  },
+  state: {
+    started: boolean;
+    messageId: string;
+    reasoningStarted: boolean;
+    textStarted: boolean;
+    textMessageId: string | null;
+    reasoningMessageId: string | null;
+  },
+  controller: ReadableStreamDefaultController<UIMessageChunk>,
+): void {
+  /**
+   * Capture run_id from event level if available (streamEvents v2 format)
+   */
+  if (event.run_id && !state.started) {
+    state.messageId = event.run_id;
+  }
+
+  /**
+   * Skip events with null/undefined data
+   */
+  if (!event.data) return;
+
+  switch (event.event) {
+    case 'on_chat_model_start': {
+      /**
+       * Handle model start - capture message metadata if available
+       * run_id is at event level in v2, but check data for backwards compatibility
+       */
+      const runId = event.run_id || (event.data.run_id as string | undefined);
+      if (runId) {
+        state.messageId = runId;
+      }
+      break;
+    }
+
+    case 'on_chat_model_stream': {
+      /**
+       * Handle streaming token chunks
+       */
+      const chunk = event.data.chunk;
+      if (chunk && typeof chunk === 'object') {
+        /**
+         * Get message ID from chunk if available
+         */
+        const chunkId = (chunk as { id?: string }).id;
+        if (chunkId) {
+          state.messageId = chunkId;
+        }
+
+        /**
+         * Handle reasoning content from contentBlocks
+         */
+        const reasoning = extractReasoningFromContentBlocks(chunk);
+        if (reasoning) {
+          if (!state.reasoningStarted) {
+            // Track the ID used for reasoning-start to ensure reasoning-end uses the same ID
+            state.reasoningMessageId = state.messageId;
+            controller.enqueue({
+              type: 'reasoning-start',
+              id: state.messageId,
+            });
+            state.reasoningStarted = true;
+            state.started = true;
+          }
+          controller.enqueue({
+            type: 'reasoning-delta',
+            delta: reasoning,
+            id: state.reasoningMessageId ?? state.messageId,
+          });
+        }
+
+        /**
+         * Extract text content from chunk
+         */
+        const content = (chunk as { content?: unknown }).content;
+        const text =
+          typeof content === 'string'
+            ? content
+            : Array.isArray(content)
+              ? content
+                  .filter(
+                    (c): c is { type: 'text'; text: string } =>
+                      typeof c === 'object' &&
+                      c !== null &&
+                      'type' in c &&
+                      c.type === 'text',
+                  )
+                  .map(c => c.text)
+                  .join('')
+              : '';
+
+        if (text) {
+          /**
+           * If reasoning was streamed before text, close reasoning first
+           */
+          if (state.reasoningStarted && !state.textStarted) {
+            controller.enqueue({
+              type: 'reasoning-end',
+              id: state.reasoningMessageId ?? state.messageId,
+            });
+            state.reasoningStarted = false;
+          }
+
+          if (!state.textStarted) {
+            // Track the ID used for text-start to ensure text-end uses the same ID
+            state.textMessageId = state.messageId;
+            controller.enqueue({ type: 'text-start', id: state.messageId });
+            state.textStarted = true;
+            state.started = true;
+          }
+          controller.enqueue({
+            type: 'text-delta',
+            delta: text,
+            id: state.textMessageId ?? state.messageId,
+          });
+        }
+      }
+      break;
+    }
+
+    case 'on_tool_start': {
+      /**
+       * Handle tool call start
+       * run_id and name are at event level in v2, check data for backwards compatibility
+       */
+      const runId = event.run_id || (event.data.run_id as string | undefined);
+      const name = event.name || (event.data.name as string | undefined);
+
+      if (runId && name) {
+        controller.enqueue({
+          type: 'tool-input-start',
+          toolCallId: runId,
+          toolName: name,
+          dynamic: true,
+        });
+      }
+      break;
+    }
+
+    case 'on_tool_end': {
+      /**
+       * Handle tool call end
+       * run_id is at event level in v2, check data for backwards compatibility
+       */
+      const runId = event.run_id || (event.data.run_id as string | undefined);
+      const output = event.data.output;
+
+      if (runId) {
+        controller.enqueue({
+          type: 'tool-output-available',
+          toolCallId: runId,
+          output,
+        });
+      }
+      break;
+    }
+  }
+}
+
+/**
  * Converts a LangChain stream to an AI SDK UIMessageStream.
  *
- * This function automatically detects the stream type and handles both:
+ * This function automatically detects the stream type and handles:
  * - Direct model streams (AsyncIterable from `model.stream()`)
  * - LangGraph streams (ReadableStream with `streamMode: ['values', 'messages']`)
+ * - streamEvents streams (from `agent.streamEvents()` or `model.streamEvents()`)
  *
- * @param stream - A stream from LangChain model.stream() or LangGraph graph.stream().
+ * @param stream - A stream from LangChain model.stream(), graph.stream(), or streamEvents().
  * @param callbacks - Optional callbacks for stream lifecycle events.
  * @returns A ReadableStream of UIMessageChunk objects.
  *
@@ -117,6 +312,15 @@ export function convertModelMessages(
  * return createUIMessageStreamResponse({
  *   stream: toUIMessageStream(graphStream),
  * });
+ *
+ * // With streamEvents
+ * const streamEvents = agent.streamEvents(
+ *   { messages },
+ *   { version: "v2" }
+ * );
+ * return createUIMessageStreamResponse({
+ *   stream: toUIMessageStream(streamEvents),
+ * });
  * ```
  */
 export function toUIMessageStream(
@@ -136,6 +340,10 @@ export function toUIMessageStream(
     messageId: 'langchain-msg-1',
     reasoningStarted: false,
     textStarted: false,
+    /** Track the ID used for text-start to ensure text-end uses the same ID */
+    textMessageId: null as string | null,
+    /** Track the ID used for reasoning-start to ensure reasoning-end uses the same ID */
+    reasoningMessageId: null as string | null,
   };
 
   /**
@@ -162,7 +370,7 @@ export function toUIMessageStream(
   /**
    * Track detected stream type: null = not yet detected
    */
-  let streamType: 'model' | 'langgraph' | null = null;
+  let streamType: 'model' | 'langgraph' | 'streamEvents' | null = null;
 
   /**
    * Get async iterator from the stream (works for both AsyncIterable and ReadableStream)
@@ -229,6 +437,8 @@ export function toUIMessageStream(
           if (streamType === null) {
             if (Array.isArray(value)) {
               streamType = 'langgraph';
+            } else if (isStreamEventsEvent(value)) {
+              streamType = 'streamEvents';
             } else {
               streamType = 'model';
             }
@@ -240,6 +450,17 @@ export function toUIMessageStream(
           if (streamType === 'model') {
             processModelChunk(
               value as AIMessageChunk,
+              modelState,
+              wrappedController,
+            );
+          } else if (streamType === 'streamEvents') {
+            processStreamEventsEvent(
+              value as {
+                event: string;
+                data: Record<string, unknown> | null;
+                run_id?: string;
+                name?: string;
+              },
               modelState,
               wrappedController,
             );
@@ -255,15 +476,29 @@ export function toUIMessageStream(
         /**
          * Finalize based on stream type
          */
-        if (streamType === 'model') {
+        if (streamType === 'model' || streamType === 'streamEvents') {
           if (modelState.reasoningStarted) {
             controller.enqueue({
               type: 'reasoning-end',
-              id: modelState.messageId,
+              id: modelState.reasoningMessageId ?? modelState.messageId,
             });
           }
           if (modelState.textStarted) {
-            controller.enqueue({ type: 'text-end', id: modelState.messageId });
+            /**
+             * Use the same ID that was used for text-start
+             */
+            controller.enqueue({
+              type: 'text-end',
+              id: modelState.textMessageId ?? modelState.messageId,
+            });
+          }
+          controller.enqueue({ type: 'finish' });
+        } else if (streamType === 'langgraph') {
+          /**
+           * Emit finish-step if a step was started
+           */
+          if (langGraphState.currentStep !== null) {
+            controller.enqueue({ type: 'finish-step' });
           }
           controller.enqueue({ type: 'finish' });
         }

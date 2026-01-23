@@ -436,6 +436,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number; stepMs?: number }',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+    },
+    {
       name: 'headers',
       type: 'Record<string, string>',
       isOptional: true,
@@ -610,6 +617,13 @@ To see `generateText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
+            },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Can be used to pass provider-specific configuration such as container IDs for Anthropic code execution.',
             },
           ],
         },
@@ -830,9 +844,15 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
                 'The reason the model finished generating the text for the step.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1109,8 +1129,14 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1540,8 +1566,14 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
       description: 'The reason the model finished generating the text.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'string | undefined',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -1889,8 +1921,14 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',

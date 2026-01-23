@@ -254,6 +254,34 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
+  it('should not include response_format for date-suffixed gpt-image model IDs (Azure deployment names)', async () => {
+    prepareJsonResponse();
+
+    // Azure OpenAI allows custom deployment names like 'gpt-image-1.5-2025-12-16'
+    const azureDeploymentModel = provider.image('gpt-image-1.5-2025-12-16');
+    await azureDeploymentModel.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
+    expect(requestBody).toStrictEqual({
+      model: 'gpt-image-1.5-2025-12-16',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
   it('should handle null revised_prompt responses', async () => {
     server.urls['https://api.openai.com/v1/images/generations'].response = {
       type: 'json-value',
