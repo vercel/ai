@@ -81,7 +81,7 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 3. **Add a codemod**: If the change introduces a deprecation or a breaking change, add a codemod if possible. See [how to contribute codemods](contributing/codemods.md)
 4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
-5. **Formatting**: A pre-commit hook automatically runs `pnpm prettier-fix` to fix any formatting issues when you commit. If you need to skip this (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
+5. **Formatting**: A pre-commit hook automatically formats your staged files using `lint-staged` when you commit. If you need to skip this (e.g., for work-in-progress commits), set `ARTISANAL_MODE=1` before committing: `ARTISANAL_MODE=1 git commit -m "message"`.
 6. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
 7. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves. We use the following PR title format:
 
