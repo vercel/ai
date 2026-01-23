@@ -82,7 +82,7 @@ run(async () => {
     prompt: 'Your prompt here.',
   });
 
-  printFullStream({ result });
+  await printFullStream({ result });
 });
 ```
 
@@ -144,7 +144,7 @@ From the `examples/ai-functions` directory:
 
 ```bash
 pnpm tsx src/generate-text/openai.ts
-pnpm tsx src/stream-text/anthropic-tool-call.ts
+pnpm tsx src/stream-text/openai-tool-call.ts
 pnpm tsx src/agent/openai-generate.ts
 ```
 
@@ -191,7 +191,7 @@ print('Usage:', result.usage, { depth: 2 });
 import { printFullStream } from '../lib/print-full-stream';
 
 const result = streamText({ ... });
-printFullStream({ result }); // Colored output for text, tool calls, reasoning
+await printFullStream({ result }); // Colored output for text, tool calls, reasoning
 ```
 
 ## Reusable Tools
