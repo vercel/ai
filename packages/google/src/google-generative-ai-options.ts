@@ -66,7 +66,7 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
        *
        * https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerationConfig
        */
-      logprobs: z.number().min(1).max(20).optional(),
+      logprobs: z.number().int().min(1).max(20).optional(),
 
       thinkingConfig: z
         .object({
