@@ -63,7 +63,7 @@ pnpm build          # Build all packages
 | `pnpm lint`              | Run linting                                                       |
 | `pnpm prettier-fix`      | Fix formatting issues                                             |
 | `pnpm prettier-check`    | Check formatting                                                  |
-| `pnpm type-check`        | TypeScript type checking                                          |
+| `pnpm type-check:full`   | TypeScript type checking (includes examples)                      |
 | `pnpm changeset`         | Add a changeset for your PR                                       |
 | `pnpm update-references` | Update tsconfig.json references after adding package dependencies |
 
@@ -145,6 +145,16 @@ import * as z4 from 'zod/v4';
 
 Never use `JSON.parse` directly in production code to prevent security risks.
 Instead use `parseJSON` or `safeParseJSON` from `@ai-sdk/provider-utils`.
+
+### Type Checking
+
+Always run type checking after making code changes:
+
+```bash
+pnpm type-check:full    # Run from workspace root
+```
+
+This ensures your changes don't introduce type errors across the codebase, including examples.
 
 ### File Naming Conventions
 
