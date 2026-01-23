@@ -12,7 +12,10 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { applyPatchOutputSchema } from '../tool/apply-patch';
+import {
+  applyPatchInputSchema,
+  applyPatchOutputSchema,
+} from '../tool/apply-patch';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -40,6 +43,7 @@ export async function convertToOpenAIResponsesInput({
   providerOptionsName,
   fileIdPrefixes,
   store,
+  hasConversation = false,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
@@ -50,6 +54,7 @@ export async function convertToOpenAIResponsesInput({
   providerOptionsName: string;
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
@@ -158,6 +163,11 @@ export async function convertToOpenAIResponsesInput({
                 | string
                 | undefined;
 
+              // when using conversation, skip items that already exist in the conversation context to avoid "Duplicate item found" errors
+              if (hasConversation && id != null) {
+                break;
+              }
+
               // item references reduce the payload size
               if (store && id != null) {
                 input.push({ type: 'item_reference', id });
@@ -183,6 +193,11 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.itemId) as
                 | string
                 | undefined;
+
+              if (hasConversation && id != null) {
+                break;
+              }
+
               if (part.providerExecuted) {
                 if (store && id != null) {
                   input.push({ type: 'item_reference', id });
@@ -241,6 +256,22 @@ export async function convertToOpenAIResponsesInput({
                 break;
               }
 
+              if (hasApplyPatchTool && resolvedToolName === 'apply_patch') {
+                const parsedInput = await validateTypes({
+                  value: part.input,
+                  schema: applyPatchInputSchema,
+                });
+                input.push({
+                  type: 'apply_patch_call',
+                  call_id: parsedInput.callId,
+                  id: id!,
+                  status: 'completed',
+                  operation: parsedInput.operation,
+                });
+
+                break;
+              }
+
               input.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
@@ -264,6 +295,10 @@ export async function convertToOpenAIResponsesInput({
                   'type' in part.output.value &&
                   part.output.value.type === 'execution-denied')
               ) {
+                break;
+              }
+
+              if (hasConversation) {
                 break;
               }
 
@@ -296,6 +331,10 @@ export async function convertToOpenAIResponsesInput({
               });
 
               const reasoningId = providerOptions?.itemId;
+
+              if (hasConversation && reasoningId != null) {
+                break;
+              }
 
               if (reasoningId != null) {
                 const reasoningMessage = reasoningMessages[reasoningId];

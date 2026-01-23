@@ -1,5 +1,87 @@
 # @ai-sdk/google-vertex
 
+## 4.0.28
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/anthropic@3.0.23
+  - @ai-sdk/google@3.0.13
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [8ccf04b]
+  - @ai-sdk/anthropic@3.0.22
+
+## 4.0.26
+
+### Patch Changes
+
+- Updated dependencies [662d359]
+  - @ai-sdk/anthropic@3.0.21
+
+## 4.0.25
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+  - @ai-sdk/google@3.0.12
+
+## 4.0.24
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/anthropic@3.0.19
+  - @ai-sdk/google@3.0.11
+
+## 4.0.23
+
+### Patch Changes
+
+- Updated dependencies [c10bd49]
+  - @ai-sdk/anthropic@3.0.18
+
+## 4.0.22
+
+### Patch Changes
+
+- 689557c: set Google Vertex Express API key as header instead of URL argument
+
+## 4.0.21
+
+### Patch Changes
+
+- Updated dependencies [4729bed]
+  - @ai-sdk/anthropic@3.0.17
+
+## 4.0.20
+
+### Patch Changes
+
+- 827f52a: fix(google-vertex): lazy load the env vars for vertexAnthropic
+
+## 4.0.19
+
+### Patch Changes
+
+- 20828dc: fix(google-vertex): add type safety for allowed tools
+
+## 4.0.18
+
+### Patch Changes
+
+- Updated dependencies [d36fa72]
+  - @ai-sdk/anthropic@3.0.16
+
 ## 4.0.17
 
 ### Patch Changes

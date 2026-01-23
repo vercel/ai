@@ -1,5 +1,56 @@
 # @ai-sdk/xai
 
+## 3.0.33
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.30
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [78555ad]
+  - @ai-sdk/openai-compatible@2.0.16
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [7116ef3]
+  - @ai-sdk/openai-compatible@2.0.15
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [1612a57]
+  - @ai-sdk/openai-compatible@2.0.14
+
 ## 3.0.26
 
 ### Patch Changes

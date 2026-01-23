@@ -1,5 +1,50 @@
 # @ai-sdk/baseten
 
+## 1.0.20
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 1.0.19
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 1.0.18
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [78555ad]
+  - @ai-sdk/openai-compatible@2.0.16
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [7116ef3]
+  - @ai-sdk/openai-compatible@2.0.15
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [1612a57]
+  - @ai-sdk/openai-compatible@2.0.14
+
 ## 1.0.14
 
 ### Patch Changes

@@ -871,6 +871,35 @@ describe('AnthropicMessagesLanguageModel', () => {
           }
         `);
       });
+
+      it('should NOT include beta header when using json response tool (jsonTool mode)', async () => {
+        prepareJsonFixtureResponse('anthropic-json-tool.1');
+
+        await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              structuredOutputMode: 'jsonTool',
+            } satisfies AnthropicProviderOptions,
+          },
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: { name: { type: 'string' } },
+              required: ['name'],
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+          {
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+            "x-api-key": "test-api-key",
+          }
+        `);
+      });
     });
 
     it('should extract text response', async () => {
@@ -2989,6 +3018,104 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         it('should include tool search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      describe('deferred result - bm25 variant', () => {
+        it('should correctly map tool_search_tool_result when result comes without server_tool_use in same response', async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-deferred-bm25.2');
+
+          const result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+
+          // The tool result should be correctly mapped to 'tool_search' (the user's custom name)
+          // even though serverToolCalls map is empty (no server_tool_use in this response)
+          const toolResult = result.content.find(
+            part => part.type === 'tool-result',
+          );
+          expect(toolResult).toBeDefined();
+          expect(toolResult?.toolName).toBe('tool_search');
+        });
+      });
+
+      describe('deferred result - regex variant', () => {
+        it('should correctly map tool_search_tool_result when result comes without server_tool_use in same response', async () => {
+          prepareJsonFixtureResponse('anthropic-tool-search-deferred-regex.2');
+
+          const result = await provider('claude-sonnet-4-5').doGenerate({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Find weather data in NYC',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+
+          const toolResult = result.content.find(
+            part => part.type === 'tool-result',
+          );
+          expect(toolResult).toBeDefined();
+          expect(toolResult?.toolName).toBe('tool_search');
         });
       });
     });
@@ -6814,6 +6941,106 @@ describe('AnthropicMessagesLanguageModel', () => {
           expect(
             await convertReadableStreamToArray(result.stream),
           ).toMatchSnapshot();
+        });
+      });
+
+      describe('deferred result - bm25 variant', () => {
+        it('should correctly map tool_search_tool_result when result comes without server_tool_use in same response', async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-deferred-bm25');
+
+          const result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'What is the weather in San Francisco?',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_bm25_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get the current weather at a specific location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+
+          const chunks = await convertReadableStreamToArray(result.stream);
+
+          const toolResultChunk = chunks.find(
+            chunk => chunk.type === 'tool-result',
+          );
+          expect(toolResultChunk).toBeDefined();
+          expect(toolResultChunk?.toolName).toBe('tool_search');
+        });
+      });
+
+      describe('deferred result - regex variant', () => {
+        it('should correctly map tool_search_tool_result when result comes without server_tool_use in same response', async () => {
+          prepareChunksFixtureResponse('anthropic-tool-search-deferred-regex');
+
+          const result = await provider('claude-sonnet-4-5').doStream({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Find weather data in NYC',
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.tool_search_regex_20251119',
+                name: 'tool_search',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'get_temp_data',
+                description: 'For a location',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                },
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ],
+          });
+
+          const chunks = await convertReadableStreamToArray(result.stream);
+
+          const toolResultChunk = chunks.find(
+            chunk => chunk.type === 'tool-result',
+          );
+          expect(toolResultChunk).toBeDefined();
+          expect(toolResultChunk?.toolName).toBe('tool_search');
         });
       });
     });
