@@ -10,28 +10,28 @@ run(async () => {
   });
 
   const result1 = await generateText({
-    model: customProvider('gpt-4o-mini'),
+    model: customProvider.chat('gpt-4o-mini'),
     prompt: 'Say "hello" in one word.',
     providerOptions: {
       openai: {
-        reasoningEffort: 'high',
+        user: 'test-user-canonical',
       },
     },
   });
   print('Result 1 - Content:', result1.text);
   print('Result 1 - providerMetadata:', result1.providerMetadata);
-  // Expected: providerMetadata should have 'openai' key AND 'my-custom-openai' key
+  // Expected: providerMetadata should have JUST THE 'openai' key
   print(
     'Result 1 - providerMetadata custom key:',
     result1.providerMetadata?.openai,
   );
 
   const result2 = await generateText({
-    model: customProvider('gpt-4o-mini'),
+    model: customProvider.chat('gpt-4o-mini'),
     prompt: 'Say "world" in one word.',
     providerOptions: {
       'my-custom-openai': {
-        reasoningEffort: 'high',
+        user: 'test-user-canonical',
       },
     },
   });

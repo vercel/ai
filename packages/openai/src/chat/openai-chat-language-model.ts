@@ -96,19 +96,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // Parse provider options with layered merge:
     // 1. First check canonical 'openai' key (backward compatibility)
     // 2. Then check custom provider name key (takes precedence)
+    const customProviderOptions =
+      this.providerOptionsName !== 'openai'
+        ? await parseProviderOptions({
+            provider: this.providerOptionsName,
+            providerOptions,
+            schema: openaiChatLanguageModelOptions,
+          })
+        : null;
+
+    // Track if user explicitly used the custom provider key in providerOptions
+    const usedCustomProviderKey = customProviderOptions != null;
+
     const openaiOptions = Object.assign(
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiChatLanguageModelOptions,
       })) ?? {},
-      this.providerOptionsName !== 'openai'
-        ? ((await parseProviderOptions({
-            provider: this.providerOptionsName,
-            providerOptions,
-            schema: openaiChatLanguageModelOptions,
-          })) ?? {})
-        : {},
+      customProviderOptions ?? {},
     );
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
@@ -328,13 +334,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         tool_choice: openaiToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      usedCustomProviderKey,
     };
   }
 
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args: body, warnings } = await this.getArgs(options);
+    const {
+      args: body,
+      warnings,
+      usedCustomProviderKey,
+    } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -401,9 +412,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
 
-    // Include custom provider name key for backward compatibility
-    // (both point to the same metadata object)
-    if (this.providerOptionsName !== 'openai') {
+    // Include custom provider name key only if user explicitly used it in providerOptions
+    if (usedCustomProviderKey && this.providerOptionsName !== 'openai') {
       providerMetadata[this.providerOptionsName] = providerMetadata.openai;
     }
 
@@ -428,7 +438,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, usedCustomProviderKey } =
+      await this.getArgs(options);
 
     const body = {
       ...args,
@@ -711,9 +722,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            // Include custom provider name key for backward compatibility
-            // (both point to the same metadata object)
-            if (providerOptionsName !== 'openai') {
+            // Include custom provider name key only if user explicitly used it in providerOptions
+            if (usedCustomProviderKey && providerOptionsName !== 'openai') {
               providerMetadata[providerOptionsName] = providerMetadata.openai;
             }
 
