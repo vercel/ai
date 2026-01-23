@@ -1,6 +1,6 @@
 ---
 name: ai-sdk
-description: Answer questions about the AI SDK and help build AI-powered features. Use when developers: (1) Ask about AI SDK functions like generateText, streamText, ToolLoopAgent, or tools, (2) Want to build AI agents, chatbots, or text generation features, (3) Have questions about AI providers (OpenAI, Anthropic, etc.), streaming, tool calling, or structured output.
+description: 'Answer questions about the AI SDK and help build AI-powered features. Use when developers: (1) Ask about AI SDK functions like generateText, streamText, ToolLoopAgent, or tools, (2) Want to build AI agents, chatbots, or text generation features, (3) Have questions about AI providers (OpenAI, Anthropic, etc.), streaming, tool calling, or structured output.'
 metadata:
   author: Vercel Inc.
   version: '1.0'
