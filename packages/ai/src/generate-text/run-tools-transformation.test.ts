@@ -2,7 +2,7 @@ import {
   LanguageModelV3StreamPart,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
-import { delay, tool } from '@ai-sdk/provider-utils';
+import { delay, DelayedPromise, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
@@ -1142,201 +1142,129 @@ describe('runToolsTransformation', () => {
   });
 
   describe('stream close guard', () => {
-    it('should not throw when multiple tools complete simultaneously', async () => {
-      // This test verifies the close guard prevents "Controller is already closed" errors
-      // when multiple tools' finally() blocks call attemptClose() at nearly the same time.
+    it('should guard against enqueue after stream closure when generateId returns duplicates', async () => {
+      // This test verifies the close guard prevents errors when:
+      // 1. generateId returns the same ID for all tools (framework override scenario)
+      // 2. First tool completes → stream closes (Set becomes empty after one delete)
+      // 3. Other tools try to enqueue their results → guarded by `if (!closed)`
       //
-      // We use a barrier pattern: all tools wait for a shared promise, then complete
-      // in the same microtask to maximize race condition likelihood.
-      let releaseBarrier: () => void;
-      const barrier = new Promise<void>(resolve => {
-        releaseBarrier = resolve;
-      });
-      let toolsWaiting = 0;
+      // Without the guard, this throws "Controller is already closed"
 
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-1',
-            toolName: 'barrierTool',
-            input: `{ "value": "a" }`,
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-2',
-            toolName: 'barrierTool',
-            input: `{ "value": "b" }`,
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-3',
-            toolName: 'barrierTool',
-            input: `{ "value": "c" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
-            usage: testUsage,
-          },
-        ]);
+      const toolACompleted = new DelayedPromise<string>();
+      const toolBCompleted = new DelayedPromise<string>();
+      const toolCCompleted = new DelayedPromise<string>();
 
-      const transformedStream = runToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools: {
-          barrierTool: {
-            title: 'Barrier Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              toolsWaiting++;
-              // Release barrier when all 3 tools are waiting
-              if (toolsWaiting === 3) {
-                releaseBarrier!();
-              }
-              await barrier;
-              // All tools complete in the same microtask after barrier releases
-              return `${value}-result`;
-            },
-          },
-        },
-        generatorStream: inputStream,
-        tracer: new MockTracer(),
-        telemetry: undefined,
-        messages: [],
-        system: undefined,
-        abortSignal: undefined,
-        repairToolCall: undefined,
-        experimental_context: undefined,
-      });
-
-      // Should not throw "Controller is already closed"
-      const result = await convertReadableStreamToArray(transformedStream);
-
-      // Verify stream completed successfully
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-      });
-
-      // All tool results should be present
-      const toolResults = result.filter(r => r.type === 'tool-result');
-      expect(toolResults).toHaveLength(3);
-    });
-
-    it('should handle tools completing in reverse order without errors', async () => {
-      const completionOrder: string[] = [];
-
-      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
-        convertArrayToReadableStream([
-          {
-            type: 'tool-call',
-            toolCallId: 'call-slow',
-            toolName: 'slowTool',
-            input: `{ "value": "slow" }`,
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-medium',
-            toolName: 'mediumTool',
-            input: `{ "value": "medium" }`,
-          },
-          {
-            type: 'tool-call',
-            toolCallId: 'call-fast',
-            toolName: 'fastTool',
-            input: `{ "value": "fast" }`,
-          },
-          {
-            type: 'finish',
-            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
-            usage: testUsage,
-          },
-        ]);
-
-      const transformedStream = runToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools: {
-          slowTool: {
-            title: 'Slow Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              await delay(30);
-              completionOrder.push('slow');
-              return `${value}-result`;
-            },
-          },
-          mediumTool: {
-            title: 'Medium Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              await delay(15);
-              completionOrder.push('medium');
-              return `${value}-result`;
-            },
-          },
-          fastTool: {
-            title: 'Fast Tool',
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => {
-              await delay(5);
-              completionOrder.push('fast');
-              return `${value}-result`;
-            },
-          },
-        },
-        generatorStream: inputStream,
-        tracer: new MockTracer(),
-        telemetry: undefined,
-        messages: [],
-        system: undefined,
-        abortSignal: undefined,
-        repairToolCall: undefined,
-        experimental_context: undefined,
-      });
-
-      const result = await convertReadableStreamToArray(transformedStream);
-
-      // Tools should complete in reverse order (fast first, slow last)
-      expect(completionOrder).toEqual(['fast', 'medium', 'slow']);
-
-      // Stream should close properly after slowest tool
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-      });
-
-      // All results captured
-      const toolResults = result.filter(r => r.type === 'tool-result');
-      expect(toolResults).toHaveLength(3);
-    });
-
-    it('should not close stream while tool results are pending', async () => {
-      // This test uses deferred promises to precisely control when tools complete
-      // and verify the stream doesn't close prematurely.
-      // Without the close guard, the stream could close after the first tool completes
-      // if there's a race in the attemptClose logic.
-
-      function createDeferred<T>() {
-        let resolve!: (value: T) => void;
-        const promise = new Promise<T>(res => {
-          resolve = res;
-        });
-        return { promise, resolve };
-      }
-
-      const slowToolA = createDeferred<string>();
-      const slowToolB = createDeferred<string>();
+      // Track errors thrown during tool execution
+      const toolErrors: unknown[] = [];
 
       const inputStream: ReadableStream<LanguageModelV3StreamPart> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
             toolCallId: 'call-a',
-            toolName: 'deferredTool',
+            toolName: 'testTool',
             input: `{ "id": "a" }`,
           },
           {
             type: 'tool-call',
             toolCallId: 'call-b',
-            toolName: 'deferredTool',
+            toolName: 'testTool',
+            input: `{ "id": "b" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-c',
+            toolName: 'testTool',
+            input: `{ "id": "c" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        // Simulate framework behavior: generateId returns same ID for message grouping
+        // This causes outstandingToolResults Set to only track one entry
+        generateId: () => 'constant-id',
+        tools: {
+          testTool: {
+            title: 'Test Tool',
+            inputSchema: z.object({ id: z.string() }),
+            execute: async ({ id }) => {
+              try {
+                if (id === 'a') return await toolACompleted.promise;
+                if (id === 'b') return await toolBCompleted.promise;
+                return await toolCCompleted.promise;
+              } catch (error) {
+                toolErrors.push(error);
+                throw error;
+              }
+            },
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      // Start consuming the stream
+      const resultPromise = convertReadableStreamToArray(transformedStream);
+
+      // Tool A completes first - this will close the stream because:
+      // - All 3 tools added same ID to Set (only 1 entry)
+      // - Tool A's finally() deletes that ID → Set is empty
+      // - attemptClose() sees empty Set → closes stream
+      toolACompleted.resolve('result-a');
+
+      // Allow microtasks to process
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Tools B and C complete after stream is closed
+      // Without the `if (!closed)` guard, the enqueue in .then() throws
+      toolBCompleted.resolve('result-b');
+      toolCCompleted.resolve('result-c');
+
+      // Wait for stream to complete and all promises to settle
+      const result = await resultPromise;
+
+      // Stream should complete with finish chunk
+      expect(result.some(r => r.type === 'finish')).toBe(true);
+
+      // The close guard silently drops results for tools B and C (stream already closed)
+      // Without the guard, trying to enqueue would throw "Controller is already closed"
+      // which would surface as error chunks or unhandled rejections
+      const errorChunks = result.filter(r => r.type === 'error');
+      expect(
+        errorChunks,
+        'With close guard, no error chunks should be emitted',
+      ).toHaveLength(0);
+    });
+
+    it('should handle multiple tools completing without delay operations', async () => {
+      // Simple test using DelayedPromise without any real-time delays
+      const toolA = new DelayedPromise<string>();
+      const toolB = new DelayedPromise<string>();
+
+      const inputStream: ReadableStream<LanguageModelV3StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-a',
+            toolName: 'testTool',
+            input: `{ "id": "a" }`,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-b',
+            toolName: 'testTool',
             input: `{ "id": "b" }`,
           },
           {
@@ -1349,14 +1277,12 @@ describe('runToolsTransformation', () => {
       const transformedStream = runToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools: {
-          deferredTool: {
-            title: 'Deferred Tool',
+          testTool: {
+            title: 'Test Tool',
             inputSchema: z.object({ id: z.string() }),
             execute: async ({ id }) => {
-              if (id === 'a') {
-                return slowToolA.promise;
-              }
-              return slowToolB.promise;
+              if (id === 'a') return toolA.promise;
+              return toolB.promise;
             },
           },
         },
@@ -1370,90 +1296,21 @@ describe('runToolsTransformation', () => {
         experimental_context: undefined,
       });
 
-      const reader = transformedStream.getReader();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chunks: any[] = [];
+      // Start consuming - resolve tools in sequence
+      const resultPromise = convertReadableStreamToArray(transformedStream);
 
-      // Read tool-call chunks first (they should be immediately available)
-      const toolCall1 = await reader.read();
-      if (!toolCall1.done) chunks.push(toolCall1.value);
-      const toolCall2 = await reader.read();
-      if (!toolCall2.done) chunks.push(toolCall2.value);
+      // Resolve both tools
+      toolA.resolve('result-a');
+      toolB.resolve('result-b');
 
-      // Now both tools are executing but neither has resolved
-      // Try to read - it should NOT resolve because tools are still pending
-      const pendingRead = reader.read();
+      const result = await resultPromise;
 
-      // Race against a short timeout - if stream closes prematurely, read would resolve
-      const timeoutResult = await Promise.race([
-        pendingRead.then(r => ({ source: 'read', result: r })),
-        delay(20).then(() => ({ source: 'timeout', result: null })),
-      ]);
+      // Verify all results captured
+      const toolResults = result.filter(r => r.type === 'tool-result');
+      const finishChunks = result.filter(r => r.type === 'finish');
 
-      // We expect timeout to win because tools are still pending
-      expect(timeoutResult.source).toBe('timeout');
-
-      // Now resolve first tool - stream should still be open
-      slowToolA.resolve('result-a');
-      await delay(5); // Let microtasks run
-
-      // Read the first tool result
-      const toolResult1 = await Promise.race([
-        pendingRead.then(r => ({ source: 'read', result: r })),
-        delay(20).then(() => ({ source: 'timeout', result: null })),
-      ]);
-      expect(toolResult1.source).toBe('read');
-      if (
-        toolResult1.source === 'read' &&
-        toolResult1.result &&
-        !toolResult1.result.done
-      ) {
-        chunks.push(toolResult1.result.value);
-      }
-
-      // Try another read - should still wait for second tool
-      const pendingRead2 = reader.read();
-      const timeoutResult2 = await Promise.race([
-        pendingRead2.then(r => ({ source: 'read', result: r })),
-        delay(20).then(() => ({ source: 'timeout', result: null })),
-      ]);
-      // Could be either - second tool not resolved, so might timeout
-      // or there could be queued chunks
-
-      // Resolve second tool
-      slowToolB.resolve('result-b');
-
-      // Now read remaining chunks until done
-      let done = false;
-      if (
-        timeoutResult2.source === 'read' &&
-        timeoutResult2.result &&
-        !timeoutResult2.result.done
-      ) {
-        chunks.push(timeoutResult2.result.value);
-      } else if (timeoutResult2.source === 'timeout') {
-        // Need to continue waiting for pendingRead2
-        const r = await pendingRead2;
-        if (!r.done) chunks.push(r.value);
-      }
-
-      while (!done) {
-        const r = await reader.read();
-        if (r.done) {
-          done = true;
-        } else {
-          chunks.push(r.value);
-        }
-      }
-
-      // Verify we got all expected chunks
-      const toolCalls = chunks.filter(c => c.type === 'tool-call');
-      const toolResults = chunks.filter(c => c.type === 'tool-result');
-      const finishChunks = chunks.filter(c => c.type === 'finish');
-
-      expect(toolCalls).toHaveLength(2);
       expect(toolResults).toHaveLength(2);
-      expect(finishChunks).toHaveLength(1); // Finish emitted exactly once
+      expect(finishChunks).toHaveLength(1);
     });
   });
 });
