@@ -1156,6 +1156,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
         }),
       }),
       z.object({
