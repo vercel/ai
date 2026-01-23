@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/prodia",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,6 +8,11 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md"
   ],
   "scripts": {

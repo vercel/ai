@@ -143,6 +143,7 @@ The Responses API provides server-side tools that the model can autonomously exe
 - **web_search**: Real-time web search and page browsing
 - **x_search**: Search X (Twitter) posts, users, and threads
 - **code_execution**: Execute Python code for calculations and data analysis
+- **mcp_server**: Connect to remote MCP servers and use their tools
 
 ### Vision
 
@@ -264,6 +265,51 @@ const { text } = await generateText({
 });
 ```
 
+### MCP Server Tool
+
+The MCP server tool enables the model to connect to remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers and use their tools:
+
+```ts
+const { text } = await generateText({
+  model: xai.responses('grok-4-fast'),
+  prompt: 'Use the weather tool to check conditions in San Francisco',
+  tools: {
+    weather_server: xai.tools.mcpServer({
+      serverUrl: 'https://example.com/mcp',
+      serverLabel: 'weather-service',
+      serverDescription: 'Weather data provider',
+      allowedTools: ['get_weather', 'get_forecast'],
+    }),
+  },
+});
+```
+
+#### MCP Server Parameters
+
+- **serverUrl** _string_ (required)
+
+  The URL of the remote MCP server.
+
+- **serverLabel** _string_ (required)
+
+  A label to identify the MCP server.
+
+- **serverDescription** _string_
+
+  A description of what the MCP server provides.
+
+- **allowedTools** _string[]_
+
+  List of tool names that the model is allowed to use from the MCP server. If not specified, all tools are allowed.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include when connecting to the MCP server.
+
+- **authorization** _string_
+
+  Authorization header value for authenticating with the MCP server (e.g., `'Bearer token123'`).
+
 ### File Search Tool
 
 xAI supports file search through OpenAI compatibility. You can use the OpenAI provider with xAI's base URL to search vector stores:
@@ -310,6 +356,10 @@ const { fullStream } = streamText({
     web_search: xai.tools.webSearch(),
     x_search: xai.tools.xSearch(),
     code_execution: xai.tools.codeExecution(),
+    data_service: xai.tools.mcpServer({
+      serverUrl: 'https://data.example.com/mcp',
+      serverLabel: 'data-service',
+    }),
   },
 });
 

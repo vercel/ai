@@ -1,13 +1,13 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { anthropicTools } from '@ai-sdk/anthropic/internal';
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import 'dotenv/config';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('us.anthropic.claude-sonnet-4-20250514-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     tools: {
-      bash: anthropicTools.bash_20250124({
+      bash: bedrockAnthropic.tools.bash_20241022({
         async execute({ command }) {
           console.log('COMMAND', command);
           return [

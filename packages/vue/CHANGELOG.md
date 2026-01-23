@@ -1,5 +1,53 @@
 # @ai-sdk/vue
 
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 3.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.47
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 3.0.46
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
+## 3.0.45
+
+### Patch Changes
+
+- ai@6.0.45
+
+## 3.0.44
+
+### Patch Changes
+
+- ai@6.0.44
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [2dc9bfa]
+  - ai@6.0.43
+
 ## 3.0.42
 
 ### Patch Changes

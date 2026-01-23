@@ -88,6 +88,13 @@ export async function POST(request: Request) {
         'Optional stream transforms to post-process text output—the same as in lower-level streaming APIs.',
     },
     {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+    },
+    {
       name: '...UIMessageStreamOptions',
       type: 'UIMessageStreamOptions',
       isRequired: false,

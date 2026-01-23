@@ -1,12 +1,14 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
+import { StepResult } from '../generate-text/step-result';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
+import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 
 /**
@@ -48,23 +50,34 @@ export class ToolLoopAgent<
     return this.settings.tools as TOOLS;
   }
 
-  private async prepareCall(
-    options: AgentCallParameters<CALL_OPTIONS>,
-  ): Promise<
+  private async prepareCall(options: {
+    prompt?: string | Array<import('@ai-sdk/provider-utils').ModelMessage>;
+    messages?: Array<import('@ai-sdk/provider-utils').ModelMessage>;
+    options?: CALL_OPTIONS;
+  }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      'prepareCall' | 'instructions'
+      'prepareCall' | 'instructions' | 'onStepFinish'
     > &
       Prompt
   > {
+    const { onStepFinish: _settingsOnStepFinish, ...settingsWithoutCallback } =
+      this.settings;
+
     const baseCallArgs = {
-      ...this.settings,
+      ...settingsWithoutCallback,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
       ...options,
     };
 
     const preparedCallArgs =
-      (await this.settings.prepareCall?.(baseCallArgs)) ?? baseCallArgs;
+      (await this.settings.prepareCall?.(
+        baseCallArgs as Parameters<
+          NonNullable<
+            ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>['prepareCall']
+          >
+        >[0],
+      )) ?? baseCallArgs;
 
     const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
 
@@ -76,20 +89,37 @@ export class ToolLoopAgent<
     };
   }
 
+  private mergeOnStepFinishCallbacks(
+    methodCallback: ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined,
+  ): ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined {
+    const constructorCallback = this.settings.onStepFinish;
+
+    if (methodCallback && constructorCallback) {
+      return async (stepResult: StepResult<TOOLS>) => {
+        await constructorCallback(stepResult);
+        await methodCallback(stepResult);
+      };
+    }
+
+    return methodCallback ?? constructorCallback;
+  }
+
   /**
    * Generates an output from the agent (non-streaming).
    */
   async generate({
     abortSignal,
     timeout,
+    onStepFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS>): Promise<
+  }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
     GenerateTextResult<TOOLS, OUTPUT>
   > {
     return generateText({
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
+      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
   }
 
@@ -100,6 +130,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_transform,
+    onStepFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
     StreamTextResult<TOOLS, OUTPUT>
@@ -109,6 +140,7 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
+      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
   }
 }

@@ -1,5 +1,38 @@
 # @ai-sdk/gateway
 
+## 3.0.22
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.21
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.20
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.19
+
+### Patch Changes
+
+- c60fdd8: Inline fullMessage variable in GatewayError constructor
+
+## 3.0.18
+
+### Patch Changes
+
+- 7af4eb4: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.17
 
 ### Patch Changes
