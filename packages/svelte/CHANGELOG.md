@@ -1,5 +1,45 @@
 # @ai-sdk/svelte
 
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 4.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+  - @ai-sdk/provider-utils@4.0.9
+
+## 4.0.47
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 4.0.46
+
+### Patch Changes
+
+- ai@6.0.46
+
+## 4.0.45
+
+### Patch Changes
+
+- ai@6.0.45
+
+## 4.0.44
+
+### Patch Changes
+
+- ai@6.0.44
+
 ## 4.0.43
 
 ### Patch Changes

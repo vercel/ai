@@ -329,6 +329,45 @@ export async function POST(request: Request) {
 }
 ```
 
+### Track Step Progress
+
+Use `onStepFinish` to track each step's progress, including token usage:
+
+```ts
+const result = await myAgent.generate({
+  prompt: 'Research and summarize the latest AI trends',
+  onStepFinish: async ({ usage, finishReason, toolCalls }) => {
+    console.log('Step completed:', {
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      finishReason,
+      toolsUsed: toolCalls?.map(tc => tc.toolName),
+    });
+  },
+});
+```
+
+You can also define `onStepFinish` in the constructor for agent-wide tracking. When both constructor and method callbacks are provided, both are called (constructor first, then the method callback):
+
+```ts
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  onStepFinish: async ({ usage }) => {
+    // Agent-wide logging
+    console.log('Agent step:', usage.totalTokens);
+  },
+});
+
+// Method-level callback runs after constructor callback
+const result = await agent.generate({
+  prompt: 'Hello',
+  onStepFinish: async ({ usage }) => {
+    // Per-call tracking (e.g., for billing)
+    await trackUsage(usage);
+  },
+});
+```
+
 ## End-to-end Type Safety
 
 You can infer types for your agent's `UIMessage`s:
