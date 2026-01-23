@@ -1,6 +1,7 @@
 import {
   GroundingMetadataSchema,
   UrlContextMetadataSchema,
+  LogprobsResultSchema,
 } from './google-generative-ai-language-model';
 import { type SafetyRatingSchema } from './google-generative-ai-language-model';
 
@@ -31,8 +32,12 @@ export type GoogleGenerativeAIUrlContextMetadata = UrlContextMetadataSchema;
 
 export type GoogleGenerativeAISafetyRating = SafetyRatingSchema;
 
+export type GoogleGenerativeAILogprobsResult = LogprobsResultSchema;
+
 export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
+  logprobsResult: GoogleGenerativeAILogprobsResult | null;
+  avgLogprobs: number | null;
 }

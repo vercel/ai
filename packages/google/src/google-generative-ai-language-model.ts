@@ -1028,6 +1028,10 @@ export type SafetyRatingSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
 >[number];
 
+export type LogprobsResultSchema = NonNullable<
+  InferSchema<typeof responseSchema>['candidates'][number]['logprobsResult']
+>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = lazySchema(() =>
