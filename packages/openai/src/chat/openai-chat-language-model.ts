@@ -68,6 +68,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
+  /**
+   * Extracts the provider options name from the provider string.
+   * e.g., "my-custom-openai.chat" -> "my-custom-openai"
+   */
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   private async getArgs({
     prompt,
     maxOutputTokens,
@@ -85,13 +93,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
-    const openaiOptions =
+    // Parse provider options with layered merge:
+    // 1. First check canonical 'openai' key (backward compatibility)
+    // 2. Then check custom provider name key (takes precedence)
+    const openaiOptions = Object.assign(
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiChatLanguageModelOptions,
-      })) ?? {};
+      })) ?? {},
+      this.providerOptionsName !== 'openai'
+        ? ((await parseProviderOptions({
+            provider: this.providerOptionsName,
+            providerOptions,
+            schema: openaiChatLanguageModelOptions,
+          })) ?? {})
+        : {},
+    );
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
     const isReasoningModel =
@@ -383,6 +401,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
 
+    // Include custom provider name key for backward compatibility
+    // (both point to the same metadata object)
+    if (this.providerOptionsName !== 'openai') {
+      providerMetadata[this.providerOptionsName] = providerMetadata.openai;
+    }
+
     return {
       content,
       finishReason: {
@@ -446,6 +470,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     let usage: OpenAIChatUsage | undefined = undefined;
     let metadataExtracted = false;
     let isActiveText = false;
+
+    // Capture provider name for use in TransformStream closures
+    const providerOptionsName = this.providerOptionsName;
 
     const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
 
@@ -682,6 +709,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           flush(controller) {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
+            }
+
+            // Include custom provider name key for backward compatibility
+            // (both point to the same metadata object)
+            if (providerOptionsName !== 'openai') {
+              providerMetadata[providerOptionsName] = providerMetadata.openai;
             }
 
             controller.enqueue({
