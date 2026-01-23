@@ -40,7 +40,19 @@ Only supported in amazon.nova-* embedding models.
 The purpose of the embedding. Defaults to 'GENERIC_INDEX'.
 Only supported in amazon.nova-* embedding models.
  */
-  embeddingPurpose: z.enum(['GENERIC_INDEX', 'QUERY']).optional(),
+  embeddingPurpose: z
+    .enum([
+      'GENERIC_INDEX',
+      'TEXT_RETRIEVAL',
+      'IMAGE_RETRIEVAL',
+      'VIDEO_RETRIEVAL',
+      'DOCUMENT_RETRIEVAL',
+      'AUDIO_RETRIEVAL',
+      'GENERIC_RETRIEVAL',
+      'CLASSIFICATION',
+      'CLUSTERING',
+    ])
+    .optional(),
 
   /**
 How to handle text exceeding the model's limit. Defaults to 'END'.
