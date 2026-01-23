@@ -118,8 +118,7 @@ pnpm tsx src/stream-text/openai.ts    # Run a specific example
 - **Tool**: Prettier
 - **Config**: Defined in root `package.json`
 - **Settings**: Single quotes, trailing commas, 2-space indentation, no tabs
-- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`
-- **Auto-install**: If `package.json` changes are staged, `pnpm install` runs automatically
+- **Pre-commit hook**: Automatically formats staged files on commit via `lint-staged`. If `package.json` changes are staged, `pnpm install` runs automatically
 
 ### Testing
 
