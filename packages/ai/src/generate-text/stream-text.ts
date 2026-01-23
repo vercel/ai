@@ -1687,13 +1687,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                       tool?.type === 'provider' &&
                       tool.supportsDeferredResults
                     ) {
-                      // Check if this tool call already has a result in the current step
-                      const hasResultInStep = stepToolOutputs.some(
+                      // Check if this tool call already has a result or error in the current step
+                      const hasResultOrErrorInStep = stepToolOutputs.some(
                         output =>
-                          output.type === 'tool-result' &&
+                          (output.type === 'tool-result' ||
+                            output.type === 'tool-error') &&
                           output.toolCallId === toolCall.toolCallId,
                       );
-                      if (!hasResultInStep) {
+                      if (!hasResultOrErrorInStep) {
                         pendingDeferredToolCalls.set(toolCall.toolCallId, {
                           toolName: toolCall.toolName,
                         });
@@ -1701,9 +1702,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
                   }
 
-                  // Mark deferred tool calls as resolved when we receive their results
+                  // Mark deferred tool calls as resolved when we receive their results or errors.
                   for (const output of stepToolOutputs) {
-                    if (output.type === 'tool-result') {
+                    if (
+                      output.type === 'tool-result' ||
+                      output.type === 'tool-error'
+                    ) {
                       pendingDeferredToolCalls.delete(output.toolCallId);
                     }
                   }

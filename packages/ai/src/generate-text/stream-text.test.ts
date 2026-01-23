@@ -17126,6 +17126,106 @@ describe('streamText', () => {
         });
       });
     });
+
+    describe('deferred tool errors', () => {
+      it('should stop after a deferred tool-error without creating extra steps', async () => {
+        const doStreamCalls: Array<LanguageModelV3CallOptions> = [];
+        let responseCount = 0;
+
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async options => {
+              doStreamCalls.push(options);
+
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'srvtool-1',
+                        toolName: 'code_execution',
+                        input: `{"type":"programmatic-tool-call","code":"boom()"}`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+
+                case 1:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'srvtool-1',
+                        toolName: 'code_execution',
+                        result: {
+                          type: 'code_execution_result',
+                          stdout: '',
+                          stderr: 'boom',
+                          return_code: 1,
+                          content: [],
+                        },
+                        isError: true,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            code_execution: {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              inputSchema: z.object({ code: z.string() }),
+              outputSchema: z.object({
+                stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z.array(z.any()),
+              }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          prompt: 'Run the programmatic tool.',
+          stopWhen: stepCountIs(5),
+        });
+
+        await result.consumeStream();
+        expect(doStreamCalls.length).toBe(2);
+        expect((await result.steps).length).toBe(2);
+        expect(await result.finishReason).toBe('stop');
+      });
+    });
   });
 
   describe('logWarnings', () => {
