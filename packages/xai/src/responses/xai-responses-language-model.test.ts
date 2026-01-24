@@ -1842,4 +1842,182 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
   });
+
+  describe('schema validation', () => {
+    it('should accept response.created with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hello',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hello' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hello',
+        }),
+      );
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+        }),
+      );
+    });
+
+    it('should accept response.in_progress with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.in_progress',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hi',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hi' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 5,
+              output_tokens: 1,
+              total_tokens: 6,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hi',
+        }),
+      );
+    });
+  });
 });
