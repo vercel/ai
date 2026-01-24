@@ -127,12 +127,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
           format:
             responseFormat.schema != null
               ? {
-                type: 'json_schema',
-                strict: true,
-                name: responseFormat.name ?? 'response',
-                description: responseFormat.description,
-                schema: responseFormat.schema,
-              }
+                  type: 'json_schema',
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: responseFormat.schema,
+                }
               : { type: 'json_object' },
         },
       }),
@@ -329,17 +329,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapXaiResponsesFinishReason(response.status),
-      usage: response.usage ? {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        totalTokens: response.usage.total_tokens,
-        reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
-        cachedInputTokens: response.usage.input_tokens_details?.cached_tokens,
-      } : {
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-      },
+      usage: response.usage
+        ? {
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            totalTokens: response.usage.total_tokens,
+            reasoningTokens:
+              response.usage.output_tokens_details?.reasoning_tokens,
+            cachedInputTokens:
+              response.usage.input_tokens_details?.cached_tokens,
+          }
+        : {
+            inputTokens: 0,
+            outputTokens: 0,
+            totalTokens: 0,
+          },
       request: { body },
       response: {
         ...getResponseMetadata(response),
