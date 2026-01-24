@@ -1,4 +1,4 @@
-import {
+import type {
   VideoModelV3,
   VideoModelV3CallOptions,
   VideoModelV3File,
@@ -6,29 +6,28 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
-  DataContent,
-  ProviderOptions,
+  type DataContent,
+  type ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import {
   DefaultGeneratedFile,
-  GeneratedFile,
+  type GeneratedFile,
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
-import { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
-import { addVideoModelUsage, VideoModelUsage } from '../types/usage';
-import { Warning } from '../types/warning';
+import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
+import { addVideoModelUsage, type VideoModelUsage } from '../types/usage';
+import type { Warning } from '../types/warning';
 import {
   detectMediaType,
   videoMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
-import { GenerateVideoResult } from './generate-video-result';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
+import type { GenerateVideoResult } from './generate-video-result';
 import { splitDataUrl } from '../prompt/split-data-url';
 
 export type GenerateVideoPrompt =
@@ -163,21 +162,18 @@ Only applicable for HTTP-based providers.
     abortSignal,
   });
 
-  // Normalize prompt
   const { prompt, files } = normalizePrompt(promptArg);
 
-  // Determine how many videos to generate per call
   const maxVideosPerCallWithDefault =
-    maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1; // Default to 1 for video
+    maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
 
-  // Calculate how many calls we need to make
+  // parallelize calls to the model:
   const callCount = Math.ceil(n / maxVideosPerCallWithDefault);
   const callVideoCounts = Array.from({ length: callCount }, (_, index) => {
     const remaining = n - index * maxVideosPerCallWithDefault;
     return Math.min(remaining, maxVideosPerCallWithDefault);
   });
 
-  // Make all calls in parallel
   const results = await Promise.all(
     callVideoCounts.map(async callVideoCount =>
       retry(() =>
@@ -198,7 +194,7 @@ Only applicable for HTTP-based providers.
     ),
   );
 
-  // Aggregate all results
+  // collect result videos, warnings, and response metadata
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
@@ -210,11 +206,9 @@ Only applicable for HTTP-based providers.
   };
 
   for (const result of results) {
-    // Process videos
     for (const videoData of result.videos) {
       switch (videoData.type) {
         case 'url': {
-          // Download video from URL
           const response = await fetch(videoData.url);
           if (!response.ok) {
             throw new Error(
@@ -223,8 +217,6 @@ Only applicable for HTTP-based providers.
           }
           const arrayBuffer = await response.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
-
-          // Use provider-specified media type or detect from data
           const mediaType =
             videoData.mediaType ||
             detectMediaType({
@@ -243,7 +235,6 @@ Only applicable for HTTP-based providers.
         }
 
         case 'base64': {
-          // Base64 string - store directly
           videos.push(
             new DefaultGeneratedFile({
               data: videoData.data,
@@ -254,7 +245,6 @@ Only applicable for HTTP-based providers.
         }
 
         case 'binary': {
-          // Binary data - use provided media type or detect
           const mediaType =
             videoData.mediaType ||
             detectMediaType({
@@ -274,22 +264,18 @@ Only applicable for HTTP-based providers.
       }
     }
 
-    // Collect warnings
     warnings.push(...result.warnings);
 
-    // Aggregate usage
     if (result.usage != null) {
       totalUsage = addVideoModelUsage(totalUsage, result.usage);
     }
 
-    // Collect response metadata
     responses.push({
       timestamp: result.response.timestamp,
       modelId: result.response.modelId,
       headers: result.response.headers,
     });
 
-    // Merge provider metadata
     if (result.providerMetadata != null) {
       for (const [provider, metadata] of Object.entries(
         result.providerMetadata,
@@ -307,7 +293,7 @@ Only applicable for HTTP-based providers.
             };
           }
 
-          const existingMetadata = providerMetadata[gatewayMetadata.provider]!;
+          const existingMetadata = providerMetadata[gatewayMetadata.provider];
 
           existingMetadata.videos = [
             ...(existingMetadata.videos ?? []),
@@ -320,14 +306,13 @@ Only applicable for HTTP-based providers.
             }
           }
         } else {
-          // Normal provider - merge videos
           if (providerMetadata[provider] == null) {
             providerMetadata[provider] = {
               videos: [],
             };
           }
 
-          const existingMetadata = providerMetadata[provider]!;
+          const existingMetadata = providerMetadata[provider];
 
           existingMetadata.videos = [
             ...(existingMetadata.videos ?? []),
@@ -344,12 +329,10 @@ Only applicable for HTTP-based providers.
     }
   }
 
-  // Throw error if no videos were generated
   if (videos.length === 0) {
     throw new NoVideoGeneratedError({ responses });
   }
 
-  // Log warnings
   if (warnings.length > 0) {
     logWarnings({
       warnings,
@@ -359,7 +342,7 @@ Only applicable for HTTP-based providers.
   }
 
   return {
-    video: videos[0]!,
+    video: videos[0],
     videos,
     warnings,
     responses,
@@ -379,9 +362,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  // Convert DataContent to VideoModelV3File
   const files: VideoModelV3File[] = [];
-
   for (const dataContent of promptArg.files ?? []) {
     if (typeof dataContent === 'string') {
       if (
@@ -393,7 +374,6 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
           url: dataContent,
         });
       } else if (dataContent.startsWith('data:')) {
-        // Parse data URL
         const { mediaType, base64Content } = splitDataUrl(dataContent);
         files.push({
           type: 'file',
@@ -401,13 +381,12 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
           data: convertBase64ToUint8Array(base64Content ?? ''),
         });
       } else {
-        // Assume base64 without data URL prefix
         const bytes = convertBase64ToUint8Array(dataContent);
         const mediaType =
           detectMediaType({
             data: bytes,
             signatures: videoMediaTypeSignatures,
-          }) ?? 'image/png'; // Default to image for image-to-video
+          }) ?? 'image/png';
 
         files.push({
           type: 'file',
@@ -421,7 +400,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         detectMediaType({
           data: dataContent,
           signatures: videoMediaTypeSignatures,
-        }) ?? 'image/png'; // Default to image for image-to-video
+        }) ?? 'image/png';
 
       files.push({
         type: 'file',
@@ -437,9 +416,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(
-  model: VideoModelV3,
-): Promise<number | undefined> {
+async function invokeModelMaxVideosPerCall(model: VideoModelV3) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }
