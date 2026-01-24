@@ -1867,10 +1867,7 @@ describe('XaiResponsesLanguageModel', () => {
         }),
       ]);
 
-      const model = createModel();
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
+      const { stream } = await createModel().doStream({
         prompt: TEST_PROMPT,
       });
 
@@ -1967,10 +1964,7 @@ describe('XaiResponsesLanguageModel', () => {
         }),
       ]);
 
-      const model = createModel();
-      const { stream } = await model.doStream({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
+      const { stream } = await createModel().doStream({
         prompt: TEST_PROMPT,
       });
 
