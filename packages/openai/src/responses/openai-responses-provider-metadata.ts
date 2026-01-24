@@ -12,7 +12,7 @@ type ResponsesOutputTextAnnotationProviderMetadata = Extract<
 >['annotation'];
 
 export type ResponsesProviderMetadata = {
-  responseId: string | null;
+  responseId?: string;
   logprobs?: Array<OpenAIResponsesLogprobs>;
   serviceTier?: string;
 };

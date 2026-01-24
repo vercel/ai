@@ -866,7 +866,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const providerMetadata: SharedV3ProviderMetadata = {
       [providerOptionsName]: {
-        responseId: response.id ?? null,
+        responseId: response.id,
         ...(logprobs.length > 0 ? { logprobs } : {}),
         ...(typeof response.service_tier === 'string'
           ? { serviceTier: response.service_tier }
@@ -1783,7 +1783,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           flush(controller) {
             const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {
-                responseId,
+                responseId: responseId ?? undefined,
                 ...(logprobs.length > 0 ? { logprobs } : {}),
                 ...(serviceTier !== undefined ? { serviceTier } : {}),
               } satisfies ResponsesProviderMetadata,
