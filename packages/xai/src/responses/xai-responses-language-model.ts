@@ -127,12 +127,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
           format:
             responseFormat.schema != null
               ? {
-                  type: 'json_schema',
-                  strict: true,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                }
+                type: 'json_schema',
+                strict: true,
+                name: responseFormat.name ?? 'response',
+                description: responseFormat.description,
+                schema: responseFormat.schema,
+              }
               : { type: 'json_object' },
         },
       }),
@@ -329,22 +329,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     return {
       content,
       finishReason: mapXaiResponsesFinishReason(response.status),
-      usage: {
+      usage: response.usage ? {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
         totalTokens: response.usage.total_tokens,
         reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
         cachedInputTokens: response.usage.input_tokens_details?.cached_tokens,
+      } : {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
       },
-<<<<<<< HEAD
-=======
-      usage: response.usage
-        ? convertXaiResponsesUsage(response.usage)
-        : {
-            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-            outputTokens: { total: 0, text: 0, reasoning: 0 },
-          },
->>>>>>> 648c8f3f2 (fix(xai): make usage nullable in responses schema for streaming compatibility (#12004))
       request: { body },
       response: {
         ...getResponseMetadata(response),
