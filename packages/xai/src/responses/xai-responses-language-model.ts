@@ -336,6 +336,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         reasoningTokens: response.usage.output_tokens_details?.reasoning_tokens,
         cachedInputTokens: response.usage.input_tokens_details?.cached_tokens,
       },
+<<<<<<< HEAD
+=======
+      usage: response.usage
+        ? convertXaiResponsesUsage(response.usage)
+        : {
+            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+            outputTokens: { total: 0, text: 0, reasoning: 0 },
+          },
+>>>>>>> 648c8f3f2 (fix(xai): make usage nullable in responses schema for streaming compatibility (#12004))
       request: { body },
       response: {
         ...getResponseMetadata(response),

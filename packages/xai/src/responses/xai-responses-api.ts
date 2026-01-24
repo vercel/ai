@@ -200,7 +200,7 @@ export const xaiResponsesResponseSchema = z.object({
   model: z.string().nullish(),
   object: z.literal('response'),
   output: z.array(outputItemSchema),
-  usage: xaiResponsesUsageSchema,
+  usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
 });
 
