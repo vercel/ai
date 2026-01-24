@@ -5,7 +5,6 @@ import {
   createJsonResponseHandler,
   delay,
   FetchFunction,
-  getFromApi,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
@@ -278,20 +277,19 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
         });
       }
 
-      // Poll operation status
-      // For publisher models, the operation name is the full resource path
-      // Poll using v1beta1 API (same as the initial request) with the complete operation name
-      const baseUrlMatch = this.config.baseURL.match(/^(https?:\/\/[^\/]+)\//);
-      const baseHost = baseUrlMatch ? baseUrlMatch[1] : 'https://us-central1-aiplatform.googleapis.com';
-      const statusUrl = `${baseHost}/v1beta1/${operationName}`;
+      // Poll operation status using fetchPredictOperation endpoint
+      // Vertex AI video requires POST to fetchPredictOperation with operationName in body
+      const pollUrl = `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`;
 
-
-      const { value: statusOperation } = await getFromApi({
-        url: statusUrl,
+      const { value: statusOperation } = await postJsonToApi({
+        url: pollUrl,
         headers: combineHeaders(
           await resolve(this.config.headers),
           options.headers,
         ),
+        body: {
+          operationName,
+        },
         successfulResponseHandler: createJsonResponseHandler(
           vertexOperationSchema,
         ),
