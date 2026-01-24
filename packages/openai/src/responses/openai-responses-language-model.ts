@@ -63,6 +63,7 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import {
+  ResponsesProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -864,16 +865,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     }
 
     const providerMetadata: SharedV3ProviderMetadata = {
-      [providerOptionsName]: { responseId: response.id },
+      [providerOptionsName]: {
+        responseId: response.id ?? null,
+        ...(logprobs.length > 0 ? { logprobs } : {}),
+        ...(typeof response.service_tier === 'string'
+          ? { serviceTier: response.service_tier }
+          : {}),
+      } satisfies ResponsesProviderMetadata,
     };
-
-    if (logprobs.length > 0) {
-      providerMetadata[providerOptionsName].logprobs = logprobs;
-    }
-
-    if (typeof response.service_tier === 'string') {
-      providerMetadata[providerOptionsName].serviceTier = response.service_tier;
-    }
 
     const usage = response.usage!; // defined when there is no error
 
@@ -1785,16 +1784,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             const providerMetadata: SharedV3ProviderMetadata = {
               [providerOptionsName]: {
                 responseId,
-              },
+                ...(logprobs.length > 0 ? { logprobs } : {}),
+                ...(serviceTier !== undefined ? { serviceTier } : {}),
+              } satisfies ResponsesProviderMetadata,
             };
-
-            if (logprobs.length > 0) {
-              providerMetadata[providerOptionsName].logprobs = logprobs;
-            }
-
-            if (serviceTier !== undefined) {
-              providerMetadata[providerOptionsName].serviceTier = serviceTier;
-            }
 
             controller.enqueue({
               type: 'finish',

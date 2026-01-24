@@ -3,6 +3,7 @@ export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
 export type { OpenAIResponsesProviderOptions } from './responses/openai-responses-options';
 export type { OpenAIChatLanguageModelOptions } from './chat/openai-chat-options';
 export type {
+  OpenaiResponsesProviderMetadata,
   OpenaiResponsesTextProviderMetadata,
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
