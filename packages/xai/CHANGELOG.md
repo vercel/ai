@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.55
+
+### Patch Changes
+
+- ef70614: fix(xai): make usage nullable in responses schema for streaming compatibility
+
 ## 2.0.54
 
 ### Patch Changes
