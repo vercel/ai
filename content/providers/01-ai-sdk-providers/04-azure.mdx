@@ -342,7 +342,7 @@ const { responseId, logprobs, serviceTier } = providerMetadata?.azure ?? {};
 console.log(responseId);
 ```
 
-The following AzureOpenAI-specific metadata may be returned:
+The following Azure-specific metadata may be returned:
 
 - **responseId** _string | null | undefined_
   The ID of the response. Can be used to continue a conversation.
@@ -688,7 +688,7 @@ const result = await generateText({
   model: azure('your-deployment-name'),
   prompt: 'How many "r"s are in the word "strawberry"?',
   providerOptions: {
-    openai: {
+    azure: {
       store: false,
       include: ['reasoning.encrypted_content'],
     } satisfies OpenAIResponsesProviderOptions,
