@@ -83,7 +83,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
               bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
             embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
             text: {
-              truncationMode: bedrockOptions.truncationMode ?? 'END',
+              truncationMode: bedrockOptions.truncate ?? 'END',
               value: values[0],
             },
           },

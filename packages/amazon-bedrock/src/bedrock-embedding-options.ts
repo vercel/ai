@@ -50,12 +50,6 @@ Only supported in amazon.nova-* embedding models.
     .optional(),
 
   /**
-How to handle text exceeding the model's limit. Defaults to 'END'.
-Only supported in amazon.nova-* embedding models.
- */
-  truncationMode: z.enum(['START', 'END', 'NONE']).optional(),
-
-  /**
 Input type for Cohere embedding models on Bedrock.
 Common values: `search_document`, `search_query`, `classification`, `clustering`.
 If not set, the provider defaults to `search_query`.
@@ -65,7 +59,8 @@ If not set, the provider defaults to `search_query`.
     .optional(),
 
   /**
-Truncation behavior for Cohere embedding models on Bedrock.
+Truncation behavior when input exceeds the model's context length.
+Supported in Cohere and Nova embedding models. Defaults to 'END' for Nova models.
    */
   truncate: z.enum(['NONE', 'START', 'END']).optional(),
 });

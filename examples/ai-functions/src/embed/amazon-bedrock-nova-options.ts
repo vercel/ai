@@ -11,7 +11,7 @@ run(async () => {
       bedrock: {
         embeddingDimension: 256,
         embeddingPurpose: 'TEXT_RETRIEVAL',
-        truncationMode: 'END',
+        truncate: 'END',
       },
     },
   });
