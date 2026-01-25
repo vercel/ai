@@ -67,12 +67,20 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       })) ?? {};
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
+    //
     // Note: Different embedding model families expect different request/response
-    const args = this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embeddings')
+    // payloads (e.g. Titan vs Cohere vs Nova). We keep the public interface stable and
+    // adapt here based on the modelId.
+    const isNovaModel =
+      this.modelId.startsWith('amazon.nova-') && this.modelId.includes('embed');
+    const isCohereModel = this.modelId.startsWith('cohere.embed-');
+
+    const args = isNovaModel
       ? {
           taskType: 'SINGLE_EMBEDDING',
           singleEmbeddingParams: {
-            embeddingPurpose: bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
+            embeddingPurpose:
+              bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
             embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
             text: {
               truncationMode: bedrockOptions.truncationMode ?? 'END',
@@ -80,11 +88,19 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
             },
           },
         }
-      : {
-          inputText: values[0],
-          dimensions: bedrockOptions.dimensions,
-          normalize: bedrockOptions.normalize,
-        };
+      : isCohereModel
+        ? {
+            // Cohere embedding models on Bedrock require `input_type`.
+            // Without it, the service attempts other schema branches and rejects the request.
+            input_type: bedrockOptions.inputType ?? 'search_query',
+            texts: [values[0]],
+            truncate: bedrockOptions.truncate,
+          }
+        : {
+            inputText: values[0],
+            dimensions: bedrockOptions.dimensions,
+            normalize: bedrockOptions.normalize,
+          };
 
     const url = this.getUrl(this.modelId);
     const { value: response } = await postJsonToApi({
@@ -104,13 +120,23 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
       abortSignal,
     });
 
-    const isNovaResponse = 'embeddings' in response;
-    const embedding = isNovaResponse
-      ? response.embeddings[0].embedding
-      : response.embedding;
-    const tokens = isNovaResponse
-      ? (response.inputTokenCount ?? 0)
-      : response.inputTextTokenCount;
+    // Extract embedding based on response format
+    const embedding =
+      'embedding' in response
+        ? response.embedding // Titan response
+        : 'embeddingType' in (response.embeddings[0] ?? {})
+          ? (response.embeddings[0] as { embedding: number[] }).embedding // Nova response
+          : Array.isArray(response.embeddings)
+            ? (response.embeddings[0] as number[]) // Cohere v3 response
+            : response.embeddings.float[0]; // Cohere v4 response
+
+    // Extract token count based on response format
+    const tokens =
+      'inputTextTokenCount' in response
+        ? response.inputTextTokenCount // Titan response
+        : 'inputTokenCount' in response
+          ? (response.inputTokenCount ?? 0) // Nova response
+          : NaN; // Cohere doesn't return token count
 
     return {
       embeddings: [embedding],
@@ -121,6 +147,12 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
 }
 
 const BedrockEmbeddingResponseSchema = z.union([
+  // Titan-style response
+  z.object({
+    embedding: z.array(z.number()),
+    inputTextTokenCount: z.number(),
+  }),
+  // Nova-style response
   z.object({
     embeddings: z.array(
       z.object({
@@ -130,8 +162,14 @@ const BedrockEmbeddingResponseSchema = z.union([
     ),
     inputTokenCount: z.number().optional(),
   }),
+  // Cohere v3-style response
   z.object({
-    embedding: z.array(z.number()),
-    inputTextTokenCount: z.number(),
+    embeddings: z.array(z.array(z.number())),
+  }),
+  // Cohere v4-style response
+  z.object({
+    embeddings: z.object({
+      float: z.array(z.array(z.number())),
+    }),
   }),
 ]);

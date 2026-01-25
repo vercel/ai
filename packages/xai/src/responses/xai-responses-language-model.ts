@@ -343,7 +343,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         unified: mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
-      usage: convertXaiResponsesUsage(response.usage),
+      usage: response.usage
+        ? convertXaiResponsesUsage(response.usage)
+        : {
+            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+            outputTokens: { total: 0, text: 0, reasoning: 0 },
+          },
       request: { body },
       response: {
         ...getResponseMetadata(response),

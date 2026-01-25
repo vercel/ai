@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 export type BedrockEmbeddingModelId =
   | 'amazon.titan-embed-text-v1'
   | 'amazon.titan-embed-text-v2:0'
+  | 'amazon.nova-embed-text-v1:0'
   | 'cohere.embed-english-v3'
   | 'cohere.embed-multilingual-v3'
   | (string & {});
@@ -28,12 +29,7 @@ Supported values: 256, 384, 1024, 3072.
 Only supported in amazon.nova-* embedding models.
  */
   embeddingDimension: z
-    .union([
-      z.literal(256),
-      z.literal(384),
-      z.literal(1024),
-      z.literal(3072),
-    ])
+    .union([z.literal(256), z.literal(384), z.literal(1024), z.literal(3072)])
     .optional(),
 
   /**
@@ -59,4 +55,18 @@ How to handle text exceeding the model's limit. Defaults to 'END'.
 Only supported in amazon.nova-* embedding models.
  */
   truncationMode: z.enum(['START', 'END', 'NONE']).optional(),
+
+  /**
+Input type for Cohere embedding models on Bedrock.
+Common values: `search_document`, `search_query`, `classification`, `clustering`.
+If not set, the provider defaults to `search_query`.
+   */
+  inputType: z
+    .enum(['search_document', 'search_query', 'classification', 'clustering'])
+    .optional(),
+
+  /**
+Truncation behavior for Cohere embedding models on Bedrock.
+   */
+  truncate: z.enum(['NONE', 'START', 'END']).optional(),
 });

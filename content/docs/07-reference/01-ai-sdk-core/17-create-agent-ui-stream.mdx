@@ -87,6 +87,13 @@ export async function* streamAgent(
         'Optional transformations to apply to the agent output stream (experimental).',
     },
     {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
+    },
+    {
       name: '...UIMessageStreamOptions',
       type: 'UIMessageStreamOptions',
       isRequired: false,

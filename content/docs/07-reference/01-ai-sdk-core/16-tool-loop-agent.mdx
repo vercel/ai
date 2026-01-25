@@ -248,6 +248,13 @@ const result = await agent.generate({
       description:
         'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
     },
+    {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
+    },
   ]}
 />
 
@@ -301,6 +308,13 @@ for await (const chunk of stream.textStream) {
       isOptional: true,
       description:
         'Optional stream transformation(s). They are applied in the order provided and must maintain the stream structure. See `streamText` docs for details.',
+    },
+    {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isOptional: true,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. If also specified in the constructor, both callbacks are called (constructor first, then this one).',
     },
   ]}
 />
