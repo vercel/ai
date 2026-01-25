@@ -3,7 +3,6 @@ import { z } from 'zod/v4';
 export type BedrockEmbeddingModelId =
   | 'amazon.titan-embed-text-v1'
   | 'amazon.titan-embed-text-v2:0'
-  | 'amazon.nova-embed-text-v1:0'
   | 'cohere.embed-english-v3'
   | 'cohere.embed-multilingual-v3'
   | (string & {});
