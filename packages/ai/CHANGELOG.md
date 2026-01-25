@@ -1,5 +1,28 @@
 # ai
 
+## 6.0.49
+
+### Patch Changes
+
+- ded661b: feat(ai): add onStepFinish to agent.generate and agent.stream
+
+## 6.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/gateway@3.0.22
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 6.0.47
+
+### Patch Changes
+
+- Updated dependencies [2b8369d]
+  - @ai-sdk/gateway@3.0.21
+
 ## 6.0.46
 
 ### Patch Changes

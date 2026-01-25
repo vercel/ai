@@ -1,5 +1,43 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.30
+
+### Patch Changes
+
+- 6ece44c: Fix Cohere embedding model request format on Bedrock by sending the required `input_type` and parsing Cohere-style responses.
+
+## 4.0.29
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/anthropic@3.0.23
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [8ccf04b]
+  - @ai-sdk/anthropic@3.0.22
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [662d359]
+  - @ai-sdk/anthropic@3.0.21
+
+## 4.0.26
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+
 ## 4.0.25
 
 ### Patch Changes

@@ -1,5 +1,26 @@
 # @ai-sdk/langchain
 
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 2.0.53
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+
+## 2.0.52
+
+### Patch Changes
+
+- ai@6.0.47
+
 ## 2.0.51
 
 ### Patch Changes

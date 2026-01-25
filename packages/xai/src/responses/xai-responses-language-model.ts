@@ -99,6 +99,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       tool => tool.type === 'provider' && tool.id === 'xai.code_execution',
     )?.name;
 
+    const mcpToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === 'xai.mcp',
+    )?.name;
+
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
       store: true,
@@ -162,6 +166,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
+      mcpToolName,
     };
   }
 
@@ -174,6 +179,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
+      mcpToolName,
     } = await this.getArgs(options);
 
     const {
@@ -214,7 +220,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'code_execution_call' ||
         part.type === 'view_image_call' ||
         part.type === 'view_x_video_call' ||
-        part.type === 'custom_tool_call'
+        part.type === 'custom_tool_call' ||
+        part.type === 'mcp_call'
       ) {
         let toolName = part.name ?? '';
         if (
@@ -233,13 +240,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           part.type === 'code_execution_call'
         ) {
           toolName = codeExecutionToolName ?? 'code_execution';
+        } else if (part.type === 'mcp_call') {
+          toolName = mcpToolName ?? part.name ?? 'mcp';
         }
 
         // custom_tool_call uses 'input' field, others use 'arguments'
         const toolInput =
           part.type === 'custom_tool_call'
             ? (part.input ?? '')
-            : (part.arguments ?? '');
+            : part.type === 'mcp_call'
+              ? (part.arguments ?? '')
+              : (part.arguments ?? '');
 
         content.push({
           type: 'tool-call',
@@ -332,7 +343,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         unified: mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
-      usage: convertXaiResponsesUsage(response.usage),
+      usage: response.usage
+        ? convertXaiResponsesUsage(response.usage)
+        : {
+            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+            outputTokens: { total: 0, text: 0, reasoning: 0 },
+          },
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -352,6 +368,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       xSearchToolName,
       codeExecutionToolName,
+      mcpToolName,
     } = await this.getArgs(options);
     const body = {
       ...args,
@@ -533,6 +550,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
+            // Custom tool call input streaming - already handled by output_item events
+            if (
+              event.type === 'response.custom_tool_call_input.delta' ||
+              event.type === 'response.custom_tool_call_input.done'
+            ) {
+              return;
+            }
+
             if (
               event.type === 'response.output_item.added' ||
               event.type === 'response.output_item.done'
@@ -564,7 +589,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 part.type === 'code_execution_call' ||
                 part.type === 'view_image_call' ||
                 part.type === 'view_x_video_call' ||
-                part.type === 'custom_tool_call'
+                part.type === 'custom_tool_call' ||
+                part.type === 'mcp_call'
               ) {
                 const webSearchSubTools = [
                   'web_search',
@@ -595,13 +621,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   part.type === 'code_execution_call'
                 ) {
                   toolName = codeExecutionToolName ?? 'code_execution';
+                } else if (part.type === 'mcp_call') {
+                  toolName = mcpToolName ?? part.name ?? 'mcp';
                 }
 
                 // custom_tool_call uses 'input' field, others use 'arguments'
                 const toolInput =
                   part.type === 'custom_tool_call'
                     ? (part.input ?? '')
-                    : (part.arguments ?? '');
+                    : part.type === 'mcp_call'
+                      ? (part.arguments ?? '')
+                      : (part.arguments ?? '');
 
                 // for custom_tool_call, input is only available on 'done' event
                 // for other types, input is available on 'added' event
@@ -647,6 +677,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   if (contentPart.text && contentPart.text.length > 0) {
                     const blockId = `text-${part.id}`;
 
+                    // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
                       contentBlocks[blockId] = { type: 'text' };
                       controller.enqueue({

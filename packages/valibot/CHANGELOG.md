@@ -1,5 +1,13 @@
 # @ai-sdk/valibot
 
+## 2.0.10
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider-utils@4.0.9
+
 ## 2.0.9
 
 ### Patch Changes

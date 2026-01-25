@@ -1,5 +1,20 @@
 # @ai-sdk/gateway
 
+## 3.0.22
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.21
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.20
 
 ### Patch Changes

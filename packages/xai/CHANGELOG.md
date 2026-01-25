@@ -1,5 +1,35 @@
 # @ai-sdk/xai
 
+## 3.0.34
+
+### Patch Changes
+
+- 648c8f3: fix(xai): make usage nullable in responses schema for streaming compatibility
+
+  xAI sends `usage: null` in early streaming events (`response.created`, `response.in_progress`) because token counts aren't available until the stream completes. This change makes the `usage` field nullish in `xaiResponsesResponseSchema` to accept these values without validation errors.
+
+## 3.0.33
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
 ## 3.0.30
 
 ### Patch Changes
