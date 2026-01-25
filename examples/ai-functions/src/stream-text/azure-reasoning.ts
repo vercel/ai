@@ -1,10 +1,10 @@
-import { streamText } from 'ai';
-import { run } from '../lib/run';
 import {
   azure,
   AzureResponsesReasoningProviderMetadata,
   OpenAIResponsesProviderOptions,
 } from '@ai-sdk/azure';
+import { streamText } from 'ai';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -14,8 +14,6 @@ run(async () => {
       openai: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
-        store: false,
-        include: ['reasoning.encrypted_content'], // Use encrypted reasoning items
       } satisfies OpenAIResponsesProviderOptions,
     },
   });
@@ -42,8 +40,8 @@ run(async () => {
         } = providerMetadata;
         console.log(`itemId: ${itemId}`);
 
-        // In the Responses API, explicitly setting store to false opts out of both conversation history and reasoning token storage.
-        // As a result, reasoningEncryptedContent is used to restore the reasoning tokens for the conversation history.
+        // In the Responses API, store is set to true by default, so conversation history is cached.
+        // The reasoning tokens from that interaction are also cached, and as a result, reasoningEncryptedContent returns null.
         console.log(`reasoningEncryptedContent: ${reasoningEncryptedContent}`);
         break;
 
