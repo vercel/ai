@@ -867,7 +867,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
     const providerMetadata: SharedV3ProviderMetadata = {
       [providerOptionsName]: {
-        responseId: response.id ?? null,
+        responseId: response.id,
         ...(logprobs.length > 0 ? { logprobs } : {}),
         ...(typeof response.service_tier === 'string'
           ? { serviceTier: response.service_tier }
