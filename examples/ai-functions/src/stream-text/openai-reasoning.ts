@@ -1,4 +1,8 @@
-import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import {
+  openai,
+  OpenAIResponsesProviderOptions,
+  OpenaiResponsesReasoningProviderMetadata,
+} from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -27,6 +31,18 @@ run(async () => {
       case 'reasoning-end':
         process.stdout.write('\x1b[0m');
         process.stdout.write('\n');
+        const providerMetadata = chunk.providerMetadata as
+          | OpenaiResponsesReasoningProviderMetadata
+          | undefined;
+        if (!providerMetadata) break;
+        const {
+          openai: { itemId, reasoningEncryptedContent },
+        } = providerMetadata;
+        console.log(`itemId: ${itemId}`);
+
+        // In the Responses API, store is set to true by default, so conversation history is cached.
+        // The reasoning tokens from that interaction are also cached, and as a result, reasoningEncryptedContent returns null.
+        console.log(`reasoningEncryptedContent: ${reasoningEncryptedContent}`);
         break;
 
       case 'text-start':
