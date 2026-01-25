@@ -17,6 +17,15 @@ export type ResponsesProviderMetadata = {
   serviceTier?: string;
 };
 
+export type ResponsesReasoningProviderMetadata = {
+  itemId: string;
+  reasoningEncryptedContent?: string | null;
+};
+
+export type OpenaiResponsesReasoningProviderMetadata = {
+  openai: ResponsesReasoningProviderMetadata;
+};
+
 export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };

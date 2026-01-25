@@ -64,6 +64,7 @@ import {
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import {
   ResponsesProviderMetadata,
+  ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -499,7 +500,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
-                },
+                } satisfies ResponsesReasoningProviderMetadata,
               },
             });
           }
@@ -1187,7 +1188,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
-                    },
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
               }
@@ -1495,7 +1496,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
-                      },
+                      } satisfies ResponsesReasoningProviderMetadata,
                     },
                   });
                 }
@@ -1640,7 +1641,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
                       providerMetadata: {
-                        [providerOptionsName]: { itemId: value.item_id },
+                        [providerOptionsName]: {
+                          itemId: value.item_id,
+                        } satisfies ResponsesReasoningProviderMetadata,
                       },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
@@ -1657,7 +1660,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
                         null,
-                    },
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
               }
@@ -1669,7 +1672,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 providerMetadata: {
                   [providerOptionsName]: {
                     itemId: value.item_id,
-                  },
+                  } satisfies ResponsesReasoningProviderMetadata,
                 },
               });
             } else if (value.type === 'response.reasoning_summary_part.done') {
@@ -1680,7 +1683,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    [providerOptionsName]: { itemId: value.item_id },
+                    [providerOptionsName]: {
+                      itemId: value.item_id,
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
 

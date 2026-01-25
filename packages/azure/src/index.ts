@@ -10,6 +10,7 @@ export type {
 } from './azure-openai-provider';
 export type {
   AzureResponsesProviderMetadata,
+  AzureResponsesReasoningProviderMetadata,
   AzureResponsesTextProviderMetadata,
   AzureResponsesSourceDocumentProviderMetadata,
 } from './azure-openai-provider-metadata';
