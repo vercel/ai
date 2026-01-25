@@ -136,6 +136,14 @@ The following optional provider options are available for Groq language models:
 
   When enabled, object generation will use the `json_schema` format instead of `json_object` format, providing more reliable structured outputs.
 
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation. When `true`, the model uses constrained decoding to guarantee schema compliance.
+
+  Defaults to `true`.
+
+  Only used when `structuredOutputs` is enabled and a schema is provided. See [Groq's Structured Outputs documentation](https://console.groq.com/docs/structured-outputs) for details on strict mode limitations.
+
 - **parallelToolCalls** _boolean_
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
@@ -442,6 +450,12 @@ The following provider options are available:
   Defaults to `['segment']`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
   Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+  **Important:** Requires `responseFormat` to be set to `'verbose_json'`.
+
+- **responseFormat** _string_
+  The format of the response. Set to `'verbose_json'` to receive timestamps for audio segments and enable `timestampGranularities`.
+  Set to `'text'` to return only the transcribed text.
+  Optional.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.

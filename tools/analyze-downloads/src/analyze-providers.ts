@@ -155,7 +155,7 @@ function fetchWithRetry(
               );
             }
           } else {
-            resolve(response);
+            setTimeout(() => resolve(response), 1000);
           }
         })
         .catch(err => {

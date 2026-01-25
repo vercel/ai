@@ -1,5 +1,98 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.18
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 2.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 2.0.16
+
+### Patch Changes
+
+- 78555ad: fix(openai-compatible): Accept non-OpenAI provider options
+
+## 2.0.15
+
+### Patch Changes
+
+- 7116ef3: Use consistent camelCase `openaiCompatible` key for providerOptions. The kebab-case `openai-compatible` key is now deprecated but still supported with a console warning.
+
+## 2.0.14
+
+### Patch Changes
+
+- 1612a57: feat(openai-compat): support passing multiple file types
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 2.0.12
+
+### Patch Changes
+
+- 78a133a: feat(openai-compatible): add transformRequestBody function for openai-compatible
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 2.0.9
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 2.0.8
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
+## 2.0.7
+
+### Patch Changes
+
+- cd7bb0e: feat(openai-compat): add thoughtSignature handling for google models
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 2.0.5
+
+### Patch Changes
+
+- d54c380: Change some response schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
 ## 2.0.4
 
 ### Patch Changes

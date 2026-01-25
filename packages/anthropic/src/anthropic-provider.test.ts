@@ -104,6 +104,42 @@ describe('createAnthropic', () => {
   });
 });
 
+describe('anthropic provider - authentication', () => {
+  describe('authToken option', () => {
+    it('sends Authorization Bearer header when authToken is provided', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        authToken: 'test-auth-token',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'Bearer test-auth-token',
+      );
+      expect(requestOptions.headers['x-api-key']).toBeUndefined();
+    });
+  });
+
+  describe('apiKey and authToken conflict', () => {
+    it('throws error when both apiKey and authToken options are provided', () => {
+      expect(() =>
+        createAnthropic({
+          apiKey: 'test-api-key',
+          authToken: 'test-auth-token',
+        }),
+      ).toThrow(
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+      );
+    });
+  });
+});
+
 describe('anthropic provider - custom provider name', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -126,5 +162,37 @@ describe('anthropic provider - custom provider name', () => {
 
     const model = provider('claude-3-haiku-20240307');
     expect(model.provider).toBe('anthropic.messages');
+  });
+});
+
+describe('anthropic provider - supportedUrls', () => {
+  it('should support image/* URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['image/*']).toBeDefined();
+    expect(
+      supportedUrls['image/*']![0]!.test('https://example.com/image.png'),
+    ).toBe(true);
+  });
+
+  it('should support application/pdf URLs', async () => {
+    const provider = createAnthropic({
+      apiKey: 'test-api-key',
+    });
+
+    const model = provider('claude-3-haiku-20240307');
+    const supportedUrls = await model.supportedUrls;
+
+    expect(supportedUrls['application/pdf']).toBeDefined();
+    expect(
+      supportedUrls['application/pdf']![0]!.test(
+        'https://arxiv.org/pdf/2401.00001',
+      ),
+    ).toBe(true);
   });
 });

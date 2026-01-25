@@ -62,6 +62,10 @@ import {
   TOP_LOGPROBS_MAX,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import {
+  ResponsesSourceDocumentProviderMetadata,
+  ResponsesTextProviderMetadata,
+} from './openai-responses-provider-metadata';
 
 /**
  * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
@@ -202,6 +206,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         providerOptionsName,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
+        hasConversation: openaiOptions?.conversation != null,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
         hasShellTool: hasOpenAITool('openai.shell'),
         hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
@@ -573,7 +578,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               ...(contentPart.annotations.length > 0 && {
                 annotations: contentPart.annotations,
               }),
-            };
+            } satisfies ResponsesTextProviderMetadata;
 
             content.push({
               type: 'text',
@@ -598,17 +603,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title: annotation.quote ?? annotation.filename ?? 'Document',
-                  filename: annotation.filename ?? annotation.file_id,
-                  ...(annotation.file_id
-                    ? {
-                        providerMetadata: {
-                          [providerOptionsName]: {
-                            fileId: annotation.file_id,
-                          },
-                        },
-                      }
-                    : {}),
+                  title: annotation.filename,
+                  filename: annotation.filename,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: annotation.type,
+                      fileId: annotation.file_id,
+                      index: annotation.index,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_citation' }
+                    >,
+                  },
                 });
               } else if (annotation.type === 'container_file_citation') {
                 content.push({
@@ -616,17 +622,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: this.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    annotation.filename ?? annotation.file_id ?? 'Document',
-                  filename: annotation.filename ?? annotation.file_id,
+                  title: annotation.filename,
+                  filename: annotation.filename,
                   providerMetadata: {
                     [providerOptionsName]: {
+                      type: annotation.type,
                       fileId: annotation.file_id,
                       containerId: annotation.container_id,
-                      ...(annotation.index != null
-                        ? { index: annotation.index }
-                        : {}),
-                    },
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'container_file_citation' }
+                    >,
                   },
                 });
               } else if (annotation.type === 'file_path') {
@@ -639,11 +645,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename: annotation.file_id,
                   providerMetadata: {
                     [providerOptionsName]: {
+                      type: annotation.type,
                       fileId: annotation.file_id,
-                      ...(annotation.index != null
-                        ? { index: annotation.index }
-                        : {}),
-                    },
+                      index: annotation.index,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_path' }
+                    >,
                   },
                 });
               }
@@ -1195,7 +1203,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
                       }),
-                    },
+                    } satisfies ResponsesTextProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'function_call') {
@@ -1716,21 +1724,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.quote ??
-                    value.annotation.filename ??
-                    'Document',
-                  filename:
-                    value.annotation.filename ?? value.annotation.file_id,
-                  ...(value.annotation.file_id
-                    ? {
-                        providerMetadata: {
-                          [providerOptionsName]: {
-                            fileId: value.annotation.file_id,
-                          },
-                        },
-                      }
-                    : {}),
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: value.annotation.type,
+                      fileId: value.annotation.file_id,
+                      index: value.annotation.index,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_citation' }
+                    >,
+                  },
                 });
               } else if (value.annotation.type === 'container_file_citation') {
                 controller.enqueue({
@@ -1738,20 +1743,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   sourceType: 'document',
                   id: self.config.generateId?.() ?? generateId(),
                   mediaType: 'text/plain',
-                  title:
-                    value.annotation.filename ??
-                    value.annotation.file_id ??
-                    'Document',
-                  filename:
-                    value.annotation.filename ?? value.annotation.file_id,
+                  title: value.annotation.filename,
+                  filename: value.annotation.filename,
                   providerMetadata: {
                     [providerOptionsName]: {
+                      type: value.annotation.type,
                       fileId: value.annotation.file_id,
                       containerId: value.annotation.container_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
-                    },
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'container_file_citation' }
+                    >,
                   },
                 });
               } else if (value.annotation.type === 'file_path') {
@@ -1764,11 +1766,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   filename: value.annotation.file_id,
                   providerMetadata: {
                     [providerOptionsName]: {
+                      type: value.annotation.type,
                       fileId: value.annotation.file_id,
-                      ...(value.annotation.index != null
-                        ? { index: value.annotation.index }
-                        : {}),
-                    },
+                      index: value.annotation.index,
+                    } satisfies Extract<
+                      ResponsesSourceDocumentProviderMetadata,
+                      { type: 'file_path' }
+                    >,
                   },
                 });
               }

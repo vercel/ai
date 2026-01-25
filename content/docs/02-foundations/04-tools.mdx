@@ -24,7 +24,7 @@ and [`streamText`](/docs/reference/ai-sdk-core/stream-text) by passing one or mo
 A tool consists of three properties:
 
 - **`description`**: An optional description of the tool that can influence when the tool is picked.
-- **`inputSchema`**: A [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input required for the tool to run. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
+- **`inputSchema`**: A [Zod schema](/docs/reference/ai-sdk-core/zod-schema) or a [JSON schema](/docs/reference/ai-sdk-core/json-schema) that defines the input required for the tool to run. The schema is consumed by the LLM, and also used to validate the LLM tool calls.
 - **`execute`**: An optional async function that is called with the arguments from the tool call.
 
 <Note>
@@ -38,6 +38,95 @@ The output of the tool calls are returned using tool result objects.
 
 You can automatically pass tool results back to the LLM
 using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) with `streamText` and `generateText`.
+
+## Types of Tools
+
+The AI SDK supports three types of tools, each with different trade-offs:
+
+### Custom Tools
+
+Custom tools are tools you define entirely yourself, including the description, input schema, and execute function. They are provider-agnostic and give you full control.
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  execute: async ({ location }) => {
+    // Your implementation
+    return { temperature: 72, conditions: 'sunny' };
+  },
+});
+```
+
+**When to use**: When you need full control, want provider portability, or are implementing application-specific functionality.
+
+### Provider-Defined Tools
+
+Provider-defined tools are tools where the provider specifies the tool's `inputSchema` and `description`, but you provide the `execute` function. These are sometimes called "client tools" because execution happens on your side.
+
+Examples include Anthropic's `bash` and `text_editor` tools. The model has been specifically trained to use these tools effectively, which can result in better performance for supported tasks.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-5'),
+  tools: {
+    bash: anthropic.tools.bash_20250124({
+      execute: async ({ command }) => {
+        // Your implementation to run the command
+        return runCommand(command);
+      },
+    }),
+  },
+  prompt: 'List files in the current directory',
+});
+```
+
+**When to use**: When the provider offers a tool the model is trained to use well, and you want better performance for that specific task.
+
+### Provider-Executed Tools
+
+Provider-executed tools are tools that run entirely on the provider's servers. You configure them, but the provider handles execution. These are sometimes called "server-side tools".
+
+Examples include OpenAI's web search and Anthropic's code execution. These provide out-of-the-box functionality without requiring you to set up infrastructure.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    web_search: openai.tools.webSearch(),
+  },
+  prompt: 'What happened in the news today?',
+});
+```
+
+**When to use**: When you want powerful functionality (like web search or sandboxed code execution) without managing the infrastructure yourself.
+
+### Comparison
+
+| Aspect             | Custom Tools             | Provider-Defined Tools | Provider-Executed Tools |
+| ------------------ | ------------------------ | ---------------------- | ----------------------- |
+| **Execution**      | Your code                | Your code              | Provider's servers      |
+| **Schema**         | You define               | Provider defines       | Provider defines        |
+| **Portability**    | Works with any provider  | Provider-specific      | Provider-specific       |
+| **Model Training** | General tool use         | Optimized for the tool | Optimized for the tool  |
+| **Setup**          | You implement everything | You implement execute  | Configuration only      |
+
+<Note>
+  Provider-defined and provider-executed tools are documented in each provider's
+  page. See [Anthropic Provider](/providers/ai-sdk-providers/anthropic) and
+  [OpenAI Provider](/providers/ai-sdk-providers/openai) for examples.
+</Note>
 
 ## Schemas
 
@@ -129,6 +218,7 @@ These packages provide pre-built tools you can install and use immediately:
 - **[JigsawStack](http://www.jigsawstack.com/docs/integration/vercel)** - Over 30+ small custom fine-tuned models available for specific uses.
 - **[AI Tools Registry](https://ai-tools-registry.vercel.app)** - A Shadcn-compatible tool definitions and components registry for the AI SDK.
 - **[Toolhouse](https://docs.toolhouse.ai/toolhouse/toolhouse-sdk/using-vercel-ai)** - AI function-calling in 3 lines of code for over 25 different actions.
+- **[bash-tool](https://www.npmjs.com/package/bash-tool)** - Provides `bash`, `readFile`, and `writeFile` tools for AI agents. Supports [@vercel/sandbox](https://vercel.com/docs/vercel-sandbox) for full VM isolation.
 
 ### MCP Tools
 

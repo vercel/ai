@@ -1,5 +1,267 @@
 # ai
 
+## 6.0.49
+
+### Patch Changes
+
+- ded661b: feat(ai): add onStepFinish to agent.generate and agent.stream
+
+## 6.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/gateway@3.0.22
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 6.0.47
+
+### Patch Changes
+
+- Updated dependencies [2b8369d]
+  - @ai-sdk/gateway@3.0.21
+
+## 6.0.46
+
+### Patch Changes
+
+- Updated dependencies [8dc54db]
+  - @ai-sdk/gateway@3.0.20
+
+## 6.0.45
+
+### Patch Changes
+
+- Updated dependencies [c60fdd8]
+  - @ai-sdk/gateway@3.0.19
+
+## 6.0.44
+
+### Patch Changes
+
+- Updated dependencies [7af4eb4]
+  - @ai-sdk/gateway@3.0.18
+
+## 6.0.43
+
+### Patch Changes
+
+- 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
+
+  - Skip validation for tool calls with `providerExecuted: true` (deferred results)
+  - Map approvalId to toolCallId for proper tool-approval-response handling
+  - Filter out empty tool messages after content filtering
+  - Fixes MissingToolResultError for async and approval-based tool flows
+
+## 6.0.42
+
+### Patch Changes
+
+- Updated dependencies [66d78d5]
+  - @ai-sdk/gateway@3.0.17
+
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
+## 6.0.39
+
+### Patch Changes
+
+- 4e28ba0: fix(ai): propagate providerMetadata during input-streaming state
+
+  Provider-executed tools (like MCP tools) need to send metadata during the streaming phase, but the implementation only set `callProviderMetadata` when `part.state === "input-available"`. This fix removes the overly-restrictive state check and adds `callProviderMetadata` to the input-streaming state types and schemas.
+
+## 6.0.38
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/gateway@3.0.16
+  - @ai-sdk/provider-utils@4.0.8
+
+## 6.0.37
+
+### Patch Changes
+
+- b5dab9b: fix(ai): maintain OpenTelemetry context across async generator yields
+
+  Fixes an issue where OpenTelemetry context was lost at async generator yield boundaries, causing nested ToolLoopAgent spans to escape to the parent agent's level in observability platforms.
+
+  The fix ensures that when `recordSpan` is used with async generators (e.g., in tool execution), the active context is explicitly maintained using `context.with()`, preventing span hierarchy corruption in nested agent scenarios.
+
+  Closes #11720
+
+## 6.0.36
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/gateway@3.0.15
+
+## 6.0.35
+
+### Patch Changes
+
+- d7e7f1f: Add descriptive error messages for malformed UIMessageStream chunks.
+
+## 6.0.34
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/gateway@3.0.14
+
+## 6.0.33
+
+### Patch Changes
+
+- 0ca078c: fix(ai): pass providerMetadata in smooth stream to preserve thinking tag
+
+## 6.0.32
+
+### Patch Changes
+
+- ec24401: chore(ai): include docs in npm package
+
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
+## 6.0.19
+
+### Patch Changes
+
+- Updated dependencies [2696fd2]
+  - @ai-sdk/gateway@3.0.10
+
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
+## 6.0.15
+
+### Patch Changes
+
+- 3a73fb3: Include abort reason in stream chunks and document the new field
+
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
 ## 6.0.12
 
 ### Patch Changes

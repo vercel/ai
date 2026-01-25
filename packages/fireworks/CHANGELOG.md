@@ -1,5 +1,119 @@
 # @ai-sdk/fireworks
 
+## 2.0.19
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 2.0.18
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 2.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [78555ad]
+  - @ai-sdk/openai-compatible@2.0.16
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [7116ef3]
+  - @ai-sdk/openai-compatible@2.0.15
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [1612a57]
+  - @ai-sdk/openai-compatible@2.0.14
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/openai-compatible@2.0.13
+  - @ai-sdk/provider-utils@4.0.8
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [78a133a]
+  - @ai-sdk/openai-compatible@2.0.12
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/openai-compatible@2.0.11
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/openai-compatible@2.0.10
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [bc02a3c]
+  - @ai-sdk/openai-compatible@2.0.9
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [78fcb18]
+  - @ai-sdk/openai-compatible@2.0.8
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [cd7bb0e]
+  - @ai-sdk/openai-compatible@2.0.7
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai-compatible@2.0.6
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [d54c380]
+  - @ai-sdk/openai-compatible@2.0.5
+
 ## 2.0.4
 
 ### Patch Changes

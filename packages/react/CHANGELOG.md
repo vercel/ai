@@ -1,5 +1,286 @@
 # @ai-sdk/react
 
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 3.0.50
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.49
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 3.0.48
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
+## 3.0.47
+
+### Patch Changes
+
+- ai@6.0.45
+
+## 3.0.46
+
+### Patch Changes
+
+- ai@6.0.44
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [2dc9bfa]
+  - ai@6.0.43
+
+## 3.0.44
+
+### Patch Changes
+
+- ai@6.0.42
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [84b6e6d]
+  - ai@6.0.41
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ab57783]
+  - ai@6.0.40
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [4e28ba0]
+  - ai@6.0.39
+
+## 3.0.40
+
+### Patch Changes
+
+- ai@6.0.38
+- @ai-sdk/provider-utils@4.0.8
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [b5dab9b]
+  - ai@6.0.37
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - ai@6.0.36
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [d7e7f1f]
+  - ai@6.0.35
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - ai@6.0.34
+  - @ai-sdk/provider-utils@4.0.6
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [0ca078c]
+  - ai@6.0.33
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [ec24401]
+  - ai@6.0.32
+
+## 3.0.33
+
+### Patch Changes
+
+- ai@6.0.31
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - ai@6.0.30
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [fdce123]
+  - ai@6.0.29
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [d4486d2]
+  - ai@6.0.28
+
+## 3.0.29
+
+### Patch Changes
+
+- ai@6.0.27
+
+## 3.0.28
+
+### Patch Changes
+
+- 3219eab: feat(react): support async/function headers in useObject
+
+  The `useObject` hook now accepts headers as an async function, enabling dynamic header generation (e.g., fetching auth tokens) without causing the hook to re-render.
+
+  This provides parity with `useChat` and resolves issues with infinite loops when using state-based headers with `useEffect`.
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [40d4997]
+  - ai@6.0.26
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [b64f256]
+  - ai@6.0.25
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [4f236c8]
+  - ai@6.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- 000a0a6: Fix: ensure `useChat` uses the latest `onToolCall` (and other callbacks) to avoid stale closures.
+
+  Changes:
+
+  - Update `useChat` to use intermediary proxy callbacks that forward to refs, ensuring the latest callbacks are always used without recreating the chat instance.
+  - Add a regression test verifying the latest `onToolCall` is invoked after a prop change.
+
+  Related to: https://github.com/vercel/ai/issues/8148
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [a4c680a]
+- Updated dependencies [8c6f067]
+  - ai@6.0.23
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [f0d29de]
+  - ai@6.0.22
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [9667780]
+  - ai@6.0.21
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [f748c46]
+  - ai@6.0.20
+
+## 3.0.19
+
+### Patch Changes
+
+- ai@6.0.19
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [d6ec0e2]
+  - ai@6.0.18
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [af0955e]
+  - ai@6.0.17
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [81adf59]
+  - ai@6.0.16
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [3a73fb3]
+  - ai@6.0.15
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [3f9453f]
+  - ai@6.0.14
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [e2c445d]
+  - ai@6.0.13
+
 ## 3.0.12
 
 ### Patch Changes

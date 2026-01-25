@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 3.0.5
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
+## 3.0.4
+
+### Patch Changes
+
+- 5c090e7: fix(ai): fix LanguageModelV2ProviderTool type
+
+## 3.0.3
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+
 ## 3.0.2
 
 ### Patch Changes

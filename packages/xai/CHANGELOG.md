@@ -1,5 +1,181 @@
 # @ai-sdk/xai
 
+## 3.0.34
+
+### Patch Changes
+
+- 648c8f3: fix(xai): make usage nullable in responses schema for streaming compatibility
+
+  xAI sends `usage: null` in early streaming events (`response.created`, `response.in_progress`) because token counts aren't available until the stream completes. This change makes the `usage` field nullish in `xaiResponsesResponseSchema` to accept these values without validation errors.
+
+## 3.0.33
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.30
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [78555ad]
+  - @ai-sdk/openai-compatible@2.0.16
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [7116ef3]
+  - @ai-sdk/openai-compatible@2.0.15
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [1612a57]
+  - @ai-sdk/openai-compatible@2.0.14
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/openai-compatible@2.0.13
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [78a133a]
+  - @ai-sdk/openai-compatible@2.0.12
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/openai-compatible@2.0.11
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/openai-compatible@2.0.10
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [bc02a3c]
+  - @ai-sdk/openai-compatible@2.0.9
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [78fcb18]
+  - @ai-sdk/openai-compatible@2.0.8
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [cd7bb0e]
+  - @ai-sdk/openai-compatible@2.0.7
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai-compatible@2.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 9ed771c: feat(provider/xai): add image support to responses api
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [d54c380]
+  - @ai-sdk/openai-compatible@2.0.5
+
+## 3.0.16
+
+### Patch Changes
+
+- f446e23: fix(provider/xai): make streaming providerMetadata structure consistent with non-streaming
+
+## 3.0.15
+
+### Patch Changes
+
+- ed1587d: feat (provider/xai): add support for encrypted reasoning content
+
+## 3.0.14
+
+### Patch Changes
+
+- 0a081cb: fix (provider/xai): set response format to allow object generation
+
+## 3.0.13
+
+### Patch Changes
+
+- 7ac2437: fix(provider/xai): send reasoning-end before text-start in streaming
+
+## 3.0.12
+
+### Patch Changes
+
+- e7bdbc7: fix(provider/xai): handle error responses returned with 200 status
+
+## 3.0.11
+
+### Patch Changes
+
+- 9a53f59: fix (provider/xai): no duplicate text delta in responses api
+
+## 3.0.10
+
+### Patch Changes
+
+- 659c53d: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+
 ## 3.0.9
 
 ### Patch Changes

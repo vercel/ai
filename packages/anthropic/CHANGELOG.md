@@ -1,5 +1,114 @@
 # @ai-sdk/anthropic
 
+## 3.0.23
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.22
+
+### Patch Changes
+
+- 8ccf04b: Add `authToken` option to support `Authorization: Bearer` authentication as an alternative to `x-api-key` header authentication.
+
+## 3.0.21
+
+### Patch Changes
+
+- 662d359: feat(anthropic): deferred results for tool search tool
+
+## 3.0.20
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.19
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.18
+
+### Patch Changes
+
+- c10bd49: fix(anthropic): handle web_search_result_location citations and add webFetch documents to citationDocuments
+
+## 3.0.17
+
+### Patch Changes
+
+- 4729bed: Fix JSON parsing crash when handling Anthropic web_fetch tool error results
+
+## 3.0.16
+
+### Patch Changes
+
+- d36fa72: Not sending structured output beta header for json response tool
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.11
+
+### Patch Changes
+
+- 8c1c6e3: fix(anthropic): add application/json type regex matching
+
+## 3.0.10
+
+### Patch Changes
+
+- 02d9b68: fix `input_tokens` compatibility
+
+## 3.0.9
+
+### Patch Changes
+
+- de2399b: fix(anthropic): assign type urls in file parts correctly
+
+## 3.0.8
+
+### Patch Changes
+
+- bee4f82: fix(anthropic): enable structured output support for claude-haiku-4-5
+
+  This fixes an issue where the `strict: true` property was not included in the request body when using tools with Claude Haiku 4.5, because `supportsStructuredOutput` was incorrectly set to `false` for this model.
+
+  Claude Haiku 4.5 supports structured outputs, so the `strict` property should be forwarded to the Anthropic API when specified on tools.
+
 ## 3.0.7
 
 ### Patch Changes

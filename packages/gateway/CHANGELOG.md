@@ -1,5 +1,92 @@
 # @ai-sdk/gateway
 
+## 3.0.22
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.21
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.20
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.19
+
+### Patch Changes
+
+- c60fdd8: Inline fullMessage variable in GatewayError constructor
+
+## 3.0.18
+
+### Patch Changes
+
+- 7af4eb4: chore(provider/gateway): update gateway model settings files
+
+## 3.0.17
+
+### Patch Changes
+
+- 66d78d5: chore(provider/gateway): update gateway model settings files
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.15
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.13
+
+### Patch Changes
+
+- 92b339b: feat (provider/gateway): add'l perplexity search tool params
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 3.0.11
+
+### Patch Changes
+
+- 891a60a: feat (provider/gateway): add provider-defined perplexity search
+
+## 3.0.10
+
+### Patch Changes
+
+- 2696fd2: chore(provider/gateway): Update gateway model settings files
+
 ## 3.0.9
 
 ### Patch Changes

@@ -1861,6 +1861,51 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert single tool result part with multipart that contains image URL', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'screenshot',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'image-url',
+                      url: 'https://example.com/screenshot.png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "image_url": "https://example.com/screenshot.png",
+                "type": "input_image",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
@@ -2272,6 +2317,253 @@ describe('convertToOpenAIResponsesInput', () => {
         `);
       });
     });
+
+    describe('apply_patch', () => {
+      it('should convert apply_patch tool call into item reference with store: true', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                    operation: {
+                      type: 'create_file',
+                      path: 'index.html',
+                      diff: '+<!doctype html>\n+<html></html>',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  output: {
+                    type: 'json',
+                    value: {
+                      status: 'completed',
+                      output: 'Created index.html',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798",
+              "type": "item_reference",
+            },
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "output": "Created index.html",
+              "status": "completed",
+              "type": "apply_patch_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call to apply_patch_call with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                    operation: {
+                      type: 'create_file',
+                      path: 'index.html',
+                      diff: '+<!doctype html>\n+<html></html>',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId:
+                        'apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_INoksNAffcdh5UmRTWMLk1Ne',
+                  toolName: 'apply_patch',
+                  output: {
+                    type: 'json',
+                    value: {
+                      status: 'completed',
+                      output: 'Created index.html',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "id": "apc_0d5dfb28a009b1ee0169713022c3f88195a70b253d2a8cf798",
+              "operation": {
+                "diff": "+<!doctype html>
+          +<html></html>",
+                "path": "index.html",
+                "type": "create_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+            {
+              "call_id": "call_INoksNAffcdh5UmRTWMLk1Ne",
+              "output": "Created index.html",
+              "status": "completed",
+              "type": "apply_patch_call_output",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call with update_file operation with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_UpdateFile123',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_UpdateFile123',
+                    operation: {
+                      type: 'update_file',
+                      path: 'src/app.ts',
+                      diff: '-old line\n+new line',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId: 'apc_update_file_item_id',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_UpdateFile123",
+              "id": "apc_update_file_item_id",
+              "operation": {
+                "diff": "-old line
+          +new line",
+                "path": "src/app.ts",
+                "type": "update_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+          ]
+        `);
+      });
+
+      it('should convert apply_patch tool call with delete_file operation with store: false', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_DeleteFile456',
+                  toolName: 'apply_patch',
+                  input: {
+                    callId: 'call_DeleteFile456',
+                    operation: {
+                      type: 'delete_file',
+                      path: 'temp.txt',
+                    },
+                  },
+                  providerOptions: {
+                    openai: {
+                      itemId: 'apc_delete_file_item_id',
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasApplyPatchTool: true,
+        });
+
+        expect(result.input).toMatchInlineSnapshot(`
+          [
+            {
+              "call_id": "call_DeleteFile456",
+              "id": "apc_delete_file_item_id",
+              "operation": {
+                "path": "temp.txt",
+                "type": "delete_file",
+              },
+              "status": "completed",
+              "type": "apply_patch_call",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('provider tool outputs', () => {
@@ -2668,6 +2960,261 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "regular-call-1",
             "output": "{"result":42}",
             "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('hasConversation', () => {
+    it('should skip assistant text messages with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should skip assistant tool-call messages with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                input: { location: 'San Francisco' },
+                providerOptions: {
+                  openai: { itemId: 'fc_existing_456' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'getWeather',
+                output: { type: 'json', value: { temp: 72 } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Tool call with itemId should be skipped, but tool output should remain
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "call_id": "call_123",
+            "output": "{"temp":72}",
+            "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should include assistant messages without item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                // No itemId - this is a new message
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Assistant message without itemId should be included
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "Hi there!",
+                "type": "output_text",
+              },
+            ],
+            "id": undefined,
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should include assistant messages with item IDs when hasConversation is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Hi there!',
+                providerOptions: { openai: { itemId: 'msg_existing_123' } },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: false,
+      });
+
+      // With hasConversation false, should use item_reference
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "msg_existing_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should skip reasoning parts with item IDs when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Let me think...',
+                providerOptions: {
+                  openai: { itemId: 'reasoning_existing_789' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      // Reasoning with itemId should be skipped
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
           },
         ]
       `);
