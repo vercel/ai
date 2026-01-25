@@ -121,14 +121,27 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
     });
 
     // Extract embedding based on response format
-    const embedding =
-      'embedding' in response
-        ? response.embedding // Titan response
-        : 'embeddingType' in (response.embeddings[0] ?? {})
-          ? (response.embeddings[0] as { embedding: number[] }).embedding // Nova response
-          : Array.isArray(response.embeddings)
-            ? (response.embeddings[0] as number[]) // Cohere v3 response
-            : response.embeddings.float[0]; // Cohere v4 response
+    let embedding: number[];
+    if ('embedding' in response) {
+      // Titan response
+      embedding = response.embedding;
+    } else if (Array.isArray(response.embeddings)) {
+      const firstEmbedding = response.embeddings[0];
+      if (
+        typeof firstEmbedding === 'object' &&
+        firstEmbedding !== null &&
+        'embeddingType' in firstEmbedding
+      ) {
+        // Nova response
+        embedding = firstEmbedding.embedding;
+      } else {
+        // Cohere v3 response
+        embedding = firstEmbedding as number[];
+      }
+    } else {
+      // Cohere v4 response
+      embedding = response.embeddings.float[0];
+    }
 
     // Extract token count based on response format
     const tokens =
