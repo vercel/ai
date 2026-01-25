@@ -11,7 +11,7 @@ run(async () => {
     model: azure('gpt-5'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
-      openai: {
+      azure: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
         store: false,
