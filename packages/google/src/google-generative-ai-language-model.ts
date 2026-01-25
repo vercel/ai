@@ -131,6 +131,30 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       });
     }
 
+    // Check if per-part mediaResolution is used with non-Gemini 3 models
+    const isGemini3Model = this.modelId.toLowerCase().includes('gemini-3');
+    const hasPerPartMediaResolution = prompt.some(
+      message =>
+        message.role === 'user' &&
+        message.content.some(part => {
+          if (part.type !== 'file') return false;
+          const opts = part.providerOptions?.[providerOptionsName] as
+            | { mediaResolution?: string }
+            | undefined;
+          return opts?.mediaResolution != null;
+        }),
+    );
+
+    if (hasPerPartMediaResolution && !isGemini3Model) {
+      warnings.push({
+        type: 'other',
+        message:
+          `Per-part mediaResolution is an experimental feature exclusive to Gemini 3 models. ` +
+          `The current model (${this.modelId}) may not support this feature and the request might fail. ` +
+          `See: https://ai.google.dev/gemini-api/docs/media-resolution#per-part-media-resolution`,
+      });
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
