@@ -638,10 +638,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_download',
-      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<null | { data: Uint8Array; mediaType?: string }>>',
+      type: '(requestedDownloads: Array<{ url: URL; isUrlSupportedByModel: boolean }>) => Promise<Array<{ data: Uint8Array; mediaType?: string } | URL | string | null>>',
       isOptional: true,
       description:
-        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+        'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL. Return values: `{ data, mediaType }` for downloaded content, `URL` to pass through to the model, `string` to replace the image/file with text, or `null` to remove the part entirely. Experimental feature.',
     },
     {
       name: 'experimental_repairToolCall',

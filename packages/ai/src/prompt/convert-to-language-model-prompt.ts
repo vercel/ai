@@ -167,18 +167,14 @@ export async function convertToLanguageModelPrompt({
  * Convert a ModelMessage to a LanguageModelV3Message.
  *
  * @param message The ModelMessage to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *   available if the model does not support URLs, null otherwise.
+ * @param downloadedAssets A map of URLs to their downloaded/transformed data.
  */
 export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
 }: {
   message: ModelMessage;
-  downloadedAssets: Record<
-    string,
-    { mediaType: string | undefined; data: Uint8Array }
-  >;
+  downloadedAssets: Record<string, DownloadedAsset>;
 }): LanguageModelV3Message {
   const role = message.role;
   switch (role) {
@@ -203,8 +199,11 @@ export function convertToLanguageModelMessage({
         role: 'user',
         content: message.content
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
-          // remove empty text parts:
-          .filter(part => part.type !== 'text' || part.text !== ''),
+          // filter out null (removed parts) and empty text parts:
+          .filter(
+            (part): part is LanguageModelV3TextPart | LanguageModelV3FilePart =>
+              part != null && (part.type !== 'text' || part.text !== ''),
+          ),
         providerOptions: message.providerOptions,
       };
     }
@@ -335,15 +334,21 @@ export function convertToLanguageModelMessage({
 }
 
 /**
+ * Result type for downloaded assets.
+ */
+type DownloadedAsset =
+  | { type: 'downloaded'; mediaType: string | undefined; data: Uint8Array }
+  | { type: 'text'; text: string }
+  | { type: 'remove' };
+
+/**
  * Downloads images and files from URLs in the messages.
  */
 async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
-): Promise<
-  Record<string, { mediaType: string | undefined; data: Uint8Array }>
-> {
+): Promise<Record<string, DownloadedAsset>> {
   const plannedDownloads = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
@@ -389,33 +394,49 @@ async function downloadAssets(
 
   return Object.fromEntries(
     downloadedFiles
-      .map((file, index) =>
-        file == null
-          ? null
-          : [
-              plannedDownloads[index].url.toString(),
-              { data: file.data, mediaType: file.mediaType },
-            ],
-      )
-      .filter(file => file != null),
+      .map((result, index): [string, DownloadedAsset] | null => {
+        const url = plannedDownloads[index].url.toString();
+
+        // null: remove the part entirely
+        if (result === null) {
+          return [url, { type: 'remove' }];
+        }
+
+        // URL: passthrough - keep URL as-is
+        if (result instanceof URL) {
+          return null;
+        }
+
+        // string: text replacement
+        if (typeof result === 'string') {
+          return [url, { type: 'text', text: result }];
+        }
+
+        // { data, mediaType }: downloaded content
+        return [
+          url,
+          {
+            type: 'downloaded',
+            data: result.data,
+            mediaType: result.mediaType,
+          },
+        ];
+      })
+      .filter((entry): entry is [string, DownloadedAsset] => entry != null),
   );
 }
 
 /**
  * Convert part of a message to a LanguageModelV3Part.
  * @param part The part to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *  available if the model does not support URLs, null otherwise.
+ * @param downloadedAssets A map of URLs to their downloaded/transformed data.
  *
- * @returns The converted part.
+ * @returns The converted part, or null if the part should be removed.
  */
 function convertPartToLanguageModelPart(
   part: TextPart | ImagePart | FilePart,
-  downloadedAssets: Record<
-    string,
-    { mediaType: string | undefined; data: Uint8Array }
-  >,
-): LanguageModelV3TextPart | LanguageModelV3FilePart {
+  downloadedAssets: Record<string, DownloadedAsset>,
+): LanguageModelV3TextPart | LanguageModelV3FilePart | null {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -444,12 +465,27 @@ function convertPartToLanguageModelPart(
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
 
-  // If the content is a URL, we check if it was downloaded:
+  // If the content is a URL, we check if it was processed by the download function:
   if (data instanceof URL) {
-    const downloadedFile = downloadedAssets[data.toString()];
-    if (downloadedFile) {
-      data = downloadedFile.data;
-      mediaType ??= downloadedFile.mediaType;
+    const asset = downloadedAssets[data.toString()];
+    if (asset) {
+      // Handle removal
+      if (asset.type === 'remove') {
+        return null;
+      }
+
+      // Handle text replacement
+      if (asset.type === 'text') {
+        return {
+          type: 'text',
+          text: asset.text,
+          providerOptions: part.providerOptions,
+        };
+      }
+
+      // Handle downloaded content
+      data = asset.data;
+      mediaType ??= asset.mediaType;
     }
   }
 

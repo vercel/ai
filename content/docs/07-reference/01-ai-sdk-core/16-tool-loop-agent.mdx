@@ -136,7 +136,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'DownloadFunction | undefined',
       isOptional: true,
       description:
-        'Experimental: Custom download function for fetching files/URLs for tool or model use. By default, files are downloaded if the model does not support the URL for a given media type.',
+        'Experimental: Custom download function for fetching files/URLs. Return values: `{ data, mediaType }` for downloaded content, `URL` to pass through, `string` to replace with text, or `null` to remove the part.',
     },
     {
       name: 'maxOutputTokens',
