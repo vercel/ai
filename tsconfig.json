@@ -25,6 +25,7 @@
     { "path": "packages/groq" },
     { "path": "packages/huggingface" },
     { "path": "packages/hume" },
+    { "path": "packages/imagerouter" },
     { "path": "packages/langchain" },
     { "path": "packages/llamaindex" },
     { "path": "packages/lmnt" },
