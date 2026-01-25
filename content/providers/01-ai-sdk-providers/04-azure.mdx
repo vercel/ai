@@ -322,24 +322,34 @@ The following provider options are available:
 
 The Azure OpenAI provider also returns provider-specific metadata:
 
+For Responses models (`azure(deploymentName)`), you can type this metadata using `AzureResponsesProviderMetadata`:
+
 ```ts
-const { providerMetadata } = await generateText({
+import { azure, type AzureResponsesProviderMetadata } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
   model: azure('your-deployment-name'),
 });
 
-const openaiMetadata = providerMetadata?.openai;
+const providerMetadata = result.providerMetadata as
+  | AzureResponsesProviderMetadata
+  | undefined;
+
+const { responseId, logprobs, serviceTier } = providerMetadata?.azure ?? {};
+
+// responseId can be used to continue a conversation (previousResponseId).
+console.log(responseId);
 ```
 
-The following OpenAI-specific metadata is returned:
+The following Azure-specific metadata may be returned:
 
-- **responseId** _string_
+- **responseId** _string | null | undefined_
   The ID of the response. Can be used to continue a conversation.
-
-- **cachedPromptTokens** _number_
-  The number of prompt tokens that were a cache hit.
-
-- **reasoningTokens** _number_
-  The number of reasoning tokens that the model generated.
+- **logprobs** _(optional)_
+  Log probabilities of output tokens (when enabled).
+- **serviceTier** _(optional)_
+  Service tier information returned by the API.
 
 <Note>
   The providerMetadata is only returned with the default responses API, and is
@@ -651,6 +661,51 @@ for (const part of result.content) {
   content](https://platform.openai.com/docs/api-reference/container-files/retrieveContainerFileContent)
   API.
 </Note>
+
+#### Typed providerMetadata in Reasoning Parts
+
+When using the Azure OpenAI Responses API, reasoning output parts can include provider metadata.
+To handle this metadata in a type-safe way, use `AzureResponsesReasoningProviderMetadata`.
+
+For reasoning parts, when `part.type === 'reasoning'`, the `providerMetadata` is provided in the form of `AzureResponsesReasoningProviderMetadata`.
+
+This metadata includes the following fields:
+
+- `itemId`  
+  The ID of the reasoning item in the Responses API.
+- `reasoningEncryptedContent` (optional)  
+  Encrypted reasoning content (only returned when requested via `include: ['reasoning.encrypted_content']`).
+
+```ts
+import {
+  azure,
+  type AzureResponsesReasoningProviderMetadata,
+  type OpenAIResponsesProviderOptions,
+} from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure('your-deployment-name'),
+  prompt: 'How many "r"s are in the word "strawberry"?',
+  providerOptions: {
+    openai: {
+      store: false,
+      include: ['reasoning.encrypted_content'],
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+});
+
+for (const part of result.content) {
+  if (part.type === 'reasoning') {
+    const providerMetadata = part.providerMetadata as
+      | AzureResponsesReasoningProviderMetadata
+      | undefined;
+
+    const { itemId, reasoningEncryptedContent } = providerMetadata?.azure ?? {};
+    console.log(itemId, reasoningEncryptedContent);
+  }
+}
+```
 
 #### Typed providerMetadata in Source Document Parts
 
