@@ -591,9 +591,9 @@ The same is true of classes in Svelte:
   const chat = new Chat({});
   let { messages } = chat;
 
-  chat.append({ content: 'Hello, world!', role: 'user' }).then(() => {
+  chat.sendMessage({ text: 'Hello, world!' }).then(() => {
     console.log(messages); // []
-    console.log(chat.messages); // [{ content: 'Hello, world!', role: 'user' }] (plus some other stuff)
+    console.log(chat.messages); // [{ id: '...', role: 'user', parts: [{ type: 'text', text: 'Hello, world!' }] }]
   });
 </script>
 ```
