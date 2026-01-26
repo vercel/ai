@@ -375,7 +375,7 @@ const { text: meatLasagna, providerMetadata } = await generateText({
 });
 
 // Check cached token count in usage metadata
-console.log('Cached tokens:', providerMetadata.google?.usageMetadata);
+console.log('Cached tokens:', providerMetadata.google);
 // e.g.
 // {
 //   groundingMetadata: null,
@@ -402,42 +402,45 @@ For guaranteed cost savings, you can still use explicit caching with Gemini 2.5 
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { GoogleAICacheManager } from '@google/generative-ai/server';
+import { GoogleGenAI } from '@google/genai';
 import { generateText } from 'ai';
 
-const cacheManager = new GoogleAICacheManager(
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-);
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
 
 const model = 'gemini-2.5-pro';
 
-const { name: cachedContent } = await cacheManager.create({
+// Create a cache with the content you want to reuse
+const cache = await ai.caches.create({
   model,
-  contents: [
-    {
-      role: 'user',
-      parts: [{ text: '1000 Lasagna Recipes...' }],
-    },
-  ],
-  ttlSeconds: 60 * 5,
+  config: {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: '1000 Lasagna Recipes...' }],
+      },
+    ],
+    ttl: '300s', // Cache expires after 5 minutes
+  },
 });
 
-const { text: veggieLasangaRecipe } = await generateText({
+const { text: veggieLasagnaRecipe } = await generateText({
   model: google(model),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
     google: {
-      cachedContent,
+      cachedContent: cache.name,
     },
   },
 });
 
-const { text: meatLasangaRecipe } = await generateText({
+const { text: meatLasagnaRecipe } = await generateText({
   model: google(model),
   prompt: 'Write a meat lasagna recipe for 12 people.',
   providerOptions: {
     google: {
-      cachedContent,
+      cachedContent: cache.name,
     },
   },
 });
