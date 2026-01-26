@@ -379,4 +379,69 @@ describe('google-vertex-provider', () => {
       }),
     );
   });
+
+  it('should parse model ID with publisher prefix for language model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider('zai-org/glm-4.7-maas');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'glm-4.7-maas',
+      expect.objectContaining({
+        provider: 'google.vertex.chat',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/zai-org',
+      }),
+    );
+  });
+
+  it('should parse model ID with publisher prefix for embedding model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.embeddingModel('custom-org/text-embedding-004');
+
+    expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
+      'text-embedding-004',
+      expect.objectContaining({
+        provider: 'google.vertex.embedding',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/custom-org',
+      }),
+    );
+  });
+
+  it('should parse model ID with publisher prefix for image model', () => {
+    const provider = createVertex({
+      project: 'test-project',
+      location: 'test-location',
+    });
+    provider.image('org-name/imagen-3.0-generate-002');
+
+    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
+      'imagen-3.0-generate-002',
+      expect.objectContaining({
+        provider: 'google.vertex.image',
+        baseURL:
+          'https://test-location-aiplatform.googleapis.com/v1beta1/projects/test-project/locations/test-location/publishers/org-name',
+      }),
+    );
+  });
+
+  it('should use express mode base URL with custom publisher', () => {
+    const provider = createVertex({
+      apiKey: 'test-api-key',
+    });
+    provider('zai-org/glm-4.7-maas');
+
+    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+      'glm-4.7-maas',
+      expect.objectContaining({
+        baseURL: 'https://aiplatform.googleapis.com/v1/publishers/zai-org',
+      }),
+    );
+  });
 });
