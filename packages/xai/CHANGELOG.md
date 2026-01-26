@@ -1,5 +1,20 @@
 # @ai-sdk/xai
 
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [6900916]
+  - @ai-sdk/openai-compatible@2.0.19
+
+## 3.0.34
+
+### Patch Changes
+
+- 648c8f3: fix(xai): make usage nullable in responses schema for streaming compatibility
+
+  xAI sends `usage: null` in early streaming events (`response.created`, `response.in_progress`) because token counts aren't available until the stream completes. This change makes the `usage` field nullish in `xaiResponsesResponseSchema` to accept these values without validation errors.
+
 ## 3.0.33
 
 ### Patch Changes

@@ -951,7 +951,7 @@ const result = await generateText({
 
     return newToolCall != null
       ? {
-          toolCallType: 'function' as const,
+          type: 'tool-call' as const,
           toolCallId: toolCall.toolCallId,
           toolName: toolCall.toolName,
           input: JSON.stringify(newToolCall.input),

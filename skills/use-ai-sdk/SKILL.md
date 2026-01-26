@@ -36,6 +36,8 @@ Use these resources for current API details, examples, and usage patterns.
 
 For common errors and troubleshooting, see [Common Errors Reference](references/common-errors.md).
 
+For using Vercel AI Gateway, see [AI Gateway Reference](references/ai-gateway.md).
+
 ## Provider-Specific Information (ai@6.0.34+)
 
 For questions about specific providers (OpenAI, Anthropic, Google, etc.), search their dedicated packages:

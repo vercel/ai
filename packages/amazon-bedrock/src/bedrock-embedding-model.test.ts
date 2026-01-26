@@ -226,3 +226,61 @@ describe('doEmbed', () => {
     expect(requestHeaders['authorization']).toBe('AWS4-HMAC-SHA256...');
   });
 });
+
+describe('should support Nova embeddings', () => {
+  const novaModelId = 'amazon.nova-2-multimodal-embeddings-v1:0';
+  const novaEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+    novaModelId,
+  )}/invoke`;
+
+  const server = createTestServer({
+    [novaEmbedUrl]: {
+      response: {
+        type: 'binary',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: Buffer.from(
+          JSON.stringify({
+            embeddings: [
+              {
+                embeddingType: 'TEXT',
+                embedding: mockEmbeddings[0],
+              },
+            ],
+            inputTokenCount: 8,
+          }),
+        ),
+      },
+    },
+  });
+
+  const model = new BedrockEmbeddingModel(novaModelId, {
+    baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+    headers: {
+      'config-header': 'config-value',
+    },
+    fetch: fakeFetchWithAuth,
+  });
+
+  it('should send SINGLE_EMBEDDING payload for Nova embeddings', async () => {
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+    });
+
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 1024,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
+        },
+      },
+    });
+  });
+});
