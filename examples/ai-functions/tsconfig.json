@@ -13,11 +13,9 @@
     "rootDir": "./src",
     "outDir": "./build",
     "skipLibCheck": true,
-    "composite": true,
+    "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../packages/ai"
@@ -29,7 +27,13 @@
       "path": "../../packages/anthropic"
     },
     {
+      "path": "../../packages/assemblyai"
+    },
+    {
       "path": "../../packages/azure"
+    },
+    {
+      "path": "../../packages/baseten"
     },
     {
       "path": "../../packages/black-forest-labs"
@@ -38,43 +42,31 @@
       "path": "../../packages/cerebras"
     },
     {
-      "path": "../../packages/elevenlabs"
-    },
-    {
-      "path": "../../packages/revai"
-    },
-    {
       "path": "../../packages/cohere"
     },
     {
       "path": "../../packages/deepgram"
     },
     {
-      "path": "../../packages/revai"
-    },
-    {
       "path": "../../packages/deepinfra"
-    },
-    {
-      "path": "../../packages/gladia"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/deepseek"
     },
     {
-      "path": "../../packages/hume"
+      "path": "../../packages/elevenlabs"
     },
     {
       "path": "../../packages/fal"
     },
     {
-      "path": "../../packages/assemblyai"
+      "path": "../../packages/fireworks"
     },
     {
-      "path": "../../packages/fireworks"
+      "path": "../../packages/gateway"
+    },
+    {
+      "path": "../../packages/gladia"
     },
     {
       "path": "../../packages/google"
@@ -86,7 +78,19 @@
       "path": "../../packages/groq"
     },
     {
+      "path": "../../packages/huggingface"
+    },
+    {
+      "path": "../../packages/hume"
+    },
+    {
+      "path": "../../packages/lmnt"
+    },
+    {
       "path": "../../packages/luma"
+    },
+    {
+      "path": "../../packages/mcp"
     },
     {
       "path": "../../packages/mistral"
@@ -110,10 +114,16 @@
       "path": "../../packages/replicate"
     },
     {
+      "path": "../../packages/revai"
+    },
+    {
       "path": "../../packages/togetherai"
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/vercel"
     },
     {
       "path": "../../packages/xai"

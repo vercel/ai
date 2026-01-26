@@ -19,13 +19,13 @@
   ],
   "references": [
     {
+      "path": "../gateway"
+    },
+    {
       "path": "../provider"
     },
     {
       "path": "../provider-utils"
-    },
-    {
-      "path": "../gateway"
     },
     {
       "path": "../test-server"

@@ -8,10 +8,10 @@
   "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
   "references": [
     {
-      "path": "../openai-compatible"
+      "path": "../ai"
     },
     {
-      "path": "../provider"
+      "path": "../google"
     },
     {
       "path": "../provider-utils"
