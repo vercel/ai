@@ -324,7 +324,7 @@ const result = streamText({
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
-      vectorStoreIds: ['vs_your-vector-store-id'],
+      vectorStoreIds: ['collection_your-collection-id'],
       maxNumResults: 10,
     }),
   },
@@ -380,7 +380,7 @@ const { fullStream } = streamText({
     x_search: xai.tools.xSearch(),
     code_execution: xai.tools.codeExecution(),
     file_search: xai.tools.fileSearch({
-      vectorStoreIds: ['vs_your-documents'],
+      vectorStoreIds: ['collection_your-documents'],
     }),
     data_service: xai.tools.mcpServer({
       serverUrl: 'https://data.example.com/mcp',

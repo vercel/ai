@@ -302,7 +302,7 @@ describe('prepareResponsesTools', () => {
             id: 'xai.file_search',
             name: 'file_search',
             args: {
-              vectorStoreIds: ['vs-1', 'vs-2'],
+              vectorStoreIds: ['collection_1', 'collection_2'],
             },
           },
         ],
@@ -314,8 +314,8 @@ describe('prepareResponsesTools', () => {
             "max_num_results": undefined,
             "type": "file_search",
             "vector_store_ids": [
-              "vs-1",
-              "vs-2",
+              "collection_1",
+              "collection_2",
             ],
           },
         ]
@@ -330,7 +330,7 @@ describe('prepareResponsesTools', () => {
             id: 'xai.file_search',
             name: 'file_search',
             args: {
-              vectorStoreIds: ['vs-1'],
+              vectorStoreIds: ['collection_1'],
               maxNumResults: 10,
             },
           },
@@ -343,7 +343,7 @@ describe('prepareResponsesTools', () => {
             "max_num_results": 10,
             "type": "file_search",
             "vector_store_ids": [
-              "vs-1",
+              "collection_1",
             ],
           },
         ]
@@ -358,7 +358,7 @@ describe('prepareResponsesTools', () => {
             id: 'xai.file_search',
             name: 'file_search',
             args: {
-              vectorStoreIds: ['vs-1'],
+              vectorStoreIds: ['collection_1'],
             },
           },
         ],
@@ -382,7 +382,7 @@ describe('prepareResponsesTools', () => {
             id: 'xai.file_search',
             name: 'file_search',
             args: {
-              vectorStoreIds: ['vs-1'],
+              vectorStoreIds: ['collection_1'],
             },
           },
           {

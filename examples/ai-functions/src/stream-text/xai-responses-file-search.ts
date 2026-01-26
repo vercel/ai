@@ -16,7 +16,7 @@ import { run } from '../lib/run';
  * @see https://docs.x.ai/docs/guides/using-collections/api
  */
 
-const VectorStoreId = 'vs_xxxxxxxxxxxxxxxxxxxxxxxx'; // put your vector store id
+const VectorStoreId = 'collection_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'; // put your collection id
 
 run(async () => {
   const { fullStream } = streamText({
