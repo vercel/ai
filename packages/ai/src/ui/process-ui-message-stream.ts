@@ -403,6 +403,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 type: 'file',
                 mediaType: chunk.mediaType,
                 url: chunk.url,
+                providerMetadata: chunk.providerMetadata,
               });
 
               write();
