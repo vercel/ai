@@ -1,0 +1,517 @@
+---
+title: Copilot CLI
+description: Learn how to use the Copilot CLI provider to access GitHub Copilot models through the Copilot SDK.
+---
+
+# Copilot CLI Provider
+
+The [ai-sdk-provider-copilot](https://github.com/codewarnab/ai-sdk-provider-copilot) community provider enables using GitHub Copilot models through the official [@github/copilot-sdk](https://www.npmjs.com/package/@github/copilot-sdk). It's useful for developers who want to use their existing GitHub Copilot subscription for AI SDK applications.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install ai-sdk-provider-copilot @github/copilot-sdk"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add ai-sdk-provider-copilot @github/copilot-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import `createCopilotProvider` from `ai-sdk-provider-copilot` and create a provider instance:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider();
+```
+
+If you need a customized setup, you can provide configuration options:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  // Enable verbose logging
+  verbose: true,
+
+  // Retry configuration
+  retry: {
+    maxRetries: 3,
+    initialDelayMs: 100,
+  },
+
+  // Custom agents
+  customAgents: [
+    {
+      name: 'code-reviewer',
+      displayName: 'Code Reviewer',
+      description: 'An expert code reviewer focused on best practices',
+      prompt: 'You are an expert code reviewer...',
+    },
+  ],
+
+  // Session pooling for efficiency
+  sessionPool: {
+    enabled: true,
+    maxIdleSessions: 3,
+  },
+
+  // Health monitoring for reliability
+  healthMonitor: {
+    failureThreshold: 3,
+    onHealthChange: (healthy, reason) => console.log(`Health: ${healthy}`),
+  },
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **verbose** _boolean_ - Enable verbose logging for debugging.
+- **retry** _\{ maxRetries: number, initialDelayMs: number \}_ - Configure retry behavior with exponential backoff.
+- **provider** _object_ - BYOK (Bring Your Own Key) configuration for using alternative backends like OpenAI directly.
+- **customAgents** _array_ - Define custom agent personas with specific system prompts (see [Custom Agents](#custom-agents)).
+- **mcpServers** _object_ - MCP server configurations (see [MCP Server Integration](#mcp-server-integration)).
+- **sessionPool** _object_ - Session pooling for efficiency (see [Session Pool](#session-pool)).
+- **healthMonitor** _object_ - Health monitoring for reliability (see [Health Monitor](#health-monitor)).
+- **telemetry** _object_ - OpenTelemetry configuration (see [OpenTelemetry Integration](#opentelemetry-integration)).
+
+## Language Models
+
+Create models that call GitHub Copilot through the Copilot SDK using the provider instance:
+
+```ts
+const model = copilot('gpt-4');
+```
+
+GitHub Copilot provides access to models from OpenAI, Anthropic, and Google:
+
+**OpenAI Models:**
+
+- **gpt-4.1**: Default model optimized for speed and reasoning
+- **gpt-4o**: Multimodal model with vision capabilities
+- **gpt-5** _(preview)_: Advanced reasoning and debugging
+- **gpt-5-mini** _(preview)_: Lightweight version of GPT-5
+
+**Anthropic (Claude) Models:**
+
+- **claude-sonnet-4**: Clear, structured output
+- **claude-sonnet-3.7**: Fast and efficient
+- **claude-opus-4.5**: Reasoning-focused AI for complex coding
+- **claude-haiku-4.5**: Quick responses for simple tasks
+
+**Google (Gemini) Models:**
+
+- **gemini-2.0-flash**: Fast, cost-effective for quick tasks
+- **gemini-2.5-pro**: Strong reasoning for complex tasks
+- **gemini-3-flash** _(preview)_: Next-gen fast model
+- **gemini-3-pro** _(preview)_: Advanced capabilities for complex challenges
+
+<Note>
+  Model availability depends on your GitHub Copilot subscription tier (Free,
+  Pro, Pro+, Business, Enterprise).
+</Note>
+
+### Example
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+
+const copilot = createCopilotProvider();
+
+const { text } = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+
+// Always dispose when done
+await copilot.dispose();
+```
+
+### Streaming Example
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { streamText } from 'ai';
+
+const copilot = createCopilotProvider();
+
+const stream = await streamText({
+  model: copilot('gpt-4'),
+  prompt: 'Tell me a story',
+});
+
+for await (const chunk of stream.textStream) {
+  process.stdout.write(chunk);
+}
+
+await copilot.dispose();
+```
+
+### Model Settings
+
+```ts
+const model = copilot('gpt-4', {
+  systemMessage: {
+    mode: 'append',
+    content: 'Be concise and helpful.',
+  },
+  // Control which built-in tools are available
+  availableTools: ['web_fetch'],
+  excludedTools: ['report_intent'],
+});
+```
+
+Model-level settings:
+
+- **systemMessage** _\{ mode: 'append' | 'replace', content: string \}_ - System message configuration.
+- **availableTools** _string[]_ - List of built-in tools to make available.
+- **excludedTools** _string[]_ - List of built-in tools to exclude.
+
+### Model Capabilities
+
+| Model              | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4.1`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4.5`  | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro`   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  Object generation shows ❌ because this provider uses prompt-based structured
+  output rather than native JSON mode. Tool calling is fully supported with
+  custom tools defined via Zod schemas.
+</Note>
+
+## Tool Calling
+
+The provider supports custom tool definitions using Zod schemas, allowing you to define domain-specific functionality that the model can invoke:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+import { z } from 'zod';
+
+const copilot = createCopilotProvider();
+
+const result = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'What is the weather in Tokyo and what is 42 * 17?',
+  tools: {
+    weather: {
+      description: 'Get the current weather in a given location',
+      inputSchema: z.object({
+        location: z
+          .string()
+          .describe('The city and state, e.g., San Francisco, CA'),
+        unit: z.enum(['celsius', 'fahrenheit']).optional().default('celsius'),
+      }),
+    },
+    calculator: {
+      description: 'Perform basic mathematical calculations',
+      inputSchema: z.object({
+        expression: z
+          .string()
+          .describe('The mathematical expression to evaluate'),
+      }),
+    },
+  },
+});
+
+// Access tool calls made by the model
+if (result.toolCalls && result.toolCalls.length > 0) {
+  for (const toolCall of result.toolCalls) {
+    console.log(`Tool: ${toolCall.toolName}`);
+    console.log(`Input: ${JSON.stringify(toolCall.input)}`);
+  }
+}
+
+await copilot.dispose();
+```
+
+<Note>
+  Copilot has built-in tools (like `web_fetch`, `report_intent`, etc.) that the
+  model may prefer for common tasks. Custom tools work best for domain-specific
+  functionality. You can control built-in tool availability using
+  `availableTools` and `excludedTools` in the model settings.
+</Note>
+
+## BYOK (Bring Your Own Key)
+
+You can configure the provider to use your own API key with an alternative backend:
+
+```ts
+const copilot = createCopilotProvider({
+  provider: {
+    type: 'openai',
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+```
+
+## Custom Agents
+
+Define custom agent personas with specific system prompts for specialized tasks:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { generateText } from 'ai';
+
+const copilot = createCopilotProvider({
+  customAgents: [
+    {
+      name: 'code-reviewer',
+      displayName: 'Code Reviewer',
+      description: 'An expert code reviewer focused on best practices',
+      prompt: `You are an expert code reviewer. Focus on readability, maintainability, and performance.`,
+      tools: ['web_fetch'], // Optional: restrict to specific tools
+    },
+    {
+      name: 'explainer',
+      displayName: 'Code Explainer',
+      description: 'Explains code in simple terms',
+      prompt: 'You are a patient coding teacher who explains concepts simply.',
+    },
+  ],
+});
+```
+
+Custom agent configuration options:
+
+- **name** _string_ - Unique identifier for the agent (required)
+- **prompt** _string_ - System prompt content for the agent (required)
+- **displayName** _string_ - Human-readable display name
+- **description** _string_ - Description of what the agent does
+- **tools** _string[] | null_ - Restrict which tools the agent can use (`null` for all)
+- **mcpServers** _object_ - MCP servers specific to this agent
+- **infer** _boolean_ - Whether the agent should be available for model inference (default: `true`)
+
+### Using Custom Agents
+
+There are two ways to use custom agents:
+
+**Via model ID pattern:**
+
+```ts
+const result = await generateText({
+  model: copilot('agent/code-reviewer'),
+  prompt: 'Review this code: ...',
+});
+```
+
+**Via providerOptions:**
+
+```ts
+const result = await generateText({
+  model: copilot('gpt-4'),
+  prompt: 'Explain async/await in JavaScript',
+  providerOptions: {
+    copilot: {
+      agent: 'explainer',
+    },
+  },
+});
+```
+
+## Additional Features
+
+### Response Caching
+
+The provider includes a caching layer to reduce API calls for repeated prompts:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import {
+  createMemoryCache,
+  wrapWithCache,
+} from 'ai-sdk-provider-copilot/cache';
+import { generateText } from 'ai';
+
+const copilot = createCopilotProvider();
+
+// Create a cache instance
+const cache = createMemoryCache({
+  maxEntries: 100,
+});
+
+// Wrap the model with caching
+const cachedModel = wrapWithCache(copilot('gpt-4'), {
+  enabled: true,
+  adapter: cache,
+  defaultTtlMs: 60000, // Cache for 1 minute
+});
+
+// First call hits the API
+const result1 = await generateText({
+  model: cachedModel,
+  prompt: 'What is the capital of France?',
+});
+
+// Second identical call returns cached response
+const result2 = await generateText({
+  model: cachedModel,
+  prompt: 'What is the capital of France?',
+});
+```
+
+### MCP Server Integration
+
+The provider supports integration with MCP (Model Context Protocol) servers for extended capabilities:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  mcpServers: {
+    // Local/stdio MCP server
+    'my-local-server': {
+      type: 'local',
+      command: 'node',
+      args: ['./mcp-server.js'],
+      tools: ['*'], // Include all tools, or specify ['tool1', 'tool2']
+      env: { DEBUG: 'true' },
+    },
+    // Remote HTTP MCP server
+    'my-remote-server': {
+      type: 'http',
+      url: 'https://mcp.example.com/api',
+      tools: ['search', 'fetch'],
+      headers: { Authorization: 'Bearer token' },
+    },
+  },
+});
+```
+
+MCP server configuration options:
+
+- **type** _'local' | 'stdio' | 'http' | 'sse'_ - Server type (defaults to `'local'`)
+- **tools** _string[]_ - Tools to include (`['*']` for all, or specific tool names)
+- **command** / **args** - For local servers, the command to spawn
+- **url** - For remote servers, the HTTP/SSE endpoint
+- **timeout** _number_ - Optional timeout in milliseconds for tool calls
+
+### Session Pool
+
+Enable session reuse for improved performance across multiple requests:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  sessionPool: {
+    enabled: true, // Enable session reuse
+    maxIdleSessions: 3, // Keep up to 3 idle sessions
+    idleTimeoutMs: 300000, // 5 minute idle timeout
+    validateBeforeReuse: true,
+  },
+});
+```
+
+Session pool configuration options:
+
+- **enabled** _boolean_ - Whether to enable session reuse (default: `false`)
+- **maxIdleSessions** _number_ - Maximum idle sessions to keep (default: `3`)
+- **idleTimeoutMs** _number_ - Idle timeout in ms (default: `300000`)
+- **validateBeforeReuse** _boolean_ - Validate session health before reuse (default: `true`)
+
+### Health Monitor
+
+Configure health monitoring for automatic failure detection and recovery:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+
+const copilot = createCopilotProvider({
+  healthMonitor: {
+    failureThreshold: 3, // Mark unhealthy after 3 failures
+    failureWindowMs: 60000, // In a 1-minute window
+    reconnectBaseDelayMs: 1000,
+    onHealthChange: (healthy, reason) => {
+      console.log(`Health changed: ${healthy} (${reason})`);
+    },
+  },
+});
+```
+
+Health monitor configuration options:
+
+- **failureThreshold** _number_ - Consecutive failures before marking unhealthy (default: `3`)
+- **failureWindowMs** _number_ - Time window for failure counting (default: `60000`)
+- **reconnectBaseDelayMs** _number_ - Base delay before reconnection (default: `1000`)
+- **onHealthChange** _function_ - Callback when health state changes
+
+### OpenTelemetry Integration
+
+The provider includes built-in support for OpenTelemetry tracing and metrics:
+
+```ts
+import { createCopilotProvider } from 'ai-sdk-provider-copilot';
+import { trace, metrics } from '@opentelemetry/api';
+
+const copilot = createCopilotProvider({
+  telemetry: {
+    tracerProvider: trace.getTracerProvider(),
+    meterProvider: metrics.getMeterProvider(),
+    serviceName: 'my-app',
+    recordContent: false, // Set to true to record prompts/completions (careful with PII)
+  },
+});
+```
+
+Telemetry configuration options:
+
+- **tracerProvider** _TracerProvider_ - OpenTelemetry TracerProvider instance
+- **meterProvider** _MeterProvider_ - OpenTelemetry MeterProvider instance
+- **serviceName** _string_ - Service name for identification (default: `'copilot-ai-sdk-provider'`)
+- **recordContent** _boolean_ - Whether to record input/output content (default: `false`)
+
+Metrics emitted:
+
+- `gen_ai.client.token.usage`: Counter of tokens used (input/output)
+- `gen_ai.client.operation.duration`: Histogram of operation latency
+
+## Authentication
+
+The provider uses your existing GitHub Copilot subscription. Authenticate via the GitHub CLI or Copilot CLI:
+
+```bash
+# Using GitHub CLI
+gh auth login
+
+# Or using Copilot CLI
+copilot auth login
+```
+
+## Requirements
+
+- Node.js 20 or higher
+- GitHub Copilot CLI installed globally: `npm install -g @github/copilot`
+- Valid GitHub Copilot subscription
+- Authenticated via `copilot auth login` or `gh auth login`
+
+## Windows Notes
+
+On Windows, the provider automatically detects the Copilot CLI path. If you encounter issues, ensure the CLI is installed globally:
+
+```powershell
+npm install -g @github/copilot
+```
+
+For more details, see the [provider documentation](https://github.com/codewarnab/ai-sdk-provider-copilot).
