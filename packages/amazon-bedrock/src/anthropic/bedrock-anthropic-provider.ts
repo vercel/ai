@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -49,16 +49,16 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   computer_20241022: 'computer-use-2024-10-22',
 };
 
-export interface BedrockAnthropicProvider extends ProviderV3 {
+export interface BedrockAnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (modelId: BedrockAnthropicModelId): LanguageModelV3;
+  (modelId: BedrockAnthropicModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV3;
+  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -319,8 +319,6 @@ export function createBedrockAnthropic(
 
       // Bedrock Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
-      // force the use of JSON tool fallback for structured outputs since beta header isn't supported
-      supportsNativeStructuredOutput: false,
     });
 
   const provider = function (modelId: BedrockAnthropicModelId) {
@@ -333,13 +331,13 @@ export function createBedrockAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
   provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {

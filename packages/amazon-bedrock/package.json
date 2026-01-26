@@ -8,13 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-<<<<<<< HEAD
-    "CHANGELOG.md"
-=======
     "CHANGELOG.md",
-    "README.md",
     "anthropic/index.d.ts"
->>>>>>> 3318e0d66 (feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api (#11878))
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",

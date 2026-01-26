@@ -737,7 +737,7 @@ export function createFeatureTestSuite({
                         {
                           type: 'image',
                           image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+                            'https://raw.githubusercontent.com/vercel/ai/release-v5.0/examples/ai-core/data/comic-cat.png',
                         },
                       ],
                     },
@@ -794,7 +794,7 @@ export function createFeatureTestSuite({
                         {
                           type: 'image',
                           image:
-                            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+                            'https://raw.githubusercontent.com/vercel/ai/release-v5.0/examples/ai-core/data/comic-cat.png',
                         },
                       ],
                     },
