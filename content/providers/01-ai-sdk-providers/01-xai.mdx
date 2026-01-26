@@ -334,12 +334,6 @@ const result = streamText({
     },
   },
 });
-
-for await (const part of result.fullStream) {
-  if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
-  }
-}
 ```
 
 #### File Search Parameters
