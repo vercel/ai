@@ -121,7 +121,7 @@ export function transform(
     jscodeshift,
     transformOptions,
   );
-  const stdout = execFileSync(cmd, { encoding: 'utf8', stdio: 'pipe', args })
+  const stdout = execFileSync(cmd, args, { encoding: 'utf8', stdio: 'pipe' })
     .toString();
   const errors = parseErrors(codemod, stdout);
   const notImplementedErrors = parseNotImplementedErrors(codemod, stdout);
