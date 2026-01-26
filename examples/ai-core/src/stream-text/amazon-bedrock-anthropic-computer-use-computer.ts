@@ -32,7 +32,7 @@ run(async () => {
               typeof output === 'string'
                 ? { type: 'text', text: output }
                 : {
-                    type: 'image-data',
+                    type: 'media',
                     data: output.data,
                     mediaType: 'image/png',
                   },
