@@ -1,22 +1,32 @@
-export function createAbortErrorPromise(
-  signal: AbortSignal | undefined,
-): Promise<never> | undefined {
+export function createAbortErrorPromise(signal: AbortSignal | undefined):
+  | {
+      promise: Promise<never>;
+      cleanup: () => void;
+    }
+  | undefined {
   if (signal == null) {
     return undefined;
   }
 
-  return new Promise((_, reject) => {
-    if (signal.aborted) {
-      reject(signal.reason);
-      return;
-    }
+  if (signal.aborted) {
+    return {
+      promise: Promise.reject(signal.reason),
+      cleanup: () => {},
+    };
+  }
 
-    signal.addEventListener(
-      'abort',
-      () => {
-        reject(signal.reason);
-      },
-      { once: true },
-    );
+  let onAbort: (() => void) | undefined;
+
+  const promise = new Promise<never>((_, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
   });
+
+  const cleanup = () => {
+    if (onAbort != null) {
+      signal.removeEventListener('abort', onAbort);
+    }
+  };
+
+  return { promise, cleanup };
 }

@@ -75,30 +75,34 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           },
         });
 
-        const abortPromise = createAbortErrorPromise(toolAbortSignal);
+        const abortHandler = createAbortErrorPromise(toolAbortSignal);
         const iterator = stream[Symbol.asyncIterator]();
 
-        while (true) {
-          const nextPromise = iterator.next();
-          const result = abortPromise
-            ? await Promise.race([nextPromise, abortPromise])
-            : await nextPromise;
+        try {
+          while (true) {
+            const nextPromise = iterator.next();
+            const result = abortHandler
+              ? await Promise.race([nextPromise, abortHandler.promise])
+              : await nextPromise;
 
-          if (result.done) {
-            break;
-          }
+            if (result.done) {
+              break;
+            }
 
-          const part = result.value;
-          if (part.type === 'preliminary') {
-            onPreliminaryToolResult?.({
-              ...toolCall,
-              type: 'tool-result',
-              output: part.output,
-              preliminary: true,
-            });
-          } else {
-            output = part.output;
+            const part = result.value;
+            if (part.type === 'preliminary') {
+              onPreliminaryToolResult?.({
+                ...toolCall,
+                type: 'tool-result',
+                output: part.output,
+                preliminary: true,
+              });
+            } else {
+              output = part.output;
+            }
           }
+        } finally {
+          abortHandler?.cleanup();
         }
       } catch (error) {
         recordErrorOnSpan(span, error);
