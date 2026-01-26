@@ -7,9 +7,9 @@ import {
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
-    ...actual,
+    ...(actual as object),
     loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
       if (settingValue === undefined) return undefined;
       return settingValue;
@@ -102,14 +102,14 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should throw NoSuchModelError for embeddingModel', () => {
+  it('should throw NoSuchModelError for textEmbeddingModel', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
       accessKeyId: 'test-key',
       secretAccessKey: 'test-secret',
     });
 
-    expect(() => provider.embeddingModel('invalid-model-id')).toThrow(
+    expect(() => provider.textEmbeddingModel('invalid-model-id')).toThrow(
       NoSuchModelError,
     );
   });
@@ -415,7 +415,7 @@ describe('bedrock-anthropic-provider', () => {
       secretAccessKey: 'test-secret',
     });
 
-    expect(provider.specificationVersion).toBe('v2');
+    expect((provider as any).specificationVersion).toBe('v2');
   });
 
   it('should provide languageModel as alias', () => {

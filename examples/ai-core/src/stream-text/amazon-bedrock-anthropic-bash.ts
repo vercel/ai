@@ -1,10 +1,6 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
-<<<<<<< HEAD:examples/ai-core/src/stream-text/amazon-bedrock-anthropic-bash.ts
-=======
-import { run } from '../lib/run';
->>>>>>> 3318e0d66 (feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api (#11878)):examples/ai-functions/src/stream-text/amazon-bedrock-anthropic-bash.ts
 
 async function main() {
   const result = streamText({

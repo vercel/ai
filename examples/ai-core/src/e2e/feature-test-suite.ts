@@ -455,44 +455,48 @@ export function createFeatureTestSuite({
                 ).toBeTruthy();
               });
 
-              it('should stream complex nested objects', async () => {
-                const result = streamObject({
-                  model,
-                  schema: z.object({
-                    chapters: z.array(
-                      z.object({
-                        title: z.string(),
-                        sections: z.array(
-                          z.object({
-                            heading: z.string(),
-                            content: z.string(),
-                            subsections: z.array(
-                              z.object({
-                                title: z.string(),
-                                paragraphs: z.array(z.string()),
-                              }),
-                            ),
-                          }),
-                        ),
-                      }),
-                    ),
-                  }),
-                  prompt:
-                    'Generate a book outline with chapters, sections, and subsections.',
-                });
+              it(
+                'should stream complex nested objects',
+                async () => {
+                  const result = streamObject({
+                    model,
+                    schema: z.object({
+                      chapters: z.array(
+                        z.object({
+                          title: z.string(),
+                          sections: z.array(
+                            z.object({
+                              heading: z.string(),
+                              content: z.string(),
+                              subsections: z.array(
+                                z.object({
+                                  title: z.string(),
+                                  paragraphs: z.array(z.string()),
+                                }),
+                              ),
+                            }),
+                          ),
+                        }),
+                      ),
+                    }),
+                    prompt:
+                      'Generate a book outline with chapters, sections, and subsections.',
+                  });
 
-                const parts = [];
-                for await (const part of result.partialObjectStream) {
-                  parts.push(part);
-                }
+                  const parts = [];
+                  for await (const part of result.partialObjectStream) {
+                    parts.push(part);
+                  }
 
-                const finalResult = await result.object;
-                expect(finalResult.chapters.length).toBeGreaterThan(0);
-                expect(finalResult.chapters[0].sections.length).toBeGreaterThan(
-                  0,
-                );
-                expect(parts.length).toBeGreaterThan(0);
-              });
+                  const finalResult = await result.object;
+                  expect(finalResult.chapters.length).toBeGreaterThan(0);
+                  expect(finalResult.chapters[0].sections.length).toBeGreaterThan(
+                    0,
+                  );
+                  expect(parts.length).toBeGreaterThan(0);
+                },
+                { timeout: 60000 },
+              );
 
               describe('Schema and Prompt Variations', () => {
                 it('should generate with field descriptions', async () => {

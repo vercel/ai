@@ -1,16 +1,8 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
-<<<<<<< HEAD:examples/ai-core/src/stream-text/amazon-bedrock-anthropic-websearch.ts
 
-// This will throw a warning as web_search is not supported on amazon bedrock
 async function main() {
-=======
-import { run } from '../lib/run';
-
-// Note: web_search may not be supported on Amazon Bedrock
-run(async () => {
->>>>>>> 3318e0d66 (feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api (#11878)):examples/ai-functions/src/stream-text/amazon-bedrock-anthropic-websearch.ts
   const result = streamText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt:
