@@ -150,6 +150,13 @@ export const weatherTool = tool({
                 'Optional function that is called when a tool call can be started, even if the execute function is not provided.',
             },
             {
+              name: 'timeout',
+              isOptional: true,
+              type: 'number',
+              description:
+                'Optional timeout in milliseconds for tool execution. If the tool execution takes longer than the specified timeout, the tool call will be aborted and a tool error will be returned.',
+            },
+            {
               name: 'providerOptions',
               isOptional: true,
               type: 'ProviderOptions',

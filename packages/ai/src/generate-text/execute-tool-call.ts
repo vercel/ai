@@ -4,6 +4,8 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createAbortErrorPromise } from '../util/create-abort-error-promise';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { TypedToolCall } from './tool-call';
 import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
@@ -56,6 +58,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     fn: async span => {
       let output: unknown;
 
+      const toolAbortSignal =
+        tool.timeout != null
+          ? mergeAbortSignals(abortSignal, AbortSignal.timeout(tool.timeout))
+          : abortSignal;
+
       try {
         const stream = executeTool({
           execute: tool.execute!.bind(tool),
@@ -63,12 +70,25 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           options: {
             toolCallId,
             messages,
-            abortSignal,
+            abortSignal: toolAbortSignal,
             experimental_context,
           },
         });
 
-        for await (const part of stream) {
+        const abortPromise = createAbortErrorPromise(toolAbortSignal);
+        const iterator = stream[Symbol.asyncIterator]();
+
+        while (true) {
+          const nextPromise = iterator.next();
+          const result = abortPromise
+            ? await Promise.race([nextPromise, abortPromise])
+            : await nextPromise;
+
+          if (result.done) {
+            break;
+          }
+
+          const part = result.value;
           if (part.type === 'preliminary') {
             onPreliminaryToolResult?.({
               ...toolCall,

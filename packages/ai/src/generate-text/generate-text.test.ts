@@ -2548,6 +2548,112 @@ describe('generateText', () => {
 
       expect(receivedAbortSignal).toBeDefined();
     });
+
+    it('should abort tool execution when tool timeout is exceeded', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'slowTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          slowTool: {
+            inputSchema: z.object({ value: z.string() }),
+            timeout: 50,
+            execute: async () => {
+              await new Promise(resolve => setTimeout(resolve, 200));
+              return 'should not reach here';
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+
+      const toolErrors = result.content.filter(
+        (part): part is typeof part & { type: 'tool-error' } =>
+          part.type === 'tool-error',
+      );
+      expect(toolErrors).toHaveLength(1);
+      expect(toolErrors[0].toolName).toBe('slowTool');
+    });
+
+    it('should complete tool execution when tool timeout is not exceeded', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: undefined },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'fastTool',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          fastTool: {
+            inputSchema: z.object({ value: z.string() }),
+            timeout: 10000,
+            execute: async () => {
+              return 'tool result';
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+
+      expect(result.toolResults).toHaveLength(1);
+      expect(result.toolResults[0].output).toBe('tool result');
+    });
+
+    it('should pass merged abort signal to tool when tool has timeout', async () => {
+      let receivedAbortSignal: AbortSignal | undefined;
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "test" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            timeout: 5000,
+            execute: async (_input, options) => {
+              receivedAbortSignal = options.abortSignal;
+              return 'result';
+            },
+          },
+        },
+        prompt: 'test-input',
+      });
+
+      expect(receivedAbortSignal).toBeDefined();
+    });
   });
 
   describe('options.activeTools', () => {

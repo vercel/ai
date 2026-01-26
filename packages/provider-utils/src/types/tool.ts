@@ -160,6 +160,13 @@ functionality that can be fully encapsulated in the provider.
   strict?: boolean;
 
   /**
+   * Optional timeout in milliseconds for tool execution.
+   * If the tool execution takes longer than the specified timeout,
+   * the tool call will be aborted.
+   */
+  timeout?: number;
+
+  /**
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
