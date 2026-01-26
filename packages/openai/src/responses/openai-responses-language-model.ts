@@ -63,6 +63,8 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import {
+  ResponsesProviderMetadata,
+  ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
 } from './openai-responses-provider-metadata';
@@ -531,7 +533,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 [providerOptionsName]: {
                   itemId: part.id,
                   reasoningEncryptedContent: part.encrypted_content ?? null,
-                },
+                } satisfies ResponsesReasoningProviderMetadata,
               },
             });
           }
@@ -896,33 +898,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    // Build the metadata object
-    const openaiMetadata: SharedV3ProviderMetadata[string] = {
+    const metadataValue = {
       responseId: response.id,
-    };
-
-    if (logprobs.length > 0) {
-      openaiMetadata.logprobs = logprobs;
-    }
-
-    if (typeof response.service_tier === 'string') {
-      openaiMetadata.serviceTier = response.service_tier;
-    }
+      ...(logprobs.length > 0 ? { logprobs } : {}),
+      ...(typeof response.service_tier === 'string'
+        ? { serviceTier: response.service_tier }
+        : {}),
+    } satisfies ResponsesProviderMetadata;
 
     // Determine which key(s) to use in providerMetadata:
     // - Azure providers always use 'azure' key
     // - Non-Azure providers use 'openai' key, plus custom key if it was used
-    let providerMetadata: SharedV3ProviderMetadata;
-    if (isAzureProvider) {
-      providerMetadata = { azure: openaiMetadata };
-    } else if (usedCustomProviderKey) {
-      providerMetadata = {
-        openai: openaiMetadata,
-        [providerOptionsName]: openaiMetadata,
-      };
-    } else {
-      providerMetadata = { openai: openaiMetadata };
-    }
+    const providerMetadata: SharedV3ProviderMetadata = isAzureProvider
+      ? { azure: metadataValue }
+      : usedCustomProviderKey
+        ? { openai: metadataValue, [providerOptionsName]: metadataValue }
+        : { openai: metadataValue };
 
     const usage = response.usage!; // defined when there is no error
 
@@ -1239,7 +1230,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       itemId: value.item.id,
                       reasoningEncryptedContent:
                         value.item.encrypted_content ?? null,
-                    },
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
               }
@@ -1547,7 +1538,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                         itemId: value.item.id,
                         reasoningEncryptedContent:
                           value.item.encrypted_content ?? null,
-                      },
+                      } satisfies ResponsesReasoningProviderMetadata,
                     },
                   });
                 }
@@ -1692,7 +1683,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       type: 'reasoning-end',
                       id: `${value.item_id}:${summaryIndex}`,
                       providerMetadata: {
-                        [providerOptionsName]: { itemId: value.item_id },
+                        [providerOptionsName]: {
+                          itemId: value.item_id,
+                        } satisfies ResponsesReasoningProviderMetadata,
                       },
                     });
                     activeReasoningPart.summaryParts[summaryIndex] =
@@ -1709,7 +1702,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                       reasoningEncryptedContent:
                         activeReasoning[value.item_id]?.encryptedContent ??
                         null,
-                    },
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
               }
@@ -1721,7 +1714,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 providerMetadata: {
                   [providerOptionsName]: {
                     itemId: value.item_id,
-                  },
+                  } satisfies ResponsesReasoningProviderMetadata,
                 },
               });
             } else if (value.type === 'response.reasoning_summary_part.done') {
@@ -1732,7 +1725,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   type: 'reasoning-end',
                   id: `${value.item_id}:${value.summary_index}`,
                   providerMetadata: {
-                    [providerOptionsName]: { itemId: value.item_id },
+                    [providerOptionsName]: {
+                      itemId: value.item_id,
+                    } satisfies ResponsesReasoningProviderMetadata,
                   },
                 });
 
@@ -1833,29 +1828,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            const openaiMetadata: SharedV3ProviderMetadata[string] = {
+            const metadataValue = {
               responseId,
-            };
+              ...(logprobs.length > 0 ? { logprobs } : {}),
+              ...(serviceTier !== undefined ? { serviceTier } : {}),
+            } satisfies ResponsesProviderMetadata;
 
-            if (logprobs.length > 0) {
-              openaiMetadata.logprobs = logprobs;
-            }
-
-            if (serviceTier !== undefined) {
-              openaiMetadata.serviceTier = serviceTier;
-            }
-
-            let providerMetadata: SharedV3ProviderMetadata;
-            if (isAzureProvider) {
-              providerMetadata = { azure: openaiMetadata };
-            } else if (usedCustomProviderKey) {
-              providerMetadata = {
-                openai: openaiMetadata,
-                [providerOptionsName]: openaiMetadata,
-              };
-            } else {
-              providerMetadata = { openai: openaiMetadata };
-            }
+            const providerMetadata: SharedV3ProviderMetadata = isAzureProvider
+              ? { azure: metadataValue }
+              : usedCustomProviderKey
+                ? {
+                    openai: metadataValue,
+                    [providerOptionsName]: metadataValue,
+                  }
+                : { openai: metadataValue };
 
             controller.enqueue({
               type: 'finish',
