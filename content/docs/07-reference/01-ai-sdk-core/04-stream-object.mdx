@@ -732,7 +732,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -861,6 +861,12 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
+      name: 'finishReason',
+      type: 'Promise<FinishReason>',
+      description:
+        "The reason the model finished generating the text. Can be 'stop', 'length', 'content-filter', 'tool-calls', 'error', or 'other'.",
+    },
+    {
       name: 'object',
       type: 'Promise<T>',
       description:
@@ -943,23 +949,17 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               type: 'FinishReason',
             },
             {
-              name: 'logprobs',
-              type: 'Logprobs',
-              isOptional: true,
-            },
-            {
               name: 'usage',
               type: 'Usage',
               description: 'Token usage.',
             },
             {
               name: 'response',
-              type: 'Response',
-              isOptional: true,
+              type: 'LanguageModelResponseMetadata',
               description: 'Response metadata.',
               properties: [
                 {
-                  type: 'Response',
+                  type: 'LanguageModelResponseMetadata',
                   parameters: [
                     {
                       name: 'id',
@@ -968,7 +968,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -979,9 +979,21 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                       description:
                         'The timestamp of the response. The AI SDK uses the response timestamp from the provider response when available, and creates a timestamp otherwise.',
                     },
+                    {
+                      name: 'headers',
+                      isOptional: true,
+                      type: 'Record<string, string>',
+                      description: 'Optional response headers.',
+                    },
                   ],
                 },
               ],
+            },
+            {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata',
+              isOptional: true,
+              description: 'Optional metadata from the provider.',
             },
           ],
         },
@@ -1020,7 +1032,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                 'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
             },
             {
-              name: 'model',
+              name: 'modelId',
               type: 'string',
               description:
                 'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
