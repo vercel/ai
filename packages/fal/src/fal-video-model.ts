@@ -69,6 +69,12 @@ export class FalVideoModel implements VideoModelV3 {
     return this.config.provider;
   }
 
+  // Normalize model ID by stripping fal-ai/ or fal/ prefix if present
+  // This is needed because the queue URL already includes the fal-ai/ prefix
+  private get normalizedModelId(): string {
+    return this.modelId.replace(/^fal-ai\//, '').replace(/^fal\//, '');
+  }
+
   constructor(
     readonly modelId: FalVideoModelId,
     private readonly config: FalVideoModelConfig,
@@ -166,7 +172,7 @@ export class FalVideoModel implements VideoModelV3 {
 
     // Submit to queue endpoint
     const queueUrl = this.config.url({
-      path: `https://queue.fal.run/fal-ai/${this.modelId}`,
+      path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
       modelId: this.modelId,
     });
 
@@ -203,7 +209,7 @@ export class FalVideoModel implements VideoModelV3 {
     while (true) {
       try {
         const statusUrl = this.config.url({
-          path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${requestId}`,
+          path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}/requests/${requestId}`,
           modelId: this.modelId,
         });
 
