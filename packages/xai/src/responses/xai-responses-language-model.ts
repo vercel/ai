@@ -287,6 +287,25 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           providerExecuted: true,
         });
 
+        // For file_search_call, also emit tool-result with search results
+        if (part.type === 'file_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              queries: part.queries ?? [],
+              results:
+                part.results?.map(result => ({
+                  fileId: result.file_id,
+                  filename: result.filename,
+                  score: result.score,
+                  text: result.text,
+                })) ?? null,
+            },
+          });
+        }
+
         continue;
       }
 
@@ -698,6 +717,27 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     input: toolInput,
                     providerExecuted: true,
                   });
+                }
+
+                // For file_search_call, emit tool-result when done
+                if (part.type === 'file_search_call') {
+                  if (event.type === 'response.output_item.done') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        queries: part.queries ?? [],
+                        results:
+                          part.results?.map(result => ({
+                            fileId: result.file_id,
+                            filename: result.filename,
+                            score: result.score,
+                            text: result.text,
+                          })) ?? null,
+                      },
+                    });
+                  }
                 }
 
                 return;

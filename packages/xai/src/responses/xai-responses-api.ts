@@ -182,7 +182,19 @@ const outputItemSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('file_search_call'),
-    ...toolCallSchema.shape,
+    id: z.string(),
+    status: z.string(),
+    queries: z.array(z.string()).optional(),
+    results: z
+      .array(
+        z.object({
+          file_id: z.string(),
+          filename: z.string(),
+          score: z.number(),
+          text: z.string(),
+        }),
+      )
+      .nullish(),
   }),
   z.object({
     type: z.literal('custom_tool_call'),
