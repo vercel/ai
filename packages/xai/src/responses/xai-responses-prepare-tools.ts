@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { fileSearchArgsSchema } from '../tool/file-search';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
@@ -104,8 +105,15 @@ export async function prepareResponsesTools({
         }
 
         case 'xai.file_search': {
+          const args = await validateTypes({
+            value: tool.args,
+            schema: fileSearchArgsSchema,
+          });
+
           xaiTools.push({
             type: 'file_search',
+            vector_store_ids: args.vectorStoreIds,
+            max_num_results: args.maxNumResults,
           });
           break;
         }

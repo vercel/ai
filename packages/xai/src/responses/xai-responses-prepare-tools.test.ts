@@ -293,6 +293,114 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  describe('file_search', () => {
+    it('should prepare file_search tool with vector store IDs', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs-1', 'vs-2'],
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": undefined,
+            "type": "file_search",
+            "vector_store_ids": [
+              "vs-1",
+              "vs-2",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should prepare file_search tool with max num results', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs-1'],
+              maxNumResults: 10,
+            },
+          },
+        ],
+      });
+
+      expect(result.tools).toMatchInlineSnapshot(`
+        [
+          {
+            "max_num_results": 10,
+            "type": "file_search",
+            "vector_store_ids": [
+              "vs-1",
+            ],
+          },
+        ]
+      `);
+    });
+
+    it('should handle file_search tool choice', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs-1'],
+            },
+          },
+        ],
+        toolChoice: { type: 'tool', toolName: 'file_search' },
+      });
+
+      expect(result.toolChoice).toEqual({ type: 'file_search' });
+    });
+
+    it('should handle multiple tools including file_search', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'xai.web_search',
+            name: 'web_search',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'xai.file_search',
+            name: 'file_search',
+            args: {
+              vectorStoreIds: ['vs-1'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'calculator',
+            description: 'calculate numbers',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      expect(result.tools).toHaveLength(3);
+      expect(result.tools?.[0].type).toBe('web_search');
+      expect(result.tools?.[1].type).toBe('file_search');
+      expect(result.tools?.[2].type).toBe('function');
+    });
+  });
+
   describe('function tools', () => {
     it('should prepare function tools', async () => {
       const result = await prepareResponsesTools({

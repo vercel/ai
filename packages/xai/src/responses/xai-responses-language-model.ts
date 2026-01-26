@@ -25,6 +25,7 @@ import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  XaiResponsesIncludeOptions,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
@@ -103,6 +104,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       tool => tool.type === 'provider' && tool.id === 'xai.mcp',
     )?.name;
 
+    const fileSearchToolName = tools?.find(
+      tool => tool.type === 'provider' && tool.id === 'xai.file_search',
+    )?.name;
+
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
       store: true,
@@ -118,6 +123,21 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
     warnings.push(...toolWarnings);
+
+    // Build include array based on provider options and store setting
+    let include: XaiResponsesIncludeOptions = options.include
+      ? [...options.include]
+      : undefined;
+
+    if (options.store === false) {
+      // When store is false, we need to include reasoning.encrypted_content
+      // to preserve reasoning tokens in the response
+      if (include == null) {
+        include = ['reasoning.encrypted_content'];
+      } else {
+        include = [...include, 'reasoning.encrypted_content'];
+      }
+    }
 
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
@@ -145,7 +165,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       }),
       ...(options.store === false && {
         store: options.store,
-        include: ['reasoning.encrypted_content'],
+      }),
+      ...(include != null && {
+        include,
       }),
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
@@ -167,6 +189,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       xSearchToolName,
       codeExecutionToolName,
       mcpToolName,
+      fileSearchToolName,
     };
   }
 
@@ -180,6 +203,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       xSearchToolName,
       codeExecutionToolName,
       mcpToolName,
+      fileSearchToolName,
     } = await this.getArgs(options);
 
     const {
@@ -221,7 +245,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'view_image_call' ||
         part.type === 'view_x_video_call' ||
         part.type === 'custom_tool_call' ||
-        part.type === 'mcp_call'
+        part.type === 'mcp_call' ||
+        part.type === 'file_search_call'
       ) {
         let toolName = part.name ?? '';
         if (
@@ -242,6 +267,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           toolName = codeExecutionToolName ?? 'code_execution';
         } else if (part.type === 'mcp_call') {
           toolName = mcpToolName ?? part.name ?? 'mcp';
+        } else if (part.type === 'file_search_call') {
+          toolName = fileSearchToolName ?? 'file_search';
         }
 
         // custom_tool_call uses 'input' field, others use 'arguments'
@@ -369,6 +396,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       xSearchToolName,
       codeExecutionToolName,
       mcpToolName,
+      fileSearchToolName,
     } = await this.getArgs(options);
     const body = {
       ...args,
@@ -590,7 +618,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 part.type === 'view_image_call' ||
                 part.type === 'view_x_video_call' ||
                 part.type === 'custom_tool_call' ||
-                part.type === 'mcp_call'
+                part.type === 'mcp_call' ||
+                part.type === 'file_search_call'
               ) {
                 const webSearchSubTools = [
                   'web_search',
@@ -623,6 +652,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   toolName = codeExecutionToolName ?? 'code_execution';
                 } else if (part.type === 'mcp_call') {
                   toolName = mcpToolName ?? part.name ?? 'mcp';
+                } else if (part.type === 'file_search_call') {
+                  toolName = fileSearchToolName ?? 'file_search';
                 }
 
                 // custom_tool_call uses 'input' field, others use 'arguments'
