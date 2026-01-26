@@ -490,9 +490,9 @@ export function createFeatureTestSuite({
 
                   const finalResult = await result.object;
                   expect(finalResult.chapters.length).toBeGreaterThan(0);
-                  expect(finalResult.chapters[0].sections.length).toBeGreaterThan(
-                    0,
-                  );
+                  expect(
+                    finalResult.chapters[0].sections.length,
+                  ).toBeGreaterThan(0);
                   expect(parts.length).toBeGreaterThan(0);
                 },
                 { timeout: 60000 },
