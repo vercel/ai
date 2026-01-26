@@ -364,7 +364,7 @@ if (part.type === 'tool-invocation') {
 }
 
 // ✅ Correct
-if (part.type === 'tool-getWeather') {
+if (part.type === 'tool-getWeather' && part.state === 'output-available') {
   const weather = part.output;
 }
 ```
