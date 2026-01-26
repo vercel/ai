@@ -257,7 +257,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,13-27"
+```tsx filename="app/api/chat/route.ts" highlight="2,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
