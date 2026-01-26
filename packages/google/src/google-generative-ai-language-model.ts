@@ -135,7 +135,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel },
+      { isGemmaModel, providerOptionsName },
     );
 
     const {
@@ -324,7 +324,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       finishReason: {
         unified: mapGoogleGenerativeAIFinishReason({
           finishReason: candidate.finishReason,
-          hasToolCalls: content.some(part => part.type === 'tool-call'),
+          // Only count client-executed tool calls for finish reason determination.
+          hasToolCalls: content.some(
+            part => part.type === 'tool-call' && !part.providerExecuted,
+          ),
         }),
         raw: candidate.finishReason ?? undefined,
       },
@@ -459,8 +462,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
                   });
-
-                  hasToolCalls = true;
                 } else if (
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult

@@ -1,6 +1,7 @@
 import {
   ImageModelV3,
   ImageModelV3File,
+  SharedV3ProviderOptions,
   SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -40,10 +41,27 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     return this.config.provider;
   }
 
+  /**
+   * The provider options key used to extract provider-specific options.
+   */
+  private get providerOptionsKey(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
+
+  // TODO: deprecate non-camelCase keys and remove in future major version
+  private getArgs(
+    providerOptions: SharedV3ProviderOptions,
+  ): Record<string, unknown> {
+    return {
+      ...providerOptions[this.providerOptionsKey],
+      ...providerOptions[toCamelCase(this.providerOptionsKey)],
+    };
+  }
 
   async doGenerate({
     prompt,
@@ -76,6 +94,8 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
+    const args = this.getArgs(providerOptions);
+
     // Image editing mode - use form data and /images/edits endpoint
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
@@ -91,7 +111,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
           mask: mask != null ? await fileToBlob(mask) : undefined,
           n,
           size,
-          ...(providerOptions.openai ?? {}),
+          ...args,
         }),
         failedResponseHandler: createJsonErrorResponseHandler(
           this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
@@ -126,7 +146,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
         prompt,
         n,
         size,
-        ...(providerOptions.openai ?? {}),
+        ...args,
         response_format: 'b64_json',
       },
       failedResponseHandler: createJsonErrorResponseHandler(
@@ -178,4 +198,8 @@ async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
       : convertBase64ToUint8Array(file.data);
 
   return new Blob([data as BlobPart], { type: file.mediaType });
+}
+
+function toCamelCase(str: string): string {
+  return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
 }

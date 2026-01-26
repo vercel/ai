@@ -1,10 +1,18 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "3.0.0-beta.8",
+  "version": "3.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "!src/**/__testfixtures__",
+    "!src/**/test",
     "CHANGELOG.md",
     "README.md"
   ],

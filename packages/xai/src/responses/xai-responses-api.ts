@@ -15,9 +15,13 @@ export type XaiResponsesSystemMessage = {
   content: string;
 };
 
+export type XaiResponsesUserMessageContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; image_url: string };
+
 export type XaiResponsesUserMessage = {
   role: 'user';
-  content: string;
+  content: Array<XaiResponsesUserMessageContentPart>;
 };
 
 export type XaiResponsesAssistantMessage = {
@@ -79,14 +83,20 @@ export type XaiResponsesTool =
   | { type: 'view_image' }
   | { type: 'view_x_video' }
   | { type: 'file_search' }
-  | { type: 'mcp' }
+  | {
+      type: 'mcp';
+      server_url: string;
+      server_label?: string;
+      server_description?: string;
+      allowed_tools?: string[];
+      headers?: Record<string, string>;
+      authorization?: string;
+    }
   | {
       type: 'function';
-      function: {
-        name: string;
-        description?: string;
-        parameters: unknown;
-      };
+      name: string;
+      description?: string;
+      parameters: unknown;
     };
 
 const annotationSchema = z.union([
@@ -122,6 +132,16 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
+const mcpCallSchema = z.object({
+  name: z.string().optional(),
+  arguments: z.string().optional(),
+  output: z.string().optional(),
+  error: z.string().optional(),
+  id: z.string(),
+  status: z.string(),
+  server_label: z.string().optional(),
+});
+
 const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('web_search_call'),
@@ -152,6 +172,10 @@ const outputItemSchema = z.discriminatedUnion('type', [
     ...toolCallSchema.shape,
   }),
   z.object({
+    type: z.literal('mcp_call'),
+    ...mcpCallSchema.shape,
+  }),
+  z.object({
     type: z.literal('message'),
     role: z.string(),
     content: z.array(messageContentPartSchema),
@@ -170,6 +194,7 @@ const outputItemSchema = z.discriminatedUnion('type', [
     id: z.string(),
     summary: z.array(reasoningSummaryPartSchema),
     status: z.string(),
+    encrypted_content: z.string().nullish(),
   }),
 ]);
 
@@ -197,7 +222,7 @@ export const xaiResponsesResponseSchema = z.object({
   model: z.string().nullish(),
   object: z.literal('response'),
   output: z.array(outputItemSchema),
-  usage: xaiResponsesUsageSchema,
+  usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
 });
 
@@ -318,6 +343,16 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_execution_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
@@ -343,9 +378,83 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
+    type: z.literal('response.code_interpreter_call.interpreting'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
     type: z.literal('response.code_interpreter_call.completed'),
     item_id: z.string(),
     output_index: z.number(),
+  }),
+  // Code interpreter code streaming events
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.code_interpreter_call_code.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    code: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.custom_tool_call_input.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    input: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.executing'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.failed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    output: z.string().optional(),
   }),
   z.object({
     type: z.literal('response.done'),

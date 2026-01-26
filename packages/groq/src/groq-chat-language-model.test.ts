@@ -60,6 +60,9 @@ describe('doGenerate', () => {
       prompt_tokens_details?: {
         cached_tokens?: number;
       };
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+      };
     };
     finish_reason?: string;
     created?: number;
@@ -248,6 +251,47 @@ describe('doGenerate', () => {
             "cached_tokens": 15,
           },
           "total_tokens": 25,
+        },
+      }
+    `);
+  });
+
+  it('should extract reasoning tokens from completion_tokens_details', async () => {
+    prepareJsonResponse({
+      usage: {
+        prompt_tokens: 79,
+        total_tokens: 119,
+        completion_tokens: 40,
+        completion_tokens_details: {
+          reasoning_tokens: 21,
+        },
+      },
+    });
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": undefined,
+          "cacheWrite": undefined,
+          "noCache": 79,
+          "total": 79,
+        },
+        "outputTokens": {
+          "reasoning": 21,
+          "text": 19,
+          "total": 40,
+        },
+        "raw": {
+          "completion_tokens": 40,
+          "completion_tokens_details": {
+            "reasoning_tokens": 21,
+          },
+          "prompt_tokens": 79,
+          "total_tokens": 119,
         },
       }
     `);
@@ -514,6 +558,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -605,6 +650,7 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -649,7 +695,55 @@ describe('doGenerate', () => {
       response_format: {
         type: 'json_schema',
         json_schema: {
+          strict: true,
           name: 'response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+  });
+
+  it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+    prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: {
+          strictJsonSchema: false,
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        name: 'test-name',
+        description: 'test description',
+        schema: {
+          type: 'object',
+          properties: { value: { type: 'string' } },
+          required: ['value'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gemma2-9b-it',
+      messages: [{ role: 'user', content: 'Hello' }],
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          strict: false,
+          name: 'test-name',
+          description: 'test description',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -754,6 +848,7 @@ describe('doGenerate', () => {
               ],
               "type": "object",
             },
+            "strict": true,
           },
           "type": "json_schema",
         },
@@ -979,6 +1074,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -986,10 +1085,6 @@ describe('doStream', () => {
           "delta": "Hello",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1021,6 +1116,65 @@ describe('doStream', () => {
           },
         },
       ]
+    `);
+  });
+
+  it('should stream reasoning tokens from completion_tokens_details', async () => {
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"42"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"openai/gpt-oss-120b",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"openai/gpt-oss-120b",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":79,"prompt_time":0.000211569,` +
+          `"completion_tokens":40,"completion_time":0.798181818,"total_tokens":119,"total_time":0.798393387,` +
+          `"completion_tokens_details":{"reasoning_tokens":21}}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finishChunk).toMatchInlineSnapshot(`
+      {
+        "finishReason": {
+          "raw": "stop",
+          "unified": "stop",
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": {
+            "cacheRead": undefined,
+            "cacheWrite": undefined,
+            "noCache": 79,
+            "total": 79,
+          },
+          "outputTokens": {
+            "reasoning": 21,
+            "text": 19,
+            "total": 40,
+          },
+          "raw": {
+            "completion_tokens": 40,
+            "completion_tokens_details": {
+              "reasoning_tokens": 21,
+            },
+            "prompt_tokens": 79,
+            "total_tokens": 119,
+          },
+        },
+      }
     `);
   });
 

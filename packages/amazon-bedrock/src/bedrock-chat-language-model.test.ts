@@ -87,6 +87,11 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const openaiModelId = 'openai.gpt-oss-120b-1:0';
+const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  openaiModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -98,6 +103,7 @@ const server = createTestServer({
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [openaiGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -145,6 +151,13 @@ const model = new BedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new BedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -896,7 +909,7 @@ describe('doStream', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -1058,7 +1071,7 @@ describe('doStream', () => {
         JSON.stringify({
           messageStop: {
             stopReason: 'stop_sequence',
-            additionalModelResponseFields: { stop_sequence: 'STOP' },
+            additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
           },
         }) + '\n',
       ],
@@ -1106,6 +1119,54 @@ describe('doStream', () => {
           },
         ]
       `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure in streaming with additional fields', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Response' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 5, outputTokens: 10, totalTokens: 15 },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+            additionalModelResponseFields: {
+              delta: {
+                stop_sequence: 'CUSTOM_END',
+              },
+              // Additional fields that might be present
+              otherField: 'value',
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_END'],
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+    expect(finishChunk?.providerMetadata?.bedrock?.stopSequence).toBe(
+      'CUSTOM_END',
+    );
+    expect(finishChunk?.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -1328,8 +1389,8 @@ describe('doStream', () => {
             "inputTokens": {
               "cacheRead": 2,
               "cacheWrite": 3,
-              "noCache": 2,
-              "total": 4,
+              "noCache": 4,
+              "total": 9,
             },
             "outputTokens": {
               "reasoning": undefined,
@@ -2718,7 +2779,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
-      additionalModelResponseFieldPaths: ['/stop_sequence'],
+      additionalModelResponseFieldPaths: ['/delta/stop_sequence'],
     });
   });
 
@@ -2789,7 +2850,7 @@ describe('doGenerate', () => {
           },
         },
         stopReason: 'stop_sequence',
-        additionalModelResponseFields: { stop_sequence: 'STOP' },
+        additionalModelResponseFields: { delta: { stop_sequence: 'STOP' } },
         usage: {
           inputTokens: 4,
           outputTokens: 30,
@@ -2810,6 +2871,118 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  // https://github.com/vercel/ai/issues/11371
+  it('should handle stop_sequence: null when stopReason is tool_use', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              { text: "I'll query your Salesforce..." },
+              {
+                toolUse: {
+                  toolUseId: 'tool-use-id',
+                  name: 'querySalesforce',
+                  input: { query: 'SELECT Id FROM Account' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        additionalModelResponseFields: { delta: { stop_sequence: null } },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'querySalesforce',
+          description: 'Query Salesforce',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    });
+
+    expect(result.finishReason).toEqual({
+      unified: 'tool-calls',
+      raw: 'tool_use',
+    });
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "I'll query your Salesforce...",
+          "type": "text",
+        },
+        {
+          "input": "{"query":"SELECT Id FROM Account"}",
+          "toolCallId": "tool-use-id",
+          "toolName": "querySalesforce",
+          "type": "tool-call",
+        },
+      ]
+    `);
+    expect(result.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "stopSequence": null,
+        },
+      }
+    `);
+  });
+
+  it('should correctly parse delta.stop_sequence structure from additionalModelResponseFields', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: 'Response text' }],
+          },
+        },
+        stopReason: 'stop_sequence',
+        additionalModelResponseFields: {
+          delta: {
+            stop_sequence: 'CUSTOM_STOP',
+          },
+          // Additional fields that might be present
+          otherField: 'value',
+        },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      stopSequences: ['CUSTOM_STOP'],
+    });
+
+    expect(result.providerMetadata?.bedrock.stopSequence).toBe('CUSTOM_STOP');
+    expect(result.finishReason).toEqual({
+      unified: 'stop',
+      raw: 'stop_sequence',
+    });
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -3302,8 +3475,8 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 2,
           "cacheWrite": 3,
-          "noCache": 2,
-          "total": 4,
+          "noCache": 4,
+          "total": 9,
         },
         "outputTokens": {
           "reasoning": undefined,
@@ -3432,6 +3605,41 @@ describe('doGenerate', () => {
         },
       },
     });
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoning_effort: 'medium',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 

@@ -66,7 +66,7 @@ export const mcpOutputSchema = lazySchema(() =>
       serverLabel: z.string(),
       name: z.string(),
       arguments: z.string(),
-      output: z.string().nullable().optional(),
+      output: z.string().nullish(),
       error: z.union([z.string(), jsonValueSchema]).optional(),
     }),
   ),

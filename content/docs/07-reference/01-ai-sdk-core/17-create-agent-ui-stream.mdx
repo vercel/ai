@@ -66,6 +66,13 @@ export async function* streamAgent(
         'Optional abort signal to cancel the stream early (for example, if the client disconnects).',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number }',
+      isRequired: false,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with a totalMs property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside abortSignal.',
+    },
+    {
       name: 'options',
       type: 'CALL_OPTIONS',
       isRequired: false,
@@ -78,6 +85,13 @@ export async function* streamAgent(
       isRequired: false,
       description:
         'Optional transformations to apply to the agent output stream (experimental).',
+    },
+    {
+      name: 'onStepFinish',
+      type: 'ToolLoopAgentOnStepFinishCallback',
+      isRequired: false,
+      description:
+        'Callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging intermediate steps.',
     },
     {
       name: '...UIMessageStreamOptions',

@@ -1,5 +1,141 @@
 # @ai-sdk/mcp
 
+## 1.0.13
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 1.0.12
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 1.0.11
+
+### Patch Changes
+
+- d80fc3b: feat(mcp): capture server title from top level
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 1.0.9
+
+### Patch Changes
+
+- ec84ffd: fix(mcp): lenient JSON-RPC parsing for http transport
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+
+## 1.0.5
+
+### Patch Changes
+
+- 9cc0f88: feat(mcp): add support for structuredContent / outputSchema for typed tool outputs
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/provider-utils@4.0.4
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+
+## 1.0.2
+
+### Patch Changes
+
+- 863d34f: fix: trigger release to update `@latest`
+- Updated dependencies [863d34f]
+  - @ai-sdk/provider@3.0.1
+  - @ai-sdk/provider-utils@4.0.2
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [29264a3]
+  - @ai-sdk/provider-utils@4.0.1
+
+## 1.0.0
+
+### Major Changes
+
+- eca63f3: feat(ai): add OAuth for MCP clients + refactor to new package
+
+  This change replaces
+
+  ```ts
+  import { experimental_createMCPClient } from 'ai';
+  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  ```
+
+  with
+
+  ```ts
+  import { experimental_createMCPClient } from '@ai-sdk/mcp';
+  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  ```
+
+### Patch Changes
+
+- 90ede04: feat(mcp): make MCPClient stable
+- 6f1577e: fix(mcp): pass json header for refreshAuth
+- 17c04d4: feat(mcp): expose `_meta` field from MCP tool definitions
+- 1cff766: feat(packages/mcp): add support for MCP server prompts exposed
+- 3ed5519: chore: rename ToolCallOptions to ToolExecutionOptions
+- ba2ca2d: feat(mcp): add the possibility to define client version in mcp client definition
+- f702df2: feat(mcp): add client elicitation support
+- 5939b92: feat(mcp): adding resources support to MCP client
+- Updated dependencies
+  - @ai-sdk/provider@3.0.0
+  - @ai-sdk/provider-utils@4.0.0
+
+## 1.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [475189e]
+  - @ai-sdk/provider@3.0.0-beta.32
+  - @ai-sdk/provider-utils@4.0.0-beta.59
+
 ## 1.0.0-beta.45
 
 ### Patch Changes

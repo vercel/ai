@@ -244,6 +244,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           name: { type: 'string' },
           age: { type: 'number' },
@@ -277,9 +278,14 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
       } as StandardSchema<{ text: string }>;
 
       const schema = asSchema(standardSchema);
-      await schema.jsonSchema;
+      const jsonSchema = await schema.jsonSchema;
 
       expect(capturedTarget).toBe('draft-07');
+      expect(jsonSchema).toStrictEqual({
+        type: 'object',
+        additionalProperties: false,
+        properties: { text: { type: 'string' } },
+      });
     });
 
     it('should support nested objects', async () => {
@@ -309,9 +315,11 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           user: {
             type: 'object',
+            additionalProperties: false,
             properties: {
               name: { type: 'string' },
               email: { type: 'string' },
@@ -342,6 +350,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: {
           items: {
             type: 'array',
@@ -485,6 +494,7 @@ describe('StandardSchema (StandardJSONSchemaV1)', () => {
 
       expect(await schema.jsonSchema).toStrictEqual({
         type: 'object',
+        additionalProperties: false,
         properties: { text: { type: 'string' } },
       });
     });

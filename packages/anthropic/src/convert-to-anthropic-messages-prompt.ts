@@ -49,6 +49,23 @@ function convertToString(data: LanguageModelV3DataContent): string {
   });
 }
 
+/**
+ * Checks if data is a URL (either a URL object or a URL string).
+ */
+function isUrlData(
+  data: LanguageModelV3DataContent,
+): data is URL | (string & { __brand: 'url-string' }) {
+  return data instanceof URL || isUrlString(data);
+}
+
+function isUrlString(data: LanguageModelV3DataContent): boolean {
+  return typeof data === 'string' && /^https?:\/\//i.test(data);
+}
+
+function getUrlString(data: LanguageModelV3DataContent): string {
+  return data instanceof URL ? data.toString() : (data as string);
+}
+
 export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
@@ -167,20 +184,19 @@ export async function convertToAnthropicMessagesPrompt({
                     if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'base64',
-                                media_type:
-                                  part.mediaType === 'image/*'
-                                    ? 'image/jpeg'
-                                    : part.mediaType,
-                                data: convertToBase64(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type:
+                                part.mediaType === 'image/*'
+                                  ? 'image/jpeg'
+                                  : part.mediaType,
+                              data: convertToBase64(part.data),
+                            },
                         cache_control: cacheControl,
                       });
                     } else if (part.mediaType === 'application/pdf') {
@@ -196,17 +212,16 @@ export async function convertToAnthropicMessagesPrompt({
 
                       anthropicContent.push({
                         type: 'document',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'base64',
-                                media_type: 'application/pdf',
-                                data: convertToBase64(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type: 'application/pdf',
+                              data: convertToBase64(part.data),
+                            },
                         title: metadata.title ?? part.filename,
                         ...(metadata.context && { context: metadata.context }),
                         ...(enableCitations && {
@@ -225,17 +240,16 @@ export async function convertToAnthropicMessagesPrompt({
 
                       anthropicContent.push({
                         type: 'document',
-                        source:
-                          part.data instanceof URL
-                            ? {
-                                type: 'url',
-                                url: part.data.toString(),
-                              }
-                            : {
-                                type: 'text',
-                                media_type: 'text/plain',
-                                data: convertToString(part.data),
-                              },
+                        source: isUrlData(part.data)
+                          ? {
+                              type: 'url',
+                              url: getUrlString(part.data),
+                            }
+                          : {
+                              type: 'text',
+                              media_type: 'text/plain',
+                              data: convertToString(part.data),
+                            },
                         title: metadata.title ?? part.filename,
                         ...(metadata.context && { context: metadata.context }),
                         ...(enableCitations && {
@@ -787,6 +801,43 @@ export async function convertToAnthropicMessagesPrompt({
                 if (providerToolName === 'web_fetch') {
                   const output = part.output;
 
+                  if (output.type === 'error-json') {
+                    let errorValue: { errorCode?: string } = {};
+                    try {
+                      if (typeof output.value === 'string') {
+                        errorValue = JSON.parse(output.value);
+                      } else if (
+                        typeof output.value === 'object' &&
+                        output.value !== null
+                      ) {
+                        errorValue = output.value as typeof errorValue;
+                      }
+                    } catch {
+                      // If parsing fails, treat the value as-is
+                      const extractedErrorCode = (
+                        output.value as Record<string, unknown>
+                      )?.errorCode;
+                      errorValue = {
+                        errorCode:
+                          typeof extractedErrorCode === 'string'
+                            ? extractedErrorCode
+                            : 'unknown',
+                      };
+                    }
+
+                    anthropicContent.push({
+                      type: 'web_fetch_tool_result',
+                      tool_use_id: part.toolCallId,
+                      content: {
+                        type: 'web_fetch_tool_result_error',
+                        error_code: errorValue.errorCode ?? 'unknown',
+                      },
+                      cache_control: cacheControl,
+                    });
+
+                    break;
+                  }
+
                   if (output.type !== 'json') {
                     warnings.push({
                       type: 'other',
@@ -816,7 +867,10 @@ export async function convertToAnthropicMessagesPrompt({
                           type: webFetchOutput.content.source.type,
                           media_type: webFetchOutput.content.source.mediaType,
                           data: webFetchOutput.content.source.data,
-                        } as AnthropicWebFetchToolResultContent['content']['content']['source'],
+                        } as Extract<
+                          AnthropicWebFetchToolResultContent['content'],
+                          { type: 'web_fetch_result' }
+                        >['content']['source'],
                       },
                     },
                     cache_control: cacheControl,

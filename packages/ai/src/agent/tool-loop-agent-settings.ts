@@ -133,7 +133,10 @@ By default, files are downloaded if the model does not support the URL for the g
    * You can use this to have templates based on call options.
    */
   prepareCall?: (
-    options: AgentCallParameters<CALL_OPTIONS> &
+    options: Omit<
+      AgentCallParameters<CALL_OPTIONS, NoInfer<TOOLS>>,
+      'onStepFinish'
+    > &
       Pick<
         ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
         | 'model'

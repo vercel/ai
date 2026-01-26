@@ -61,6 +61,22 @@ function createCitationSource(
   }>,
   generateId: () => string,
 ): LanguageModelV3Source | undefined {
+  if (citation.type === 'web_search_result_location') {
+    return {
+      type: 'source' as const,
+      sourceType: 'url' as const,
+      id: generateId(),
+      url: citation.url,
+      title: citation.title,
+      providerMetadata: {
+        anthropic: {
+          citedText: citation.cited_text,
+          encryptedIndex: citation.encrypted_index,
+        },
+      } satisfies SharedV3ProviderMetadata,
+    };
+  }
+
   if (citation.type !== 'page_location' && citation.type !== 'char_location') {
     return;
   }
@@ -433,6 +449,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
+    } else {
+      // Only check temperature/topP mutual exclusivity when thinking is not enabled
+      if (topP != null && temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported when temperature is set. topP is ignored.`,
+        });
+        baseArgs.top_p = undefined;
+      }
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
@@ -516,7 +542,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             toolChoice: { type: 'required' },
             disableParallelToolUse: true,
             cacheControlValidator,
-            supportsStructuredOutput,
+            supportsStructuredOutput: false,
           }
         : {
             tools: tools ?? [],
@@ -641,7 +667,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       });
 
     // Extract citation documents for response processing
-    const citationDocuments = this.extractCitationDocuments(options.prompt);
+    const citationDocuments = [
+      ...this.extractCitationDocuments(options.prompt),
+    ];
 
     const {
       responseHeaders,
@@ -661,6 +689,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     const content: Array<LanguageModelV3Content> = [];
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
     let isJsonResponseFromTool = false;
 
     // map response content to content array
@@ -788,6 +817,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             part.name === 'tool_search_tool_regex' ||
             part.name === 'tool_search_tool_bm25'
           ) {
+            serverToolCalls[part.id] = part.name;
             content.push({
               type: 'tool-call',
               toolCallId: part.id,
@@ -831,6 +861,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }
         case 'web_fetch_tool_result': {
           if (part.content.type === 'web_fetch_result') {
+            citationDocuments.push({
+              title: part.content.content.title ?? part.content.url,
+              mediaType: part.content.content.source.media_type,
+            });
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
@@ -953,11 +987,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
         // tool search tool results:
         case 'tool_search_tool_result': {
+          let providerToolName = serverToolCalls[part.tool_use_id];
+
+          if (providerToolName == null) {
+            const bm25CustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_bm25',
+            );
+            const regexCustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_regex',
+            );
+
+            if (bm25CustomName !== 'tool_search_tool_bm25') {
+              providerToolName = 'tool_search_tool_bm25';
+            } else if (regexCustomName !== 'tool_search_tool_regex') {
+              providerToolName = 'tool_search_tool_regex';
+            } else {
+              providerToolName = 'tool_search_tool_regex';
+            }
+          }
+
           if (part.content.type === 'tool_search_tool_search_result') {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              toolName: toolNameMapping.toCustomToolName(providerToolName),
               result: part.content.tool_references.map(ref => ({
                 type: ref.type,
                 toolName: ref.tool_name,
@@ -967,7 +1020,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             content.push({
               type: 'tool-result',
               toolCallId: part.tool_use_id,
-              toolName: toolNameMapping.toCustomToolName('tool_search'),
+              toolName: toolNameMapping.toCustomToolName(providerToolName),
               isError: true,
               result: {
                 type: 'tool_search_tool_result_error',
@@ -1041,7 +1094,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     });
 
     // Extract citation documents for response processing
-    const citationDocuments = this.extractCitationDocuments(options.prompt);
+    const citationDocuments = [
+      ...this.extractCitationDocuments(options.prompt),
+    ];
 
     const url = this.buildRequestUrl(true);
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1085,6 +1140,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       | { type: 'text' | 'reasoning' }
     > = {};
     const mcpToolCalls: Record<string, LanguageModelV3ToolCall> = {};
+    const serverToolCalls: Record<string, string> = {}; // tool_use_id -> provider tool name
 
     let contextManagement:
       | AnthropicMessageMetadata['contextManagement']
@@ -1277,6 +1333,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     part.name === 'tool_search_tool_regex' ||
                     part.name === 'tool_search_tool_bm25'
                   ) {
+                    serverToolCalls[part.id] = part.name;
                     const customToolName = toolNameMapping.toCustomToolName(
                       part.name,
                     );
@@ -1304,6 +1361,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 case 'web_fetch_tool_result': {
                   if (part.content.type === 'web_fetch_result') {
+                    citationDocuments.push({
+                      title: part.content.content.title ?? part.content.url,
+                      mediaType: part.content.content.source.media_type,
+                    });
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
@@ -1436,11 +1497,31 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 // tool search tool results:
                 case 'tool_search_tool_result': {
+                  let providerToolName = serverToolCalls[part.tool_use_id];
+
+                  if (providerToolName == null) {
+                    const bm25CustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_bm25',
+                    );
+                    const regexCustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_regex',
+                    );
+
+                    if (bm25CustomName !== 'tool_search_tool_bm25') {
+                      providerToolName = 'tool_search_tool_bm25';
+                    } else if (regexCustomName !== 'tool_search_tool_regex') {
+                      providerToolName = 'tool_search_tool_regex';
+                    } else {
+                      providerToolName = 'tool_search_tool_regex';
+                    }
+                  }
+
                   if (part.content.type === 'tool_search_tool_search_result') {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      toolName:
+                        toolNameMapping.toCustomToolName(providerToolName),
                       result: part.content.tool_references.map(ref => ({
                         type: ref.type,
                         toolName: ref.tool_name,
@@ -1450,7 +1531,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     controller.enqueue({
                       type: 'tool-result',
                       toolCallId: part.tool_use_id,
-                      toolName: toolNameMapping.toCustomToolName('tool_search'),
+                      toolName:
+                        toolNameMapping.toCustomToolName(providerToolName),
                       isError: true,
                       result: {
                         type: 'tool_search_tool_result_error',
@@ -1804,6 +1886,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_delta': {
+              if (
+                value.usage.input_tokens != null &&
+                usage.input_tokens !== value.usage.input_tokens
+              ) {
+                usage.input_tokens = value.usage.input_tokens;
+              }
               usage.output_tokens = value.usage.output_tokens;
 
               finishReason = {
@@ -1931,7 +2019,8 @@ function getModelCapabilities(modelId: string): {
 } {
   if (
     modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5')
+    modelId.includes('claude-opus-4-5') ||
+    modelId.includes('claude-haiku-4-5')
   ) {
     return {
       maxOutputTokens: 64000,
@@ -1946,8 +2035,7 @@ function getModelCapabilities(modelId: string): {
     };
   } else if (
     modelId.includes('claude-sonnet-4-') ||
-    modelId.includes('claude-3-7-sonnet') ||
-    modelId.includes('claude-haiku-4-5')
+    modelId.includes('claude-3-7-sonnet')
   ) {
     return {
       maxOutputTokens: 64000,

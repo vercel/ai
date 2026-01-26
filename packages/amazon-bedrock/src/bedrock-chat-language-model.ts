@@ -39,6 +39,7 @@ import { prepareTools } from './bedrock-prepare-tools';
 import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -215,16 +216,27 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
+    const isOpenAIModel = this.modelId.startsWith('openai.');
+
     if (maxReasoningEffort != null && !isAnthropicModel) {
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
-          ...(bedrockOptions.reasoningConfig?.type != null && {
-            type: bedrockOptions.reasoningConfig.type,
-          }),
-          maxReasoningEffort,
-        },
-      };
+      if (isOpenAIModel) {
+        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          reasoning_effort: maxReasoningEffort,
+        };
+      } else {
+        // other models (such as Nova 2) use reasoningConfig format
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          reasoningConfig: {
+            ...(bedrockOptions.reasoningConfig?.type != null && {
+              type: bedrockOptions.reasoningConfig.type,
+            }),
+            maxReasoningEffort,
+          },
+        };
+      }
     } else if (maxReasoningEffort != null && isAnthropicModel) {
       warnings.push({
         type: 'unsupported',
@@ -301,8 +313,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const { system, messages } =
-      await convertToBedrockChatMessages(filteredPrompt);
+    const isMistral = isMistralModel(this.modelId);
+    const { system, messages } = await convertToBedrockChatMessages(
+      filteredPrompt,
+      isMistral,
+    );
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
     const {
@@ -311,13 +326,19 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
+    const additionalModelResponseFieldPaths = isAnthropicModel
+      ? ['/delta/stop_sequence']
+      : undefined;
+
     return {
       command: {
         system,
         messages,
         additionalModelRequestFields:
           bedrockOptions.additionalModelRequestFields,
-        additionalModelResponseFieldPaths: ['/stop_sequence'],
+        ...(additionalModelResponseFieldPaths && {
+          additionalModelResponseFieldPaths,
+        }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
@@ -423,9 +444,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             text: JSON.stringify(part.toolUse.input),
           });
         } else {
+          const isMistral = isMistralModel(this.modelId);
+          const rawToolCallId =
+            part.toolUse?.toolUseId ?? this.config.generateId();
           content.push({
             type: 'tool-call' as const,
-            toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
+            toolCallId: normalizeToolCallId(rawToolCallId, isMistral),
             toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
             input: JSON.stringify(part.toolUse?.input ?? {}),
           });
@@ -435,7 +459,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     // provider metadata:
     const stopSequence =
-      response.additionalModelResponseFields?.stop_sequence ?? null;
+      response.additionalModelResponseFields?.delta?.stop_sequence ?? null;
 
     const providerMetadata =
       response.trace || response.usage || isJsonResponseFromTool || stopSequence
@@ -482,6 +506,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings,
       usesJsonResponseTool,
     } = await this.getArgs(options);
+    const isMistral = isMistralModel(this.modelId);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -575,7 +600,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 raw: value.messageStop.stopReason ?? undefined,
               };
               stopSequence =
-                value.messageStop.additionalModelResponseFields
+                value.messageStop.additionalModelResponseFields?.delta
                   ?.stop_sequence ?? null;
             }
 
@@ -756,9 +781,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               const isJsonResponseTool =
                 usesJsonResponseTool && toolUse.name === 'json';
 
+              const normalizedToolCallId = normalizeToolCallId(
+                toolUse.toolUseId!,
+                isMistral,
+              );
               contentBlocks[blockIndex] = {
                 type: 'tool-call',
-                toolCallId: toolUse.toolUseId!,
+                toolCallId: normalizedToolCallId,
                 toolName: toolUse.name!,
                 jsonText: '',
                 isJsonResponseTool,
@@ -768,7 +797,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               if (!isJsonResponseTool) {
                 controller.enqueue({
                   type: 'tool-input-start',
-                  id: toolUse.toolUseId!,
+                  id: normalizedToolCallId,
                   toolName: toolUse.name!,
                 });
               }
@@ -849,7 +878,11 @@ const BedrockStopReasonSchema = z.union([
 
 const BedrockAdditionalModelResponseFieldsSchema = z
   .object({
-    stop_sequence: z.string().optional(),
+    delta: z
+      .object({
+        stop_sequence: z.string().nullish(),
+      })
+      .nullish(),
   })
   .catchall(z.unknown());
 

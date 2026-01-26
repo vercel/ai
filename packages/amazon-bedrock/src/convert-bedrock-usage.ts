@@ -35,8 +35,8 @@ export function convertBedrockUsage(
 
   return {
     inputTokens: {
-      total: inputTokens,
-      noCache: inputTokens - cacheReadTokens,
+      total: inputTokens + cacheReadTokens + cacheWriteTokens,
+      noCache: inputTokens,
       cacheRead: cacheReadTokens,
       cacheWrite: cacheWriteTokens,
     },

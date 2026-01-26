@@ -1,8 +1,8 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3FinishReason,
   SharedV3Warning,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -10,6 +10,7 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
+  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -17,7 +18,12 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import {
+  CallSettings,
+  getChunkTimeoutMs,
+  getStepTimeoutMs,
+  getTotalTimeoutMs,
+} from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -66,6 +72,7 @@ import {
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
@@ -73,7 +80,11 @@ import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
 import { Output, text } from './output';
-import { InferCompleteOutput, InferPartialOutput } from './output-utils';
+import {
+  InferCompleteOutput,
+  InferElementOutput,
+  InferPartialOutput,
+} from './output-utils';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
 import {
@@ -230,6 +241,7 @@ If set and supported by the model, calls will generate deterministic results.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
+@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
@@ -242,7 +254,7 @@ A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
-  OUTPUT extends Output = Output<string, string>,
+  OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
   tools,
@@ -252,6 +264,7 @@ export function streamText<
   messages,
   maxRetries,
   abortSignal,
+  timeout,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -273,11 +286,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
-  _internal: {
-    now = originalNow,
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
+  _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
   Prompt & {
@@ -426,16 +435,31 @@ Internal. For test use only. May change without notice.
     _internal?: {
       now?: () => number;
       generateId?: IdGenerator;
-      currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  const totalTimeoutMs = getTotalTimeoutMs(timeout);
+  const stepTimeoutMs = getStepTimeoutMs(timeout);
+  const chunkTimeoutMs = getChunkTimeoutMs(timeout);
+  const stepAbortController =
+    stepTimeoutMs != null ? new AbortController() : undefined;
+  const chunkAbortController =
+    chunkTimeoutMs != null ? new AbortController() : undefined;
   return new DefaultStreamTextResult<TOOLS, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
     settings,
     maxRetries,
-    abortSignal,
+    abortSignal: mergeAbortSignals(
+      abortSignal,
+      totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+      stepAbortController?.signal,
+      chunkAbortController?.signal,
+    ),
+    stepTimeoutMs,
+    stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -455,14 +479,13 @@ Internal. For test use only. May change without notice.
     onAbort,
     onStepFinish,
     now,
-    currentDate,
     generateId,
     experimental_context,
     download,
   });
 }
 
-type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
+export type EnrichedStreamPart<TOOLS extends ToolSet, PARTIAL_OUTPUT> = {
   part: TextStreamPart<TOOLS>;
   partialOutput: PARTIAL_OUTPUT | undefined;
 };
@@ -603,6 +626,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings,
     maxRetries: maxRetriesArg,
     abortSignal,
+    stepTimeoutMs,
+    stepAbortController,
+    chunkTimeoutMs,
+    chunkAbortController,
     system,
     prompt,
     messages,
@@ -617,7 +644,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep,
     includeRawChunks,
     now,
-    currentDate,
     generateId,
     onChunk,
     onError,
@@ -633,6 +659,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
+    stepTimeoutMs: number | undefined;
+    stepAbortController: AbortController | undefined;
+    chunkTimeoutMs: number | undefined;
+    chunkAbortController: AbortController | undefined;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -647,7 +677,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     prepareStep: PrepareStepFunction<NoInfer<TOOLS>> | undefined;
     includeRawChunks: boolean;
     now: () => number;
-    currentDate: () => Date;
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
@@ -908,9 +937,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
       async flush(controller) {
         try {
           if (recordedSteps.length === 0) {
-            const error = new NoOutputGeneratedError({
-              message: 'No output generated. Check the stream for errors.',
-            });
+            const error = abortSignal?.aborted
+              ? abortSignal.reason
+              : new NoOutputGeneratedError({
+                  message: 'No output generated. Check the stream for errors.',
+                });
 
             self._finishReason.reject(error);
             self._rawFinishReason.reject(error);
@@ -1010,7 +1041,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
         // abort handling:
         function abort() {
           onAbort?.({ steps: recordedSteps });
-          controller.enqueue({ type: 'abort' });
+          controller.enqueue({
+            type: 'abort',
+            // The `reason` is usually of type DOMException, but it can also be of any type,
+            // so we use getErrorMessage for serialization because it is already designed to accept values of the unknown type.
+            // See: https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/reason
+            ...(abortSignal?.reason !== undefined
+              ? { reason: getErrorMessage(abortSignal.reason) }
+              : {}),
+          });
           controller.close();
         }
 
@@ -1112,6 +1151,23 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
+          const providerExecutedToolApprovals = [
+            ...approvedToolApprovals,
+            ...deniedToolApprovals,
+          ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+          const localApprovedToolApprovals = approvedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+          const localDeniedToolApprovals = deniedToolApprovals.filter(
+            toolApproval => !toolApproval.toolCall.providerExecuted,
+          );
+
+          const deniedProviderExecutedToolApprovals =
+            deniedToolApprovals.filter(
+              toolApproval => toolApproval.toolCall.providerExecuted,
+            );
+
           let toolExecutionStepStreamController:
             | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
             | undefined;
@@ -1126,7 +1182,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           self.addStream(toolExecutionStepStream);
 
           try {
-            for (const toolApproval of deniedToolApprovals) {
+            for (const toolApproval of [
+              ...localDeniedToolApprovals,
+              ...deniedProviderExecutedToolApprovals,
+            ]) {
               toolExecutionStepStreamController?.enqueue({
                 type: 'tool-output-denied',
                 toolCallId: toolApproval.toolCall.toolCallId,
@@ -1137,7 +1196,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             const toolOutputs: Array<ToolOutput<TOOLS>> = [];
 
             await Promise.all(
-              approvedToolApprovals.map(async toolApproval => {
+              localApprovedToolApprovals.map(async toolApproval => {
                 const result = await executeToolCall({
                   toolCall: toolApproval.toolCall,
                   tools,
@@ -1158,42 +1217,64 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               }),
             );
 
-            const content: ToolContent = [];
+            // forward provider-executed approval responses to the provider (do not execute locally):
+            if (providerExecutedToolApprovals.length > 0) {
+              initialResponseMessages.push({
+                role: 'tool',
+                content: providerExecutedToolApprovals.map(
+                  toolApproval =>
+                    ({
+                      type: 'tool-approval-response',
+                      approvalId: toolApproval.approvalResponse.approvalId,
+                      approved: toolApproval.approvalResponse.approved,
+                      reason: toolApproval.approvalResponse.reason,
+                      providerExecuted: true,
+                    }) satisfies ToolApprovalResponse,
+                ),
+              });
+            }
 
-            for (const output of toolOutputs) {
-              content.push({
-                type: 'tool-result' as const,
-                toolCallId: output.toolCallId,
-                toolName: output.toolName,
-                output: await createToolModelOutput({
+            // Local tool results (approved + denied) are sent as tool results:
+            if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+              const localToolContent: ToolContent = [];
+
+              // add regular tool results for approved tool calls:
+              for (const output of toolOutputs) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
                   toolCallId: output.toolCallId,
-                  input: output.input,
-                  tool: tools?.[output.toolName],
-                  output:
-                    output.type === 'tool-result'
-                      ? output.output
-                      : output.error,
-                  errorMode: output.type === 'tool-error' ? 'json' : 'none',
-                }),
+                  toolName: output.toolName,
+                  output: await createToolModelOutput({
+                    toolCallId: output.toolCallId,
+                    input: output.input,
+                    tool: tools?.[output.toolName],
+                    output:
+                      output.type === 'tool-result'
+                        ? output.output
+                        : output.error,
+                    errorMode: output.type === 'tool-error' ? 'json' : 'none',
+                  }),
+                });
+              }
+
+              // add execution denied tool results for denied local tool approvals:
+              for (const toolApproval of localDeniedToolApprovals) {
+                localToolContent.push({
+                  type: 'tool-result' as const,
+                  toolCallId: toolApproval.toolCall.toolCallId,
+                  toolName: toolApproval.toolCall.toolName,
+                  output: {
+                    type: 'execution-denied' as const,
+                    reason: toolApproval.approvalResponse.reason,
+                  },
+                });
+              }
+
+              initialResponseMessages.push({
+                role: 'tool',
+                content: localToolContent,
               });
             }
-
-            for (const toolApproval of deniedToolApprovals) {
-              content.push({
-                type: 'tool-result' as const,
-                toolCallId: toolApproval.toolCall.toolCallId,
-                toolName: toolApproval.toolCall.toolName,
-                output: {
-                  type: 'execution-denied' as const,
-                  reason: toolApproval.approvalResponse.reason,
-                },
-              });
-            }
-
-            initialResponseMessages.push({
-              role: 'tool',
-              content,
-            });
           } finally {
             toolExecutionStepStreamController?.close();
           }
@@ -1211,6 +1292,41 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           usage: LanguageModelUsage;
         }) {
           const includeRawChunks = self.includeRawChunks;
+
+          // Set up step timeout if configured
+          const stepTimeoutId =
+            stepTimeoutMs != null
+              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+              : undefined;
+
+          // Set up chunk timeout tracking (will be reset on each chunk)
+          let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined =
+            undefined;
+
+          function resetChunkTimeout() {
+            if (chunkTimeoutMs != null) {
+              if (chunkTimeoutId != null) {
+                clearTimeout(chunkTimeoutId);
+              }
+              chunkTimeoutId = setTimeout(
+                () => chunkAbortController!.abort(),
+                chunkTimeoutMs,
+              );
+            }
+          }
+
+          function clearChunkTimeout() {
+            if (chunkTimeoutId != null) {
+              clearTimeout(chunkTimeoutId);
+              chunkTimeoutId = undefined;
+            }
+          }
+
+          function clearStepTimeout() {
+            if (stepTimeoutId != null) {
+              clearTimeout(stepTimeoutId);
+            }
+          }
 
           stepFinish = new DelayedPromise<void>();
 
@@ -1346,7 +1462,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           let stepFirstChunk = true;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
-            timestamp: currentDate(),
+            timestamp: new Date(),
             modelId: model.modelId,
           };
 
@@ -1360,6 +1476,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
+                  resetChunkTimeout();
+
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
@@ -1660,6 +1778,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     }
                   }
 
+                  // Clear the step and chunk timeouts before the next step is started
+                  clearStepTimeout();
+                  clearChunkTimeout();
+
                   if (
                     // Continue if:
                     // 1. There are client tool calls that have all been executed, OR
@@ -1918,6 +2040,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
+  get elementStream(): AsyncIterableStream<InferElementOutput<OUTPUT>> {
+    const transform = this.outputSpecification?.createElementStreamTransform();
+
+    if (transform == null) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `element streams in ${this.outputSpecification?.name ?? 'text'} mode`,
+      });
+    }
+
+    return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
+  }
+
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
     return this.finalStep.then(step => {
       const output = this.outputSpecification ?? text();
@@ -2094,6 +2228,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                 toolName: part.toolName,
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
+                  : {}),
+                ...(part.providerMetadata != null
+                  ? { providerMetadata: part.providerMetadata }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
