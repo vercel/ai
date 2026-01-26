@@ -350,24 +350,6 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should handle file_search tool choice', async () => {
-      const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'provider',
-            id: 'xai.file_search',
-            name: 'file_search',
-            args: {
-              vectorStoreIds: ['collection_1'],
-            },
-          },
-        ],
-        toolChoice: { type: 'tool', toolName: 'file_search' },
-      });
-
-      expect(result.toolChoice).toEqual({ type: 'file_search' });
-    });
-
     it('should handle multiple tools including file_search', async () => {
       const result = await prepareResponsesTools({
         tools: [
@@ -511,7 +493,7 @@ describe('prepareResponsesTools', () => {
       });
     });
 
-    it('should handle provider-defined tool choice mapping', async () => {
+    it('should warn when trying to force server-side tool via toolChoice', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -524,7 +506,11 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'web_search' },
       });
 
-      expect(result.toolChoice).toEqual({ type: 'web_search' });
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "web_search"',
+      });
     });
   });
 
@@ -673,7 +659,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should handle mcp tool choice', async () => {
+    it('should warn when trying to force mcp tool via toolChoice', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -689,7 +675,11 @@ describe('prepareResponsesTools', () => {
         toolChoice: { type: 'tool', toolName: 'mcp' },
       });
 
-      expect(result.toolChoice).toEqual({ type: 'mcp' });
+      expect(result.toolChoice).toBeUndefined();
+      expect(result.toolWarnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'toolChoice for server-side tool "mcp"',
+      });
     });
 
     it('should handle multiple tools including mcp', async () => {

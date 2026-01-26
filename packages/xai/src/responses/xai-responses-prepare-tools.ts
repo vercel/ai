@@ -14,13 +14,6 @@ type XaiResponsesToolChoice =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'web_search' }
-  | { type: 'x_search' }
-  | { type: 'code_interpreter' }
-  | { type: 'view_image' }
-  | { type: 'view_x_video' }
-  | { type: 'file_search' }
-  | { type: 'mcp' }
   | { type: 'function'; name: string };
 
 export async function prepareResponsesTools({
@@ -178,56 +171,13 @@ export async function prepareResponsesTools({
       }
 
       if (selectedTool.type === 'provider') {
-        switch (selectedTool.id) {
-          case 'xai.web_search':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'web_search' },
-              toolWarnings,
-            };
-          case 'xai.x_search':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'x_search' },
-              toolWarnings,
-            };
-          case 'xai.code_execution':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'code_interpreter' },
-              toolWarnings,
-            };
-          case 'xai.view_image':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'view_image' },
-              toolWarnings,
-            };
-          case 'xai.view_x_video':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'view_x_video' },
-              toolWarnings,
-            };
-          case 'xai.file_search':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'file_search' },
-              toolWarnings,
-            };
-          case 'xai.mcp':
-            return {
-              tools: xaiTools,
-              toolChoice: { type: 'mcp' },
-              toolWarnings,
-            };
-          default:
-            toolWarnings.push({
-              type: 'unsupported',
-              feature: `provider-defined tool ${selectedTool.name}`,
-            });
-            return { tools: xaiTools, toolChoice: undefined, toolWarnings };
-        }
+        // xAI API does not support forcing specific server-side tools via toolChoice
+        // Only function tools can be forced with {"type": "function", "function": {"name": "..."}}
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: `toolChoice for server-side tool "${selectedTool.name}"`,
+        });
+        return { tools: xaiTools, toolChoice: undefined, toolWarnings };
       }
 
       return {
