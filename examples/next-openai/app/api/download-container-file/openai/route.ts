@@ -2,11 +2,20 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const containerId = searchParams.get('container_id');
   const fileId = searchParams.get('file_id');
-  const filename = searchParams.get('filename') || 'file';
+  const rawFilename = searchParams.get('filename') || 'file';
 
-  if (!containerId || !fileId) {
-    return new Response('Missing container_id or file_id', { status: 400 });
+  // Validate container and file identifiers to avoid unsafe characters in the request path
+  const idPattern = /^[A-Za-z0-9_-]+$/;
+  if (!containerId || !fileId || !idPattern.test(containerId) || !idPattern.test(fileId)) {
+    return new Response('Invalid container_id or file_id', { status: 400 });
   }
+
+  // Sanitize filename used in Content-Disposition header
+  const safeFilenamePattern = /^[A-Za-z0-9._ -]+$/;
+  const filename =
+    rawFilename.length > 0 && rawFilename.length <= 255 && safeFilenamePattern.test(rawFilename)
+      ? rawFilename
+      : 'file';
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
