@@ -188,12 +188,12 @@ export class FalVideoModel implements VideoModelV3 {
     });
 
     // Poll for completion
-    const requestId = queueResponse.request_id;
+    const responseUrl = queueResponse.response_url;
 
-    if (!requestId) {
+    if (!responseUrl) {
       throw new AISDKError({
         name: 'FAL_VIDEO_GENERATION_ERROR',
-        message: 'No request ID returned from queue endpoint',
+        message: 'No response URL returned from queue endpoint',
       });
     }
 
@@ -208,8 +208,11 @@ export class FalVideoModel implements VideoModelV3 {
 
     while (true) {
       try {
+        // Use the response_url from queue response instead of constructing it
+        // This is important for model variants (e.g., luma-dream-machine/ray-2)
+        // where FAL returns a different base path for polling
         const statusUrl = this.config.url({
-          path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}/requests/${requestId}`,
+          path: responseUrl,
           modelId: this.modelId,
         });
 
@@ -343,6 +346,7 @@ export class FalVideoModel implements VideoModelV3 {
 
 const falJobResponseSchema = z.object({
   request_id: z.string().nullish(),
+  response_url: z.string().nullish(),
 });
 
 const falVideoResponseSchema = z.object({
