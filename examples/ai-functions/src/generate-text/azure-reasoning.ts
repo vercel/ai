@@ -1,17 +1,17 @@
 import {
-  openai,
+  azure,
+  AzureResponsesReasoningProviderMetadata,
   OpenAIResponsesProviderOptions,
-  OpenaiResponsesReasoningProviderMetadata,
-} from '@ai-sdk/openai';
+} from '@ai-sdk/azure';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5'),
+    model: azure('gpt-5'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
-      openai: {
+      azure: {
         reasoningEffort: 'low',
         reasoningSummary: 'detailed',
       } satisfies OpenAIResponsesProviderOptions,
@@ -24,11 +24,11 @@ run(async () => {
         console.log('--- reasoning ---');
         console.log(part.text);
         const providerMetadata = part.providerMetadata as
-          | OpenaiResponsesReasoningProviderMetadata
+          | AzureResponsesReasoningProviderMetadata
           | undefined;
         if (!providerMetadata) break;
         const {
-          openai: { itemId, reasoningEncryptedContent },
+          azure: { itemId, reasoningEncryptedContent },
         } = providerMetadata;
         console.log(`itemId: ${itemId}`);
 
