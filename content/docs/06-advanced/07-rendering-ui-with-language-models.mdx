@@ -15,7 +15,7 @@ const text = generateText({
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
-      parameters: z.object({
+      inputSchema: z.object({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])
@@ -40,7 +40,7 @@ const text = generateText({
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
-      parameters: z.object({
+      inputSchema: z.object({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])
@@ -68,24 +68,31 @@ Now you can use the object returned by the `getWeather` function to conditionall
 return (
   <div>
     {messages.map(message => {
-      if (message.role === 'function') {
-        const { name, content } = message
-        const { temperature, unit, description, forecast } = content;
+      // Check assistant message parts for tool results
+      if (message.role === 'assistant') {
+        return message.parts.map(part => {
+          if (
+            part.type === 'tool-weather' &&
+            part.state === 'output-available'
+          ) {
+            const { temperature, unit, description, forecast } = part.output;
 
-        return (
-          <WeatherCard
-            weather={{
-              temperature: 47,
-              unit: 'F',
-              description: 'sunny'
-              forecast,
-            }}
-          />
-        )
+            return (
+              <WeatherCard
+                weather={{
+                  temperature,
+                  unit,
+                  description,
+                  forecast,
+                }}
+              />
+            );
+          }
+        });
       }
     })}
   </div>
-)
+);
 ```
 
 Here's a little preview of what that might look like.
@@ -119,23 +126,28 @@ For example, a tool that searches for courses can return a list of courses, whil
 
 ```tsx filename='app/page.tsx'
 {
-  message.role === 'tool' ? (
-    message.name === 'api-search-course' ? (
-      <Courses courses={message.content} />
-    ) : message.name === 'api-search-profile' ? (
-      <People people={message.content} />
-    ) : message.name === 'api-meetings' ? (
-      <Meetings meetings={message.content} />
-    ) : message.name === 'api-search-building' ? (
-      <Buildings buildings={message.content} />
-    ) : message.name === 'api-events' ? (
-      <Events events={message.content} />
-    ) : message.name === 'api-meals' ? (
-      <Meals meals={message.content} />
-    ) : null
-  ) : (
-    <div>{message.content}</div>
-  );
+  message.parts.map(part => {
+    if (part.state !== 'output-available') return null;
+
+    switch (part.type) {
+      case 'tool-api-search-course':
+        return <Courses courses={part.output} />;
+      case 'tool-api-search-profile':
+        return <People people={part.output} />;
+      case 'tool-api-meetings':
+        return <Meetings meetings={part.output} />;
+      case 'tool-api-search-building':
+        return <Buildings buildings={part.output} />;
+      case 'tool-api-events':
+        return <Events events={part.output} />;
+      case 'tool-api-meals':
+        return <Meals meals={part.output} />;
+      case 'text':
+        return <div>{part.text}</div>;
+      default:
+        return null;
+    }
+  });
 }
 ```
 
@@ -157,7 +169,7 @@ const text = generateText({
   tools: {
     getWeather: {
       description: 'Get the weather for a location',
-      parameters: z.object({
+      inputSchema: z.object({
         city: z.string().describe('The city to get the weather for'),
         unit: z
           .enum(['C', 'F'])

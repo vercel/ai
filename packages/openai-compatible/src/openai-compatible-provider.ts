@@ -13,6 +13,7 @@ import {
   OpenAICompatibleChatConfig,
   OpenAICompatibleChatLanguageModel,
 } from './chat/openai-compatible-chat-language-model';
+import { MetadataExtractor } from './chat/openai-compatible-metadata-extractor';
 import { OpenAICompatibleCompletionLanguageModel } from './completion/openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './embedding/openai-compatible-embedding-model';
 import { OpenAICompatibleImageModel } from './image/openai-compatible-image-model';
@@ -96,6 +97,13 @@ Include usage information in streaming responses.
    * than the official OpenAI API.
    */
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+
+  /**
+   * Optional metadata extractor to capture provider-specific metadata from API responses.
+   * This is useful for extracting non-standard fields, experimental features,
+   * or provider-specific metrics from both streaming and non-streaming responses.
+   */
+  metadataExtractor?: MetadataExtractor;
 }
 
 /**
@@ -154,6 +162,7 @@ export function createOpenAICompatible<
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
       transformRequestBody: options.transformRequestBody,
+      metadataExtractor: options.metadataExtractor,
     });
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>

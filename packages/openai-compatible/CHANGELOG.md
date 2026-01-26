@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.19
+
+### Patch Changes
+
+- 6900916: fix(openai-compat): add metadata extractor to provider settings
+
 ## 2.0.18
 
 ### Patch Changes

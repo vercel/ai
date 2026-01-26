@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.23
+
+### Patch Changes
+
+- cbf1704: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.22
 
 ### Patch Changes

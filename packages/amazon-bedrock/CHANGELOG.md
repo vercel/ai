@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.31
+
+### Patch Changes
+
+- 151c4aa: Add support for Amazon Nova embedding models by sending the required `taskType` and `singleEmbeddingParams` payload and parsing Nova-style responses.
+
 ## 4.0.30
 
 ### Patch Changes
