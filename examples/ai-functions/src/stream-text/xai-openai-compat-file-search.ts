@@ -13,7 +13,7 @@ run(async () => {
     prompt: 'What documents do you have access to?',
     tools: {
       file_search: openai.tools.fileSearch({
-        vectorStoreIds: ['collection_example'],
+        vectorStoreIds: ['vs_example'],
         maxNumResults: 5,
       }),
     },

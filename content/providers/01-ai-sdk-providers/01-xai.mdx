@@ -385,7 +385,7 @@ const { fullStream } = streamText({
 
 for await (const part of fullStream) {
   if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
+    process.stdout.write(part.text);
   } else if (part.type === 'source' && part.sourceType === 'url') {
     console.log('\nSource:', part.url);
   }
