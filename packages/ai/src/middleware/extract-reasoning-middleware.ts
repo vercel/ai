@@ -212,8 +212,21 @@ export function extractReasoningMiddleware({
                     startIndex + nextTag.length,
                   );
 
-                  // reasoning part finished:
                   if (activeExtraction.isReasoning) {
+                    // FIX: Added a reasoning-start event to complete empty thinking block. Current fix assumes startWithReasoning is false
+                    // BUG: extractReasoningMiddleware crashes as reasoning-end published without having a reasoning-start
+                    if (
+                      activeExtraction.isFirstReasoning &&
+                      activeExtraction.afterSwitch
+                    ) {
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: `reasoning-${activeExtraction.idCounter}`,
+                      });
+                      // no delta (empty), so we can immediately end
+                    }
+
+                    // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `reasoning-${activeExtraction.idCounter++}`,
