@@ -324,6 +324,11 @@ export function dynamicTool(tool: {
    * Whether the tool needs approval before it can be executed.
    */
   needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
+
+  /**
+   * Optional timeout in milliseconds for tool execution.
+   */
+  timeout?: number;
 }): Tool<unknown, unknown> & {
   type: 'dynamic';
 } {
