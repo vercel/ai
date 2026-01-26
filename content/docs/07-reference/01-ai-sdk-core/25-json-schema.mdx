@@ -11,7 +11,7 @@ It takes the JSON schema and an optional validation function as inputs, and can 
 You can use it to [generate structured data](/docs/ai-sdk-core/generating-structured-data) and in [tools](/docs/ai-sdk-core/tools-and-tool-calling).
 
 `jsonSchema` is an alternative to using Zod schemas that provides you with flexibility in dynamic situations
-(e.g. when using OpenAPI definitions) or for using other validation libraries.
+(e.g. when using OpenAPI definitions) or for using other validation libraries such as [dhi](https://github.com/softwarehutpl/dhi).
 
 ```ts
 import { jsonSchema } from 'ai';
@@ -49,6 +49,35 @@ const mySchema = jsonSchema<{
     },
   },
   required: ['recipe'],
+});
+```
+
+## Example with dhi
+
+[dhi](https://github.com/softwarehutpl/dhi) is a high-performance validation library with a Zod-compatible API.
+You can use dhi's built-in `toJsonSchema()` method with `jsonSchema()`:
+
+```ts
+import { generateObject, jsonSchema } from 'ai';
+import { z } from 'dhi';
+
+const UserSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  email: z.string().email(),
+});
+
+const { object } = await generateObject({
+  model: yourModel,
+  schema: jsonSchema(UserSchema.toJsonSchema(), {
+    validate: value => {
+      const result = UserSchema.safeParse(value);
+      return result.success
+        ? { success: true, value: result.data }
+        : { success: false, error: result.error };
+    },
+  }),
+  prompt: 'Generate a user profile.',
 });
 ```
 
