@@ -1,6 +1,8 @@
 import { LanguageModelV3ToolCall } from '@ai-sdk/provider';
 import {
   asSchema,
+  DEFAULT_EMPTY_INPUT_SCHEMA,
+  jsonSchema,
   ModelMessage,
   safeParseJSON,
   safeValidateTypes,
@@ -57,7 +59,9 @@ export async function parseToolCall<TOOLS extends ToolSet>({
           tools,
           inputSchema: async ({ toolName }) => {
             const { inputSchema } = tools[toolName];
-            return await asSchema(inputSchema).jsonSchema;
+            return inputSchema
+              ? await asSchema(inputSchema).jsonSchema
+              : DEFAULT_EMPTY_INPUT_SCHEMA;
           },
           system,
           messages,
@@ -148,7 +152,9 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.inputSchema);
+  const schema = tool.inputSchema
+    ? asSchema(tool.inputSchema)
+    : jsonSchema(DEFAULT_EMPTY_INPUT_SCHEMA);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)
