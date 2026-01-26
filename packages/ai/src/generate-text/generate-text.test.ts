@@ -3420,6 +3420,60 @@ describe('generateText', () => {
           }
         `);
       });
+
+      it('should parse output when finishReason is tool-calls but text content exists', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: 'stop' },
+              content: [{ type: 'text', text: `{ "value": "parsed-value" }` }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'parsed-value' });
+      });
+
+      it('should not parse output when finishReason is tool-calls and no output schema provided', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: 'stop' },
+              content: [{ type: 'text', text: `some text` }],
+            }),
+          }),
+          prompt: 'prompt',
+          // No output schema provided
+        });
+
+        // Should throw when accessing output since no schema was provided
+        expect(() => result.output).toThrow();
+      });
+
+      it('should not parse output when finishReason is tool-calls and text is empty', async () => {
+        const result = await generateText({
+          model: new MockLanguageModelV3({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              finishReason: { unified: 'tool-calls', raw: 'stop' },
+              content: [{ type: 'text', text: '' }],
+            }),
+          }),
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        // Should throw when accessing output since text is empty
+        expect(() => result.output).toThrow();
+      });
     });
 
     describe('array output', () => {

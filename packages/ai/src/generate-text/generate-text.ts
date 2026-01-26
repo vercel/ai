@@ -901,9 +901,16 @@ A function that attempts to repair a tool call that failed to parse.
           experimental_context,
         });
 
-        // parse output only if the last step was finished with "stop":
+        // parse output if:
+        // 1. The last step was finished with "stop", OR
+        // 2. An explicit output schema was provided AND there's text content to parse
+        //    (handles cases where finishReason is 'tool-calls' but valid output exists)
         let resolvedOutput;
-        if (lastStep.finishReason === 'stop') {
+        const shouldParseOutput =
+          lastStep.finishReason === 'stop' ||
+          (output != null && lastStep.text != null && lastStep.text.length > 0);
+
+        if (shouldParseOutput) {
           const outputSpecification = output ?? text();
           resolvedOutput = await outputSpecification.parseCompleteOutput(
             { text: lastStep.text },
