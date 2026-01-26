@@ -1,5 +1,20 @@
 # @ai-sdk/azure
 
+## 3.0.19
+
+### Patch Changes
+
+- 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
+
+  - Export the following types for use in client code:
+    - `OpenaiResponsesProviderMetadata`
+    - `OpenaiResponsesReasoningProviderMetadata`
+    - `AzureResponsesProviderMetadata`
+    - `AzureResponsesReasoningProviderMetadata`
+
+- Updated dependencies [04c89b1]
+  - @ai-sdk/openai@3.0.19
+
 ## 3.0.18
 
 ### Patch Changes

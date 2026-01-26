@@ -147,6 +147,8 @@ const result = await streamText({
 When generating responses without streaming, you can use try/finally or cleanup functions in your framework:
 
 ```typescript
+import { createMCPClient, type MCPClient } from '@ai-sdk/mcp';
+
 let mcpClient: MCPClient | undefined;
 
 try {
