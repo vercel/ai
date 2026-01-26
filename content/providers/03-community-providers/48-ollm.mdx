@@ -63,89 +63,41 @@ You can find the full list of available models in the [OLLM Models](https://ollm
 
 Here are examples of using OLLM with the AI SDK:
 
-### Helper Functions
-
-When working directly with the OLLM provider, you'll need helper functions to extract text and tool calls from the response:
+### `generateText`
 
 ```typescript
 import { createOLLM } from '@ofoundation/ollm';
-
-const ollm = createOLLM({
-  apiKey: 'YOUR_OLLM_API_KEY', // Or set OLLM_API_KEY environment variable
-});
-
-// Helper function to extract text from response content
-function extractText(content: Array<{ type: string; text?: string }>): string {
-  return content
-    .filter((item) => item.type === 'text' && item.text)
-    .map((item) => item.text)
-    .join('');
-}
-
-// Helper function to extract tool calls from response content
-function extractToolCalls(
-  content: Array<{ type: string; toolCallId?: string; toolName?: string; input?: string }>,
-) {
-  return content
-    .filter((item) => item.type === 'tool-call')
-    .map((item) => ({
-      toolCallId: item.toolCallId,
-      toolName: item.toolName,
-      input: item.input,
-    }));
-}
-```
-
-### Chat Completion with `doGenerate`
-
-```typescript
-import { createOLLM } from '@ofoundation/ollm';
+import { generateText } from 'ai';
 
 const ollm = createOLLM({
   apiKey: 'YOUR_OLLM_API_KEY',
 });
 
-const chatModel = ollm.chatModel('near/GLM-4.6');
-const response = await chatModel.doGenerate({
-  prompt: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What is OLLM?' },
-      ],
-    },
-  ],
+const { text } = await generateText({
+  model: ollm.chatModel('near/GLM-4.6'),
+  prompt: 'What is OLLM?',
 });
 
-console.log('Response:', extractText(response.content));
-console.log('Usage:', response.usage);
+console.log(text);
 ```
 
-### Streaming with `doStream`
+### `streamText`
 
 ```typescript
 import { createOLLM } from '@ofoundation/ollm';
+import { streamText } from 'ai';
 
 const ollm = createOLLM({
   apiKey: 'YOUR_OLLM_API_KEY',
 });
 
-const chatModel = ollm.chatModel('near/GLM-4.6');
-const response = await chatModel.doStream({
-  prompt: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Write a short story about secure AI.' },
-      ],
-    },
-  ],
+const result = streamText({
+  model: ollm.chatModel('near/GLM-4.6'),
+  prompt: 'Write a short story about secure AI.',
 });
 
-for await (const chunk of response.stream) {
-  if (chunk.type === 'text-delta') {
-    process.stdout.write(chunk.delta);
-  }
+for await (const chunk of result.textStream) {
+  console.log(chunk);
 }
 ```
 
@@ -153,97 +105,19 @@ for await (const chunk of response.stream) {
 
 ```typescript
 import { createOLLM } from '@ofoundation/ollm';
+import { generateText } from 'ai';
 
 const ollm = createOLLM({
   apiKey: 'YOUR_OLLM_API_KEY',
 });
 
-const chatModel = ollm.chatModel('near/GLM-4.6');
-const response = await chatModel.doGenerate({
-  prompt: [
-    {
-      role: 'system',
-      content: 'You are a helpful assistant that responds concisely.',
-    },
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What is TypeScript in one sentence?' },
-      ],
-    },
-  ],
+const { text } = await generateText({
+  model: ollm.chatModel('near/GLM-4.6'),
+  system: 'You are a helpful assistant that responds concisely.',
+  prompt: 'What is TypeScript in one sentence?',
 });
 
-console.log('Response:', extractText(response.content));
-```
-
-### Tool Calling
-
-```typescript
-import { createOLLM } from '@ofoundation/ollm';
-
-const ollm = createOLLM({
-  apiKey: 'YOUR_OLLM_API_KEY',
-});
-
-const chatModel = ollm.chatModel('near/GLM-4.6');
-const response = await chatModel.doGenerate({
-  prompt: [
-    {
-      role: 'user',
-      content: [{ type: 'text', text: 'What is the weather in San Francisco?' }],
-    },
-  ],
-  tools: [
-    {
-      type: 'function',
-      name: 'getWeather',
-      description: 'Get the current weather for a location',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          location: {
-            type: 'string',
-            description: 'The city to get weather for',
-          },
-        },
-        required: ['location'],
-      },
-    },
-  ],
-});
-
-console.log('Response:', extractText(response.content));
-console.log('Tool calls:', JSON.stringify(extractToolCalls(response.content), null, 2));
-```
-
-### Provider Options
-
-You can pass provider-specific options for OLLM features:
-
-```typescript
-import { createOLLM } from '@ofoundation/ollm';
-
-const ollm = createOLLM({
-  apiKey: 'YOUR_OLLM_API_KEY',
-});
-
-const chatModel = ollm.chatModel('near/GLM-4.6');
-const response = await chatModel.doGenerate({
-  prompt: [
-    {
-      role: 'user',
-      content: [{ type: 'text', text: 'Explain quantum computing briefly.' }],
-    },
-  ],
-  providerOptions: {
-    ollm: {
-      user: 'your-user-id',
-    },
-  },
-});
-
-console.log('Response:', extractText(response.content));
+console.log(text);
 ```
 
 ## Advanced Features
