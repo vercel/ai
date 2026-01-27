@@ -809,7 +809,7 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 4.0.30
+        specifier: 4.0.31
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
         specifier: 3.0.23
@@ -824,7 +824,7 @@ importers:
         specifier: 2.0.11
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.19
+        specifier: 2.0.21
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 3.0.13
@@ -860,7 +860,7 @@ importers:
         specifier: 2.0.10
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.34
+        specifier: 3.0.36
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.10.2
