@@ -121,7 +121,7 @@ record is keyed by the provider-specific metadata key.
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
+Maximum number of retries per image model call. Set to 0 to disable retries.
 
 @default 2
    */

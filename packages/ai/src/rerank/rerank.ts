@@ -12,11 +12,11 @@ import { RerankResult } from './rerank-result';
 import { logWarnings } from '../logger/log-warnings';
 
 /**
-Rerank documents using an reranking model. The type of the value is defined by the reranking model.
+Rerank documents using a reranking model. The type of the value is defined by the reranking model.
 
-@param model - The Reranking model to use.
-@param documents - The documents that should be reranking.
-@param query - The query is a string that represents the query to rerank the documents against.
+@param model - The reranking model to use.
+@param documents - The documents that should be reranked.
+@param query - The query to rerank the documents against.
 @param topN - Top n documents to rerank.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.

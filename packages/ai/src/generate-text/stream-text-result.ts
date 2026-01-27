@@ -94,7 +94,7 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
-   * @return error message to include in the data stream.
+   * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
 };
@@ -325,7 +325,7 @@ If an error occurs, it is passed to the optional `onError` callback.
   /**
 Converts the result to a UI message stream.
 
-@return A UI message stream.
+@returns A UI message stream.
      */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamOptions<UI_MESSAGE>,
@@ -352,7 +352,7 @@ writes each text delta as a separate chunk.
   /**
 Converts the result to a streamed response object with a stream data part stream.
 
-@return A response object.
+@returns A response object.
      */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,

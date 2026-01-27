@@ -25,7 +25,7 @@ export type Provider = {
 
   @param {string} id - The id of the model to return.
 
-  @returns {LanguageModel} The language model associated with the id
+  @returns {EmbeddingModel} The embedding model associated with the id
 
   @throws {NoSuchModelError} If no such model exists.
      */
@@ -47,7 +47,7 @@ export type Provider = {
 
   @param {string} id - The id of the model to return.
 
-  @return {RerankingModel<VALUE>} The reranking model associated with the id
+  @returns {RerankingModel} The reranking model associated with the id
 
   @throws {NoSuchModelError} If no such model exists.
    */
