@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.57
+
+### Patch Changes
+
+- 65865d8: Fix handling of error results in deferrable tools
+
 ## 6.0.56
 
 ### Patch Changes
