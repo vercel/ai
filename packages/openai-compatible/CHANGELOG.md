@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.20
+
+### Patch Changes
+
+- a1a0175: fix(openai-compatible): include reasoning_content in assistant messages for multi-turn tool calls
+
 ## 2.0.19
 
 ### Patch Changes
