@@ -44,17 +44,17 @@ export interface TranscriptionResult {
   readonly durationInSeconds: number | undefined;
 
   /**
-  Warnings for the call, e.g. unsupported settings.
-     */
+   * Warnings for the call, e.g. unsupported settings.
+   */
   readonly warnings: Array<Warning>;
 
   /**
-  Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
+   * Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
   readonly responses: Array<TranscriptionModelResponseMetadata>;
 
   /**
-  Provider metadata from the provider.
+   * Provider metadata from the provider.
    */
   readonly providerMetadata: Record<string, JSONObject>;
 }
