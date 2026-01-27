@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.54
+
+### Patch Changes
+
+- 2f8ac87: docs(ai): fix incorrect and outdated jsdoc
+
 ## 6.0.53
 
 ### Patch Changes
