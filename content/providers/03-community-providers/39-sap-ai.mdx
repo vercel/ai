@@ -66,6 +66,10 @@ Choose and install your preferred provider:
   </Tab>
 </Tabs>
 
+<Note>
+  The features documented below require version 4.3.0 or higher of the provider package.
+</Note>
+
 ### Environment Variables
 
 Authentication is handled via the `AICORE_SERVICE_KEY` environment variable containing your SAP AI Core service key JSON.
@@ -122,11 +126,13 @@ const novaModel = sapai('amazon--nova-pro');
 
 ## Embedding Models
 
-You can create models that call the SAP AI Core embeddings API using the `.embedding()` factory method.
+You can create models that call the SAP AI Core embeddings API using the `.embeddingModel()` factory method.
 
 ```ts
-const model = sapai.embedding('text-embedding-ada-002');
+const model = sapai.embeddingModel('text-embedding-ada-002');
 ```
+
+Embedding models use the same naming convention as language models. Azure OpenAI embedding models (e.g., `text-embedding-ada-002`, `text-embedding-3-small`) do not require a vendor prefix.
 
 ## Examples
 
@@ -167,14 +173,18 @@ import { sapai } from '@jerome-benoit/sap-ai-provider';
 import { embed, embedMany } from 'ai';
 
 const { embedding } = await embed({
-  model: sapai.embedding('text-embedding-ada-002'),
+  model: sapai.embeddingModel('text-embedding-ada-002'),
   value: 'What is machine learning?',
 });
 
+console.log(embedding);
+
 const { embeddings } = await embedMany({
-  model: sapai.embedding('text-embedding-3-small'),
+  model: sapai.embeddingModel('text-embedding-3-small'),
   values: ['Hello world', 'AI is amazing', 'Vector search'],
 });
+
+console.log(embeddings);
 ```
 
 ### Tool Calling
@@ -196,6 +206,8 @@ const { text } = await generateText({
   },
   maxSteps: 3,
 });
+
+console.log(text);
 ```
 
 ## Advanced Features
@@ -211,16 +223,22 @@ For complete documentation on these features, see the [SAP AI Provider Repositor
 
 ## Model Capabilities
 
-| Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `gpt-4o`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `anthropic--claude-3.5-sonnet`| <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `amazon--nova-pro`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4o`                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic--claude-3.5-sonnet` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `amazon--nova-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Google Gemini models have a 1 tool limit per request. For multi-tool applications, use GPT-4o, Claude, or Amazon Nova models.
 </Note>
+
+## Resources
+
+- [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider)
+- [SAP AI Provider on NPM](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider)
+- [SAP AI Core Documentation](https://help.sap.com/docs/ai-core)
 
 <Note type="warning">
   This provider is developed by jerome-benoit, not SAP SE. While it uses the official SAP AI SDK, it is not an official SAP product.
