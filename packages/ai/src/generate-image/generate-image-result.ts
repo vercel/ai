@@ -30,8 +30,8 @@ Response metadata from the provider. There may be multiple responses if we made 
   readonly responses: Array<ImageModelResponseMetadata>;
 
   /**
-   * Provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific
-   * results that can be fully encapsulated in the provider.
+Provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ImageModelProviderMetadata;
 

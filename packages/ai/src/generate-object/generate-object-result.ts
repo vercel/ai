@@ -28,7 +28,7 @@ export interface GenerateObjectResult<OBJECT> {
   readonly finishReason: FinishReason;
 
   /**
-  The token usage of the generated text.
+  The token usage of the generated response.
      */
   readonly usage: LanguageModelUsage;
 

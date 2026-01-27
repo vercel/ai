@@ -249,7 +249,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when all steps are finished and the response is complete.
 
-@return
+@returns
 A result object for accessing different stream types and additional information.
  */
 export function streamText<

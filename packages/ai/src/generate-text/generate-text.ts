@@ -157,8 +157,6 @@ If set and supported by the model, calls will generate deterministic results.
 @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
-@param experimental_generateMessageId - Generate a unique ID for each message.
-
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
 @param onFinish - Callback that is called when all steps are finished and the response is complete.
 

@@ -11,7 +11,7 @@ export type Provider = {
   Returns the language model with the given id.
   The model id is then passed to the provider function to get the model.
 
-  @param {string} id - The id of the model to return.
+  @param {string} modelId - The id of the model to return.
 
   @returns {LanguageModel} The language model associated with the id
 
@@ -23,9 +23,9 @@ export type Provider = {
   Returns the text embedding model with the given id.
   The model id is then passed to the provider function to get the model.
 
-  @param {string} id - The id of the model to return.
+  @param {string} modelId - The id of the model to return.
 
-  @returns {LanguageModel} The language model associated with the id
+  @returns {EmbeddingModel} The embedding model associated with the id
 
   @throws {NoSuchModelError} If no such model exists.
      */
@@ -35,7 +35,7 @@ export type Provider = {
   Returns the image model with the given id.
   The model id is then passed to the provider function to get the model.
 
-  @param {string} id - The id of the model to return.
+  @param {string} modelId - The id of the model to return.
 
   @returns {ImageModel} The image model associated with the id
   */
@@ -45,9 +45,9 @@ export type Provider = {
    Returns the reranking model with the given id.
    The model id is then passed to the provider function to get the model.
 
-  @param {string} id - The id of the model to return.
+  @param {string} modelId - The id of the model to return.
 
-  @return {RerankingModel<VALUE>} The reranking model associated with the id
+  @returns {RerankingModel} The reranking model associated with the id
 
   @throws {NoSuchModelError} If no such model exists.
    */

@@ -19,8 +19,8 @@ export type UseCompletionOptions = {
    */
   api?: string;
   /**
-   * An unique identifier for the chat. If not provided, a random one will be
-   * generated. When provided, the `useChat` hook with the same `id` will
+   * A unique identifier for the completion. If not provided, a random one will be
+   * generated. When provided, the `useCompletion` hook with the same `id` will
    * have shared states across components.
    */
   id?: string;
@@ -62,7 +62,7 @@ export type UseCompletionOptions = {
    * @example
    * Send a `sessionId` to the API along with the prompt.
    * ```js
-   * useChat({
+   * useCompletion({
    *   body: {
    *     sessionId: '123',
    *   }

@@ -51,7 +51,6 @@ Generate a structured, typed object for a given prompt and schema using a langua
 This function does not stream the output. If you want to stream the output, use `streamObject` instead.
 
 @param model - The language model to use.
-@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
 
 @param system - A system message that will be part of the prompt.
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.

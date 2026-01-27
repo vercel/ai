@@ -105,21 +105,13 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
    * When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
    */
   prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
   /**
    * When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
+   * to prepare the reconnect request for the chat API. This can be useful for
+   * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };

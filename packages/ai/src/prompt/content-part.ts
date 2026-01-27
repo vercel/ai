@@ -193,6 +193,9 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   providerOptions: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type
 
+/**
+@internal
+ */
 export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
   z.object({
     type: z.literal('tool-approval-request'),
@@ -200,6 +203,9 @@ export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
     toolCallId: z.string(),
   });
 
+/**
+@internal
+ */
 export const toolApprovalResponseSchema: z.ZodType<ToolApprovalResponse> =
   z.object({
     type: z.literal('tool-approval-response'),

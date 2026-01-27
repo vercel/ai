@@ -45,6 +45,7 @@ Generates images using an image model.
 @param model - The image model to use.
 @param prompt - The prompt that should be used to generate the image.
 @param n - Number of images to generate. Default: 1.
+@param maxImagesPerCall - Maximum number of images to generate in a single API call.
 @param size - Size of the images to generate. Must have the format `{width}x{height}`.
 @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
 @param seed - Seed for the image generation.
@@ -85,7 +86,7 @@ Number of images to generate.
   n?: number;
 
   /**
-Number of images to generate.
+Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
    */
   maxImagesPerCall?: number;
 
@@ -121,7 +122,7 @@ record is keyed by the provider-specific metadata key.
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
+Maximum number of retries per image model call. Set to 0 to disable retries.
 
 @default 2
    */

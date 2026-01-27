@@ -12,16 +12,18 @@ import { RerankResult } from './rerank-result';
 import { logWarnings } from '../logger/log-warnings';
 
 /**
-Rerank documents using an reranking model. The type of the value is defined by the reranking model.
+Rerank documents using a reranking model. The type of the value is defined by the reranking model.
 
-@param model - The Reranking model to use.
-@param documents - The documents that should be reranking.
-@param query - The query is a string that represents the query to rerank the documents against.
-@param topN - Top n documents to rerank.
+@param model - The reranking model to use.
+@param documents - The documents that should be reranked.
+@param query - The query to rerank the documents against.
+@param topN - Number of top documents to return.
 
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+@param providerOptions - Additional provider-specific options.
+@param experimental_telemetry - Optional telemetry configuration (experimental).
 
 @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
@@ -47,7 +49,7 @@ The reranking model to use.
   documents: Array<VALUE>;
 
   /**
-The query is a string that represents the query to rerank the documents against.
+The query to rerank the documents against.
    */
   query: string;
 
