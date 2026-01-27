@@ -1,6 +1,8 @@
 ---
 name: list-npm-package-content
 description: List the contents of an npm package tarball before publishing. Use when the user wants to see what files are included in an npm bundle, verify package contents, or debug npm publish issues.
+metadata:
+  internal: true
 ---
 
 # List npm Package Content
