@@ -186,6 +186,9 @@ The following provider options are available:
   They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
   Defaults to `undefined`.
 
+- **logprobs** _boolean | number_
+  Return the log probabilities of the tokens. Including logprobs will increase the response size and can slow down response times. However, it can be useful to better understand how the model is behaving. Setting to `true` returns the log probabilities of the tokens that were generated. Setting to a number (1-20) returns the log probabilities of the top n tokens that were generated.
+
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
 
@@ -374,6 +377,9 @@ const result = await generateText({
         city: 'San Francisco',
         region: 'California',
       },
+      filters: {
+        allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+      },
     }),
   },
   // Force web search tool (optional):
@@ -392,6 +398,14 @@ for (const toolResult of result.toolResults) {
   }
 }
 ```
+
+The web search tool supports the following configuration options:
+
+- **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
+- **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
+- **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
+- **filters** - Optional filter configuration to restrict search results.
+  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
 
 For detailed information on configuration options see the [OpenAI Web Search Tool documentation](https://platform.openai.com/docs/guides/tools-web-search?api-mode=responses).
 
@@ -428,6 +442,49 @@ const result = await generateText({
     } satisfies OpenAIResponsesProviderOptions,
   },
 });
+```
+
+The file search tool supports filtering with both comparison and compound filters:
+
+**Comparison filters** - Filter by a single attribute:
+
+- `eq` - Equal to
+- `ne` - Not equal to
+- `gt` - Greater than
+- `gte` - Greater than or equal to
+- `lt` - Less than
+- `lte` - Less than or equal to
+- `in` - Value is in array
+- `nin` - Value is not in array
+
+```ts
+// Single comparison filter
+filters: { key: 'year', type: 'gte', value: 2023 }
+
+// Filter with array values
+filters: { key: 'status', type: 'in', value: ['published', 'reviewed'] }
+```
+
+**Compound filters** - Combine multiple filters with `and` or `or`:
+
+```ts
+// Compound filter with AND
+filters: {
+  type: 'and',
+  filters: [
+    { key: 'author', type: 'eq', value: 'Jane Smith' },
+    { key: 'year', type: 'gte', value: 2023 },
+  ],
+}
+
+// Compound filter with OR
+filters: {
+  type: 'or',
+  filters: [
+    { key: 'department', type: 'eq', value: 'Engineering' },
+    { key: 'department', type: 'eq', value: 'Research' },
+  ],
+}
 ```
 
 #### Image Generation Tool
@@ -1178,6 +1235,14 @@ The following optional provider options are available for OpenAI chat models:
 - **safetyIdentifier** _string_
 
   A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies. The IDs should be a string that uniquely identifies each user.
+
+- **systemMessageMode** _'system' | 'developer' | 'remove'_
+
+  Override the system message mode for this model. If not specified, the mode is automatically determined based on the model. `system` uses the 'system' role for system messages (default for most models); `developer` uses the 'developer' role (used by reasoning models); `remove` removes system messages entirely.
+
+- **forceReasoning** _boolean_
+
+  Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
 #### Reasoning
 
@@ -2051,12 +2116,6 @@ const result = await generateSpeech({
 - **instructions** _string_
   Control the voice of your generated audio with additional instructions e.g. "Speak in a slow and steady tone".
   Does not work with `tts-1` or `tts-1-hd`.
-  Optional.
-
-- **response_format** _string_
-  The format to audio in.
-  Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
-  Defaults to `mp3`.
   Optional.
 
 - **speed** _number_

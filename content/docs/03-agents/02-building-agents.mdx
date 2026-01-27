@@ -302,11 +302,11 @@ console.log(result.text);
 Use `stream()` for streaming responses:
 
 ```ts
-const stream = myAgent.stream({
+const result = await myAgent.stream({
   prompt: 'Tell me a story',
 });
 
-for await (const chunk of stream.textStream) {
+for await (const chunk of result.textStream) {
   console.log(chunk);
 }
 ```
@@ -324,7 +324,7 @@ export async function POST(request: Request) {
 
   return createAgentUIStreamResponse({
     agent: myAgent,
-    messages,
+    uiMessages: messages,
   });
 }
 ```

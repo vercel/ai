@@ -39,7 +39,9 @@ const audio = await generateSpeech({
 To access the generated audio:
 
 ```ts
-const audio = audio.audioData; // audio data e.g. Uint8Array
+const audioData = result.audio.uint8Array; // audio data as Uint8Array
+// or
+const audioBase64 = result.audio.base64; // audio data as base64 string
 ```
 
 ## Settings

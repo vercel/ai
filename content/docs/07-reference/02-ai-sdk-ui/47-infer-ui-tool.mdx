@@ -52,7 +52,7 @@ import { z } from 'zod';
 
 const weatherTool = {
   description: 'Get the current weather',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('The city and state'),
   }),
   execute: async ({ location }) => {

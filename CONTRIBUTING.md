@@ -49,6 +49,7 @@ To set up the repository on your local machine, follow these steps:
 
 1. `cd examples/ai-functions` (for AI SDK Core, or another example folder)
 1. AI SDK Core examples: run e.g. `pnpm tsx src/stream-text/openai.ts`
+   - For most examples, you need to provide relevant API keys, e.g. environment variables like `OPENAI_API_KEY`
 1. Other framework examples: run `pnpm dev` and go to the browser url
 
 ### Local Development Workflow

@@ -7,26 +7,26 @@ import { VERSION } from './version';
 
 export interface ReplicateProviderSettings {
   /**
-API token that is being send using the `Authorization` header.
-It defaults to the `REPLICATE_API_TOKEN` environment variable.
+   * API token that is being send using the `Authorization` header.
+   * It defaults to the `REPLICATE_API_TOKEN` environment variable.
    */
   apiToken?: string;
 
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.replicate.com/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.replicate.com/v1`.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 

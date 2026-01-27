@@ -166,9 +166,9 @@ export async function convertToLanguageModelPrompt({
 /**
  * Convert a ModelMessage to a LanguageModelV3Message.
  *
- * @param message The ModelMessage to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *   available if the model does not support URLs, null otherwise.
+ * @param message - The ModelMessage to convert.
+ * @param downloadedAssets - A map of URLs to their downloaded data. Only
+ * available if the model does not support URLs, null otherwise.
  */
 export function convertToLanguageModelMessage({
   message,
@@ -403,10 +403,10 @@ async function downloadAssets(
 
 /**
  * Convert part of a message to a LanguageModelV3Part.
- * @param part The part to convert.
- * @param downloadedAssets A map of URLs to their downloaded data. Only
- *  available if the model does not support URLs, null otherwise.
  *
+ * @param part - The part to convert.
+ * @param downloadedAssets - A map of URLs to their downloaded data. Only
+ * available if the model does not support URLs, null otherwise.
  * @returns The converted part.
  */
 function convertPartToLanguageModelPart(

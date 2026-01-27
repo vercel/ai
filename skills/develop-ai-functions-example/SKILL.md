@@ -1,6 +1,8 @@
 ---
 name: develop-ai-functions-example
 description: Develop examples for AI SDK functions. Use when creating, running, or modifying examples under examples/ai-functions/src to validate provider support, demonstrate features, or create test fixtures.
+metadata:
+  internal: true
 ---
 
 ## AI Functions Examples
