@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
 ## 6.0.50
 
 ### Patch Changes
