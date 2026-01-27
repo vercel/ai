@@ -100,6 +100,13 @@ const createModelObjects = <T extends { modelId: string }>(
     capabilities,
   })) || [];
 
+const verifyUsageDetails = (usage: any) => {
+  expect(usage?.totalTokens).toBeGreaterThan(0);
+  if (usage?.outputTokens !== undefined) {
+    expect(usage.outputTokenDetails?.textTokens).toBeDefined();
+  }
+};
+
 const verifyGroundingMetadata = (groundingMetadata: any) => {
   expect(Array.isArray(groundingMetadata?.webSearchQueries)).toBe(true);
   expect(groundingMetadata?.webSearchQueries?.length).toBeGreaterThan(0);
@@ -181,7 +188,7 @@ export function createFeatureTestSuite({
 
                 expect(result.text).toBeTruthy();
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -206,7 +213,7 @@ export function createFeatureTestSuite({
                 });
 
                 expect(result.text).toBeTruthy();
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                verifyUsageDetails(result.usage);
               });
 
               it('should stream text', async () => {
@@ -222,7 +229,7 @@ export function createFeatureTestSuite({
 
                 expect(chunks.length).toBeGreaterThan(0);
                 if (!customAssertions.skipUsage) {
-                  expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(await result.usage);
                 }
               });
             },
@@ -246,7 +253,7 @@ export function createFeatureTestSuite({
                 expect(result.object.title).toBeTruthy();
                 expect(Array.isArray(result.object.tags)).toBe(true);
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -276,7 +283,7 @@ export function createFeatureTestSuite({
 
                 expect(parts.length).toBeGreaterThan(0);
                 if (!customAssertions.skipUsage) {
-                  expect((await result.usage).totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(await result.usage);
                 }
               });
 
@@ -293,7 +300,7 @@ export function createFeatureTestSuite({
                 expect(result.object.name).toBeTruthy();
                 expect(typeof result.object.age).toBe('number');
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -631,7 +638,7 @@ export function createFeatureTestSuite({
                 });
                 expect(result.toolResults?.[0].output).toBe('4');
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -664,7 +671,7 @@ export function createFeatureTestSuite({
                 );
                 expect(toolCallCount).toBe(1);
                 if (!customAssertions.skipUsage) {
-                  expect((await result.usage).totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(await result.usage);
                 }
               });
 
@@ -747,7 +754,7 @@ export function createFeatureTestSuite({
                 expect(result.text).toBeTruthy();
                 expect(result.text.toLowerCase()).toContain('cat');
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -776,7 +783,7 @@ export function createFeatureTestSuite({
 
                 expect(result.text.toLowerCase()).toContain('cat');
                 if (!customAssertions.skipUsage) {
-                  expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(result.usage);
                 }
               });
 
@@ -809,7 +816,7 @@ export function createFeatureTestSuite({
                 const fullText = chunks.join('');
                 expect(chunks.length).toBeGreaterThan(0);
                 expect(fullText.toLowerCase()).toContain('cat');
-                expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                verifyUsageDetails(await result.usage);
               });
 
               it('should stream text with image input', async () => {
@@ -841,7 +848,7 @@ export function createFeatureTestSuite({
                 expect(fullText.toLowerCase()).toContain('cat');
                 expect(chunks.length).toBeGreaterThan(0);
                 if (!customAssertions.skipUsage) {
-                  expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                  verifyUsageDetails(await result.usage);
                 }
               });
             },
@@ -873,7 +880,7 @@ export function createFeatureTestSuite({
 
               expect(result.text).toBeTruthy();
               expect(result.text.toLowerCase()).toContain('embedding');
-              expect(result.usage?.totalTokens).toBeGreaterThan(0);
+              verifyUsageDetails(result.usage);
             });
           });
 
@@ -906,7 +913,7 @@ export function createFeatureTestSuite({
                 });
                 expect(result.text).toBeTruthy();
                 expect(result.text.toLowerCase()).toContain('galileo');
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                verifyUsageDetails(result.usage);
               });
             },
           );
@@ -924,7 +931,7 @@ export function createFeatureTestSuite({
 
                 expect(result.text).toBeTruthy();
                 expect(result.text.toLowerCase()).toContain('tokyo');
-                expect(result.usage?.totalTokens).toBeGreaterThan(0);
+                verifyUsageDetails(result.usage);
 
                 const metadata = result.providerMetadata?.google as
                   | GoogleGenerativeAIProviderMetadata
@@ -950,7 +957,7 @@ export function createFeatureTestSuite({
                 const completeText = chunks.join('');
                 expect(completeText).toBeTruthy();
                 expect(completeText.toLowerCase()).toContain('tokyo');
-                expect((await result.usage)?.totalTokens).toBeGreaterThan(0);
+                verifyUsageDetails(await result.usage);
 
                 verifyGroundingMetadata(metadata?.groundingMetadata);
               });
