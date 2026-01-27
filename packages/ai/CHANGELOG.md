@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.53
+
+### Patch Changes
+
+- 7ee3f10: chore: updated docs
+
 ## 6.0.52
 
 ### Patch Changes
