@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.55
+
+### Patch Changes
+
+- 43a74df: chore(ai): add skill to README
+
 ## 6.0.54
 
 ### Patch Changes
