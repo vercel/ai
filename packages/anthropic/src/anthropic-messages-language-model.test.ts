@@ -940,7 +940,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "outputTokens": {
             "reasoning": undefined,
-            "text": undefined,
+            "text": 5,
             "total": 5,
           },
           "raw": {
@@ -1515,7 +1515,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": undefined,
+              "text": 50,
               "total": 50,
             },
             "raw": {
@@ -1677,7 +1677,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": undefined,
+              "text": 50,
               "total": 50,
             },
             "raw": {
@@ -4316,7 +4316,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 47,
                   "total": 47,
                 },
                 "raw": {
@@ -4465,7 +4465,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 47,
                   "total": 47,
                 },
                 "raw": {
@@ -4659,7 +4659,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 28,
                     "total": 28,
                   },
                   "raw": {
@@ -4854,7 +4854,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -4995,7 +4995,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5093,7 +5093,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5177,7 +5177,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5329,7 +5329,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 65,
                 "total": 65,
               },
               "raw": {
@@ -5588,7 +5588,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5683,7 +5683,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5798,7 +5798,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -5863,7 +5863,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -6115,7 +6115,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -6324,7 +6324,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 65,
                     "total": 65,
                   },
                   "raw": {
@@ -6439,7 +6439,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 48,
                     "total": 48,
                   },
                   "raw": {
