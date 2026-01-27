@@ -18,6 +18,9 @@ import {
   toolResultPartSchema,
 } from './content-part';
 
+/**
+@internal
+ */
 export const systemModelMessageSchema: z.ZodType<SystemModelMessage> = z.object(
   {
     role: z.literal('system'),
@@ -26,6 +29,9 @@ export const systemModelMessageSchema: z.ZodType<SystemModelMessage> = z.object(
   },
 );
 
+/**
+@internal
+ */
 export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   role: z.literal('user'),
   content: z.union([
@@ -35,6 +41,9 @@ export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   providerOptions: providerMetadataSchema.optional(),
 });
 
+/**
+@internal
+ */
 export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
   z.object({
     role: z.literal('assistant'),
@@ -54,12 +63,18 @@ export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
     providerOptions: providerMetadataSchema.optional(),
   });
 
+/**
+@internal
+ */
 export const toolModelMessageSchema: z.ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(z.union([toolResultPartSchema, toolApprovalResponseSchema])),
   providerOptions: providerMetadataSchema.optional(),
 });
 
+/**
+@internal
+ */
 export const modelMessageSchema: z.ZodType<ModelMessage> = z.union([
   systemModelMessageSchema,
   userModelMessageSchema,

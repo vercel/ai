@@ -11,12 +11,12 @@ import { asArray } from '../util/as-array';
 
 export type StandardizedPrompt = {
   /**
-   * System message.
+  System message.
    */
   system?: string | SystemModelMessage | Array<SystemModelMessage>;
 
   /**
-   * Messages.
+  Messages.
    */
   messages: ModelMessage[];
 };

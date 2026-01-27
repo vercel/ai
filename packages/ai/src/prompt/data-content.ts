@@ -91,7 +91,7 @@ Converts data content to a Uint8Array.
 
 @param content - Data content to convert.
 @returns Uint8Array.
- */
+*/
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {
@@ -120,11 +120,11 @@ export function convertDataContentToUint8Array(
 }
 
 /**
- * Converts a Uint8Array to a string of text.
- *
- * @param uint8Array - The Uint8Array to convert.
- * @returns The converted string.
- */
+Converts a Uint8Array to a string of text.
+
+@param uint8Array - The Uint8Array to convert.
+@returns The converted string.
+*/
 export function convertUint8ArrayToText(uint8Array: Uint8Array): string {
   try {
     return new TextDecoder().decode(uint8Array);
