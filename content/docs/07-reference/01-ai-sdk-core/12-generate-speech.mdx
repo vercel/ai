@@ -155,9 +155,9 @@ const { audio } = await generateSpeech({
               description: 'Audio as a Uint8Array.',
             },
             {
-              name: 'mimeType',
+              name: 'mediaType',
               type: 'string',
-              description: 'MIME type of the audio (e.g. "audio/mpeg").',
+              description: 'Media type of the audio (e.g. "audio/mpeg").',
             },
             {
               name: 'format',
@@ -173,6 +173,13 @@ const { audio } = await generateSpeech({
       type: 'Warning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'Record<string, JSONObject>',
+      isOptional: true,
+      description:
+        'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
       name: 'responses',

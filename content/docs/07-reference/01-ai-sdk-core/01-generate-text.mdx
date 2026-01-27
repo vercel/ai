@@ -444,7 +444,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'headers',
-      type: 'Record<string, string>',
+      type: 'Record<string, string | undefined>',
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
@@ -1392,7 +1392,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1563,6 +1563,30 @@ To see `generateText` in action, check out [these examples](#examples).
       name: 'toolResults',
       type: 'ToolResultArray<TOOLS>',
       description: 'The results of the tool calls from the last step.',
+    },
+    {
+      name: 'staticToolCalls',
+      type: 'Array<StaticToolCall<TOOLS>>',
+      description:
+        'The static tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'dynamicToolCalls',
+      type: 'Array<DynamicToolCall>',
+      description:
+        'The dynamic tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'staticToolResults',
+      type: 'Array<StaticToolResult<TOOLS>>',
+      description:
+        'The static tool results that have been generated in the last step.',
+    },
+    {
+      name: 'dynamicToolResults',
+      type: 'Array<DynamicToolResult>',
+      description:
+        'The dynamic tool results that have been generated in the last step.',
     },
     {
       name: 'finishReason',
