@@ -17,6 +17,7 @@
         "AWS_SECRET_ACCESS_KEY",
         "AZURE_RESOURCE_NAME",
         "AZURE_API_KEY",
+        "BYTEDANCE_ARK_API_KEY",
         "BASETEN_API_KEY",
         "CEREBRAS_API_KEY",
         "COHERE_API_KEY",
