@@ -131,6 +131,19 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.computer_20251124': {
+            betas.add('computer-use-2025-11-24');
+            anthropicTools.push({
+              name: 'computer',
+              type: 'computer_20251124',
+              display_width_px: tool.args.displayWidthPx as number,
+              display_height_px: tool.args.displayHeightPx as number,
+              display_number: tool.args.displayNumber as number,
+              enable_zoom: tool.args.enableZoom as boolean,
+              cache_control: undefined,
+            });
+            break;
+          }
           case 'anthropic.computer_20241022': {
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
