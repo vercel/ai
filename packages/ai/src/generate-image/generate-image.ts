@@ -40,22 +40,22 @@ export type GenerateImagePrompt =
     };
 
 /**
-Generates images using an image model.
-
-@param model - The image model to use.
-@param prompt - The prompt that should be used to generate the image.
-@param n - Number of images to generate. Default: 1.
-@param maxImagesPerCall - Maximum number of images to generate in a single API call.
-@param size - Size of the images to generate. Must have the format `{width}x{height}`.
-@param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
-@param seed - Seed for the image generation.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated images.
+ * Generates images using an image model.
+ *
+ * @param model - The image model to use.
+ * @param prompt - The prompt that should be used to generate the image.
+ * @param n - Number of images to generate. Default: 1.
+ * @param maxImagesPerCall - Maximum number of images to generate in a single API call.
+ * @param size - Size of the images to generate. Must have the format `{width}x{height}`.
+ * @param aspectRatio - Aspect ratio of the images to generate. Must have the format `{width}:{height}`.
+ * @param seed - Seed for the image generation.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @returns A result object that contains the generated images.
  */
 export async function generateImage({
   model: modelArg,
@@ -71,72 +71,72 @@ export async function generateImage({
   headers,
 }: {
   /**
-The image model to use.
-     */
+   * The image model to use.
+   */
   model: ImageModel;
 
   /**
-The prompt that should be used to generate the image.
+   * The prompt that should be used to generate the image.
    */
   prompt: GenerateImagePrompt;
 
   /**
-Number of images to generate.
+   * Number of images to generate.
    */
   n?: number;
 
   /**
-Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
+   * Maximum number of images to generate in a single API call. If not provided, the model's default will be used.
    */
   maxImagesPerCall?: number;
 
   /**
-Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
+   * Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
    */
   size?: `${number}x${number}`;
 
   /**
-Aspect ratio of the images to generate. Must have the format `{width}:{height}`. If not provided, the default aspect ratio will be used.
+   * Aspect ratio of the images to generate. Must have the format `{width}:{height}`. If not provided, the default aspect ratio will be used.
    */
   aspectRatio?: `${number}:${number}`;
 
   /**
-Seed for the image generation. If not provided, the default seed will be used.
+   * Seed for the image generation. If not provided, the default seed will be used.
    */
   seed?: number;
 
   /**
-Additional provider-specific options that are passed through to the provider
-as body parameters.
-
-The outer record is keyed by the provider name, and the inner
-record is keyed by the provider-specific metadata key.
-```ts
-{
-  "openai": {
-    "style": "vivid"
-  }
-}
-```
-     */
+   * Additional provider-specific options that are passed through to the provider
+   * as body parameters.
+   *
+   * The outer record is keyed by the provider name, and the inner
+   * record is keyed by the provider-specific metadata key.
+   * ```ts
+   * {
+   * "openai": {
+   * "style": "vivid"
+   * }
+   * }
+   * ```
+   */
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per image model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per image model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);

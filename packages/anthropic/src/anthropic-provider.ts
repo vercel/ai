@@ -19,13 +19,13 @@ import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
 
   chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
@@ -38,41 +38,41 @@ Creates a model for text generation.
   textEmbeddingModel(modelId: string): never;
 
   /**
-Anthropic-specific computer use tool.
+   * Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 }
 
 export interface AnthropicProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.anthropic.com/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `x-api-key` header.
-It defaults to the `ANTHROPIC_API_KEY` environment variable.
-Only one of `apiKey` or `authToken` is required.
+   * API key that is being send using the `x-api-key` header.
+   * It defaults to the `ANTHROPIC_API_KEY` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
    */
   apiKey?: string;
 
   /**
-Auth token that is being sent using the `Authorization: Bearer` header.
-It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
-Only one of `apiKey` or `authToken` is required.
+   * Auth token that is being sent using the `Authorization: Bearer` header.
+   * It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+   * Only one of `apiKey` or `authToken` is required.
    */
   authToken?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
@@ -85,7 +85,7 @@ or to provide a custom fetch implementation for e.g. testing.
 }
 
 /**
-Create an Anthropic provider instance.
+ * Create an Anthropic provider instance.
  */
 export function createAnthropic(
   options: AnthropicProviderSettings = {},
@@ -172,6 +172,6 @@ export function createAnthropic(
 }
 
 /**
-Default Anthropic provider instance.
+ * Default Anthropic provider instance.
  */
 export const anthropic = createAnthropic();

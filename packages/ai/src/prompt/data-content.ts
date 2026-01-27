@@ -9,7 +9,7 @@ import { InvalidDataContentError } from './invalid-data-content-error';
 import { splitDataUrl } from './split-data-url';
 
 /**
-@internal
+ * @internal
  */
 export const dataContentSchema: z.ZodType<DataContent> = z.union([
   z.string(),
@@ -69,11 +69,11 @@ export function convertToLanguageModelV3DataContent(
 }
 
 /**
-Converts data content to a base64-encoded string.
-
-@param content - Data content to convert.
-@returns Base64-encoded string.
-*/
+ * Converts data content to a base64-encoded string.
+ *
+ * @param content - Data content to convert.
+ * @returns Base64-encoded string.
+ */
 export function convertDataContentToBase64String(content: DataContent): string {
   if (typeof content === 'string') {
     return content;
@@ -87,11 +87,11 @@ export function convertDataContentToBase64String(content: DataContent): string {
 }
 
 /**
-Converts data content to a Uint8Array.
-
-@param content - Data content to convert.
-@returns Uint8Array.
-*/
+ * Converts data content to a Uint8Array.
+ *
+ * @param content - Data content to convert.
+ * @returns Uint8Array.
+ */
 export function convertDataContentToUint8Array(
   content: DataContent,
 ): Uint8Array {
@@ -120,11 +120,11 @@ export function convertDataContentToUint8Array(
 }
 
 /**
-Converts a Uint8Array to a string of text.
-
-@param uint8Array - The Uint8Array to convert.
-@returns The converted string.
-*/
+ * Converts a Uint8Array to a string of text.
+ *
+ * @param uint8Array - The Uint8Array to convert.
+ * @returns The converted string.
+ */
 export function convertUint8ArrayToText(uint8Array: Uint8Array): string {
   try {
     return new TextDecoder().decode(uint8Array);

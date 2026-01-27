@@ -4,30 +4,30 @@ import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 import { TranscriptionModelV3CallOptions } from './transcription-model-v3-call-options';
 
 /**
-Transcription model specification version 3.
+ * Transcription model specification version 3.
  */
 export type TranscriptionModelV3 = {
   /**
-The transcription model must specify which transcription model interface
-version it implements. This will allow us to evolve the transcription
-model interface and retain backwards compatibility. The different
-implementation versions can be handled as a discriminated union
-on our side.
+   * The transcription model must specify which transcription model interface
+   * version it implements. This will allow us to evolve the transcription
+   * model interface and retain backwards compatibility. The different
+   * implementation versions can be handled as a discriminated union
+   * on our side.
    */
   readonly specificationVersion: 'v3';
 
   /**
-Name of the provider for logging purposes.
+   * Name of the provider for logging purposes.
    */
   readonly provider: string;
 
   /**
-Provider-specific model ID for logging purposes.
+   * Provider-specific model ID for logging purposes.
    */
   readonly modelId: string;
 
   /**
-Generates a transcript.
+   * Generates a transcript.
    */
   doGenerate(options: TranscriptionModelV3CallOptions): PromiseLike<{
     /**
@@ -67,50 +67,50 @@ Generates a transcript.
     durationInSeconds: number | undefined;
 
     /**
-Warnings for the call, e.g. unsupported settings.
+     * Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<SharedV3Warning>;
 
     /**
-Optional request information for telemetry and debugging purposes.
+     * Optional request information for telemetry and debugging purposes.
      */
     request?: {
       /**
-Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
-Non-HTTP(s) providers should not set this.
+       * Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+       * Non-HTTP(s) providers should not set this.
        */
       body?: string;
     };
 
     /**
-Response information for telemetry and debugging purposes.
+     * Response information for telemetry and debugging purposes.
      */
     response: {
       /**
-Timestamp for the start of the generated response.
-      */
+       * Timestamp for the start of the generated response.
+       */
       timestamp: Date;
 
       /**
-The ID of the response model that was used to generate the response.
-      */
+       * The ID of the response model that was used to generate the response.
+       */
       modelId: string;
 
       /**
-Response headers.
-      */
+       * Response headers.
+       */
       headers?: SharedV3Headers;
 
       /**
-Response body.
-      */
+       * Response body.
+       */
       body?: unknown;
     };
 
     /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
+     * Additional provider-specific metadata. They are passed through
+     * from the provider to the AI SDK and enable provider-specific
+     * results that can be fully encapsulated in the provider.
      */
     providerMetadata?: Record<string, JSONObject>;
   }>;

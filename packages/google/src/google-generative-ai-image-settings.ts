@@ -6,7 +6,7 @@ export type GoogleGenerativeAIImageModelId =
 
 export interface GoogleGenerativeAIImageSettings {
   /**
-Override the maximum number of images per call (default 4)
+   * Override the maximum number of images per call (default 4)
    */
   maxImagesPerCall?: number;
 }

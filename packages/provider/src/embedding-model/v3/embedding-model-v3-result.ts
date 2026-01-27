@@ -36,8 +36,8 @@ export type EmbeddingModelV3Result = {
     headers?: SharedV3Headers;
 
     /**
-      The response body.
-      */
+     * The response body.
+     */
     body?: unknown;
   };
 
