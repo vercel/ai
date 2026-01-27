@@ -12,12 +12,12 @@ import {
 const createChatModel = (
   modelId: string,
   capabilities = defaultChatModelCapabilities,
-) => createLanguageModelWithCapabilities(provider.chat(modelId), capabilities);
+) => createLanguageModelWithCapabilities(provider(modelId), capabilities);
 
 createFeatureTestSuite({
   name: 'Amazon Bedrock',
   models: {
-    invalidModel: provider.chat('no-such-model'),
+    invalidModel: provider('no-such-model'),
     languageModels: [
       createChatModel('meta.llama3-1-8b-instruct-v1:0', [
         'textCompletion',

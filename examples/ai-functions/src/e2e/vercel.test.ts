@@ -8,7 +8,7 @@ import {
 } from './feature-test-suite';
 
 const createChatModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.chat(modelId), [
+  createLanguageModelWithCapabilities(provider(modelId), [
     'textCompletion',
     'objectGeneration',
   ]);
@@ -16,7 +16,7 @@ const createChatModel = (modelId: string) =>
 createFeatureTestSuite({
   name: 'Vercel',
   models: {
-    invalidModel: provider.chat('no-such-model'),
+    invalidModel: provider('no-such-model'),
     languageModels: [createChatModel('v0-1.5-md')],
   },
   timeout: 30000,

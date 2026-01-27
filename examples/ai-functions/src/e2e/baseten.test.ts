@@ -8,7 +8,7 @@ import {
 } from './feature-test-suite';
 
 const createChatModel = (modelId: string) =>
-  createLanguageModelWithCapabilities(provider.chat(modelId), [
+  createLanguageModelWithCapabilities(provider.chatModel(modelId), [
     'textCompletion',
     'objectGeneration',
   ]);
@@ -16,7 +16,7 @@ const createChatModel = (modelId: string) =>
 createFeatureTestSuite({
   name: 'Baseten',
   models: {
-    invalidModel: provider.chat('no-such-model'),
+    invalidModel: provider.chatModel('no-such-model'),
     languageModels: [createChatModel('deepseek-ai/DeepSeek-V3-0324')],
   },
   timeout: 60000,
