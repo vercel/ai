@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.28
+
+### Patch Changes
+
+- 2445da4: fix(provider/anthropic): populate outputTokens.text field in usage
+
 ## 3.0.27
 
 ### Patch Changes
