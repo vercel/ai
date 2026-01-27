@@ -22,6 +22,12 @@ Embed a value using an embedding model. The type of the value is defined by the 
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
+@param experimental_telemetry - Optional telemetry configuration (experimental).
+
+@param providerOptions - Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+
 @returns A result object that contains the embedding, the value, and additional information.
  */
 export async function embed({

@@ -4,7 +4,7 @@ import { ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
 
 /**
-The result of a `embedMany` call.
+The result of an `embedMany` call.
 It contains the embeddings, the values, and additional information.
  */
 export interface EmbedManyResult {

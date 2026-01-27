@@ -28,6 +28,14 @@ has a limit on how many embeddings can be generated in a single call.
 @param abortSignal - An optional abort signal that can be used to cancel the call.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
+@param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
+
+@param experimental_telemetry - Optional telemetry configuration (experimental).
+
+@param providerOptions - Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+
 @returns A result object that contains the embeddings, the value, and additional information.
  */
 export async function embedMany({
