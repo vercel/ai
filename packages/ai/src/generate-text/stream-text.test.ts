@@ -17708,6 +17708,229 @@ describe('streamText', () => {
         });
       });
     });
+
+    describe('deferred tool calls with tool-error', () => {
+      it('should resolve deferred tool call when tool-error is in the same step', async () => {
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'msg-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'deferred_tool',
+                    input: `{ "value": "test" }`,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'tool-result',
+                    toolCallId: 'call-1',
+                    toolName: 'deferred_tool',
+                    result: `ERROR`,
+                    isError: true,
+                    providerExecuted: true,
+                  },
+                  {
+                    type: 'text-start',
+                    id: '1',
+                  },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Final response',
+                  },
+                  {
+                    type: 'text-end',
+                    id: '1',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+                response: {},
+              };
+            },
+          }),
+          tools: {
+            deferred_tool: {
+              type: 'provider',
+              id: 'test.deferred_tool',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(2),
+        });
+
+        // Consume the stream
+        await result.consumeStream();
+
+        // Verify that the stream completes with only one step
+        // (if the deferred tool call wasn't resolved, it would wait for another step)
+        expect((await result.steps).length).toBe(1);
+
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": true,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-call",
+            },
+            {
+              "dynamic": undefined,
+              "error": "ERROR",
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-error",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Final response",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
+        let responseCount = 0;
+        const result = streamText({
+          model: new MockLanguageModelV3({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0:
+                  // Step 1: tool call without result
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallId: 'call-1',
+                        toolName: 'deferred_tool',
+                        input: `{ "value": "test" }`,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: {},
+                  };
+                case 1:
+                  // Step 2: tool-error arrives
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'msg-2',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'call-1',
+                        toolName: 'deferred_tool',
+                        result: `ERROR`,
+                        isError: true,
+                        providerExecuted: true,
+                      },
+                      {
+                        type: 'text-start',
+                        id: '1',
+                      },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Final response',
+                      },
+                      {
+                        type: 'text-end',
+                        id: '1',
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: {},
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            deferred_tool: {
+              type: 'provider',
+              id: 'test.deferred_tool',
+              inputSchema: z.object({ value: z.string() }),
+              outputSchema: z.object({ value: z.string() }),
+              args: {},
+              supportsDeferredResults: true,
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(3),
+        });
+
+        // Consume the stream
+        await result.consumeStream();
+
+        // Verify that the stream completes with two steps
+        expect((await result.steps).length).toBe(2);
+
+        expect(await result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": undefined,
+              "error": "ERROR",
+              "input": undefined,
+              "providerExecuted": true,
+              "toolCallId": "call-1",
+              "toolName": "deferred_tool",
+              "type": "tool-error",
+            },
+            {
+              "providerMetadata": undefined,
+              "text": "Final response",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('logWarnings', () => {
