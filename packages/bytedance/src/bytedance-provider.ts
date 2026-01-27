@@ -9,7 +9,7 @@ import { ByteDanceVideoModelId } from './bytedance-video-settings';
 
 export interface ByteDanceProviderSettings {
   /**
-   * ByteDance/ARK API key. Default value is taken from the `ARK_API_KEY`
+   * ByteDance/ARK API key. Default value is taken from the `BYTEDANCE_ARK_API_KEY`
    * environment variable.
    */
   apiKey?: string;
@@ -52,7 +52,7 @@ export function createByteDance(
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'ARK_API_KEY',
+      environmentVariableName: 'BYTEDANCE_ARK_API_KEY',
       description: 'ByteDance ARK',
     })}`,
     'Content-Type': 'application/json',

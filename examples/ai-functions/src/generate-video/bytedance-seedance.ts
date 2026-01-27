@@ -14,7 +14,7 @@ const MODELS = {
 
 run(async () => {
   const byteDance = createByteDance({
-    apiKey: process.env.ARK_API_KEY,
+    apiKey: process.env.BYTEDANCE_ARK_API_KEY,
   });
 
   const { video } = await withSpinner('Generating video with Seedance...', () =>
