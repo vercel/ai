@@ -306,6 +306,130 @@ describe('prepareTools', () => {
       });
     });
 
+    describe('computer_20250124', () => {
+      it('should correctly prepare computer_20250124 tool', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20250124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-01-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "name": "computer",
+                "type": "computer_20250124",
+              },
+            ],
+          }
+        `);
+      });
+    });
+
+    describe('computer_20251124', () => {
+      it('should correctly prepare computer_20251124 tool', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20251124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-11-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "enable_zoom": undefined,
+                "name": "computer",
+                "type": "computer_20251124",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should correctly prepare computer_20251124 tool with enableZoom', async () => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.computer_20251124',
+              name: 'computer',
+              args: {
+                displayWidthPx: 1024,
+                displayHeightPx: 768,
+                displayNumber: 1,
+                enableZoom: true,
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "betas": Set {
+              "computer-use-2025-11-24",
+            },
+            "toolChoice": undefined,
+            "toolWarnings": [],
+            "tools": [
+              {
+                "cache_control": undefined,
+                "display_height_px": 768,
+                "display_number": 1,
+                "display_width_px": 1024,
+                "enable_zoom": true,
+                "name": "computer",
+                "type": "computer_20251124",
+              },
+            ],
+          }
+        `);
+      });
+    });
+
     describe('text_editor_20241022', () => {
       it('should correctly prepare text_editor_20241022 tool', async () => {
         const result = await prepareTools({
