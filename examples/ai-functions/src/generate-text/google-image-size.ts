@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-2.0-flash-exp'),
+    model: google('gemini-3-pro-image-preview'),
     prompt: 'Generate a high-quality landscape photo of mountains at sunset',
     providerOptions: {
       google: {
