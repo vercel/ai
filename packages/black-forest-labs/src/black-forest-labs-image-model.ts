@@ -28,11 +28,11 @@ interface BlackForestLabsImageModelConfig {
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   /**
-   Poll interval in milliseconds between status checks. Defaults to 500ms.
+   * Poll interval in milliseconds between status checks. Defaults to 500ms.
    */
   pollIntervalMillis?: number;
   /**
-   Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   * Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
    */
   pollTimeoutMillis?: number;
   _internal?: {

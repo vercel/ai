@@ -2,13 +2,13 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 
 export type CompletionRequestOptions = {
   /**
-  An optional object of headers to be passed to the API endpoint.
+   * An optional object of headers to be passed to the API endpoint.
    */
   headers?: Record<string, string> | Headers;
 
   /**
-  An optional object to be passed to the API endpoint.
-     */
+   * An optional object to be passed to the API endpoint.
+   */
   body?: object;
 };
 
@@ -72,13 +72,13 @@ export type UseCompletionOptions = {
   body?: object;
 
   /**
-  Streaming protocol that is used. Defaults to `data`.
-     */
+   * Streaming protocol that is used. Defaults to `data`.
+   */
   streamProtocol?: 'data' | 'text';
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 };

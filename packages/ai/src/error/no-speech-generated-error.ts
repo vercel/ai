@@ -6,7 +6,7 @@ const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
-Error that is thrown when no speech audio was generated.
+ * Error that is thrown when no speech audio was generated.
  */
 export class NoSpeechGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance

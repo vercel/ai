@@ -48,41 +48,41 @@ export interface OpenAICompatibleProvider<
 
 export interface OpenAICompatibleProviderSettings {
   /**
-Base URL for the API calls.
+   * Base URL for the API calls.
    */
   baseURL: string;
 
   /**
-Provider name.
+   * Provider name.
    */
   name: string;
 
   /**
-API key for authenticating requests. If specified, adds an `Authorization`
-header to request headers with the value `Bearer <apiKey>`. This will be added
-before any headers potentially specified in the `headers` option.
+   * API key for authenticating requests. If specified, adds an `Authorization`
+   * header to request headers with the value `Bearer <apiKey>`. This will be added
+   * before any headers potentially specified in the `headers` option.
    */
   apiKey?: string;
 
   /**
-Optional custom headers to include in requests. These will be added to request headers
-after any headers potentially added by use of the `apiKey` option.
+   * Optional custom headers to include in requests. These will be added to request headers
+   * after any headers potentially added by use of the `apiKey` option.
    */
   headers?: Record<string, string>;
 
   /**
-Optional custom url query parameters to include in request urls.
+   * Optional custom url query parameters to include in request urls.
    */
   queryParams?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
   /**
-Include usage information in streaming responses.
+   * Include usage information in streaming responses.
    */
   includeUsage?: boolean;
 
@@ -107,7 +107,7 @@ Include usage information in streaming responses.
 }
 
 /**
-Create an OpenAICompatible provider instance.
+ * Create an OpenAICompatible provider instance.
  */
 export function createOpenAICompatible<
   CHAT_MODEL_IDS extends string,

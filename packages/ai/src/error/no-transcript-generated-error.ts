@@ -6,7 +6,7 @@ const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
-Error that is thrown when no transcript was generated.
+ * Error that is thrown when no transcript was generated.
  */
 export class NoTranscriptGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance

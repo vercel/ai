@@ -116,10 +116,10 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
-A transformation that is applied to the stream.
-
-@param stopStream - A function that stops the source stream.
-@param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * A transformation that is applied to the stream.
+ *
+ * @param stopStream - A function that stops the source stream.
+ * @param tools - The tools that are accessible to and can be called by the model. The model needs to support calling tools.
  */
 export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
   tools: TOOLS; // for type inference
@@ -127,27 +127,27 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>;
 
 /**
-Callback that is set using the `onError` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onError` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnErrorCallback = (event: {
   error: unknown;
 }) => PromiseLike<void> | void;
 
 /**
-Callback that is set using the `onStepFinish` option.
-
-@param stepResult - The result of the step.
+ * Callback that is set using the `onStepFinish` option.
+ *
+ * @param stepResult - The result of the step.
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
 ) => PromiseLike<void> | void;
 
 /**
-Callback that is set using the `onChunk` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onChunk` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
   chunk: Extract<
@@ -167,9 +167,9 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
 }) => PromiseLike<void> | void;
 
 /**
-Callback that is set using the `onFinish` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onFinish` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
@@ -195,62 +195,62 @@ export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
 ) => PromiseLike<void> | void;
 
 /**
-Callback that is set using the `onAbort` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onAbort` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnAbortCallback<TOOLS extends ToolSet> = (event: {
   /**
-Details for all previously finished steps.
+   * Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS>[];
 }) => PromiseLike<void> | void;
 
 /**
-Generate a text and call tools for a given prompt using a language model.
-
-This function streams the output. If you do not want to stream the output, use `generateText` instead.
-
-@param model - The language model to use.
-@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
-
-@param system - A system message that will be part of the prompt.
-@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
-@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
-
-@param maxOutputTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topK - Only sample from the top K options for each subsequent token.
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-@param presencePenalty - Presence penalty setting.
-It affects the likelihood of the model to repeat information that is already in the prompt.
-The value is passed through to the provider. The range depends on the provider and model.
-@param frequencyPenalty - Frequency penalty setting.
-It affects the likelihood of the model to repeatedly use the same words or phrases.
-The value is passed through to the provider. The range depends on the provider and model.
-@param stopSequences - Stop sequences.
-If set, the model will stop generating text when one of the stop sequences is generated.
-@param seed - The seed (integer) to use for random sampling.
-If set and supported by the model, calls will generate deterministic results.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
-@param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
-@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
-@param onFinish - Callback that is called when all steps are finished and the response is complete.
-
-@returns
-A result object for accessing different stream types and additional information.
+ * Generate a text and call tools for a given prompt using a language model.
+ *
+ * This function streams the output. If you do not want to stream the output, use `generateText` instead.
+ *
+ * @param model - The language model to use.
+ * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ *
+ * @param system - A system message that will be part of the prompt.
+ * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+ * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ *
+ * @param maxOutputTokens - Maximum number of tokens to generate.
+ * @param temperature - Temperature setting.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topP - Nucleus sampling.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topK - Only sample from the top K options for each subsequent token.
+ * Used to remove "long tail" low probability responses.
+ * Recommended for advanced use cases only. You usually only need to use temperature.
+ * @param presencePenalty - Presence penalty setting.
+ * It affects the likelihood of the model to repeat information that is already in the prompt.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param frequencyPenalty - Frequency penalty setting.
+ * It affects the likelihood of the model to repeatedly use the same words or phrases.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param stopSequences - Stop sequences.
+ * If set, the model will stop generating text when one of the stop sequences is generated.
+ * @param seed - The seed (integer) to use for random sampling.
+ * If set and supported by the model, calls will generate deterministic results.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
+ * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
+ * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ *
+ * @returns
+ * A result object for accessing different stream types and additional information.
  */
 export function streamText<
   TOOLS extends ToolSet,
@@ -291,40 +291,40 @@ export function streamText<
 }: CallSettings &
   Prompt & {
     /**
-The language model to use.
+     * The language model to use.
      */
     model: LanguageModel;
 
     /**
-The tools that the model can call. The model needs to support calling tools.
-    */
+     * The tools that the model can call. The model needs to support calling tools.
+     */
     tools?: TOOLS;
 
     /**
-The tool choice strategy. Default: 'auto'.
+     * The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<TOOLS>;
 
     /**
-Condition for stopping the generation when there are tool results in the last step.
-When the condition is an array, any of the conditions can be met to stop the generation.
-
-@default stepCountIs(1)
+     * Condition for stopping the generation when there are tool results in the last step.
+     * When the condition is an array, any of the conditions can be met to stop the generation.
+     *
+     * @default stepCountIs(1)
      */
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
-Optional telemetry configuration (experimental).
+     * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
     providerOptions?: ProviderOptions;
 
     /**
@@ -333,91 +333,91 @@ functionality that can be fully encapsulated in the provider.
     experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
-   Limits the tools that are available for the model to call without
-   changing the tool call and result types in the result.
-        */
+     * Limits the tools that are available for the model to call without
+     * changing the tool call and result types in the result.
+     */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
-Optional specification for parsing structured outputs from the LLM response.
+     * Optional specification for parsing structured outputs from the LLM response.
      */
     output?: OUTPUT;
 
     /**
-Optional specification for parsing structured outputs from the LLM response.
-
-@deprecated Use `output` instead.
- */
+     * Optional specification for parsing structured outputs from the LLM response.
+     *
+     * @deprecated Use `output` instead.
+     */
     experimental_output?: OUTPUT;
 
     /**
-Optional function that you can use to provide different settings for a step.
-
-@param options - The options for the step.
-@param options.steps - The steps that have been executed so far.
-@param options.stepNumber - The number of the step that is being executed.
-@param options.model - The model that is being used.
-
-@returns An object that contains the settings for the step.
-If you return undefined (or for undefined settings), the settings from the outer level will be used.
-    */
+     * Optional function that you can use to provide different settings for a step.
+     *
+     * @param options - The options for the step.
+     * @param options.steps - The steps that have been executed so far.
+     * @param options.stepNumber - The number of the step that is being executed.
+     * @param options.model - The model that is being used.
+     *
+     * @returns An object that contains the settings for the step.
+     * If you return undefined (or for undefined settings), the settings from the outer level will be used.
+     */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
-A function that attempts to repair a tool call that failed to parse.
+     * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
 
     /**
-Optional stream transformations.
-They are applied in the order they are provided.
-The stream transformations must maintain the stream structure for streamText to work correctly.
+     * Optional stream transformations.
+     * They are applied in the order they are provided.
+     * The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
       | StreamTextTransform<TOOLS>
       | Array<StreamTextTransform<TOOLS>>;
 
     /**
-Custom download function to use for URLs.
-
-By default, files are downloaded if the model does not support the URL for the given media type.
+     * Custom download function to use for URLs.
+     *
+     * By default, files are downloaded if the model does not support the URL for the given media type.
      */
     experimental_download?: DownloadFunction | undefined;
 
     /**
-Whether to include raw chunks from the provider in the stream.
-When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
-This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
-Defaults to false.
+     * Whether to include raw chunks from the provider in the stream.
+     * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+     * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+     * Defaults to false.
      */
     includeRawChunks?: boolean;
 
     /**
-Callback that is called for each chunk of the stream.
-The stream processing will pause until the callback promise is resolved.
+     * Callback that is called for each chunk of the stream.
+     * The stream processing will pause until the callback promise is resolved.
      */
     onChunk?: StreamTextOnChunkCallback<TOOLS>;
 
     /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
+     * Callback that is invoked when an error occurs during streaming.
+     * You can use it to log errors.
+     * The stream processing will pause until the callback promise is resolved.
      */
     onError?: StreamTextOnErrorCallback;
 
     /**
-Callback that is called when the LLM response and all request tool executions
-(for tools that have an `execute` function) are finished.
-
-The usage is the combined usage of all steps.
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     *
+     * The usage is the combined usage of all steps.
      */
     onFinish?: StreamTextOnFinishCallback<TOOLS>;
 
     onAbort?: StreamTextOnAbortCallback<TOOLS>;
 
     /**
-Callback that is called when each step (LLM call) is finished, including intermediate steps.
-    */
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
     onStepFinish?: StreamTextOnStepFinishCallback<TOOLS>;
 
     /**
@@ -430,7 +430,7 @@ Callback that is called when each step (LLM call) is finished, including interme
     experimental_context?: unknown;
 
     /**
-Internal. For test use only. May change without notice.
+     * Internal. For test use only. May change without notice.
      */
     _internal?: {
       now?: () => number;
@@ -1976,12 +1976,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 
   /**
-Split out a new stream from the original stream.
-The original stream is replaced to allow for further splitting,
-since we do not know how many times the stream will be split.
-
-Note: this leads to buffering the stream content on the server.
-However, the LLM results are expected to be small enough to not cause issues.
+   * Split out a new stream from the original stream.
+   * The original stream is replaced to allow for further splitting,
+   * since we do not know how many times the stream will be split.
+   *
+   * Note: this leads to buffering the stream content on the server.
+   * However, the LLM results are expected to be small enough to not cause issues.
    */
   private teeStream() {
     const [stream1, stream2] = this.baseStream.tee();

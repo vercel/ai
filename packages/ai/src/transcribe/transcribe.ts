@@ -17,17 +17,17 @@ import { VERSION } from '../version';
 import { resolveTranscriptionModel } from '../model/resolve-model';
 import { Warning } from '../types';
 /**
-Generates transcripts using a transcription model.
-
-@param model - The transcription model to use.
-@param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated transcript.
+ * Generates transcripts using a transcription model.
+ *
+ * @param model - The transcription model to use.
+ * @param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @returns A result object that contains the generated transcript.
  */
 export async function transcribe({
   model,
