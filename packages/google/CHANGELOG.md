@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.15
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
 ## 3.0.14
 
 ### Patch Changes

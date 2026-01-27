@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.38
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
 ## 3.0.37
 
 ### Patch Changes

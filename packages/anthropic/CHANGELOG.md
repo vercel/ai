@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.26
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
 ## 3.0.25
 
 ### Patch Changes
