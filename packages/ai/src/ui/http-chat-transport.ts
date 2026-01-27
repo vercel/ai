@@ -96,9 +96,9 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   body?: Resolvable<object>;
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**

@@ -3,8 +3,8 @@ import { TranscriptionModelResponseMetadata } from '../types/transcription-model
 import { Warning } from '../types/warning';
 
 /**
-The result of a `transcribe` call.
-It contains the transcript and additional information.
+ * The result of a `transcribe` call.
+ * It contains the transcript and additional information.
  */
 export interface TranscriptionResult {
   /**

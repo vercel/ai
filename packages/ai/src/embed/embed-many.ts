@@ -15,28 +15,28 @@ import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
 
 /**
-Embed several values using an embedding model. The type of the value is defined
-by the embedding model.
-
-`embedMany` automatically splits large requests into smaller chunks if the model
-has a limit on how many embeddings can be generated in a single call.
-
-@param model - The embedding model to use.
-@param values - The values that should be embedded.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
-
-@param experimental_telemetry - Optional telemetry configuration (experimental).
-
-@param providerOptions - Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-
-@returns A result object that contains the embeddings, the value, and additional information.
+ * Embed several values using an embedding model. The type of the value is defined
+ * by the embedding model.
+ *
+ * `embedMany` automatically splits large requests into smaller chunks if the model
+ * has a limit on how many embeddings can be generated in a single call.
+ *
+ * @param model - The embedding model to use.
+ * @param values - The values that should be embedded.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
+ *
+ * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ *
+ * @param providerOptions - Additional provider-specific options. They are passed through
+ * to the provider from the AI SDK and enable provider-specific
+ * functionality that can be fully encapsulated in the provider.
+ *
+ * @returns A result object that contains the embeddings, the value, and additional information.
  */
 export async function embedMany({
   model: modelArg,
@@ -49,31 +49,31 @@ export async function embedMany({
   experimental_telemetry: telemetry,
 }: {
   /**
-The embedding model to use.
-     */
+   * The embedding model to use.
+   */
   model: EmbeddingModel;
 
   /**
-The values that should be embedded.
+   * The values that should be embedded.
    */
   values: Array<string>;
 
   /**
-Maximum number of retries per embedding model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per embedding model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 
   /**
@@ -82,10 +82,10 @@ Only applicable for HTTP-based providers.
   experimental_telemetry?: TelemetrySettings;
 
   /**
-  Additional provider-specific options. They are passed through
-  to the provider from the AI SDK and enable provider-specific
-  functionality that can be fully encapsulated in the provider.
-  */
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
 
   /**

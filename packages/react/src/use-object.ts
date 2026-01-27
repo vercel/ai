@@ -42,24 +42,24 @@ export type Experimental_UseObjectOptions<
   initialValue?: DeepPartial<RESULT>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-Callback that is called when the stream has finished.
-     */
+   * Callback that is called when the stream has finished.
+   */
   onFinish?: (event: {
     /**
-The generated object (typed according to the schema).
-Can be undefined if the final object does not match the schema.
-   */
+     * The generated object (typed according to the schema).
+     * Can be undefined if the final object does not match the schema.
+     */
     object: RESULT | undefined;
 
     /**
-Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
- */
+     * Optional error object. This is e.g. a TypeValidationError when the final object does not match the schema.
+     */
     error: Error | undefined;
   }) => Promise<void> | void;
 
