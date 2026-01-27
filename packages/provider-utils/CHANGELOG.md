@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
 ## 4.0.9
 
 ### Patch Changes

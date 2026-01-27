@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/gateway@3.0.24
+
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
 ## 6.0.50
 
 ### Patch Changes

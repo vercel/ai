@@ -10574,6 +10574,22 @@ describe('streamText', () => {
 
       expect(receivedAbortSignal).toBeDefined();
     });
+
+    it('should clean up step timeout when doStream throws an error', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            throw new Error('Fail immediately');
+          },
+        }),
+        prompt: 'test-input',
+        maxRetries: 0,
+        timeout: { stepMs: 10000 },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+    });
   });
 
   describe('telemetry', () => {
