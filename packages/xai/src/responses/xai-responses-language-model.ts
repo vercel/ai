@@ -237,6 +237,36 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     ];
 
     for (const part of response.output) {
+      if (part.type === 'file_search_call') {
+        const toolName = fileSearchToolName ?? 'file_search';
+
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.id,
+          toolName,
+          input: '',
+          providerExecuted: true,
+        });
+
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.id,
+          toolName,
+          result: {
+            queries: part.queries ?? [],
+            results:
+              part.results?.map(result => ({
+                fileId: result.file_id,
+                filename: result.filename,
+                score: result.score,
+                text: result.text,
+              })) ?? null,
+          },
+        });
+
+        continue;
+      }
+
       if (
         part.type === 'web_search_call' ||
         part.type === 'x_search_call' ||
@@ -245,8 +275,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         part.type === 'view_image_call' ||
         part.type === 'view_x_video_call' ||
         part.type === 'custom_tool_call' ||
-        part.type === 'mcp_call' ||
-        part.type === 'file_search_call'
+        part.type === 'mcp_call'
       ) {
         let toolName = part.name ?? '';
         if (
@@ -267,11 +296,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           toolName = codeExecutionToolName ?? 'code_execution';
         } else if (part.type === 'mcp_call') {
           toolName = mcpToolName ?? part.name ?? 'mcp';
-        } else if (part.type === 'file_search_call') {
-          toolName = fileSearchToolName ?? 'file_search';
         }
 
-        // custom_tool_call uses 'input' field, others use 'arguments'
         const toolInput =
           part.type === 'custom_tool_call'
             ? (part.input ?? '')
@@ -286,25 +312,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           input: toolInput,
           providerExecuted: true,
         });
-
-        // For file_search_call, also emit tool-result with search results
-        if (part.type === 'file_search_call') {
-          content.push({
-            type: 'tool-result',
-            toolCallId: part.id,
-            toolName,
-            result: {
-              queries: part.queries ?? [],
-              results:
-                part.results?.map(result => ({
-                  fileId: result.file_id,
-                  filename: result.filename,
-                  score: result.score,
-                  text: result.text,
-                })) ?? null,
-            },
-          });
-        }
 
         continue;
       }
@@ -629,6 +636,59 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 return;
               }
 
+              if (part.type === 'file_search_call') {
+                const toolName = fileSearchToolName ?? 'file_search';
+
+                if (!seenToolCalls.has(part.id)) {
+                  seenToolCalls.add(part.id);
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: part.id,
+                    toolName,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: part.id,
+                    delta: '',
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: part.id,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId: part.id,
+                    toolName,
+                    input: '',
+                    providerExecuted: true,
+                  });
+                }
+
+                if (event.type === 'response.output_item.done') {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.id,
+                    toolName,
+                    result: {
+                      queries: part.queries ?? [],
+                      results:
+                        part.results?.map(result => ({
+                          fileId: result.file_id,
+                          filename: result.filename,
+                          score: result.score,
+                          text: result.text,
+                        })) ?? null,
+                    },
+                  });
+                }
+
+                return;
+              }
+
               if (
                 part.type === 'web_search_call' ||
                 part.type === 'x_search_call' ||
@@ -637,8 +697,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 part.type === 'view_image_call' ||
                 part.type === 'view_x_video_call' ||
                 part.type === 'custom_tool_call' ||
-                part.type === 'mcp_call' ||
-                part.type === 'file_search_call'
+                part.type === 'mcp_call'
               ) {
                 const webSearchSubTools = [
                   'web_search',
@@ -671,11 +730,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                   toolName = codeExecutionToolName ?? 'code_execution';
                 } else if (part.type === 'mcp_call') {
                   toolName = mcpToolName ?? part.name ?? 'mcp';
-                } else if (part.type === 'file_search_call') {
-                  toolName = fileSearchToolName ?? 'file_search';
                 }
 
-                // custom_tool_call uses 'input' field, others use 'arguments'
                 const toolInput =
                   part.type === 'custom_tool_call'
                     ? (part.input ?? '')
@@ -683,8 +739,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                       ? (part.arguments ?? '')
                       : (part.arguments ?? '');
 
-                // for custom_tool_call, input is only available on 'done' event
-                // for other types, input is available on 'added' event
                 const shouldEmit =
                   part.type === 'custom_tool_call'
                     ? event.type === 'response.output_item.done'
@@ -717,27 +771,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     input: toolInput,
                     providerExecuted: true,
                   });
-                }
-
-                // For file_search_call, emit tool-result when done
-                if (part.type === 'file_search_call') {
-                  if (event.type === 'response.output_item.done') {
-                    controller.enqueue({
-                      type: 'tool-result',
-                      toolCallId: part.id,
-                      toolName,
-                      result: {
-                        queries: part.queries ?? [],
-                        results:
-                          part.results?.map(result => ({
-                            fileId: result.file_id,
-                            filename: result.filename,
-                            score: result.score,
-                            text: result.text,
-                          })) ?? null,
-                      },
-                    });
-                  }
                 }
 
                 return;

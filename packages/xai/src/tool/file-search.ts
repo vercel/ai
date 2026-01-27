@@ -27,7 +27,7 @@ const fileSearchOutputSchema = lazySchema(() =>
           z.object({
             fileId: z.string(),
             filename: z.string(),
-            score: z.number(),
+            score: z.number().min(0).max(1),
             text: z.string(),
           }),
         )
