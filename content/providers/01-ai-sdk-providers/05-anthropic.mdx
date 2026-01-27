@@ -56,6 +56,13 @@ You can use the following optional settings to customize the Anthropic provider 
 
   API key that is being sent using the `x-api-key` header.
   It defaults to the `ANTHROPIC_API_KEY` environment variable.
+  Only one of `apiKey` or `authToken` is required.
+
+- **authToken** _string_
+
+  Auth token that is being sent using the `Authorization: Bearer` header.
+  It defaults to the `ANTHROPIC_AUTH_TOKEN` environment variable.
+  Only one of `apiKey` or `authToken` is required.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -77,6 +84,12 @@ Some models have multi-modal capabilities.
 ```ts
 const model = anthropic('claude-3-haiku-20240307');
 ```
+
+You can also use the following aliases for model creation:
+
+- `anthropic.languageModel('claude-3-haiku-20240307')` - Creates a language model
+- `anthropic.chat('claude-3-haiku-20240307')` - Alias for `languageModel`
+- `anthropic.messages('claude-3-haiku-20240307')` - Alias for `languageModel`
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -317,7 +330,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20240620'),
+  model: anthropic('claude-sonnet-4-5'),
   messages: [
     {
       role: 'user',
@@ -345,7 +358,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,7-9"
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20240620'),
+  model: anthropic('claude-sonnet-4-5'),
   messages: [
     {
       role: 'system',
@@ -444,7 +457,7 @@ For more on prompt caching with Anthropic, see [Anthropic's Cache Control docume
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
 ```ts
-const bashTool = anthropic.tools.bash_20241022({
+const bashTool = anthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => {
     // Implement your bash command execution logic here
     // Return the result of the command execution
@@ -457,7 +470,10 @@ Parameters:
 - `command` (string): The bash command to run. Required unless the tool is being restarted.
 - `restart` (boolean, optional): Specifying true will restart this tool.
 
-<Note>Only certain Claude versions are supported.</Note>
+<Note>
+  Two versions are available: `bash_20250124` (recommended) and `bash_20241022`.
+  Only certain Claude versions are supported.
+</Note>
 
 ### Memory Tool
 
@@ -491,8 +507,14 @@ const tools = {
 ```
 
 <Note>
-  Different models support different versions of the tool. For Claude Sonnet 3.5
-  and 3.7 you need to use older tool versions.
+  Different models support different versions of the tool:
+
+- `textEditor_20250728` - For Claude Sonnet 4, Opus 4, and Opus 4.1 (recommended)
+- `textEditor_20250124` - For Claude Sonnet 3.7
+- `textEditor_20241022` - For Claude Sonnet 3.5
+
+Note: `textEditor_20250429` is deprecated. Use `textEditor_20250728` instead.
+
 </Note>
 
 Parameters:
@@ -848,6 +870,12 @@ const result = await generateText({
 });
 ```
 
+<Note>
+  Two versions are available: `codeExecution_20250825` (recommended, supports
+  Python and Bash with enhanced file operations) and `codeExecution_20250522`
+  (supports Bash only).
+</Note>
+
 #### Error Handling
 
 Code execution errors are handled differently depending on whether you're using streaming or non-streaming:
@@ -1034,14 +1062,14 @@ const result = await generateText({
 
 ### PDF support
 
-Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
+Anthropic Claude models support reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
 Option 1: URL-based PDF document
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-5'),
   messages: [
     {
       role: 'user',
@@ -1067,7 +1095,7 @@ Option 2: Base64-encoded PDF document
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: anthropic('claude-sonnet-4-5'),
   messages: [
     {
       role: 'user',
