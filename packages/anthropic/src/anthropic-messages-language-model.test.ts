@@ -940,7 +940,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "outputTokens": {
             "reasoning": undefined,
-            "text": undefined,
+            "text": 5,
             "total": 5,
           },
           "raw": {
@@ -1515,7 +1515,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": undefined,
+              "text": 50,
               "total": 50,
             },
             "raw": {
@@ -1677,7 +1677,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": undefined,
+              "text": 50,
               "total": 50,
             },
             "raw": {
@@ -4316,7 +4316,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 47,
                   "total": 47,
                 },
                 "raw": {
@@ -4465,7 +4465,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 47,
                   "total": 47,
                 },
                 "raw": {
@@ -4659,7 +4659,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 28,
                     "total": 28,
                   },
                   "raw": {
@@ -4854,7 +4854,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -4995,7 +4995,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5093,7 +5093,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5177,7 +5177,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5329,7 +5329,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 65,
                 "total": 65,
               },
               "raw": {
@@ -5588,7 +5588,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5683,7 +5683,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": undefined,
+                "text": 227,
                 "total": 227,
               },
               "raw": {
@@ -5798,7 +5798,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -5863,7 +5863,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -6115,7 +6115,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": undefined,
+                  "text": 227,
                   "total": 227,
                 },
                 "raw": {
@@ -6324,7 +6324,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 65,
                     "total": 65,
                   },
                   "raw": {
@@ -6439,7 +6439,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": undefined,
+                    "text": 48,
                     "total": 48,
                   },
                   "raw": {
@@ -7363,6 +7363,264 @@ describe('AnthropicMessagesLanguageModel', () => {
         model: 'claude-3-haiku-20240307',
       });
       expect(requestBody).not.toHaveProperty('custom_field');
+    });
+  });
+
+  describe('custom provider name support', () => {
+    function createCustomModel(providerName: string) {
+      return createAnthropic({
+        apiKey: 'test-api-key',
+        name: providerName,
+        generateId: mockId({ prefix: 'id' }),
+      })('claude-3-haiku-20240307');
+    }
+
+    function prepareCustomJsonResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_custom_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+          },
+        },
+      };
+    }
+
+    function prepareCustomStreamResponse() {
+      const chunks = [
+        `{"type":"message_start","message":{"id":"msg_custom_stream","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":0}}}`,
+        `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+        `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}`,
+        `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" World!"}}`,
+        `{"type":"content_block_stop","index":0}`,
+        `{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":20}}`,
+        `{"type":"message_stop"}`,
+      ];
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [...chunks.map(c => `data: ${c}\n\n`), 'data: [DONE]\n\n'],
+      };
+    }
+
+    describe('doGenerate', () => {
+      // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        // Only 'anthropic' key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // Case 2: providerOptions with custom key → both 'anthropic' and custom key in providerMetadata
+      it('should include both "anthropic" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        // Both 'anthropic' and custom key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(result.providerMetadata).toHaveProperty('my-custom-anthropic');
+      });
+
+      // Fallback: no providerOptions → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Only 'anthropic' key should be in providerMetadata (default)
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // providerOptions parsing tests
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should accept providerOptions with canonical "anthropic" key for backward compatibility', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+    });
+
+    describe('doStream', () => {
+      // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'anthropic' key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // Case 2: providerOptions with custom key → both 'anthropic' and custom key in providerMetadata
+      it('should include both "anthropic" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Both 'anthropic' and custom key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(finishChunk?.providerMetadata).toHaveProperty(
+          'my-custom-anthropic',
+        );
+      });
+
+      // Fallback: no providerOptions → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'anthropic' key should be in providerMetadata (default)
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
     });
   });
 });
