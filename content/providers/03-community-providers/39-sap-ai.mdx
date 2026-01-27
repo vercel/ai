@@ -20,7 +20,7 @@ Two package versions are available depending on your AI SDK version:
 | `@jerome-benoit/sap-ai-provider` | 5.x & 6.x | V3 (recommended) | [npm](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider) |
 | `@jerome-benoit/sap-ai-provider-v2` | 5.x only | V2 | [npm](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider-v2) |
 
-> Use the V3 package (`@jerome-benoit/sap-ai-provider`) for new projects. The V2 package is maintained for compatibility with AI SDK 5.x projects that require Language Model V2 specification.
+> Use the V3 package (`@jerome-benoit/sap-ai-provider`) for new projects (requires v4.3.0+). The V2 package is maintained for compatibility with AI SDK 5.x projects that require Language Model V2 specification.
 
 ## Features
 
@@ -57,10 +57,10 @@ Two package versions are available depending on your AI SDK version:
 ```typescript
 import { createSAPAIProvider } from '@jerome-benoit/sap-ai-provider';
 
-// Authentication via AICORE_SERVICE_KEY environment variable
+// Create provider with automatic authentication via AICORE_SERVICE_KEY environment variable
 const sapai = createSAPAIProvider();
 
-// Or use the default instance
+// Or use the default singleton instance (no custom configuration)
 import { sapai } from '@jerome-benoit/sap-ai-provider';
 ```
 
@@ -69,7 +69,7 @@ import { sapai } from '@jerome-benoit/sap-ai-provider';
 ```typescript
 const gpt4Model = sapai('gpt-4o');
 const claudeModel = sapai('anthropic--claude-3.5-sonnet');
-const geminiModel = sapai('gemini-2.5-flash');
+const geminiModel = sapai('gemini-2.0-flash');
 const novaModel = sapai('amazon--nova-pro');
 ```
 
@@ -87,6 +87,8 @@ const { text } = await generateText({
   model: sapai('gpt-4o'),
   prompt: 'What are the benefits of enterprise AI platforms?',
 });
+
+console.log(text);
 ```
 
 ### streamText
@@ -109,6 +111,8 @@ for await (const delta of result.textStream) {
 
 ### Embeddings
 
+The provider supports both `embedding()` and the standard `embeddingModel()` methods. Embedding model names follow SAP AI Core conventions (e.g., `text-embedding-ada-002`, `text-embedding-3-small`).
+
 ```typescript
 import { createSAPAIProvider } from '@jerome-benoit/sap-ai-provider';
 import { embed, embedMany } from 'ai';
@@ -120,10 +124,14 @@ const { embedding } = await embed({
   value: 'What is machine learning?',
 });
 
+console.log('Embedding dimensions:', embedding.length);
+
 const { embeddings } = await embedMany({
   model: sapai.embedding('text-embedding-3-small'),
   values: ['Hello world', 'AI is amazing', 'Vector search'],
 });
+
+console.log('Generated', embeddings.length, 'embeddings');
 ```
 
 ### Tool Calling
@@ -182,6 +190,7 @@ AICORE_SERVICE_KEY='{"serviceurls":{"AI_API_URL":"https://..."},"clientid":"..."
 ## Additional Resources
 
 - [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider) - Full documentation, API reference, and examples
+- [SAP AI Provider on NPM](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider) - Package information and version history
 - [SAP AI Provider V2 Repository](https://github.com/jerome-benoit/sap-ai-provider-v2) - V2 version for AI SDK 5.x
 - [SAP AI Core Documentation](https://help.sap.com/docs/ai-core)
 - [SAP BTP Documentation](https://help.sap.com/docs/btp)
