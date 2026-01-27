@@ -15,7 +15,7 @@ export class NoImageGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   /**
-The response metadata for each call.
+   * The response metadata for each call.
    */
   readonly responses: Array<ImageModelResponseMetadata> | undefined;
 
