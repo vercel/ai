@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.20",
-    "ai": "6.0.54",
+    "ai": "6.0.55",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },
