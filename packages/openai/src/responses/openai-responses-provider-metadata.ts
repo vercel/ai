@@ -1,4 +1,7 @@
-import { openaiResponsesChunkSchema } from './openai-responses-api';
+import {
+  openaiResponsesChunkSchema,
+  OpenAIResponsesLogprobs,
+} from './openai-responses-api';
 import { InferSchema } from '@ai-sdk/provider-utils';
 
 type OpenaiResponsesChunk = InferSchema<typeof openaiResponsesChunkSchema>;
@@ -7,6 +10,25 @@ type ResponsesOutputTextAnnotationProviderMetadata = Extract<
   OpenaiResponsesChunk,
   { type: 'response.output_text.annotation.added' }
 >['annotation'];
+
+export type ResponsesProviderMetadata = {
+  responseId: string | null | undefined;
+  logprobs?: Array<OpenAIResponsesLogprobs>;
+  serviceTier?: string;
+};
+
+export type ResponsesReasoningProviderMetadata = {
+  itemId: string;
+  reasoningEncryptedContent?: string | null;
+};
+
+export type OpenaiResponsesReasoningProviderMetadata = {
+  openai: ResponsesReasoningProviderMetadata;
+};
+
+export type OpenaiResponsesProviderMetadata = {
+  openai: ResponsesProviderMetadata;
+};
 
 export type ResponsesTextProviderMetadata = {
   itemId: string;

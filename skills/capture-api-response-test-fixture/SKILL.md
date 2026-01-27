@@ -1,6 +1,8 @@
 ---
 name: capture-api-response-test-fixture
 description: Capture API response test fixture.
+metadata:
+  internal: true
 ---
 
 ### API Response Test Fixtures
