@@ -1,0 +1,185 @@
+---
+title: ByteDance
+description: Learn how to use ByteDance Seedance video models with the AI SDK.
+---
+
+# ByteDance Provider
+
+[ByteDance](https://www.bytedance.com/) offers Seedance, a state-of-the-art video generation model through the BytePlus ModelArk platform. Seedance provides high-quality text-to-video and image-to-video generation capabilities.
+
+## Setup
+
+The ByteDance provider is available via the `@ai-sdk/bytedance` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/bytedance" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/bytedance" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/bytedance" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/bytedance" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `byteDance` from `@ai-sdk/bytedance`:
+
+```ts
+import { byteDance } from '@ai-sdk/bytedance';
+```
+
+If you need a customized setup, you can import `createByteDance` and create a provider instance with your settings:
+
+```ts
+import { createByteDance } from '@ai-sdk/bytedance';
+
+const byteDance = createByteDance({
+  apiKey: 'your-api-key', // optional, defaults to ARK_API_KEY environment variable
+  baseURL: 'custom-url', // optional
+  headers: {
+    /* custom headers */
+  }, // optional
+});
+```
+
+You can use the following optional settings to customize the ByteDance provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://ark.ap-southeast.bytepluses.com/api/v3`.
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `BYTEDANCE_ARK_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Video Models
+
+You can create ByteDance video models using the `.video()` factory method.
+For more on video generation with the AI SDK see [experimental_generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+### Basic Usage
+
+```ts
+import { byteDance } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: byteDance.video('your-endpoint-id'),
+  prompt: 'A cat playing with a ball of yarn',
+  aspectRatio: '16:9',
+  duration: 5,
+});
+
+console.log(video.url);
+```
+
+### Image to Video
+
+You can generate videos from an input image by passing a file:
+
+```ts
+import { byteDance } from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: byteDance.video('your-endpoint-id'),
+  prompt: 'Make the person wave hello',
+  files: [
+    {
+      type: 'url',
+      url: 'https://example.com/image.jpg',
+    },
+  ],
+});
+```
+
+### Video Model Settings
+
+You can customize the generation behavior with optional settings:
+
+```ts
+const { video } = await generateVideo({
+  model: byteDance.video('your-endpoint-id'),
+  prompt: 'A serene mountain landscape',
+  aspectRatio: '16:9',
+  duration: 5,
+  seed: 12345,
+  providerOptions: {
+    bytedance: {
+      watermark: false,
+      generateAudio: false,
+      pollIntervalMs: 5000,
+      pollTimeoutMs: 300000,
+    },
+  },
+});
+```
+
+Since ByteDance processes videos through an asynchronous queue system, these settings allow you to tune the polling behavior:
+
+- **watermark** _boolean_
+
+  Whether to add a watermark to the generated video. Defaults to false.
+
+- **generateAudio** _boolean_
+
+  Whether to generate audio for the video. Defaults to false.
+
+- **pollIntervalMs** _number_
+
+  Control how frequently the API is checked for completed videos while they are
+  being processed. Defaults to 3000ms.
+
+- **pollTimeoutMs** _number_
+
+  Maximum time to wait for video generation to complete before timing out.
+  Defaults to 300000ms (5 minutes).
+
+### Model Capabilities
+
+ByteDance offers the Seedance family of video generation models. Models are accessed via endpoint IDs provided by the BytePlus ModelArk platform.
+
+| Model                  | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| Seedance 1.5 Pro       | Latest high-quality video generation model               |
+| Seedance 1.0 Pro       | High-quality video generation                            |
+| Seedance 1.0 Pro Fast  | Faster generation optimized for speed                    |
+| Seedance 1.0 Lite T2V  | Lightweight model for text-to-video                      |
+| Seedance 1.0 Lite I2V  | Lightweight model for image-to-video                     |
+
+Supported aspect ratios:
+
+- 16:9
+- 9:16
+- 1:1
+
+Supported durations:
+
+- 5 seconds
+- 10 seconds
+
+Key features of Seedance models include:
+
+- High-quality video generation from text prompts
+- Image-to-video transformation
+- Multiple aspect ratio support
+- Configurable video duration
