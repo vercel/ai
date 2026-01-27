@@ -9,7 +9,7 @@ It contains the audio data and additional information.
  */
 export interface SpeechResult {
   /**
-   * The audio data as a base64 encoded string or binary data.
+   * The generated audio file with the audio data.
    */
   readonly audio: GeneratedAudioFile;
 

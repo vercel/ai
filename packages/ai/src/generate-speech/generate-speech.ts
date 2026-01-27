@@ -27,6 +27,7 @@ Generates speech audio using a speech model.
 @param outputFormat - The output format to use for speech generation e.g. "mp3", "wav", etc.
 @param instructions - Instructions for the speech generation e.g. "Speak in a slow and steady tone".
 @param speed - The speed of the speech generation.
+@param language - The language for speech generation (ISO 639-1 code e.g. "en", "es", "fr") or "auto" for automatic detection.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
