@@ -1,10 +1,10 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { streamText, stepCountIs } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';
 
 run(async () => {
-  const result = await generateText({
+  const result = streamText({
     model: anthropic('claude-opus-4-5-20251101'),
     tools: {
       computer: anthropic.tools.computer_20251124({
@@ -63,7 +63,19 @@ run(async () => {
     stopWhen: stepCountIs(5),
   });
 
-  console.log(result.text);
-  console.log(result.finishReason);
-  console.log(JSON.stringify(result.toolCalls, null, 2));
+  for await (const part of result.fullStream) {
+    switch (part.type) {
+      case 'text-delta':
+        process.stdout.write(part.textDelta);
+        break;
+      case 'tool-call':
+        console.log('\nTool call:', part.toolName, part.args);
+        break;
+      case 'tool-result':
+        console.log('\nTool result:', part.toolName);
+        break;
+    }
+  }
+
+  console.log('\n\nFinish reason:', await result.finishReason);
 });
