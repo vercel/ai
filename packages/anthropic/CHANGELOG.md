@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.25
+
+### Patch Changes
+
+- 0bb9bcd: feat(provider/anthropic): add computer_20251124 tool for claude opus 4.5
+
 ## 3.0.24
 
 ### Patch Changes
