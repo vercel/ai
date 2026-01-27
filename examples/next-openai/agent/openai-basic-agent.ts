@@ -1,20 +1,11 @@
-import {
-  openai,
-  createOpenAI,
-  OpenAIResponsesProviderOptions,
-} from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
-const customProvider = createOpenAI({
-  name: 'my-custom-openai',
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export const openaiBasicAgent = new ToolLoopAgent({
-  model: customProvider('gpt-5.1'),
+  model: openai('gpt-5-mini'),
   providerOptions: {
-    'my-custom-openai': {
-      reasoningEffort: 'high',
+    openai: {
+      reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
     } satisfies OpenAIResponsesProviderOptions,

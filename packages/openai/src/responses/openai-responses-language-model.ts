@@ -115,16 +115,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
-  /**
-   * Extracts the dynamic provider name from the config.provider string.
-   * e.g., 'my-custom-openai.responses' -> 'my-custom-openai'
-   */
-  private get providerOptionsName(): string {
-    const provider = this.config.provider;
-    const dotIndex = provider.indexOf('.');
-    return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
-  }
-
   private async getArgs({
     maxOutputTokens,
     temperature,
@@ -163,41 +153,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
-    const providerOptionsName = this.providerOptionsName;
-
-    const isAzureProvider = this.config.provider.includes('azure');
-
-    // Parse provider options from all possible keys and merge them
-    const canonicalOptions = await parseProviderOptions({
-      provider: 'openai',
+    const providerOptionsName = this.config.provider.includes('azure')
+      ? 'azure'
+      : 'openai';
+    let openaiOptions = await parseProviderOptions({
+      provider: providerOptionsName,
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
 
-    const azureOptions = await parseProviderOptions({
-      provider: 'azure',
-      providerOptions,
-      schema: openaiResponsesProviderOptionsSchema,
-    });
-
-    const customProviderOptions =
-      providerOptionsName !== 'openai' && providerOptionsName !== 'azure'
-        ? await parseProviderOptions({
-            provider: providerOptionsName,
-            providerOptions,
-            schema: openaiResponsesProviderOptionsSchema,
-          })
-        : null;
-
-    const usedCustomProviderKey = customProviderOptions != null;
-
-    // Merge all options
-    const openaiOptions = Object.assign(
-      {},
-      canonicalOptions ?? {},
-      azureOptions ?? {},
-      customProviderOptions ?? {},
-    );
+    if (openaiOptions == null && providerOptionsName !== 'openai') {
+      openaiOptions = await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiResponsesProviderOptionsSchema,
+      });
+    }
 
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
@@ -457,8 +428,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       store,
       toolNameMapping,
       providerOptionsName,
-      isAzureProvider,
-      usedCustomProviderKey,
     };
   }
 
@@ -471,8 +440,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       webSearchToolName,
       toolNameMapping,
       providerOptionsName,
-      isAzureProvider,
-      usedCustomProviderKey,
     } = await this.getArgs(options);
     const url = this.config.url({
       path: '/responses',
@@ -898,22 +865,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const metadataValue = {
-      responseId: response.id,
-      ...(logprobs.length > 0 ? { logprobs } : {}),
-      ...(typeof response.service_tier === 'string'
-        ? { serviceTier: response.service_tier }
-        : {}),
-    } satisfies ResponsesProviderMetadata;
-
-    // Determine which key(s) to use in providerMetadata:
-    // - Azure providers always use 'azure' key
-    // - Non-Azure providers use 'openai' key, plus custom key if it was used
-    const providerMetadata: SharedV3ProviderMetadata = isAzureProvider
-      ? { azure: metadataValue }
-      : usedCustomProviderKey
-        ? { openai: metadataValue, [providerOptionsName]: metadataValue }
-        : { openai: metadataValue };
+    const providerMetadata: SharedV3ProviderMetadata = {
+      [providerOptionsName]: {
+        responseId: response.id,
+        ...(logprobs.length > 0 ? { logprobs } : {}),
+        ...(typeof response.service_tier === 'string'
+          ? { serviceTier: response.service_tier }
+          : {}),
+      } satisfies ResponsesProviderMetadata,
+    };
 
     const usage = response.usage!; // defined when there is no error
 
@@ -950,8 +910,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       toolNameMapping,
       store,
       providerOptionsName,
-      isAzureProvider,
-      usedCustomProviderKey,
     } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -1828,20 +1786,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            const metadataValue = {
-              responseId,
-              ...(logprobs.length > 0 ? { logprobs } : {}),
-              ...(serviceTier !== undefined ? { serviceTier } : {}),
-            } satisfies ResponsesProviderMetadata;
-
-            const providerMetadata: SharedV3ProviderMetadata = isAzureProvider
-              ? { azure: metadataValue }
-              : usedCustomProviderKey
-                ? {
-                    openai: metadataValue,
-                    [providerOptionsName]: metadataValue,
-                  }
-                : { openai: metadataValue };
+            const providerMetadata: SharedV3ProviderMetadata = {
+              [providerOptionsName]: {
+                responseId: responseId,
+                ...(logprobs.length > 0 ? { logprobs } : {}),
+                ...(serviceTier !== undefined ? { serviceTier } : {}),
+              } satisfies ResponsesProviderMetadata,
+            };
 
             controller.enqueue({
               type: 'finish',
