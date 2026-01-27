@@ -66,10 +66,10 @@ run(async () => {
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-delta':
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       case 'tool-call':
-        console.log('\nTool call:', part.toolName, part.args);
+        console.log('\nTool call:', part.toolName, part.input);
         break;
       case 'tool-result':
         console.log('\nTool result:', part.toolName);
