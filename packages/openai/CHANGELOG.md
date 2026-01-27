@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.21
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
 ## 3.0.20
 
 ### Patch Changes
