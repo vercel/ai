@@ -24,7 +24,7 @@ export function convertAnthropicMessagesUsage(
     },
     outputTokens: {
       total: outputTokens,
-      text: undefined,
+      text: outputTokens,
       reasoning: undefined,
     },
     raw: usage,
