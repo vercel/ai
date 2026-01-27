@@ -131,7 +131,7 @@ jobs:
             
             # Move all files from ai-functions to ai-core using git mv
             for file in $(find examples/ai-functions -type f); do
-              target="${file/examples\/ai-functions/examples\/ai-core}"
+              target="${file/examples\/ai-functions/examples/ai-core}"
               mkdir -p "$(dirname "$target")"
               git mv "$file" "$target"
             done
