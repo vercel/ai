@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.27
+
+### Patch Changes
+
+- 572ea12: feat(anthropic): allow custom/dynamic key for providerOptions
+
 ## 3.0.26
 
 ### Patch Changes
