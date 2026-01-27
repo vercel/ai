@@ -6,9 +6,9 @@ import { EmbeddingModelMiddleware } from '../types';
 import { asArray } from '../util/as-array';
 
 /**
- * Wraps a EmbeddingModelV3 instance with middleware functionality.
+ * Wraps an EmbeddingModelV3 instance with middleware functionality.
  * This function allows you to apply middleware to transform parameters,
- * wrap embed operations of a language model.
+ * wrap embed operations of an embedding model.
  *
  * @param options - Configuration options for wrapping the embedding model.
  * @param options.model - The original EmbeddingModelV3 instance to be wrapped.

@@ -1,5 +1,33 @@
 # @ai-sdk/xai
 
+## 3.0.38
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai-compatible@2.0.21
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [a1a0175]
+  - @ai-sdk/openai-compatible@2.0.20
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [6900916]
+  - @ai-sdk/openai-compatible@2.0.19
+
 ## 3.0.34
 
 ### Patch Changes

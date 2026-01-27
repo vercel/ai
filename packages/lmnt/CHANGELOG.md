@@ -1,5 +1,12 @@
 # @ai-sdk/lmnt
 
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 2.0.11
 
 ### Patch Changes

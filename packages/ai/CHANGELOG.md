@@ -1,5 +1,44 @@
 # ai
 
+## 6.0.55
+
+### Patch Changes
+
+- 43a74df: chore(ai): add skill to README
+
+## 6.0.54
+
+### Patch Changes
+
+- 2f8ac87: docs(ai): fix incorrect and outdated jsdoc
+
+## 6.0.53
+
+### Patch Changes
+
+- 7ee3f10: chore: updated docs
+
+## 6.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/gateway@3.0.24
+
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
+## 6.0.50
+
+### Patch Changes
+
+- Updated dependencies [cbf1704]
+  - @ai-sdk/gateway@3.0.23
+
 ## 6.0.49
 
 ### Patch Changes

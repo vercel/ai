@@ -1,5 +1,33 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [2c70b90]
+  - @ai-sdk/anthropic@3.0.26
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [0bb9bcd]
+  - @ai-sdk/anthropic@3.0.25
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/anthropic@3.0.24
+
+## 4.0.31
+
+### Patch Changes
+
+- 151c4aa: Add support for Amazon Nova embedding models by sending the required `taskType` and `singleEmbeddingParams` payload and parsing Nova-style responses.
+
 ## 4.0.30
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @ai-sdk/gateway
 
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.23
+
+### Patch Changes
+
+- cbf1704: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.22
 
 ### Patch Changes

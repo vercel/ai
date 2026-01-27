@@ -25,11 +25,12 @@ It is a function that helps you read the streamable value from the client that w
 ```ts filename="app/actions.ts"
 async function generate() {
   'use server';
-  const streamable = createStreamableValue();
+  const streamable = createStreamableValue('');
 
-  streamable.update(1);
-  streamable.update(2);
-  streamable.done(3);
+  streamable.append('Hello');
+  streamable.append(' ');
+  streamable.append('World');
+  streamable.done();
 
   return streamable.value;
 }
@@ -47,8 +48,8 @@ export default function Page() {
         onClick={async () => {
           const stream = await generate();
 
-          for await (const delta of readStreamableValue(stream)) {
-            setGeneration(generation => generation + delta);
+          for await (const value of readStreamableValue(stream)) {
+            setGeneration(value);
           }
         }}
       >
