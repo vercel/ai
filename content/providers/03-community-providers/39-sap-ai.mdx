@@ -9,7 +9,18 @@ description: SAP AI Core Provider for the AI SDK
 
 ## Important Note
 
-> **Third-Party Provider**: This provider (`@jerome-benoit/sap-ai-provider`) is developed by jerome-benoit, not SAP SE. It uses the official SAP AI SDK but is not an official SAP product.
+> **Third-Party Provider**: This provider is developed by jerome-benoit, not SAP SE. It uses the official SAP AI SDK but is not an official SAP product.
+
+## Package Versions
+
+Two package versions are available depending on your AI SDK version:
+
+| Package | AI SDK | Language Model Spec | NPM |
+|---------|--------|---------------------|-----|
+| `@jerome-benoit/sap-ai-provider` | 5.x & 6.x | V3 (recommended) | [npm](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider) |
+| `@jerome-benoit/sap-ai-provider-v2` | 5.x only | V2 | [npm](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider-v2) |
+
+> Use the V3 package (`@jerome-benoit/sap-ai-provider`) for new projects. The V2 package is maintained for compatibility with AI SDK 5.x projects that require Language Model V2 specification.
 
 ## Features
 
@@ -20,6 +31,8 @@ description: SAP AI Core Provider for the AI SDK
 - **Multi-modal Input**: Text and image inputs
 - **Data Masking**: Built-in SAP DPI integration for privacy
 - **Content Filtering**: Azure Content Safety and Llama Guard support
+- **Document Grounding**: RAG with vector databases
+- **Translation**: Automatic input/output translation
 - **Automatic Authentication**: Via SAP AI SDK credentials
 
 ## Setup
@@ -59,35 +72,6 @@ const claudeModel = sapai('anthropic--claude-3.5-sonnet');
 const geminiModel = sapai('gemini-2.5-flash');
 const novaModel = sapai('amazon--nova-pro');
 ```
-
-## Supported Models
-
-### Azure OpenAI
-
-- `gpt-4o`, `gpt-4o-mini`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`
-- `o1`, `o3`, `o3-mini`, `o4-mini`
-
-### Anthropic (AWS Bedrock)
-
-- `anthropic--claude-3-haiku`, `anthropic--claude-3-sonnet`, `anthropic--claude-3-opus`
-- `anthropic--claude-3.5-sonnet`, `anthropic--claude-3.7-sonnet`
-- `anthropic--claude-4-sonnet`, `anthropic--claude-4-opus`
-
-### Google Vertex AI
-
-- `gemini-2.0-flash`, `gemini-2.0-flash-lite`
-- `gemini-2.5-flash`, `gemini-2.5-pro`
-
-### Amazon Nova (AWS Bedrock)
-
-- `amazon--nova-premier`, `amazon--nova-pro`, `amazon--nova-lite`, `amazon--nova-micro`
-
-### Open Source
-
-- `mistralai--mistral-large-instruct`, `meta--llama3.1-70b-instruct`
-- `cohere--command-a-reasoning`
-
-> Model availability depends on your SAP AI Core tenant configuration.
 
 ## Examples
 
@@ -165,50 +149,6 @@ const result = await generateText({
 });
 ```
 
-### Data Masking (SAP DPI)
-
-```typescript
-import {
-  createSAPAIProvider,
-  buildDpiMaskingProvider,
-} from '@jerome-benoit/sap-ai-provider';
-
-const dpiConfig = buildDpiMaskingProvider({
-  method: 'anonymization',
-  entities: ['profile-email', 'profile-person', 'profile-phone'],
-});
-
-const sapai = createSAPAIProvider({
-  defaultSettings: {
-    masking: { masking_providers: [dpiConfig] },
-  },
-});
-```
-
-### Content Filtering
-
-```typescript
-import {
-  createSAPAIProvider,
-  buildAzureContentSafetyFilter,
-} from '@jerome-benoit/sap-ai-provider';
-
-const sapai = createSAPAIProvider({
-  defaultSettings: {
-    filtering: {
-      input: {
-        filters: [
-          buildAzureContentSafetyFilter('input', {
-            hate: 'ALLOW_SAFE',
-            violence: 'ALLOW_SAFE_LOW_MEDIUM',
-          }),
-        ],
-      },
-    },
-  },
-});
-```
-
 ## Configuration
 
 ```typescript
@@ -241,6 +181,7 @@ AICORE_SERVICE_KEY='{"serviceurls":{"AI_API_URL":"https://..."},"clientid":"..."
 
 ## Additional Resources
 
-- [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider)
+- [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider) - Full documentation, API reference, and examples
+- [SAP AI Provider V2 Repository](https://github.com/jerome-benoit/sap-ai-provider-v2) - V2 version for AI SDK 5.x
 - [SAP AI Core Documentation](https://help.sap.com/docs/ai-core)
 - [SAP BTP Documentation](https://help.sap.com/docs/btp)
