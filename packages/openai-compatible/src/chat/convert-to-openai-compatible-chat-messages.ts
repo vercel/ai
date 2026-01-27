@@ -75,6 +75,7 @@ export function convertToOpenAICompatibleChatMessages(
 
       case 'assistant': {
         let text = '';
+        let reasoning = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -86,6 +87,10 @@ export function convertToOpenAICompatibleChatMessages(
           switch (part.type) {
             case 'text': {
               text += part.text;
+              break;
+            }
+            case 'reasoning': {
+              reasoning += part.text;
               break;
             }
             case 'tool-call': {
@@ -106,6 +111,7 @@ export function convertToOpenAICompatibleChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
+          ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });
