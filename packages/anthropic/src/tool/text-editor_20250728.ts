@@ -18,6 +18,7 @@ const textEditor_20250728InputSchema = lazySchema(() =>
       file_text: z.string().optional(),
       insert_line: z.number().int().optional(),
       new_str: z.string().optional(),
+      insert_text: z.string().optional(),
       old_str: z.string().optional(),
       view_range: z.array(z.number().int()).optional(),
     }),
@@ -51,6 +52,12 @@ const factory = createProviderToolFactory<
      * Optional parameter of `str_replace` command containing the new string (if not given, no string will be added). Required parameter of `insert` command containing the string to insert.
      */
     new_str?: string;
+
+    /**
+     * Alternative parameter name for `insert` command containing the string to insert.
+     * Claude models output this field instead of `new_str` for insert operations.
+     */
+    insert_text?: string;
 
     /**
      * Required parameter of `str_replace` command containing the string in `path` to replace.
