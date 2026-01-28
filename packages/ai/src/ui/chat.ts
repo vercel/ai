@@ -50,12 +50,12 @@ export type InferUIDataParts<T extends UIDataPartSchemas> = {
 
 export type ChatRequestOptions = {
   /**
-  Additional headers that should be to be passed to the API endpoint.
+   * Additional headers that should be to be passed to the API endpoint.
    */
   headers?: Record<string, string> | Headers;
 
   /**
-  Additional body JSON properties that should be sent to the API endpoint.
+   * Additional body JSON properties that should be sent to the API endpoint.
    */
   body?: object; // TODO JSONStringifyable
 
@@ -160,12 +160,12 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   onError?: ChatOnErrorCallback;
 
   /**
-  Optional callback function that is invoked when a tool call is received.
-  Intended for automatic client-side tool execution.
-
-  You can optionally return a result for the tool call,
-  either synchronously or asynchronously.
-     */
+   * Optional callback function that is invoked when a tool call is received.
+   * Intended for automatic client-side tool execution.
+   *
+   * You can optionally return a result for the tool call,
+   * either synchronously or asynchronously.
+   */
   onToolCall?: ChatOnToolCallCallback<UI_MESSAGE>;
 
   /**

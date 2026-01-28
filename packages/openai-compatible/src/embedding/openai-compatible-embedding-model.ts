@@ -23,13 +23,13 @@ import {
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
-Override the maximum number of embeddings per call.
+   * Override the maximum number of embeddings per call.
    */
   maxEmbeddingsPerCall?: number;
 
   /**
-Override the parallelism of embedding calls.
-  */
+   * Override the parallelism of embedding calls.
+   */
   supportsParallelCalls?: boolean;
 
   provider: string;

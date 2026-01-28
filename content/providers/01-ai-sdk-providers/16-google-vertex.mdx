@@ -287,6 +287,11 @@ await generateText({
 
 The following optional provider options are available for Google Vertex models:
 
+- **cachedContent** _string_
+
+  Optional. The name of the cached content used as context to serve the prediction.
+  Format: projects/\{project\}/locations/\{location\}/cachedContents/\{cachedContent\}
+
 - **structuredOutputs** _boolean_
 
   Optional. Enable structured output. Default is true.
@@ -545,6 +550,109 @@ const { text } = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Cached Content
+
+Google Vertex AI supports both explicit and implicit caching to help reduce costs on repetitive content.
+
+#### Implicit Caching
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+// Structure prompts with consistent content at the beginning
+const baseContext =
+  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
+
+const { text: veggieLasagna } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
+});
+
+// Second request with same prefix - eligible for cache hit
+const { text: meatLasagna, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
+});
+
+// Check cached token count in usage metadata
+console.log('Cached tokens:', providerMetadata.google);
+// e.g.
+// {
+//   groundingMetadata: null,
+//   safetyRatings: null,
+//   usageMetadata: {
+//     cachedContentTokenCount: 2027,
+//     thoughtsTokenCount: 702,
+//     promptTokenCount: 2152,
+//     candidatesTokenCount: 710,
+//     totalTokenCount: 3564
+//   }
+// }
+```
+
+#### Explicit Caching
+
+You can use explicit caching with Gemini models. See the [Vertex AI context caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview) to check if caching is supported for your model.
+
+First, create a cache using the Google GenAI SDK with Vertex mode enabled:
+
+```ts
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_VERTEX_PROJECT,
+  location: process.env.GOOGLE_VERTEX_LOCATION,
+});
+
+const model = 'gemini-2.5-pro';
+
+// Create a cache with the content you want to reuse
+const cache = await ai.caches.create({
+  model,
+  config: {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: '1000 Lasagna Recipes...' }],
+      },
+    ],
+    ttl: '300s', // Cache expires after 5 minutes
+  },
+});
+
+console.log('Cache created:', cache.name);
+// e.g. projects/my-project/locations/us-central1/cachedContents/abc123
+```
+
+Then use the cache with the AI SDK:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text: veggieLasagnaRecipe } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      cachedContent: cache.name,
+    },
+  },
+});
+
+const { text: meatLasagnaRecipe } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: 'Write a meat lasagna recipe for 12 people.',
+  providerOptions: {
+    google: {
+      cachedContent: cache.name,
+    },
+  },
+});
+```
 
 ### Safety Ratings
 

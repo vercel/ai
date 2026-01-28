@@ -9,7 +9,7 @@ import { ContentPart } from './content-part';
 import { ToolSet } from './tool-set';
 
 /**
-Converts the result of a `generateText` or `streamText` call to a list of response messages.
+ * Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
 export async function toResponseMessages<TOOLS extends ToolSet>({
   content: inputContent,

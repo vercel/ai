@@ -28,22 +28,22 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   (deploymentId: string): LanguageModelV3;
 
   /**
-  Creates an Azure OpenAI responses API model for text generation.
+   * Creates an Azure OpenAI responses API model for text generation.
    */
   languageModel(deploymentId: string): LanguageModelV3;
 
   /**
-Creates an Azure OpenAI chat model for text generation.
+   * Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string): LanguageModelV3;
 
   /**
-Creates an Azure OpenAI responses API model for text generation.
+   * Creates an Azure OpenAI responses API model for text generation.
    */
   responses(deploymentId: string): LanguageModelV3;
 
   /**
-Creates an Azure OpenAI completion model for text generation.
+   * Creates an Azure OpenAI completion model for text generation.
    */
   completion(deploymentId: string): LanguageModelV3;
 
@@ -95,51 +95,51 @@ Creates an Azure OpenAI completion model for text generation.
 
 export interface AzureOpenAIProviderSettings {
   /**
-Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
-
-The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
-     */
+   * Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
+   *
+   * The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
+   */
   resourceName?: string;
 
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
-When a baseURL is provided, the resourceName is ignored.
-
-With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
+   * When a baseURL is provided, the resourceName is ignored.
+   *
+   * With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
    */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-Custom api version to use. Defaults to `preview`.
-    */
+   * Custom api version to use. Defaults to `preview`.
+   */
   apiVersion?: string;
 
   /**
-Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
-`{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
-`{baseURL}/v1{path}?api-version={apiVersion}`.
+   * Use deployment-based URLs for specific model types. Set to true to use legacy deployment format:
+   * `{baseURL}/deployments/{deploymentId}{path}?api-version={apiVersion}` instead of
+   * `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
 }
 
 /**
-Create an Azure OpenAI provider instance.
+ * Create an Azure OpenAI provider instance.
  */
 export function createAzure(
   options: AzureOpenAIProviderSettings = {},
@@ -268,6 +268,6 @@ export function createAzure(
 }
 
 /**
-Default Azure OpenAI provider instance.
+ * Default Azure OpenAI provider instance.
  */
 export const azure = createAzure();

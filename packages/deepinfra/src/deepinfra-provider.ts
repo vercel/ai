@@ -24,58 +24,58 @@ import { VERSION } from './version';
 
 export interface DeepInfraProviderSettings {
   /**
-DeepInfra API key.
-*/
+   * DeepInfra API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface DeepInfraProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   chatModel(modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
-Creates a model for image generation.
-  */
+   * Creates a model for image generation.
+   */
   image(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
-  */
+   * Creates a model for image generation.
+   */
   imageModel(modelId: DeepInfraImageModelId): ImageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   languageModel(modelId: DeepInfraChatModelId): LanguageModelV3;
 
   /**
-Creates a completion model for text generation.
-*/
+   * Creates a completion model for text generation.
+   */
   completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV3;
 
   /**
-Creates a embedding model for text generation.
-*/
+   * Creates a embedding model for text generation.
+   */
   embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
 
   /**

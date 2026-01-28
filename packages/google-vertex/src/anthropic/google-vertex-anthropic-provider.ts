@@ -81,13 +81,13 @@ export const vertexAnthropicTools = {
 };
 export interface GoogleVertexAnthropicProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV3;
 
   /**
@@ -117,25 +117,25 @@ export interface GoogleVertexAnthropicProviderSettings {
   location?: string;
 
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.anthropic.com/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.anthropic.com/v1`.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create a Google Vertex Anthropic provider instance.
+ * Create a Google Vertex Anthropic provider instance.
  */
 export function createVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
