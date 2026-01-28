@@ -629,7 +629,7 @@ Both files have been exported and are ready for download!",
     },
     "outputTokens": {
       "reasoning": undefined,
-      "text": 1359,
+      "text": undefined,
       "total": 1359,
     },
     "raw": {
@@ -5131,7 +5131,7 @@ The presentation has",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 5558,
+        "text": undefined,
         "total": 5558,
       },
       "raw": {
@@ -10191,7 +10191,7 @@ Both",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 2479,
+        "text": undefined,
         "total": 2479,
       },
       "raw": {
@@ -11505,7 +11505,7 @@ The Fibonacci sequence starts with 0, ",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 771,
+        "text": undefined,
         "total": 771,
       },
       "raw": {
@@ -12142,7 +12142,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 305,
+        "text": undefined,
         "total": 305,
       },
       "raw": {
@@ -12263,7 +12263,7 @@ It simply echoed back",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 83,
+        "text": undefined,
         "total": 83,
       },
       "raw": {
@@ -13158,7 +13158,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13236,7 +13236,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13314,7 +13314,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13392,7 +13392,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13470,7 +13470,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13548,7 +13548,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13626,7 +13626,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13704,7 +13704,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13782,7 +13782,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13860,7 +13860,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -13938,7 +13938,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -14016,7 +14016,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -14094,7 +14094,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -14172,7 +14172,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 725,
+        "text": undefined,
         "total": 725,
       },
       "raw": {
@@ -14692,7 +14692,7 @@ The",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 197,
+        "text": undefined,
         "total": 197,
       },
       "raw": {
@@ -14907,7 +14907,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 158,
+        "text": undefined,
         "total": 158,
       },
       "raw": {
@@ -15008,7 +15008,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 41,
+        "text": undefined,
         "total": 41,
       },
       "raw": {
@@ -15225,7 +15225,7 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 163,
+        "text": undefined,
         "total": 163,
       },
       "raw": {
@@ -15355,7 +15355,7 @@ The weather in",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 67,
+        "text": undefined,
         "total": 67,
       },
       "raw": {
@@ -15771,7 +15771,7 @@ The page also discusses",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 446,
+        "text": undefined,
         "total": 446,
       },
       "raw": {
@@ -16704,7 +16704,7 @@ The main tech story today appears to be Apple's significant",
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 795,
+        "text": undefined,
         "total": 795,
       },
       "raw": {
