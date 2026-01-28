@@ -23,6 +23,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  splitDataUrl,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -306,6 +307,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       }
     }
 
+    // images:
+    if (choice.message.images != null) {
+      for (const image of choice.message.images) {
+        const { mediaType, base64Content } = splitDataUrl(image.image_url.url);
+        content.push({
+          type: 'file',
+          mediaType: mediaType ?? 'image/png',
+          data: base64Content ?? image.image_url.url,
+        });
+      }
+    }
+
     // provider metadata:
     const providerMetadata: SharedV3ProviderMetadata = {
       [this.providerOptionsName]: {},
@@ -502,6 +515,19 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
                 id: 'txt-0',
                 delta: delta.content,
               });
+            }
+
+            if (delta.images != null) {
+              for (const image of delta.images) {
+                const { mediaType, base64Content } = splitDataUrl(
+                  image.image_url.url,
+                );
+                controller.enqueue({
+                  type: 'file',
+                  mediaType: mediaType ?? 'image/png',
+                  data: base64Content ?? image.image_url.url,
+                });
+              }
             }
 
             if (delta.tool_calls != null) {
@@ -770,6 +796,16 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
             }),
           )
           .nullish(),
+        images: z
+          .array(
+            z.object({
+              type: z.literal('image_url'),
+              image_url: z.object({
+                url: z.string(),
+              }),
+            }),
+          )
+          .nullish(),
       }),
       finish_reason: z.string().nullish(),
     }),
@@ -810,6 +846,16 @@ const chunkBaseSchema = z.looseObject({
                       .nullish(),
                   })
                   .nullish(),
+              }),
+            )
+            .nullish(),
+          images: z
+            .array(
+              z.object({
+                type: z.literal('image_url'),
+                image_url: z.object({
+                  url: z.string(),
+                }),
               }),
             )
             .nullish(),
