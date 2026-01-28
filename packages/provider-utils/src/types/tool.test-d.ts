@@ -1,10 +1,18 @@
-import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
 import { ModelMessage } from './model-message';
-import { Tool, tool, ToolExecuteFunction } from './tool';
+import {
+  dynamicTool,
+  InferToolInput,
+  InferToolOutput,
+  Tool,
+  tool,
+  ToolExecuteFunction,
+  ToolExecutionOptions,
+} from './tool';
 import { ToolResultOutput } from './content-part';
+import { ToolApprovalRequest } from './tool-approval-request';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -223,6 +231,105 @@ describe('tool type', () => {
           ) => boolean | PromiseLike<boolean>)
         | undefined
       >();
+    });
+  });
+
+  describe('callbacks', () => {
+    it('should infer arguments for onInputStart', () => {
+      tool({
+        inputSchema: z.object({}),
+        onInputStart: options => {
+          expectTypeOf(options).toEqualTypeOf<ToolExecutionOptions>();
+        },
+      });
+    });
+
+    it('should infer arguments for onInputDelta', () => {
+      tool({
+        inputSchema: z.object({}),
+        onInputDelta: options => {
+          expectTypeOf(options).toEqualTypeOf<
+            { inputTextDelta: string } & ToolExecutionOptions
+          >();
+        },
+      });
+    });
+
+    it('should infer arguments for onInputAvailable', () => {
+      const inputSchema = z.object({ number: z.number() });
+      tool({
+        inputSchema,
+        onInputAvailable: options => {
+          expectTypeOf(options).toEqualTypeOf<
+            { input: { number: number } } & ToolExecutionOptions
+          >();
+        },
+      });
+    });
+  });
+
+  describe('strict mode', () => {
+    it('should accept strict mode setting', () => {
+      const aTool = tool({
+        inputSchema: z.object({}),
+        strict: true,
+      });
+
+      expectTypeOf(aTool.strict).toEqualTypeOf<boolean | undefined>();
+    });
+  });
+
+  describe('provider defined tool', () => {
+    it('should work with provider tool definition', () => {
+      const aTool = tool({
+        // @ts-expect-error - verifying provider tool type
+        type: 'provider',
+        id: 'provider.tool',
+        args: { foo: 'bar' },
+        inputSchema: z.object({}),
+      });
+
+      expectTypeOf(aTool).toMatchTypeOf<Tool<any, any>>();
+      expectTypeOf(aTool.type).toEqualTypeOf<'provider'>();
+    });
+  });
+
+  describe('dynamic tool', () => {
+    it('should work with dynamic tool definition', () => {
+      const aTool = dynamicTool({
+        inputSchema: z.object({}),
+        execute: async () => {},
+      });
+
+      expectTypeOf(aTool.type).toEqualTypeOf<'dynamic'>();
+    });
+  });
+
+  describe('type helpers', () => {
+    it('should infer input type', () => {
+      const aTool = tool({
+        inputSchema: z.object({ n: z.number() }),
+        execute: async ({ n }) => n.toString(),
+      });
+      expectTypeOf<InferToolInput<typeof aTool>>().toEqualTypeOf<{
+        n: number;
+      }>();
+    });
+
+    it('should infer output type', () => {
+      const aTool = tool({
+        inputSchema: z.object({ n: z.number() }),
+        execute: async ({ n }) => n.toString(),
+      });
+      expectTypeOf<InferToolOutput<typeof aTool>>().toEqualTypeOf<string>();
+    });
+  });
+
+  describe('ToolApprovalRequest', () => {
+    it('should have toolName and input', () => {
+      // This fails because toolName and input are currently missing
+      expectTypeOf<ToolApprovalRequest['toolName']>().toBeString();
+      expectTypeOf<ToolApprovalRequest['input']>().toBeUnknown();
     });
   });
 });

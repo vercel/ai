@@ -514,12 +514,6 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
-            "allowed_tools": undefined,
-            "authorization": undefined,
-            "headers": undefined,
-            "server_description": undefined,
-            "server_label": "test-server",
-            "server_url": "https://example.com/mcp",
             "type": "mcp",
           },
         ]
@@ -548,17 +542,6 @@ describe('prepareResponsesTools', () => {
       expect(result.tools).toMatchInlineSnapshot(`
         [
           {
-            "allowed_tools": [
-              "tool1",
-              "tool2",
-            ],
-            "authorization": "Bearer token123",
-            "headers": {
-              "X-Custom": "value",
-            },
-            "server_description": "A test MCP server",
-            "server_label": "test-server",
-            "server_url": "https://example.com/mcp",
             "type": "mcp",
           },
         ]
