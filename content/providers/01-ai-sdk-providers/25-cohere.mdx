@@ -69,6 +69,11 @@ You can use the following optional settings to customize the Cohere provider ins
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **generateId** _() => string_
+
+  Optional function to generate unique IDs for each request.
+  Defaults to the SDK's built-in ID generator.
+
 ## Language Models
 
 You can create models that call the [Cohere chat API](https://docs.cohere.com/v2/docs/chat-api) using a provider instance.
