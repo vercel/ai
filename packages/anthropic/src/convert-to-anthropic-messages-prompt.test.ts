@@ -662,6 +662,72 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with tool-reference content for custom tool search', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'searchTools',
+              toolCallId: 'search-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'tool-reference',
+                    toolName: 'get_weather',
+                  },
+                  {
+                    type: 'tool-reference',
+                    toolName: 'get_forecast',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "tool_name": "get_weather",
+                      "type": "tool_reference",
+                    },
+                    {
+                      "tool_name": "get_forecast",
+                      "type": "tool_reference",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "search-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
   it('should handle tool result with url-based PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
