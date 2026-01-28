@@ -483,4 +483,36 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'originalvoices',
+    name: 'OriginalVoices',
+    description:
+      'OriginalVoices enables your AI agents to conduct primary research with real consumers, in real time. Describe any audience, ask any question, and get authentic perspectives in under 20 seconds. Validate ideas, refine messaging, and make decisions grounded in consumer insights.',
+    packageName: '@originalvoices/ai-sdk',
+    tags: ['research', 'consumer-insights', 'audience'],
+    apiKeyEnvName: 'ORIGINALVOICES_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @originalvoices/ai-sdk',
+      npm: 'npm install @originalvoices/ai-sdk',
+      yarn: 'yarn add @originalvoices/ai-sdk',
+      bun: 'bun add @originalvoices/ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { askTwins } from '@originalvoices/ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'I want to understand what influences UK fitness enthusiasts aged 18-30 when buying new running shoes',
+  tools: {
+    askTwins,
+  },
+  stopWhen: stepCountIs(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/ovlabs/originalvoices-aisdk',
+    apiKeyUrl: 'https://originalvoices.ai',
+    websiteUrl: 'https://originalvoices.ai',
+    npmUrl: 'https://www.npmjs.com/package/@originalvoices/ai-sdk',
+  },
 ];
