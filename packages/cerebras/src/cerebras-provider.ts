@@ -32,38 +32,38 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
 
 export interface CerebrasProviderSettings {
   /**
-Cerebras API key.
-*/
+   * Cerebras API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface CerebrasProvider extends ProviderV3 {
   /**
-Creates a Cerebras model for text generation.
-*/
+   * Creates a Cerebras model for text generation.
+   */
   (modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
-Creates a Cerebras model for text generation.
-*/
+   * Creates a Cerebras model for text generation.
+   */
   languageModel(modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**
-Creates a Cerebras chat model for text generation.
-*/
+   * Creates a Cerebras chat model for text generation.
+   */
   chat(modelId: CerebrasChatModelId): LanguageModelV3;
 
   /**

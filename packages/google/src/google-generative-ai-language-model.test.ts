@@ -2091,6 +2091,54 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass imageConfig.imageSize in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            imageSize: '4K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          imageSize: '4K',
+        },
+      },
+    });
+  });
+
+  it('should pass imageConfig with both aspectRatio and imageSize', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+            imageSize: '2K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+          imageSize: '2K',
+        },
+      },
+    });
+  });
+
   it('should pass retrievalConfig in provider options', async () => {
     prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
 

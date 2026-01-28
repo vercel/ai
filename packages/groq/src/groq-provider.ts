@@ -19,17 +19,17 @@ import { groqTools } from './groq-tools';
 import { VERSION } from './version';
 export interface GroqProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: GroqChatModelId): LanguageModelV3;
 
   /**
-Creates an Groq chat model for text generation.
+   * Creates an Groq chat model for text generation.
    */
   languageModel(modelId: GroqChatModelId): LanguageModelV3;
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV3;
 
@@ -46,29 +46,29 @@ Creates a model for transcription.
 
 export interface GroqProviderSettings {
   /**
-Base URL for the Groq API calls.
-     */
+   * Base URL for the Groq API calls.
+   */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an Groq provider instance.
+ * Create an Groq provider instance.
  */
 export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   const baseURL =
@@ -138,6 +138,6 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
 }
 
 /**
-Default Groq provider instance.
+ * Default Groq provider instance.
  */
 export const groq = createGroq();

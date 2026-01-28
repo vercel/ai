@@ -20,13 +20,13 @@ export interface MistralProvider extends ProviderV3 {
   (modelId: MistralChatModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: MistralChatModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   chat(modelId: MistralChatModelId): LanguageModelV3;
 
   /**
@@ -52,33 +52,33 @@ Creates a model for text generation.
 
 export interface MistralProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.mistral.ai/v1`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.mistral.ai/v1`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `Authorization` header.
-It defaults to the `MISTRAL_API_KEY` environment variable.
+   * API key that is being send using the `Authorization` header.
+   * It defaults to the `MISTRAL_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   generateId?: () => string;
 }
 
 /**
-Create a Mistral AI provider instance.
+ * Create a Mistral AI provider instance.
  */
 export function createMistral(
   options: MistralProviderSettings = {},
@@ -142,6 +142,6 @@ export function createMistral(
 }
 
 /**
-Default Mistral provider instance.
+ * Default Mistral provider instance.
  */
 export const mistral = createMistral();

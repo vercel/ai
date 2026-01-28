@@ -25,8 +25,8 @@ export interface CohereProvider extends ProviderV3 {
   (modelId: CohereChatModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: CohereChatModelId): LanguageModelV3;
 
   /**
@@ -62,36 +62,36 @@ Creates a model for text generation.
 
 export interface CohereProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://api.cohere.com/v2`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://api.cohere.com/v2`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `Authorization` header.
-It defaults to the `COHERE_API_KEY` environment variable.
+   * API key that is being send using the `Authorization` header.
+   * It defaults to the `COHERE_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-Optional function to generate a unique ID for each request.
-     */
+   * Optional function to generate a unique ID for each request.
+   */
   generateId?: () => string;
 }
 
 /**
-Create a Cohere AI provider instance.
+ * Create a Cohere AI provider instance.
  */
 export function createCohere(
   options: CohereProviderSettings = {},
@@ -164,6 +164,6 @@ export function createCohere(
 }
 
 /**
-Default Cohere provider instance.
+ * Default Cohere provider instance.
  */
 export const cohere = createCohere();

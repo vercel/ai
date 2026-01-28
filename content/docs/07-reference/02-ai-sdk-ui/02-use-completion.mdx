@@ -9,7 +9,7 @@ Allows you to create text completion based capabilities for your application. It
 
 ## Import
 
-<Tabs items={['React', 'Svelte', 'Vue']}>
+<Tabs items={['React', 'Svelte', 'Vue', 'Angular']}>
   <Tab>
     <Snippet
       text="import { useCompletion } from '@ai-sdk/react'"
@@ -31,7 +31,13 @@ Allows you to create text completion based capabilities for your application. It
       prompt={false}
     />
   </Tab>
-
+  <Tab>
+    <Snippet
+      text="import { Completion } from '@ai-sdk/angular'"
+      dark
+      prompt={false}
+    />
+  </Tab>
 </Tabs>
 
 ## API Signature
@@ -82,7 +88,7 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'body',
-      type: 'any',
+      type: 'object',
       description:
         'An optional, additional body object to be passed to the API endpoint.',
     },
@@ -128,9 +134,9 @@ Allows you to create text completion based capabilities for your application. It
     },
     {
       name: 'complete',
-      type: '(prompt: string, options: { headers, body }) => void',
+      type: '(prompt: string, options?: { headers?: Record<string, string> | Headers, body?: object }) => Promise<string | null | undefined>',
       description:
-        'Function to execute text completion based on the provided prompt.',
+        'Function to execute text completion based on the provided prompt. Returns the completion result when finished.',
     },
     {
       name: 'error',
@@ -155,7 +161,7 @@ Allows you to create text completion based capabilities for your application. It
     {
       name: 'setInput',
       type: 'React.Dispatch<React.SetStateAction<string>>',
-      description: 'The current value of the input field.',
+      description: 'Function to update the input value.',
     },
     {
       name: 'handleInputChange',
