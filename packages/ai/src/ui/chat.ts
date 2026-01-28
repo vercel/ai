@@ -564,18 +564,26 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     // when there is no stream to resume (e.g. on page load).
     let resumeStream: ReadableStream<UIMessageChunk> | undefined;
     if (trigger === 'resume-stream') {
-      const reconnect = await this.transport.reconnectToStream({
-        chatId: this.id,
-        metadata,
-        headers,
-        body,
-      });
+      try {
+        const reconnect = await this.transport.reconnectToStream({
+          chatId: this.id,
+          metadata,
+          headers,
+          body,
+        });
 
-      if (reconnect == null) {
-        return; // no active stream found, so we do not resume
+        if (reconnect == null) {
+          return; // no active stream found, so we do not resume
+        }
+
+        resumeStream = reconnect;
+      } catch (err) {
+        if (this.onError && err instanceof Error) {
+          this.onError(err);
+        }
+        this.setStatus({ status: 'error', error: err as Error });
+        return;
       }
-
-      resumeStream = reconnect;
     }
 
     this.setStatus({ status: 'submitted', error: undefined });

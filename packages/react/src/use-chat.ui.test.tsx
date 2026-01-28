@@ -2090,6 +2090,74 @@ describe('resume with no active stream should not flash submitted status', () =>
   });
 });
 
+describe('resume with server error should set error status without flashing submitted', () => {
+  const onErrorCalls: Error[] = [];
+
+  setupTestComponent(
+    () => {
+      const { status, error } = useChat({
+        id: '123',
+        messages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+        generateId: mockId(),
+        resume: true,
+        onError(err) {
+          onErrorCalls.push(err);
+        },
+      });
+
+      const statusHistoryRef = useRef<string[]>([]);
+      if (statusHistoryRef.current.at(-1) !== status) {
+        statusHistoryRef.current.push(status);
+      }
+
+      return (
+        <div>
+          <div data-testid="status">{status}</div>
+          <div data-testid="status-history">
+            {statusHistoryRef.current.join(',')}
+          </div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat/123/stream'].response = {
+          type: 'error',
+          status: 500,
+          body: 'Internal server error',
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  beforeEach(() => {
+    onErrorCalls.length = 0;
+  });
+
+  it('should set error status and call onError', async () => {
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+    });
+
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'Internal server error',
+    );
+    expect(screen.getByTestId('status-history')).not.toHaveTextContent(
+      'submitted',
+    );
+    expect(onErrorCalls).toHaveLength(1);
+  });
+});
+
 describe('stop', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, stop, status } = useChat({
