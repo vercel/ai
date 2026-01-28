@@ -1347,19 +1347,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_delta': {
-<<<<<<< HEAD
-              usage.outputTokens = value.usage.output_tokens;
-              usage.totalTokens =
-                (usage.inputTokens ?? 0) + (value.usage.output_tokens ?? 0);
-=======
               if (
                 value.usage.input_tokens != null &&
-                usage.input_tokens !== value.usage.input_tokens
+                usage.inputTokens !== value.usage.input_tokens
               ) {
-                usage.input_tokens = value.usage.input_tokens;
+                usage.inputTokens = value.usage.input_tokens;
               }
-              usage.output_tokens = value.usage.output_tokens;
->>>>>>> 02d9b68b5 (fix(anthropic): read real input_tokens in message_delta block (#11611))
+              usage.outputTokens = value.usage.output_tokens;
+
+              if (value.usage.cache_read_input_tokens != null) {
+                usage.cachedInputTokens = value.usage.cache_read_input_tokens;
+              }
+              if (value.usage.cache_creation_input_tokens != null) {
+                cacheCreationInputTokens =
+                  value.usage.cache_creation_input_tokens;
+              }
+
+              usage.totalTokens =
+                (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
 
               finishReason = mapAnthropicStopReason({
                 finishReason: value.delta.stop_reason,
