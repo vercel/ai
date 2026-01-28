@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.39
+
+### Patch Changes
+
+- 58800f3: fix(xai): emit reasoning-start before reasoning-end for encrypted reasoning
+
 ## 3.0.38
 
 ### Patch Changes
