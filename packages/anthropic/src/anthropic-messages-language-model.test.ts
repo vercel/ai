@@ -3330,6 +3330,27 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should use input_tokens from message_delta when different from message_start', async () => {
+      // Fixture has message_start.usage.input_tokens=43, message_delta.usage.input_tokens=61
+      // The final usage should use the value from message_delta (61)
+      prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: 61,
+          outputTokens: 2,
+        },
+      });
+    });
+
     it('should stream reasoning deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -4017,6 +4038,78 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "ephemeral_1h_input_tokens": 10,
                     "ephemeral_5m_input_tokens": 0,
                   },
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 227,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 5,
+              "inputTokens": 17,
+              "outputTokens": 227,
+              "totalTokens": 244,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should support cache tokens in message_delta event', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type": "ping"}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          // cache tokens sent in message_delta:
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const model = provider('claude-3-haiku-20240307');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": 10,
+                "container": null,
+                "stopSequence": null,
+                "usage": {
                   "cache_creation_input_tokens": 10,
                   "cache_read_input_tokens": 5,
                   "input_tokens": 17,
