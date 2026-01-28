@@ -99,6 +99,53 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should handle text/event-stream responses without an explicit event', async () => {
+    transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
+    const controller = new TestResponseController();
+
+    // Avoid locking a single ReadableStream for both GET (start) and POST (send)
+    // GET from start -> 405 (no inbound SSE)
+    // POST send -> controlled stream with text/event-stream
+    server.urls['http://localhost:4000/stream'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'controlled-stream',
+            controller,
+            headers: { 'content-type': 'text/event-stream' },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+
+    const msgPromise = new Promise(resolve => {
+      transport.onmessage = msg => resolve(msg);
+    });
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 2,
+      params: {},
+    };
+    await transport.send(message);
+
+    controller.write(
+      `data: ${JSON.stringify({ jsonrpc: '2.0', id: 2, result: { ok: true } })}\n\n`,
+    );
+
+    expect(await msgPromise).toEqual({
+      jsonrpc: '2.0',
+      id: 2,
+      result: { ok: true },
+    });
+  });
+
   it('should (re)open inbound SSE after 202 Accepted', async () => {
     const controller = new TestResponseController();
 
