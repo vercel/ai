@@ -663,7 +663,7 @@ describe('tool messages', () => {
     `);
   });
 
-  it('should handle tool result with tool-reference content for custom tool search', async () => {
+  it('should handle tool result with custom tool-reference content for custom tool search', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -677,12 +677,22 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'tool-reference',
-                    toolName: 'get_weather',
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_weather',
+                      },
+                    },
                   },
                   {
-                    type: 'tool-reference',
-                    toolName: 'get_forecast',
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_forecast',
+                      },
+                    },
                   },
                 ],
               },

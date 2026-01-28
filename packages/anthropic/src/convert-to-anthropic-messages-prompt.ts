@@ -355,11 +355,22 @@ export async function convertToAnthropicMessagesPrompt({
 
                             return undefined;
                           }
-                          case 'tool-reference': {
-                            return {
-                              type: 'tool_reference' as const,
-                              tool_name: contentPart.toolName,
-                            };
+                          case 'custom': {
+                            const anthropicOptions = contentPart.providerOptions
+                              ?.anthropic as
+                              | { type: string; toolName?: string }
+                              | undefined;
+                            if (anthropicOptions?.type === 'tool-reference') {
+                              return {
+                                type: 'tool_reference' as const,
+                                tool_name: anthropicOptions.toolName!,
+                              };
+                            }
+                            warnings.push({
+                              type: 'other',
+                              message: `unsupported custom tool content part`,
+                            });
+                            return undefined;
                           }
                           default: {
                             warnings.push({

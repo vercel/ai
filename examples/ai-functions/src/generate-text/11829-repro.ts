@@ -65,8 +65,13 @@ run(async () => {
     toModelOutput: ({ output }) => ({
       type: 'content',
       value: (output as string[]).map(toolName => ({
-        type: 'tool-reference' as const,
-        toolName,
+        type: 'custom' as const,
+        providerOptions: {
+          anthropic: {
+            type: 'tool-reference',
+            toolName,
+          },
+        },
       })),
     }),
   });
