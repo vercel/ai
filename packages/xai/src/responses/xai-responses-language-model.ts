@@ -442,6 +442,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             if (event.type === 'response.reasoning_summary_part.added') {
               const blockId = `reasoning-${event.item_id}`;
 
+              activeReasoning[event.item_id] = {};
               controller.enqueue({
                 type: 'reasoning-start',
                 id: blockId,
@@ -565,9 +566,26 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               const part = event.item;
               if (part.type === 'reasoning') {
                 if (event.type === 'response.output_item.done') {
+                  const blockId = `reasoning-${part.id}`;
+
+                  // Emit reasoning-start if not already emitted (e.g., for encrypted reasoning
+                  // where reasoning_summary_part.added events may not be sent)
+                  if (!(part.id in activeReasoning)) {
+                    activeReasoning[part.id] = {};
+                    controller.enqueue({
+                      type: 'reasoning-start',
+                      id: blockId,
+                      providerMetadata: {
+                        xai: {
+                          ...(part.id && { itemId: part.id }),
+                        },
+                      },
+                    });
+                  }
+
                   controller.enqueue({
                     type: 'reasoning-end',
-                    id: `reasoning-${part.id}`,
+                    id: blockId,
                     providerMetadata: {
                       xai: {
                         ...(part.encrypted_content && {
