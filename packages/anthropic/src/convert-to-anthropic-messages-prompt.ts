@@ -355,6 +355,12 @@ export async function convertToAnthropicMessagesPrompt({
 
                             return undefined;
                           }
+                          case 'tool-reference': {
+                            return {
+                              type: 'tool_reference' as const,
+                              tool_name: contentPart.toolName,
+                            };
+                          }
                           default: {
                             warnings.push({
                               type: 'other',

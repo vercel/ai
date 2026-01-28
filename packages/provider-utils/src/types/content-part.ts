@@ -365,6 +365,23 @@ export type ToolResultOutput =
           }
         | {
             /**
+             * Reference to a tool that should be loaded for deferred tool loading.
+             * Used for custom tool search implementations.
+             */
+            type: 'tool-reference';
+
+            /**
+             * Name of the tool being referenced.
+             */
+            toolName: string;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
              * Custom content part. This can be used to implement
              * provider-specific content parts.
              */
