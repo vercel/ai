@@ -175,6 +175,21 @@ You can also pass the URL of a PDF:
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 
+### Reasoning Models
+
+Perplexity exposes the thinking of reasoning models (e.g., `sonar-reasoning-pro`, `sonar-reasoning`) in the generated text using the `<think>` tag.
+You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+
+```ts
+import { perplexity } from '@ai-sdk/perplexity';
+import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+
+const enhancedModel = wrapLanguageModel({
+  model: perplexity('sonar-reasoning-pro'),
+  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+});
+```
+
 <Note>
   For more details about Perplexity's capabilities, see the [Perplexity chat
   completion docs](https://docs.perplexity.ai/api-reference/chat-completions).
