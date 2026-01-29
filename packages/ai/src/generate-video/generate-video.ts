@@ -20,7 +20,6 @@ import { logWarnings } from '../logger/log-warnings';
 import { resolveVideoModel } from '../model/resolve-model';
 import type { VideoModel } from '../types/video-model';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
-import { addVideoModelUsage, type VideoModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
 import {
   detectMediaType,
@@ -200,11 +199,6 @@ Only applicable for HTTP-based providers.
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
   const providerMetadata: VideoModelV3ProviderMetadata = {};
-  let totalUsage: VideoModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
-  };
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -266,10 +260,6 @@ Only applicable for HTTP-based providers.
     }
 
     warnings.push(...result.warnings);
-
-    if (result.usage != null) {
-      totalUsage = addVideoModelUsage(totalUsage, result.usage);
-    }
 
     responses.push({
       timestamp: result.response.timestamp,
@@ -350,7 +340,6 @@ Only applicable for HTTP-based providers.
     warnings,
     responses,
     providerMetadata,
-    usage: totalUsage,
   };
 }
 
