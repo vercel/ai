@@ -1,4 +1,4 @@
-import { JSONArray, JSONObject } from '../../json-value';
+import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV3Usage } from './image-model-v3-usage';
 import { ImageModelV3CallOptions } from './image-model-v3-call-options';
 import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
@@ -7,7 +7,7 @@ export type ImageModelV3ProviderMetadata = Record<
   string,
   {
     images: JSONArray;
-  } & JSONObject
+  } & JSONValue
 >;
 
 type GetMaxImagesPerCallFunction = (options: {
