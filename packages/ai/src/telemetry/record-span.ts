@@ -1,10 +1,9 @@
 import {
   Attributes,
   Span,
-  Tracer,
-  SpanStatusCode,
   SpanKind,
-  context,
+  SpanStatusCode,
+  Tracer,
 } from '@opentelemetry/api';
 
 export async function recordSpan<T>({
@@ -20,23 +19,14 @@ export async function recordSpan<T>({
   attributes: Attributes | PromiseLike<Attributes>;
   fn: (span: Span) => Promise<T>;
   endWhenDone?: boolean;
-  /**
-   * The SpanKind for this span. Defaults to INTERNAL.
-   * Use SpanKind.CLIENT for LLM API calls per OTel GenAI semantic conventions.
-   */
   kind?: SpanKind;
 }) {
   return tracer.startActiveSpan(
     name,
     { attributes: await attributes, kind },
     async span => {
-      // Capture the current context to maintain it across async generator yields
-      const ctx = context.active();
-
       try {
-        // Execute within the captured context to ensure async generators
-        // don't lose the active span when they yield
-        const result = await context.with(ctx, () => fn(span));
+        const result = await fn(span);
 
         if (endWhenDone) {
           span.end();

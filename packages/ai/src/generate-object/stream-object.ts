@@ -34,7 +34,6 @@ import {
   convertToOTelGenAIInputMessages,
   convertToOTelGenAIOutputMessages,
   getGenAIOperationName,
-  normalizeProviderName,
 } from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -533,7 +532,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           },
         };
 
-        // Determine the GenAI operation name for OTel compliance
         const genAIOperationName = getGenAIOperationName(
           'ai.streamObject.doStream',
         );
@@ -544,9 +542,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           startTimestampMs,
         } = await retry(() =>
           recordSpan({
-            // OTel GenAI span naming: {operation} {model}
             name: `${genAIOperationName} ${model.modelId}`,
-            // OTel GenAI requires SpanKind.CLIENT for LLM API calls
             kind: SpanKind.CLIENT,
             attributes: selectTelemetryAttributes({
               telemetry,
@@ -560,10 +556,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   input: () => stringifyForTelemetry(callOptions.prompt),
                 },
 
-                // OTel GenAI semantic convention attributes:
                 'gen_ai.operation.name': genAIOperationName,
-                'gen_ai.provider.name': normalizeProviderName(model.provider),
-                'gen_ai.system': model.provider, // deprecated, kept for backwards compatibility
+                'gen_ai.provider.name': model.provider,
+                'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty':
                   callSettings.frequencyPenalty,
@@ -572,7 +567,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 'gen_ai.request.temperature': callSettings.temperature,
                 'gen_ai.request.top_k': callSettings.topK,
                 'gen_ai.request.top_p': callSettings.topP,
-                // OTel GenAI input messages (opt-in, contains PII)
                 'gen_ai.input.messages': {
                   input: () =>
                     JSON.stringify(
@@ -806,13 +800,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.usage.cachedInputTokens':
                           finalUsage.cachedInputTokens,
 
-                        // OTel GenAI semantic convention attributes:
                         'gen_ai.response.finish_reasons': [finishReason],
                         'gen_ai.response.id': fullResponse.id,
                         'gen_ai.response.model': fullResponse.modelId,
                         'gen_ai.usage.input_tokens': finalUsage.inputTokens,
                         'gen_ai.usage.output_tokens': finalUsage.outputTokens,
-                        // OTel GenAI output messages (opt-in, contains PII)
                         'gen_ai.output.messages': {
                           output: () =>
                             JSON.stringify(

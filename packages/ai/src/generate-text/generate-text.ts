@@ -41,7 +41,6 @@ import {
   convertToOTelGenAIOutputMessages,
   convertToOTelGenAIToolDefinitions,
   getGenAIOperationName,
-  normalizeProviderName,
 } from '../telemetry/convert-to-otel-genai-messages';
 import { LanguageModel, ToolChoice } from '../types';
 import {
@@ -526,16 +525,13 @@ export async function generateText<
                 activeTools: prepareStepResult?.activeTools ?? activeTools,
               });
 
-            // Determine the GenAI operation name for OTel compliance
             const genAIOperationName = getGenAIOperationName(
               'ai.generateText.doGenerate',
             );
 
             currentModelResponse = await retry(() =>
               recordSpan({
-                // OTel GenAI span naming: {operation} {model}
                 name: `${genAIOperationName} ${stepModel.modelId}`,
-                // OTel GenAI requires SpanKind.CLIENT for LLM API calls
                 kind: SpanKind.CLIENT,
                 attributes: selectTelemetryAttributes({
                   telemetry,
@@ -563,12 +559,9 @@ export async function generateText<
                           : undefined,
                     },
 
-                    // OTel GenAI semantic convention attributes:
                     'gen_ai.operation.name': genAIOperationName,
-                    'gen_ai.provider.name': normalizeProviderName(
-                      stepModel.provider,
-                    ),
-                    'gen_ai.system': stepModel.provider, // deprecated, kept for backwards compatibility
+                    'gen_ai.provider.name': stepModel.provider,
+                    'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
                       settings.frequencyPenalty,
@@ -579,14 +572,12 @@ export async function generateText<
                       settings.temperature ?? undefined,
                     'gen_ai.request.top_k': settings.topK,
                     'gen_ai.request.top_p': settings.topP,
-                    // OTel GenAI input messages (opt-in, contains PII)
                     'gen_ai.input.messages': {
                       input: () =>
                         JSON.stringify(
                           convertToOTelGenAIInputMessages(promptMessages),
                         ),
                     },
-                    // OTel GenAI tool definitions (opt-in)
                     'gen_ai.tool.definitions': {
                       input: () =>
                         stepTools
@@ -654,7 +645,6 @@ export async function generateText<
                         'ai.usage.completionTokens':
                           result.usage.outputTokens.total,
 
-                        // OTel GenAI semantic convention attributes:
                         'gen_ai.response.finish_reasons': [
                           result.finishReason.unified,
                         ],
@@ -664,7 +654,6 @@ export async function generateText<
                           result.usage.inputTokens.total,
                         'gen_ai.usage.output_tokens':
                           result.usage.outputTokens.total,
-                        // OTel GenAI output messages (opt-in, contains PII)
                         'gen_ai.output.messages': {
                           output: () => {
                             const toolCalls = asToolCalls(result.content);
@@ -674,7 +663,7 @@ export async function generateText<
                                 toolCalls: toolCalls?.map(tc => ({
                                   toolCallId: tc.toolCallId,
                                   toolName: tc.toolName,
-                                  args: tc.input,
+                                  input: tc.input,
                                 })),
                                 finishReason: result.finishReason.unified,
                               }),

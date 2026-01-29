@@ -43,7 +43,6 @@ import {
   convertToOTelGenAIOutputMessages,
   convertToOTelGenAIToolDefinitions,
   getGenAIOperationName,
-  normalizeProviderName,
 } from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -1386,9 +1385,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               startTimestampMs,
             } = await retry(() =>
               recordSpan({
-                // OTel GenAI span naming: {operation} {model}
                 name: `${genAIOperationName} ${stepModel.modelId}`,
-                // OTel GenAI requires SpanKind.CLIENT for LLM API calls
                 kind: SpanKind.CLIENT,
                 attributes: selectTelemetryAttributes({
                   telemetry,
@@ -1416,12 +1413,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                           : undefined,
                     },
 
-                    // OTel GenAI semantic convention attributes:
                     'gen_ai.operation.name': genAIOperationName,
-                    'gen_ai.provider.name': normalizeProviderName(
-                      stepModel.provider,
-                    ),
-                    'gen_ai.system': stepModel.provider, // deprecated, kept for backwards compatibility
+                    'gen_ai.provider.name': stepModel.provider,
+                    'gen_ai.system': stepModel.provider,
                     'gen_ai.request.model': stepModel.modelId,
                     'gen_ai.request.frequency_penalty':
                       callSettings.frequencyPenalty,
@@ -1432,14 +1426,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     'gen_ai.request.temperature': callSettings.temperature,
                     'gen_ai.request.top_k': callSettings.topK,
                     'gen_ai.request.top_p': callSettings.topP,
-                    // OTel GenAI input messages (opt-in, contains PII)
                     'gen_ai.input.messages': {
                       input: () =>
                         JSON.stringify(
                           convertToOTelGenAIInputMessages(promptMessages),
                         ),
                     },
-                    // OTel GenAI tool definitions (opt-in)
                     'gen_ai.tool.definitions': {
                       input: () =>
                         stepTools
@@ -1745,7 +1737,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'ai.usage.cachedInputTokens':
                               stepUsage.cachedInputTokens,
 
-                            // OTel GenAI semantic convention attributes:
                             'gen_ai.response.finish_reasons': [
                               stepFinishReason,
                             ],
@@ -1754,7 +1745,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                             'gen_ai.usage.input_tokens': stepUsage.inputTokens,
                             'gen_ai.usage.output_tokens':
                               stepUsage.outputTokens,
-                            // OTel GenAI output messages (opt-in, contains PII)
                             'gen_ai.output.messages': {
                               output: () =>
                                 JSON.stringify(
@@ -1763,7 +1753,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                                     toolCalls: stepToolCalls.map(tc => ({
                                       toolCallId: tc.toolCallId,
                                       toolName: tc.toolName,
-                                      args: tc.input,
+                                      input: tc.input,
                                     })),
                                     finishReason: stepFinishReason,
                                   }),

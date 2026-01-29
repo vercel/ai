@@ -29,7 +29,6 @@ import {
   convertToOTelGenAIInputMessages,
   convertToOTelGenAIOutputMessages,
   getGenAIOperationName,
-  normalizeProviderName,
 } from '../telemetry/convert-to-otel-genai-messages';
 import {
   CallWarning,
@@ -313,16 +312,13 @@ export async function generateObject<
           download,
         });
 
-        // Determine the GenAI operation name for OTel compliance
         const genAIOperationName = getGenAIOperationName(
           'ai.generateObject.doGenerate',
         );
 
         const generateResult = await retry(() =>
           recordSpan({
-            // OTel GenAI span naming: {operation} {model}
             name: `${genAIOperationName} ${model.modelId}`,
-            // OTel GenAI requires SpanKind.CLIENT for LLM API calls
             kind: SpanKind.CLIENT,
             attributes: selectTelemetryAttributes({
               telemetry,
@@ -336,10 +332,9 @@ export async function generateObject<
                   input: () => stringifyForTelemetry(promptMessages),
                 },
 
-                // OTel GenAI semantic convention attributes:
                 'gen_ai.operation.name': genAIOperationName,
-                'gen_ai.provider.name': normalizeProviderName(model.provider),
-                'gen_ai.system': model.provider, // deprecated, kept for backwards compatibility
+                'gen_ai.provider.name': model.provider,
+                'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty':
                   callSettings.frequencyPenalty,
@@ -348,7 +343,6 @@ export async function generateObject<
                 'gen_ai.request.temperature': callSettings.temperature,
                 'gen_ai.request.top_k': callSettings.topK,
                 'gen_ai.request.top_p': callSettings.topP,
-                // OTel GenAI input messages (opt-in, contains PII)
                 'gen_ai.input.messages': {
                   input: () =>
                     JSON.stringify(
@@ -414,7 +408,6 @@ export async function generateObject<
                     'ai.usage.completionTokens':
                       result.usage.outputTokens.total,
 
-                    // OTel GenAI semantic convention attributes:
                     'gen_ai.response.finish_reasons': [
                       result.finishReason.unified,
                     ],
@@ -423,7 +416,6 @@ export async function generateObject<
                     'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
                     'gen_ai.usage.output_tokens':
                       result.usage.outputTokens.total,
-                    // OTel GenAI output messages (opt-in, contains PII)
                     'gen_ai.output.messages': {
                       output: () =>
                         JSON.stringify(
