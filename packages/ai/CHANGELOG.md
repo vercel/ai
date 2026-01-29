@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
 ## 6.0.59
 
 ### Patch Changes
