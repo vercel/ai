@@ -1,5 +1,10 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+  VideoModelV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -19,6 +24,8 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
@@ -57,6 +64,11 @@ export interface GoogleVertexProvider extends ProviderV3 {
    * Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): VideoModelV3;
 
   tools: typeof googleVertexTools;
 
@@ -195,6 +207,12 @@ export function createVertex(
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, createConfig('image'));
 
+  const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
+    new GoogleVertexVideoModel(modelId, {
+      ...createConfig('video'),
+      generateId: options.generateId ?? generateId,
+    });
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -211,6 +229,7 @@ export function createVertex(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;
