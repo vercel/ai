@@ -18,10 +18,15 @@ import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options'
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
+import { parseVertexModelId } from './parse-vertex-model-id';
 import { googleVertexTools } from './google-vertex-tools';
 
-const EXPRESS_MODE_BASE_URL =
-  'https://aiplatform.googleapis.com/v1/publishers/google';
+const EXPRESS_MODE_BASE_URL = (publisher: string, baseURL?: string): string => {
+  return (
+    withoutTrailingSlash(baseURL) ??
+    `https://aiplatform.googleapis.com/v1/publishers/${publisher}`
+  );
+};
 
 // set `x-goog-api-key` header to API key for express mode
 function createExpressModeFetch(
@@ -137,9 +142,9 @@ export function createVertex(
       description: 'Google Vertex location',
     });
 
-  const loadBaseURL = () => {
+  const loadBaseURL = (publisher: string) => {
     if (apiKey) {
-      return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
+      return EXPRESS_MODE_BASE_URL(publisher, options.baseURL);
     }
 
     const region = loadVertexLocation();
@@ -151,11 +156,14 @@ export function createVertex(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/google`
+      `https://${baseHost}/v1beta1/projects/${project}/locations/${region}/publishers/${publisher}`
     );
   };
 
-  const createConfig = (name: string): GoogleVertexConfig => {
+  const createConfig = (
+    name: string,
+    publisher: string,
+  ): GoogleVertexConfig => {
     const getHeaders = async () => {
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
@@ -170,13 +178,15 @@ export function createVertex(
       fetch: apiKey
         ? createExpressModeFetch(apiKey, options.fetch)
         : options.fetch,
-      baseURL: loadBaseURL(),
+      baseURL: loadBaseURL(publisher),
     };
   };
 
   const createChatModel = (modelId: GoogleVertexModelId) => {
-    return new GoogleGenerativeAILanguageModel(modelId, {
-      ...createConfig('chat'),
+    const { publisher, modelName } = parseVertexModelId(modelId);
+
+    return new GoogleGenerativeAILanguageModel(modelName, {
+      ...createConfig('chat', publisher),
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
         '*': [
@@ -189,11 +199,21 @@ export function createVertex(
     });
   };
 
-  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
-    new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
+  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) => {
+    const { publisher, modelName } = parseVertexModelId(modelId);
+    return new GoogleVertexEmbeddingModel(
+      modelName,
+      createConfig('embedding', publisher),
+    );
+  };
 
-  const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+  const createImageModel = (modelId: GoogleVertexImageModelId) => {
+    const { publisher, modelName } = parseVertexModelId(modelId);
+    return new GoogleVertexImageModel(
+      modelName,
+      createConfig('image', publisher),
+    );
+  };
 
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
