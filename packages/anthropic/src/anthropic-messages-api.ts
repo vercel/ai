@@ -20,6 +20,7 @@ export interface AnthropicUserMessage {
     | AnthropicTextContent
     | AnthropicImageContent
     | AnthropicDocumentContent
+    | AnthropicSearchResultContent
     | AnthropicToolResultContent
   >;
 }
@@ -49,6 +50,11 @@ export interface AnthropicTextContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+type AnthropicTextBlock = {
+  type: 'text';
+  text: string;
+};
+
 export interface AnthropicThinkingContent {
   type: 'thinking';
   thinking: string;
@@ -77,6 +83,10 @@ type AnthropicContentSource =
       url: string;
     }
   | {
+      type: 'content';
+      content: AnthropicTextBlock[];
+    }
+  | {
       type: 'text';
       media_type: 'text/plain';
       data: string;
@@ -93,6 +103,15 @@ export interface AnthropicDocumentContent {
   source: AnthropicContentSource;
   title?: string;
   context?: string;
+  citations?: { enabled: boolean };
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicSearchResultContent {
+  type: 'search_result';
+  source: string;
+  title: string;
+  content: AnthropicTextBlock[];
   citations?: { enabled: boolean };
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -525,6 +544,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                     encrypted_index: z.string(),
                   }),
                   z.object({
+                    type: z.literal('search_result_location'),
+                    cited_text: z.string(),
+                    source: z.string(),
+                    title: z.string(),
+                    search_result_index: z.number(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
+                  }),
+                  z.object({
                     type: z.literal('page_location'),
                     cited_text: z.string(),
                     document_index: z.number(),
@@ -539,6 +567,14 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                     document_title: z.string().nullable(),
                     start_char_index: z.number(),
                     end_char_index: z.number(),
+                  }),
+                  z.object({
+                    type: z.literal('content_block_location'),
+                    cited_text: z.string(),
+                    document_index: z.number(),
+                    document_title: z.string().nullable(),
+                    start_block_index: z.number(),
+                    end_block_index: z.number(),
                   }),
                 ]),
               )
@@ -1089,6 +1125,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 encrypted_index: z.string(),
               }),
               z.object({
+                type: z.literal('search_result_location'),
+                cited_text: z.string(),
+                source: z.string(),
+                title: z.string(),
+                search_result_index: z.number(),
+                start_block_index: z.number(),
+                end_block_index: z.number(),
+              }),
+              z.object({
                 type: z.literal('page_location'),
                 cited_text: z.string(),
                 document_index: z.number(),
@@ -1103,6 +1148,14 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 document_title: z.string().nullable(),
                 start_char_index: z.number(),
                 end_char_index: z.number(),
+              }),
+              z.object({
+                type: z.literal('content_block_location'),
+                cited_text: z.string(),
+                document_index: z.number(),
+                document_title: z.string().nullable(),
+                start_block_index: z.number(),
+                end_block_index: z.number(),
               }),
             ]),
           }),
