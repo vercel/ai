@@ -1,58 +1,50 @@
-import { generateText, stepCountIs, tool } from 'ai';
-import { z } from 'zod';
+import { generateText } from 'ai';
 import { run } from '../lib/run';
-import { azure } from '@ai-sdk/azure';
+import {
+  azure,
+  AzureResponsesReasoningProviderMetadata,
+  OpenAIResponsesProviderOptions,
+} from '@ai-sdk/azure';
 
 run(async () => {
   const result = await generateText({
-    model: azure.responses('gpt-5.1-codex-max'),
-    tools: {
-      calculator: tool({
-        description:
-          'A minimal calculator for basic arithmetic. Call it once per step.',
-        inputSchema: z.object({
-          a: z.number().describe('First operand.'),
-          b: z.number().describe('Second operand.'),
-          op: z
-            .enum(['add', 'subtract', 'multiply', 'divide'])
-            .default('add')
-            .describe('Arithmetic operation to perform.'),
-        }),
-        execute: async ({ a, b, op }) => {
-          switch (op) {
-            case 'add':
-              return { result: a + b };
-            case 'subtract':
-              return { result: a - b };
-            case 'multiply':
-              return { result: a * b };
-            case 'divide':
-              if (b === 0) {
-                return 'Cannot divide by zero.';
-              }
-              return { result: a / b };
-          }
-        },
-      }),
-    },
-    stopWhen: stepCountIs(20),
+    model: azure('gpt-5'),
+    prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       azure: {
-        reasoningEffort: 'high',
-        maxCompletionTokens: 32_000,
+        reasoningEffort: 'low',
+        reasoningSummary: 'detailed',
         store: false,
-        include: ['reasoning.encrypted_content'],
-        reasoningSummary: 'auto',
-      },
+        include: ['reasoning.encrypted_content'], // Use encrypted reasoning items
+      } satisfies OpenAIResponsesProviderOptions,
     },
-    messages: [
-      {
-        role: 'user',
-        content:
-          'Use the calculator tool to add 12 and 7, then multiply that sum by 3 then multiply by 10. Call the tool separately for each arithmetic step and only 1 tool call per step and report the final result.',
-      },
-    ],
   });
 
-  console.dir(result.response, { depth: Infinity });
+  for (const part of result.content) {
+    switch (part.type) {
+      case 'reasoning': {
+        console.log('--- reasoning ---');
+        console.log(part.text);
+        const providerMetadata = part.providerMetadata as
+          | AzureResponsesReasoningProviderMetadata
+          | undefined;
+        if (!providerMetadata) break;
+        const {
+          azure: { itemId, reasoningEncryptedContent },
+        } = providerMetadata;
+        console.log(`itemId: ${itemId}`);
+
+        // In the Responses API, explicitly setting store to false opts out of both conversation history and reasoning token storage.
+        // As a result, reasoningEncryptedContent is used to restore the reasoning tokens for the conversation history.
+        console.log(`reasoningEncryptedContent: ${reasoningEncryptedContent}`);
+        break;
+      }
+      case 'text': {
+        console.log('--- text ---');
+        console.log(part.text);
+        break;
+      }
+    }
+    console.log();
+  }
 });

@@ -61,6 +61,13 @@ const { embedding } = await embed({
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description:
+        'Provider-specific options that are passed through to the provider.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,

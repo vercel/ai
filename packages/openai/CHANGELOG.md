@@ -1,5 +1,83 @@
 # @ai-sdk/openai
 
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.22
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.21
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.19
+
+### Patch Changes
+
+- 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
+
+  - Export the following types for use in client code:
+    - `OpenaiResponsesProviderMetadata`
+    - `OpenaiResponsesReasoningProviderMetadata`
+    - `AzureResponsesProviderMetadata`
+    - `AzureResponsesReasoningProviderMetadata`
+
+## 3.0.18
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.17
+
+### Patch Changes
+
+- 4218f86: fix(openai): preserve tool id for apply patch tool
+
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.15
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.14
+
+### Patch Changes
+
+- d21d016: feat(openai): add o4-mini model to OpenAIChatModelId type
+
+## 3.0.13
+
+### Patch Changes
+
+- 000fa96: fix(openai): filter duplicate items when passing conversationID
+
 ## 3.0.12
 
 ### Patch Changes

@@ -97,6 +97,304 @@ describe('user messages', () => {
       },
     ]);
   });
+
+  it('should convert messages with audio/wav parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this audio' },
+          {
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'audio/wav',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this audio' },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'wav' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with audio/mp3 parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/mp3',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with audio/mpeg parts to mp3 format', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for audio parts with URLs', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/audio.wav'),
+              mediaType: 'audio/wav',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'audio file parts with URLs' functionality not supported");
+  });
+
+  it('should throw error for unsupported audio format', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType: 'audio/ogg',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'audio media type audio/ogg' functionality not supported");
+  });
+
+  it('should convert messages with PDF parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this PDF' },
+          {
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this PDF' },
+          {
+            type: 'file',
+            file: {
+              filename: 'document.pdf',
+              file_data: 'data:application/pdf;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with PDF parts using provided filename', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'application/pdf',
+            filename: 'report.pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: 'report.pdf',
+              file_data: 'data:application/pdf;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for PDF parts with URLs', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/document.pdf'),
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'PDF file parts with URLs' functionality not supported");
+  });
+
+  it('should convert messages with text/markdown parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document' },
+          {
+            type: 'file',
+            data: '# Hello World\n\nThis is **markdown** content.',
+            mediaType: 'text/markdown',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Summarize this document' },
+          {
+            type: 'text',
+            text: '# Hello World\n\nThis is **markdown** content.',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with text/plain parts from Uint8Array', async () => {
+    const encoder = new TextEncoder();
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: encoder.encode('Plain text content'),
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert text file URL to string', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new URL('https://example.com/readme.md'),
+            mediaType: 'text/markdown',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'https://example.com/readme.md',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should throw error for unsupported file types', async () => {
+    expect(() =>
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new Uint8Array([0, 1, 2, 3]),
+              mediaType: 'video/mp4',
+            },
+          ],
+        },
+      ]),
+    ).toThrow("'file part media type video/mp4' functionality not supported");
+  });
 });
 
 describe('tool calls', () => {

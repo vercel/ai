@@ -840,11 +840,13 @@ export const getGroundingMetadataSchema = () =>
     groundingSupports: z
       .array(
         z.object({
-          segment: z.object({
-            startIndex: z.number().nullish(),
-            endIndex: z.number().nullish(),
-            text: z.string().nullish(),
-          }),
+          segment: z
+            .object({
+              startIndex: z.number().nullish(),
+              endIndex: z.number().nullish(),
+              text: z.string().nullish(),
+            })
+            .nullish(),
           segment_text: z.string().nullish(),
           groundingChunkIndices: z.array(z.number()).nullish(),
           supportChunkIndices: z.array(z.number()).nullish(),

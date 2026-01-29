@@ -1,5 +1,27 @@
 # @ai-sdk/provider-utils
 
+## 4.0.11
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
+## 4.0.9
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+
 ## 4.0.8
 
 ### Patch Changes

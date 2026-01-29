@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 3.0.6
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+
+## 3.0.5
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
 ## 3.0.4
 
 ### Patch Changes

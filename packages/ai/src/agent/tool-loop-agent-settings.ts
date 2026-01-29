@@ -39,53 +39,53 @@ export type ToolLoopAgentSettings<
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
 
   /**
-The language model to use.
+   * The language model to use.
    */
   model: LanguageModel;
 
   /**
-The tools that the model can call. The model needs to support calling tools.
-*/
+   * The tools that the model can call. The model needs to support calling tools.
+   */
   tools?: TOOLS;
 
   /**
-The tool choice strategy. Default: 'auto'.
+   * The tool choice strategy. Default: 'auto'.
    */
   toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
   /**
-Condition for stopping the generation when there are tool results in the last step.
-When the condition is an array, any of the conditions can be met to stop the generation.
-
-@default stepCountIs(20)
+   * Condition for stopping the generation when there are tool results in the last step.
+   * When the condition is an array, any of the conditions can be met to stop the generation.
+   *
+   * @default stepCountIs(20)
    */
   stopWhen?:
     | StopCondition<NoInfer<TOOLS>>
     | Array<StopCondition<NoInfer<TOOLS>>>;
 
   /**
-Optional telemetry configuration (experimental).
+   * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
 
   /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
+   * Limits the tools that are available for the model to call without
+   * changing the tool call and result types in the result.
    */
   activeTools?: Array<keyof NoInfer<TOOLS>>;
 
   /**
-Optional specification for generating structured outputs.
+   * Optional specification for generating structured outputs.
    */
   output?: OUTPUT;
 
   /**
-Optional function that you can use to provide different settings for a step.
-  */
+   * Optional function that you can use to provide different settings for a step.
+   */
   prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
   /**
-A function that attempts to repair a tool call that failed to parse.
+   * A function that attempts to repair a tool call that failed to parse.
    */
   experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -100,10 +100,10 @@ A function that attempts to repair a tool call that failed to parse.
   onFinish?: ToolLoopAgentOnFinishCallback<NoInfer<TOOLS>>;
 
   /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-         */
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
 
   /**
@@ -116,10 +116,10 @@ functionality that can be fully encapsulated in the provider.
   experimental_context?: unknown;
 
   /**
-Custom download function to use for URLs.
-
-By default, files are downloaded if the model does not support the URL for the given media type.
-     */
+   * Custom download function to use for URLs.
+   *
+   * By default, files are downloaded if the model does not support the URL for the given media type.
+   */
   experimental_download?: DownloadFunction | undefined;
 
   /**
@@ -133,7 +133,10 @@ By default, files are downloaded if the model does not support the URL for the g
    * You can use this to have templates based on call options.
    */
   prepareCall?: (
-    options: AgentCallParameters<CALL_OPTIONS> &
+    options: Omit<
+      AgentCallParameters<CALL_OPTIONS, NoInfer<TOOLS>>,
+      'onStepFinish'
+    > &
       Pick<
         ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
         | 'model'

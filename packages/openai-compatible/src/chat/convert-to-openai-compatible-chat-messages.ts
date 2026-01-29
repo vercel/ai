@@ -12,6 +12,18 @@ function getOpenAIMetadata(message: {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
 
+function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
+  switch (mediaType) {
+    case 'audio/wav':
+      return 'wav';
+    case 'audio/mp3':
+    case 'audio/mpeg':
+      return 'mp3';
+    default:
+      return null;
+  }
+}
+
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV3Prompt,
 ): OpenAICompatibleChatPrompt {
@@ -59,11 +71,68 @@ export function convertToOpenAICompatibleChatMessages(
                     },
                     ...partMetadata,
                   };
-                } else {
-                  throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mediaType}`,
-                  });
                 }
+
+                if (part.mediaType.startsWith('audio/')) {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'audio file parts with URLs',
+                    });
+                  }
+
+                  const format = getAudioFormat(part.mediaType);
+                  if (format === null) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: `audio media type ${part.mediaType}`,
+                    });
+                  }
+
+                  return {
+                    type: 'input_audio',
+                    input_audio: {
+                      data: convertToBase64(part.data),
+                      format,
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType === 'application/pdf') {
+                  if (part.data instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'PDF file parts with URLs',
+                    });
+                  }
+
+                  return {
+                    type: 'file',
+                    file: {
+                      filename: part.filename ?? 'document.pdf',
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType.startsWith('text/')) {
+                  const textContent =
+                    part.data instanceof URL
+                      ? part.data.toString()
+                      : typeof part.data === 'string'
+                        ? part.data
+                        : new TextDecoder().decode(part.data);
+
+                  return {
+                    type: 'text',
+                    text: textContent,
+                    ...partMetadata,
+                  };
+                }
+
+                // Unsupported type
+                throw new UnsupportedFunctionalityError({
+                  functionality: `file part media type ${part.mediaType}`,
+                });
               }
             }
           }),
@@ -75,6 +144,7 @@ export function convertToOpenAICompatibleChatMessages(
 
       case 'assistant': {
         let text = '';
+        let reasoning = '';
         const toolCalls: Array<{
           id: string;
           type: 'function';
@@ -91,6 +161,10 @@ export function convertToOpenAICompatibleChatMessages(
           switch (part.type) {
             case 'text': {
               text += part.text;
+              break;
+            }
+            case 'reasoning': {
+              reasoning += part.text;
               break;
             }
             case 'tool-call': {
@@ -124,6 +198,7 @@ export function convertToOpenAICompatibleChatMessages(
         messages.push({
           role: 'assistant',
           content: text,
+          ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,
         });

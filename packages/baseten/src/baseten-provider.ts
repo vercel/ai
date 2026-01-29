@@ -63,23 +63,23 @@ export interface BasetenProviderSettings {
 
 export interface BasetenProvider extends ProviderV3 {
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   (modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   chatModel(modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a language model for text generation. Alias for chatModel.
-*/
+   * Creates a language model for text generation. Alias for chatModel.
+   */
   languageModel(modelId?: BasetenChatModelId): LanguageModelV3;
 
   /**
-Creates a embedding model for text generation.
-*/
+   * Creates a embedding model for text generation.
+   */
   embeddingModel(modelId?: BasetenEmbeddingModelId): EmbeddingModelV3;
 
   /**

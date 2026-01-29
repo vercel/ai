@@ -503,12 +503,13 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
       for (const {
         name,
+        title,
         description,
         inputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
-        const title = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
@@ -535,7 +536,7 @@ class DefaultMCPClient implements MCPClient {
           schemas === 'automatic'
             ? dynamicTool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
@@ -545,7 +546,7 @@ class DefaultMCPClient implements MCPClient {
               })
             : tool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: schemas[name].inputSchema,
                 ...(outputSchema != null ? { outputSchema } : {}),
                 execute,

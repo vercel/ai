@@ -11,6 +11,14 @@ The DeepInfra provider is available in the `@ai-sdk/deepinfra` module. You can i
 npm i @ai-sdk/deepinfra
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `deepinfra` from `@ai-sdk/deepinfra`:

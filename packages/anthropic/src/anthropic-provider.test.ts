@@ -104,6 +104,42 @@ describe('createAnthropic', () => {
   });
 });
 
+describe('anthropic provider - authentication', () => {
+  describe('authToken option', () => {
+    it('sends Authorization Bearer header when authToken is provided', async () => {
+      const fetchMock = createFetchMock();
+      const provider = createAnthropic({
+        authToken: 'test-auth-token',
+        fetch: fetchMock,
+      });
+
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestOptions] = fetchMock.mock.calls[0]!;
+      expect(requestOptions.headers.authorization).toBe(
+        'Bearer test-auth-token',
+      );
+      expect(requestOptions.headers['x-api-key']).toBeUndefined();
+    });
+  });
+
+  describe('apiKey and authToken conflict', () => {
+    it('throws error when both apiKey and authToken options are provided', () => {
+      expect(() =>
+        createAnthropic({
+          apiKey: 'test-api-key',
+          authToken: 'test-auth-token',
+        }),
+      ).toThrow(
+        'Both apiKey and authToken were provided. Please use only one authentication method.',
+      );
+    });
+  });
+});
+
 describe('anthropic provider - custom provider name', () => {
   beforeEach(() => {
     vi.clearAllMocks();

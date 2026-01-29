@@ -5,7 +5,7 @@ description: Learn how to use Vercel's v0 models with the AI SDK.
 
 # Vercel Provider
 
-The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://vercel.com/docs/v0/api), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
+The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://v0.app/docs/api/model), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
 
 You can create your Vercel API key at [v0.dev](https://v0.dev/chat/settings/keys).
 
@@ -92,7 +92,7 @@ import { vercel } from '@ai-sdk/vercel';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vercel('v0-1.0-md'),
+  model: vercel('v0-1.5-md'),
   prompt: 'Create a Next.js AI chatbot',
 });
 ```

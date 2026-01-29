@@ -445,17 +445,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'headers',
-      type: 'Record<string, string>',
+      type: 'Record<string, string | undefined>',
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
-    },
-    {
-      name: 'experimental_generateMessageId',
-      type: '() => string',
-      isOptional: true,
-      description:
-        'Function used to generate a unique ID for each message. This is an experimental feature.',
     },
     {
       name: 'experimental_telemetry',
@@ -693,6 +686,27 @@ To see `streamText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+    },
+    {
+      name: 'experimental_include',
+      type: '{ requestBody?: boolean }',
+      isOptional: true,
+      description:
+        'Controls inclusion of request body in step results. By default, the body is included. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
+      properties: [
+        {
+          type: 'Object',
+          parameters: [
+            {
+              name: 'requestBody',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'experimental_repairToolCall',
@@ -1313,7 +1327,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1668,7 +1682,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2022,6 +2036,26 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tool results that have been generated. Resolved when the all tool executions are finished.',
     },
     {
+      name: 'staticToolCalls',
+      type: 'PromiseLike<Array<StaticToolCall<TOOLS>>>',
+      description: 'The static tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'dynamicToolCalls',
+      type: 'PromiseLike<Array<DynamicToolCall>>',
+      description: 'The dynamic tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'staticToolResults',
+      type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
+      description: 'The static tool results that have been generated in the last step.',
+    },
+    {
+      name: 'dynamicToolResults',
+      type: 'PromiseLike<Array<DynamicToolResult>>',
+      description: 'The dynamic tool results that have been generated in the last step.',
+    },
+    {
       name: 'request',
       type: 'Promise<LanguageModelRequestMetadata>',
       description: 'Additional request information from the last step.',
@@ -2054,7 +2088,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
             },
             {
-              name: 'model',
+              name: 'modelId',
               type: 'string',
               description:
                 'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2325,7 +2359,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -2673,7 +2707,7 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',

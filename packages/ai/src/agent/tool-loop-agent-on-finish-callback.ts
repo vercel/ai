@@ -3,9 +3,9 @@ import { ToolSet } from '../generate-text/tool-set';
 import { LanguageModelUsage } from '../types/usage';
 
 /**
-Callback that is set using the `onFinish` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onFinish` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type ToolLoopAgentOnFinishCallback<TOOLS extends ToolSet = {}> = (
   event: StepResult<TOOLS> & {

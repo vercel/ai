@@ -12,6 +12,14 @@ The Google Vertex provider is available in the `@ai-sdk/google-vertex` module. Y
 npm i @ai-sdk/google-vertex
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Google Vertex Provider
 
 The Google Vertex provider has two different authentication implementations depending on your runtime environment:
