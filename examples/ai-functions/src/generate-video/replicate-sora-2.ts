@@ -8,7 +8,8 @@ run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: replicate.video('openai/sora-2'),
-      prompt: 'Green parrots against the San Francisco skyline in a post-apocalyptic future setting at night with neon glowing signs downtown.',
+      prompt:
+        'Green parrots against the San Francisco skyline in a post-apocalyptic future setting at night with neon glowing signs downtown.',
       // TODO: fix types or api in some manner to fit below.
       aspectRatio: 'landscape',
     }),

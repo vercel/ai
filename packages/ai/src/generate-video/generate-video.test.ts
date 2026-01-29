@@ -1,0 +1,829 @@
+import type {
+  VideoModelV3,
+  VideoModelV3ProviderMetadata,
+  VideoModelV3VideoData,
+} from '@ai-sdk/provider';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  test,
+  vi,
+  vitest,
+} from 'vitest';
+import * as logWarningsModule from '../logger/log-warnings';
+import { MockVideoModelV3 } from '../test/mock-video-model-v3';
+import type { Warning } from '../types/warning';
+import { experimental_generateVideo } from './generate-video';
+
+const prompt = 'a cat walking on a beach';
+const testDate = new Date(2024, 0, 1);
+
+const mp4Base64 = 'AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDE=';
+const webmBase64 = 'GkXfo59ChoEBQveBAULygQRC84EIQoKEd2Vib';
+
+vi.mock('../version', () => {
+  return {
+    VERSION: '0.0.0-test',
+  };
+});
+
+const createMockResponse = (options: {
+  videos: VideoModelV3VideoData[];
+  warnings?: Warning[];
+  timestamp?: Date;
+  modelId?: string;
+  providerMetadata?: VideoModelV3ProviderMetadata;
+  headers?: Record<string, string>;
+}) => ({
+  videos: options.videos,
+  warnings: options.warnings ?? [],
+  providerMetadata: options.providerMetadata ?? {
+    testProvider: {
+      videos: options.videos.map(() => null),
+    },
+  },
+  response: {
+    timestamp: options.timestamp ?? new Date(),
+    modelId: options.modelId ?? 'test-model-id',
+    headers: options.headers ?? {},
+  },
+});
+
+describe('experimental_generateVideo', () => {
+  let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    logWarningsSpy = vitest
+      .spyOn(logWarningsModule, 'logWarnings')
+      .mockImplementation(() => {});
+
+    global.fetch = vi.fn(async () => {
+      return new Response(convertBase64ToUint8Array(mp4Base64), {
+        status: 200,
+        headers: { 'content-type': 'video/mp4' },
+      });
+    }) as typeof fetch;
+  });
+
+  afterEach(() => {
+    logWarningsSpy.mockRestore();
+    global.fetch = originalFetch;
+  });
+
+  it('should send args to doGenerate', async () => {
+    const abortController = new AbortController();
+    const abortSignal = abortController.signal;
+
+    let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+
+    await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+          });
+        },
+      }),
+      prompt,
+      aspectRatio: '16:9',
+      resolution: '1920x1080',
+      duration: 5,
+      fps: 30,
+      seed: 12345,
+      providerOptions: {
+        'mock-provider': {
+          loop: true,
+        },
+      },
+      headers: {
+        'custom-request-header': 'request-header-value',
+      },
+      abortSignal,
+    });
+
+    expect(capturedArgs).toStrictEqual({
+      n: 1,
+      prompt,
+      files: undefined,
+      aspectRatio: '16:9',
+      resolution: '1920x1080',
+      duration: 5,
+      fps: 30,
+      seed: 12345,
+      providerOptions: { 'mock-provider': { loop: true } },
+      headers: {
+        'custom-request-header': 'request-header-value',
+        'user-agent': 'ai/0.0.0-test',
+      },
+      abortSignal,
+    });
+  });
+
+  it('should return warnings', async () => {
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [
+              {
+                type: 'other',
+                message: 'Setting is not supported',
+              },
+            ],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+    ]);
+  });
+
+  it('should call logWarnings with the correct warnings', async () => {
+    const expectedWarnings: Warning[] = [
+      {
+        type: 'other',
+        message: 'Setting is not supported',
+      },
+      {
+        type: 'unsupported',
+        feature: 'duration',
+        details: 'Duration parameter not supported',
+      },
+    ];
+
+    await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: expectedWarnings,
+          }),
+      }),
+      prompt,
+    });
+
+    expect(logWarningsSpy).toHaveBeenCalledOnce();
+    expect(logWarningsSpy).toHaveBeenCalledWith({
+      warnings: expectedWarnings,
+      provider: 'mock-provider',
+      model: 'mock-model-id',
+    });
+  });
+
+  it('should not call logWarnings when no warnings are present', async () => {
+    await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+          }),
+      }),
+      prompt,
+    });
+
+    expect(logWarningsSpy).not.toHaveBeenCalled();
+  });
+
+  describe('base64 video data', () => {
+    it('should return generated videos with correct mime types', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                { type: 'base64', data: webmBase64, mediaType: 'video/webm' },
+              ],
+            }),
+        }),
+        prompt,
+      });
+
+      expect(result.videos.length).toBe(2);
+      expect(result.videos[0].mediaType).toBe('video/mp4');
+      expect(result.videos[1].mediaType).toBe('video/webm');
+    });
+
+    it('should return the first video', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                { type: 'base64', data: webmBase64, mediaType: 'video/webm' },
+              ],
+            }),
+        }),
+        prompt,
+      });
+
+      expect(result.video.mediaType).toBe('video/mp4');
+    });
+  });
+
+  describe('binary video data', () => {
+    it('should return generated videos', async () => {
+      const binaryData = convertBase64ToUint8Array(mp4Base64);
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                { type: 'binary', data: binaryData, mediaType: 'video/mp4' },
+              ],
+            }),
+        }),
+        prompt,
+      });
+
+      expect(result.videos.length).toBe(1);
+      expect(result.video.uint8Array).toStrictEqual(binaryData);
+    });
+  });
+
+  describe('URL video data', () => {
+    it('should fetch and return videos from URLs', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                {
+                  type: 'url',
+                  url: 'https://example.com/video.mp4',
+                  mediaType: 'video/mp4',
+                },
+              ],
+            }),
+        }),
+        prompt,
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://example.com/video.mp4',
+      );
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should throw error when fetch fails', async () => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
+        async () => {
+          return new Response(null, { status: 404, statusText: 'Not Found' });
+        },
+      );
+
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                videos: [
+                  {
+                    type: 'url',
+                    url: 'https://example.com/video.mp4',
+                    mediaType: 'video/mp4',
+                  },
+                ],
+              }),
+          }),
+          prompt,
+        }),
+      ).rejects.toThrow(
+        'Failed to download video from https://example.com/video.mp4: 404 Not Found',
+      );
+    });
+  });
+
+  describe('when several calls are required', () => {
+    it('should generate videos', async () => {
+      let callCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          maxVideosPerCall: 2,
+          doGenerate: async options => {
+            switch (callCount++) {
+              case 0:
+                expect(options.n).toBe(2);
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                });
+              case 1:
+                expect(options.n).toBe(1);
+                return createMockResponse({
+                  videos: [
+                    {
+                      type: 'base64',
+                      data: webmBase64,
+                      mediaType: 'video/webm',
+                    },
+                  ],
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 3,
+      });
+
+      expect(result.videos.length).toBe(3);
+    });
+
+    it('should aggregate warnings', async () => {
+      const warning1: Warning = {
+        type: 'other',
+        message: 'Warning from call 1',
+      };
+      const warning2: Warning = {
+        type: 'other',
+        message: 'Warning from call 2',
+      };
+
+      let callCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          maxVideosPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  warnings: [warning1],
+                });
+              case 1:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  warnings: [warning2],
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      expect(result.warnings).toStrictEqual([warning1, warning2]);
+    });
+
+    test.each([
+      ['sync method', () => 2],
+      ['async method', async () => 2],
+    ])(
+      'should generate with maxVideosPerCall = %s',
+      async (_, maxVideosPerCall) => {
+        let callCount = 0;
+        const maxVideosPerCallMock = vitest.fn(maxVideosPerCall);
+
+        const result = await experimental_generateVideo({
+          model: new MockVideoModelV3({
+            maxVideosPerCall: maxVideosPerCallMock,
+            doGenerate: async options => {
+              switch (callCount++) {
+                case 0:
+                  expect(options.n).toBe(2);
+                  return createMockResponse({
+                    videos: [
+                      {
+                        type: 'base64',
+                        data: mp4Base64,
+                        mediaType: 'video/mp4',
+                      },
+                      {
+                        type: 'base64',
+                        data: mp4Base64,
+                        mediaType: 'video/mp4',
+                      },
+                    ],
+                  });
+                case 1:
+                  expect(options.n).toBe(1);
+                  return createMockResponse({
+                    videos: [
+                      {
+                        type: 'base64',
+                        data: webmBase64,
+                        mediaType: 'video/webm',
+                      },
+                    ],
+                  });
+                default:
+                  throw new Error('Unexpected call');
+              }
+            },
+          }),
+          prompt,
+          n: 3,
+        });
+
+        expect(result.videos.length).toBe(3);
+        expect(maxVideosPerCallMock).toHaveBeenCalledTimes(1);
+        expect(maxVideosPerCallMock).toHaveBeenCalledWith({
+          modelId: 'mock-model-id',
+        });
+      },
+    );
+  });
+
+  describe('error handling', () => {
+    it('should throw NoVideoGeneratedError when no videos are returned', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                videos: [],
+                timestamp: testDate,
+              }),
+          }),
+          prompt,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoVideoGeneratedError',
+        message: 'No video generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+          },
+        ],
+      });
+    });
+
+    it('should include response headers in error when no videos generated', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV3({
+            doGenerate: async () =>
+              createMockResponse({
+                videos: [],
+                timestamp: testDate,
+                headers: {
+                  'custom-response-header': 'response-header-value',
+                },
+              }),
+          }),
+          prompt,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_NoVideoGeneratedError',
+        message: 'No video generated.',
+        responses: [
+          {
+            timestamp: testDate,
+            modelId: expect.any(String),
+            headers: {
+              'custom-response-header': 'response-header-value',
+            },
+          },
+        ],
+      });
+    });
+  });
+
+  it('should return response metadata', async () => {
+    const testHeaders = { 'x-test': 'value' };
+
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            timestamp: testDate,
+            modelId: 'test-model',
+            headers: testHeaders,
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.responses).toStrictEqual([
+      {
+        timestamp: testDate,
+        modelId: 'test-model',
+        headers: testHeaders,
+      },
+    ]);
+  });
+
+  it('should return provider metadata', async () => {
+    const result = await experimental_generateVideo({
+      model: new MockVideoModelV3({
+        doGenerate: async () =>
+          createMockResponse({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            timestamp: testDate,
+            modelId: 'test-model',
+            providerMetadata: {
+              testProvider: {
+                videos: [{ seed: 12345, duration: 5 }],
+              },
+            },
+            headers: {},
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      testProvider: {
+        videos: [{ seed: 12345, duration: 5 }],
+      },
+    });
+  });
+
+  describe('provider metadata merging', () => {
+    it('should merge provider metadata from multiple calls', async () => {
+      let callCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          maxVideosPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    testProvider: {
+                      videos: [{ seed: 111 }],
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    testProvider: {
+                      videos: [{ seed: 222 }],
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          videos: [{ seed: 111 }, { seed: 222 }],
+        },
+      });
+    });
+
+    it('should handle gateway provider metadata', async () => {
+      let callCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          maxVideosPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    gateway: {
+                      provider: 'fal',
+                      videos: [{ seed: 111 }],
+                      routing: { provider: 'fal' },
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    gateway: {
+                      provider: 'fal',
+                      videos: [{ seed: 222 }],
+                      cost: '0.08',
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      // Gateway provider should be merged to the target provider (fal)
+      // and should not have the 'provider' field in the result
+      expect(result.providerMetadata.fal).toStrictEqual({
+        videos: [{ seed: 111 }, { seed: 222 }],
+        routing: { provider: 'fal' },
+        cost: '0.08',
+      });
+      expect(result.providerMetadata.fal).not.toHaveProperty('provider');
+    });
+
+    it('should handle undefined providerMetadata', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () => ({
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({});
+    });
+  });
+
+  describe('prompt normalization', () => {
+    it('should handle string prompt', async () => {
+      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: 'a simple text prompt',
+      });
+
+      expect(capturedArgs.prompt).toBe('a simple text prompt');
+      expect(capturedArgs.files).toBeUndefined();
+    });
+
+    it('should handle object prompt with text and files', async () => {
+      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      const imageBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          text: 'image to video prompt',
+          files: [imageBase64],
+        },
+      });
+
+      expect(capturedArgs.prompt).toBe('image to video prompt');
+      expect(capturedArgs.files).toBeDefined();
+      expect(capturedArgs.files?.length).toBe(1);
+    });
+
+    it('should handle URL files in prompt', async () => {
+      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          files: ['https://example.com/image.png'],
+        },
+      });
+
+      expect(capturedArgs.files).toStrictEqual([
+        {
+          type: 'url',
+          url: 'https://example.com/image.png',
+        },
+      ]);
+    });
+
+    it('should handle data URL files in prompt', async () => {
+      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      const pngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+      const dataUrl = `data:image/png;base64,${pngBase64}`;
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          files: [dataUrl],
+        },
+      });
+
+      expect(capturedArgs.files).toStrictEqual([
+        {
+          type: 'file',
+          data: convertBase64ToUint8Array(pngBase64),
+          mediaType: 'image/png',
+        },
+      ]);
+    });
+
+    it('should handle Uint8Array files in prompt', async () => {
+      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      const pngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+      const uint8Array = convertBase64ToUint8Array(pngBase64);
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          files: [uint8Array],
+        },
+      });
+
+      expect(capturedArgs.files?.length).toBe(1);
+      expect(capturedArgs.files?.[0].type).toBe('file');
+    });
+  });
+});

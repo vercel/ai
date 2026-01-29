@@ -250,7 +250,6 @@ export class GoogleVertexVideoModel implements VideoModelV3 {
       });
     }
 
-
     const pollIntervalMs = vertexOptions?.pollIntervalMs ?? 10000; // 10 seconds
     const pollTimeoutMs = vertexOptions?.pollTimeoutMs ?? 600000; // 10 minutes
 

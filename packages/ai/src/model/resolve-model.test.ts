@@ -4,12 +4,14 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockVideoModelV3 } from '../test/mock-video-model-v3';
 import { customProvider } from '../registry/custom-provider';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import {
   resolveEmbeddingModel,
   resolveImageModel,
   resolveLanguageModel,
+  resolveVideoModel,
 } from './resolve-model';
 
 describe('resolveLanguageModel', () => {
@@ -239,6 +241,54 @@ describe('resolveImageModel', () => {
 
       expect(resolvedModel.provider).toBe('global-test-provider');
       expect(resolvedModel.modelId).toBe('actual-test-model-id');
+    });
+  });
+});
+
+describe('resolveVideoModel', () => {
+  describe('when a video model v3 is provided', () => {
+    it('should return the video model v3', () => {
+      const resolvedModel = resolveVideoModel(
+        new MockVideoModelV3({
+          provider: 'test-provider',
+          modelId: 'test-model-id',
+        }),
+      );
+
+      expect(resolvedModel.provider).toBe('test-provider');
+      expect(resolvedModel.modelId).toBe('test-model-id');
+      expect(resolvedModel.specificationVersion).toBe('v3');
+    });
+  });
+
+  describe('when a string is provided', () => {
+    it('should throw an error', () => {
+      expect(() => resolveVideoModel('test-model-id' as any)).toThrow(
+        'Video models cannot be resolved from strings. ' +
+          'Please use a VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+      );
+    });
+  });
+
+  describe('when a model with unsupported specification version is provided', () => {
+    it('should throw UnsupportedModelVersionError', () => {
+      const unsupportedModel = {
+        specificationVersion: 'v1',
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      } as any;
+
+      expect(() => resolveVideoModel(unsupportedModel)).toThrow();
+    });
+
+    it('should throw UnsupportedModelVersionError for v2 models', () => {
+      const v2Model = {
+        specificationVersion: 'v2',
+        provider: 'test-provider',
+        modelId: 'test-model-id',
+      } as any;
+
+      expect(() => resolveVideoModel(v2Model)).toThrow();
     });
   });
 });
