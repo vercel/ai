@@ -169,7 +169,7 @@ describe('doEmbed', () => {
     });
   });
 
-  it('should pass dimensions for Cohere v4 embedding models', async () => {
+  it('should pass outputDimension for Cohere v4 embedding models', async () => {
     const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
       baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
       headers: mockConfigHeaders,
@@ -180,7 +180,7 @@ describe('doEmbed', () => {
       values: [testValues[0]],
       providerOptions: {
         bedrock: {
-          dimensions: 256,
+          outputDimension: 256,
         },
       },
     });
@@ -314,12 +314,12 @@ describe('should support Nova embeddings', () => {
     });
   });
 
-  it('should pass dimensions for Nova embeddings', async () => {
+  it('should pass embeddingDimension for Nova embeddings', async () => {
     const { embeddings } = await model.doEmbed({
       values: [testValues[0]],
       providerOptions: {
         bedrock: {
-          dimensions: 256,
+          embeddingDimension: 256,
         },
       },
     });

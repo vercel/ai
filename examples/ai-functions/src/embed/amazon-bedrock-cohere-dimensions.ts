@@ -3,13 +3,13 @@ import { embed } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
-  // dimensions: 256, 512, 1024, or 1536 (default)
+  // outputDimension: 256, 512, 1024, or 1536 (default)
   const { embedding, usage, warnings } = await embed({
     model: bedrock.embedding('cohere.embed-v4:0'),
     value: 'sunny day at the beach',
     providerOptions: {
       bedrock: {
-        dimensions: 256,
+        outputDimension: 256,
       },
     },
   });

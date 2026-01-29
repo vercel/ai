@@ -81,7 +81,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
           singleEmbeddingParams: {
             embeddingPurpose:
               bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-            embeddingDimension: bedrockOptions.dimensions ?? 1024,
+            embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
             text: {
               truncationMode: bedrockOptions.truncate ?? 'END',
               value: values[0],
@@ -95,7 +95,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
             input_type: bedrockOptions.inputType ?? 'search_query',
             texts: [values[0]],
             truncate: bedrockOptions.truncate,
-            output_dimension: bedrockOptions.dimensions,
+            output_dimension: bedrockOptions.outputDimension,
           }
         : {
             inputText: values[0],
