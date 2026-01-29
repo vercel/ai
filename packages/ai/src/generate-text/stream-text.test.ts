@@ -4285,7 +4285,7 @@ describe('streamText', () => {
   });
 
   describe('result.request', () => {
-    it('should resolve with response information', async () => {
+    it('should resolve with request information by default', async () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
@@ -4311,6 +4311,36 @@ describe('streamText', () => {
 
       expect(await result.request).toStrictEqual({
         body: 'test body',
+      });
+    });
+
+    it('should exclude request body when retention.requestBody is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+          request: { body: 'test body' },
+        }),
+        prompt: 'test-input',
+        experimental_include: { requestBody: false },
+      });
+
+      expect(await result.request).toStrictEqual({
+        body: undefined,
       });
     });
   });
