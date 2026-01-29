@@ -1,7 +1,6 @@
 import { GeneratedFile } from '../generate-text';
 import { VideoModelProviderMetadata } from '../types/video-model';
 import { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
-import { VideoModelUsage } from '../types/usage';
 import { Warning } from '../types/warning';
 
 /**
@@ -34,9 +33,4 @@ export interface GenerateVideoResult {
    * Provider-specific metadata passed through from the provider.
    */
   readonly providerMetadata: VideoModelProviderMetadata;
-
-  /**
-   * Combined token usage across all provider calls.
-   */
-  readonly usage: VideoModelUsage;
 }
