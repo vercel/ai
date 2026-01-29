@@ -616,7 +616,7 @@ describe('generateText', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request body', async () => {
+    it('should contain request body by default', async () => {
       const result = await generateText({
         model: new MockLanguageModelV3({
           doGenerate: async ({}) => ({
@@ -632,6 +632,26 @@ describe('generateText', () => {
 
       expect(result.request).toStrictEqual({
         body: 'test body',
+      });
+    });
+
+    it('should exclude request body when retention.requestBody is false', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: 'Hello, world!' }],
+            request: {
+              body: 'test body',
+            },
+          }),
+        }),
+        prompt: 'prompt',
+        experimental_retention: { requestBody: false },
+      });
+
+      expect(result.request).toStrictEqual({
+        body: undefined,
       });
     });
   });

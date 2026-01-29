@@ -91,6 +91,7 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
+import { RetentionSettings } from './retention-settings';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -286,6 +287,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
+  experimental_retention: retention,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -430,6 +432,15 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
+     * Settings for controlling what data is retained in step results.
+     * Disabling retention can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is retained for backwards compatibility.
+     */
+    experimental_retention?: RetentionSettings;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -482,6 +493,7 @@ export function streamText<
     generateId,
     experimental_context,
     download,
+    retention,
   });
 }
 
@@ -652,6 +664,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish,
     experimental_context,
     download,
+    retention,
   }: {
     model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
@@ -680,6 +693,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
+    retention: RetentionSettings | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1448,7 +1462,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
             });
 
-            const stepRequest = request ?? {};
+            // Conditionally retain request.body based on retention settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (retention?.requestBody ?? true)
+                ? (request ?? {})
+                : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;

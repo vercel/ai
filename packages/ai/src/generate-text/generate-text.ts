@@ -36,7 +36,11 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types';
+import {
+  LanguageModel,
+  LanguageModelRequestMetadata,
+  ToolChoice,
+} from '../types';
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
@@ -59,6 +63,7 @@ import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
+import { RetentionSettings } from './retention-settings';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -189,6 +194,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
+  experimental_retention: retention,
   _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
@@ -295,6 +301,15 @@ export async function generateText<
      * @default undefined
      */
     experimental_context?: unknown;
+
+    /**
+     * Settings for controlling what data is retained in step results.
+     * Disabling retention can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is retained for backwards compatibility.
+     */
+    experimental_retention?: RetentionSettings;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -789,6 +804,24 @@ export async function generateText<
             );
 
             // Add step information (after response messages are updated):
+            // Conditionally retain request.body and response.body based on retention settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (retention?.requestBody ?? true)
+                ? (currentModelResponse.request ?? {})
+                : { ...currentModelResponse.request, body: undefined };
+
+            const stepResponse = {
+              ...currentModelResponse.response,
+              // deep clone msgs to avoid mutating past messages in multi-step:
+              messages: structuredClone(responseMessages),
+              // Conditionally retain response body:
+              body:
+                (retention?.responseBody ?? true)
+                  ? currentModelResponse.response?.body
+                  : undefined,
+            };
+
             const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
               content: stepContent,
               finishReason: currentModelResponse.finishReason.unified,
@@ -796,12 +829,8 @@ export async function generateText<
               usage: asLanguageModelUsage(currentModelResponse.usage),
               warnings: currentModelResponse.warnings,
               providerMetadata: currentModelResponse.providerMetadata,
-              request: currentModelResponse.request ?? {},
-              response: {
-                ...currentModelResponse.response,
-                // deep clone msgs to avoid mutating past messages in multi-step:
-                messages: structuredClone(responseMessages),
-              },
+              request: stepRequest,
+              response: stepResponse,
             });
 
             logWarnings({
