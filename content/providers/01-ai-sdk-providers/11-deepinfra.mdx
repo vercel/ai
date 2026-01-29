@@ -238,21 +238,23 @@ For models supporting size parameters, dimensions must typically be:
 - Width and height between 256 and 1440 pixels
 - Default size is 1024x1024
 
-| Model                              | Dimensions Specification | Notes                                                    |
-| ---------------------------------- | ------------------------ | -------------------------------------------------------- |
-| `stabilityai/sd3.5`                | Aspect Ratio             | Premium quality base model, 8B parameters                |
-| `black-forest-labs/FLUX-1.1-pro`   | Size                     | Latest state-of-art model with superior prompt following |
-| `black-forest-labs/FLUX-1-schnell` | Size                     | Fast generation in 1-4 steps                             |
-| `black-forest-labs/FLUX-1-dev`     | Size                     | Optimized for anatomical accuracy                        |
-| `black-forest-labs/FLUX-pro`       | Size                     | Flagship Flux model                                      |
-| `stabilityai/sd3.5-medium`         | Aspect Ratio             | Balanced 2.5B parameter model                            |
-| `stabilityai/sdxl-turbo`           | Aspect Ratio             | Optimized for fast generation                            |
+| Model                                  | Dimensions Specification | Notes                                                    |
+| -------------------------------------- | ------------------------ | -------------------------------------------------------- |
+| `stabilityai/sd3.5`                    | Aspect Ratio             | Premium quality base model, 8B parameters                |
+| `black-forest-labs/FLUX-1.1-pro`       | Size                     | Latest state-of-art model with superior prompt following |
+| `black-forest-labs/FLUX-1-schnell`     | Size                     | Fast generation in 1-4 steps                             |
+| `black-forest-labs/FLUX-1-dev`         | Size                     | Optimized for anatomical accuracy                        |
+| `black-forest-labs/FLUX-pro`           | Size                     | Flagship Flux model                                      |
+| `black-forest-labs/FLUX.1-Kontext-dev` | Size                     | Image editing and transformation model                   |
+| `black-forest-labs/FLUX.1-Kontext-pro` | Size                     | Professional image editing and transformation            |
+| `stabilityai/sd3.5-medium`             | Aspect Ratio             | Balanced 2.5B parameter model                            |
+| `stabilityai/sdxl-turbo`               | Aspect Ratio             | Optimized for fast generation                            |
 
 For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).
 
 ## Embedding Models
 
-You can create DeepInfra embedding models using the `.embedding()` factory method.
+You can create DeepInfra embedding models using the `.embeddingModel()` factory method.
 For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
 
 ```ts
@@ -260,7 +262,7 @@ import { deepinfra } from '@ai-sdk/deepinfra';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: deepinfra.embedding('BAAI/bge-large-en-v1.5'),
+  model: deepinfra.embeddingModel('BAAI/bge-large-en-v1.5'),
   value: 'sunny day at the beach',
 });
 ```

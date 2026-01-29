@@ -71,6 +71,16 @@ You can use the following optional settings to customize the Black Forest Labs p
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **pollIntervalMillis** _number_
+
+  Interval in milliseconds between polling attempts when waiting for image generation to complete.
+  Defaults to 500ms.
+
+- **pollTimeoutMillis** _number_
+
+  Overall timeout in milliseconds for polling before giving up.
+  Defaults to 60000ms (60 seconds).
+
 ## Image Models
 
 You can create Black Forest Labs image models using the `.image()` factory method.
@@ -103,6 +113,7 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 | `flux-kontext-max`   | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                              |
 | `flux-pro-1.1-ultra` | Ultra-fast, ultra high-resolution image creation                                                                           |
 | `flux-pro-1.1`       | Fast, high-quality image generation from text.                                                                             |
+| `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
 Black Forest Labs models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
 
@@ -163,6 +174,26 @@ const { images } = await generateImage({
   up to 20MB or 20 megapixels per image.
 </Note>
 
+#### Inpainting
+
+The `flux-pro-1.0-fill` model supports inpainting, which allows you to fill masked regions of an image with new content. Pass the source image via `prompt.images` and a mask image via `prompt.mask`:
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: blackForestLabs.image('flux-pro-1.0-fill'),
+  prompt: {
+    text: 'A beautiful garden with flowers',
+    images: ['https://example.com/source-image.jpg'],
+    mask: 'https://example.com/mask-image.png',
+  },
+});
+```
+
+The mask image should be a grayscale image where white areas indicate regions to be filled and black areas indicate regions to preserve.
+
 ### Provider Options
 
 Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. The supported parameters depend on the used model ID:
@@ -186,6 +217,34 @@ Black Forest Labs image models support flexible provider options through the `pr
   To pass reference images for editing, use `prompt.images` instead of provider
   options. This supports up to 10 images as URLs or base64-encoded strings.
 </Note>
+
+### Provider Metadata
+
+The `generateImage` response includes provider-specific metadata in `providerMetadata.blackForestLabs.images[]`. Each image object may contain the following properties:
+
+- **seed** _number_ - The seed used for generation. Useful for reproducing results.
+- **start_time** _number_ - Unix timestamp when generation started.
+- **end_time** _number_ - Unix timestamp when generation completed.
+- **duration** _number_ - Generation duration in seconds.
+- **cost** _number_ - Cost of the generation request.
+- **inputMegapixels** _number_ - Input image size in megapixels.
+- **outputMegapixels** _number_ - Output image size in megapixels.
+
+```ts
+import { blackForestLabs } from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image, providerMetadata } = await generateImage({
+  model: blackForestLabs.image('flux-pro-1.1'),
+  prompt: 'A serene mountain landscape at sunset',
+});
+
+// Access provider metadata
+const metadata = providerMetadata?.blackForestLabs?.images?.[0];
+console.log('Seed:', metadata?.seed);
+console.log('Cost:', metadata?.cost);
+console.log('Duration:', metadata?.duration);
+```
 
 ### Regional Endpoints
 
