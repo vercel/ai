@@ -18,15 +18,74 @@ import { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
 import { FalVideoModelId } from './fal-video-settings';
 
+/**
+ * Options for FAL video generation models.
+ *
+ * Different models support different options. Common options like `pollIntervalMs`
+ * work across all models, while others are model-specific.
+ *
+ * @see https://fal.ai/models - Browse all FAL video models
+ */
 export type FalVideoCallOptions = {
+  // ============================================
+  // General options (work across most models)
+  // ============================================
+
+  /**
+   * Enable video looping.
+   * Supported by: Luma models
+   */
   loop?: boolean | null;
+
+  /**
+   * Motion strength for video generation (0-1).
+   */
   motionStrength?: number | null;
+
+  /**
+   * Polling interval in milliseconds when waiting for video generation.
+   * @default 2000
+   */
   pollIntervalMs?: number | null;
+
+  /**
+   * Maximum time to wait for video generation in milliseconds.
+   * @default 300000 (5 minutes)
+   */
   pollTimeoutMs?: number | null;
+
+  /**
+   * Output video resolution.
+   * Supported by: Luma Ray 2 models
+   */
   resolution?: '540p' | '720p' | '1080p' | null;
+
+  /**
+   * Negative prompt - what to avoid in the video.
+   */
   negativePrompt?: string | null;
+
+  /**
+   * Enable prompt optimization.
+   */
   promptOptimizer?: boolean | null;
-  [key: string]: any; // For passthrough
+
+  // Kling Motion Control options (kling-video/v2.6/pro/motion-control)
+
+  /** Character image URL. Required for Kling motion control. */
+  image_url?: string | null;
+
+  /** Reference video URL for motion transfer. Required for Kling motion control. */
+  video_url?: string | null;
+
+  /** Output orientation: 'image' or 'video'. @default 'image' */
+  character_orientation?: 'image' | 'video' | null;
+
+  /** Keep audio from reference video. @default true */
+  keep_original_sound?: boolean | null;
+
+  // Allow additional model-specific options
+  [key: string]: any;
 };
 
 // Provider options schema for FAL video generation
@@ -289,7 +348,7 @@ export class FalVideoModel implements VideoModelV3 {
     if (!videoUrl || !response.video) {
       throw new AISDKError({
         name: 'FAL_VIDEO_GENERATION_ERROR',
-        message: 'No video URL in response',
+        message: `No video URL in response. Keys: ${Object.keys(response).join(', ')}`,
       });
     }
 
@@ -349,23 +408,25 @@ const falJobResponseSchema = z.object({
   response_url: z.string().nullish(),
 });
 
-const falVideoResponseSchema = z.object({
-  video: z
-    .object({
-      url: z.string(),
-      width: z.number().nullish(),
-      height: z.number().nullish(),
-      duration: z.number().nullish(),
-      fps: z.number().nullish(),
-      content_type: z.string().nullish(),
-    })
-    .nullish(),
-  seed: z.number().nullish(),
-  timings: z
-    .object({
-      inference: z.number().nullish(),
-    })
-    .nullish(),
-  has_nsfw_concepts: z.array(z.boolean()).nullish(),
-  prompt: z.string().nullish(),
-});
+const falVideoResponseSchema = z
+  .object({
+    video: z
+      .object({
+        url: z.string(),
+        width: z.number().nullish(),
+        height: z.number().nullish(),
+        duration: z.number().nullish(),
+        fps: z.number().nullish(),
+        content_type: z.string().nullish(),
+      })
+      .nullish(),
+    seed: z.number().nullish(),
+    timings: z
+      .object({
+        inference: z.number().nullish(),
+      })
+      .nullish(),
+    has_nsfw_concepts: z.array(z.boolean()).nullish(),
+    prompt: z.string().nullish(),
+  })
+  .passthrough();
