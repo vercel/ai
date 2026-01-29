@@ -13,6 +13,7 @@ import {
   ProviderOptions,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { SpanKind } from '@opentelemetry/api';
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -29,6 +30,12 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  getGenAIOperationName,
+  normalizeProviderName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
@@ -526,13 +533,21 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           },
         };
 
+        // Determine the GenAI operation name for OTel compliance
+        const genAIOperationName = getGenAIOperationName(
+          'ai.streamObject.doStream',
+        );
+
         const {
           result: { stream, response, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
           recordSpan({
-            name: 'ai.streamObject.doStream',
+            // OTel GenAI span naming: {operation} {model}
+            name: `${genAIOperationName} ${model.modelId}`,
+            // OTel GenAI requires SpanKind.CLIENT for LLM API calls
+            kind: SpanKind.CLIENT,
             attributes: selectTelemetryAttributes({
               telemetry,
               attributes: {
@@ -545,8 +560,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   input: () => stringifyForTelemetry(callOptions.prompt),
                 },
 
-                // standardized gen-ai llm span attributes:
-                'gen_ai.system': model.provider,
+                // OTel GenAI semantic convention attributes:
+                'gen_ai.operation.name': genAIOperationName,
+                'gen_ai.provider.name': normalizeProviderName(model.provider),
+                'gen_ai.system': model.provider, // deprecated, kept for backwards compatibility
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty':
                   callSettings.frequencyPenalty,
@@ -555,6 +572,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 'gen_ai.request.temperature': callSettings.temperature,
                 'gen_ai.request.top_k': callSettings.topK,
                 'gen_ai.request.top_p': callSettings.topP,
+                // OTel GenAI input messages (opt-in, contains PII)
+                'gen_ai.input.messages': {
+                  input: () =>
+                    JSON.stringify(
+                      convertToOTelGenAIInputMessages(callOptions.prompt),
+                    ),
+                },
               },
             }),
             tracer,
@@ -782,12 +806,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.usage.cachedInputTokens':
                           finalUsage.cachedInputTokens,
 
-                        // standardized gen-ai llm span attributes:
+                        // OTel GenAI semantic convention attributes:
                         'gen_ai.response.finish_reasons': [finishReason],
                         'gen_ai.response.id': fullResponse.id,
                         'gen_ai.response.model': fullResponse.modelId,
                         'gen_ai.usage.input_tokens': finalUsage.inputTokens,
                         'gen_ai.usage.output_tokens': finalUsage.outputTokens,
+                        // OTel GenAI output messages (opt-in, contains PII)
+                        'gen_ai.output.messages': {
+                          output: () =>
+                            JSON.stringify(
+                              convertToOTelGenAIOutputMessages({
+                                text: accumulatedText || undefined,
+                                finishReason,
+                              }),
+                            ),
+                        },
                       },
                     }),
                   );
