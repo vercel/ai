@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.17
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 3.0.16
 
 ### Patch Changes

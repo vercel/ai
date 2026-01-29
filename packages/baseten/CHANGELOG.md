@@ -1,5 +1,18 @@
 # @ai-sdk/baseten
 
+## 1.0.25
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 1.0.24
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
 ## 1.0.23
 
 ### Patch Changes
