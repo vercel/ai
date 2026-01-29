@@ -111,6 +111,61 @@ describe('doEmbed', () => {
     });
   });
 
+  it('should pass the embedding_types setting', async () => {
+    prepareJsonResponse();
+
+    await provider.embeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          embeddingTypes: ['int8'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'embed-english-v3.0',
+      embedding_types: ['int8'],
+      texts: testValues,
+      input_type: 'search_query',
+    });
+  });
+
+  it('embedding_type default to float when no value is specified', async () => {
+    prepareJsonResponse();
+
+    await provider.embeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'embed-english-v3.0',
+      embedding_types: ['float'],
+      texts: testValues,
+      input_type: 'search_query',
+    });
+  });
+
+  it('embedding_type should accept multiple array values', async () => {
+    prepareJsonResponse();
+
+    await provider.embeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          embeddingTypes: ['int8', 'binary'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'embed-english-v3.0',
+      embedding_types: ['int8', 'binary'],
+      texts: testValues,
+      input_type: 'search_query',
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 
