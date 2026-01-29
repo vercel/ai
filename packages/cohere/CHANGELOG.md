@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.13
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 3.0.12
 
 ### Patch Changes

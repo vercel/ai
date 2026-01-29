@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 2.0.13
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 2.0.12
 
 ### Patch Changes

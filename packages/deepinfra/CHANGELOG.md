@@ -1,5 +1,11 @@
 # @ai-sdk/deepinfra
 
+## 2.0.24
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 2.0.23
 
 ### Patch Changes
