@@ -91,7 +91,6 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { RetentionSettings } from './retention-settings';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -438,7 +437,14 @@ export function streamText<
      *
      * By default, all data is retained for backwards compatibility.
      */
-    experimental_retention?: RetentionSettings;
+    experimental_retention?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+    };
 
     /**
      * Internal. For test use only. May change without notice.
@@ -693,7 +699,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
-    retention: RetentionSettings | undefined;
+    retention: { requestBody?: boolean } | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;

@@ -52,8 +52,8 @@ const result = await generateText({
 
 The `experimental_retention` option accepts:
 
-- `requestBody`: Set to `false` to exclude the request body from step results. This is where base64-encoded images are stored. Default: `true`.
-- `responseBody`: Set to `false` to exclude the response body from step results. Default: `true`.
+- `requestBody`: Set to `false` to exclude the request body from step results. This is where base64-encoded images are stored. Default: `true`. Available in both `generateText` and `streamText`.
+- `responseBody`: Set to `false` to exclude the response body from step results. Default: `true`. Only available in `generateText`.
 
 ### When to use
 

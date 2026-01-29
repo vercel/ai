@@ -689,13 +689,13 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_retention',
-      type: 'RetentionSettings',
+      type: '{ requestBody?: boolean }',
       isOptional: true,
       description:
-        'Controls retention of request and response bodies in step results. By default, bodies are retained. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Experimental feature.',
+        'Controls retention of request body in step results. By default, the body is retained. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
       properties: [
         {
-          type: 'RetentionSettings',
+          type: 'Object',
           parameters: [
             {
               name: 'requestBody',
@@ -703,13 +703,6 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to retain the request body in step results. The request body can be large when sending images or files. Default: true.',
-            },
-            {
-              name: 'responseBody',
-              type: 'boolean',
-              isOptional: true,
-              description:
-                'Whether to retain the response body in step results. Default: true.',
             },
           ],
         },

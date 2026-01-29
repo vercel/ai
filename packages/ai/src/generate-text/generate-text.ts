@@ -63,7 +63,6 @@ import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
 import { ResponseMessage } from './response-message';
-import { RetentionSettings } from './retention-settings';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
@@ -309,7 +308,20 @@ export async function generateText<
      *
      * By default, all data is retained for backwards compatibility.
      */
-    experimental_retention?: RetentionSettings;
+    experimental_retention?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+
+      /**
+       * Whether to retain the response body in step results.
+       * @default true
+       */
+      responseBody?: boolean;
+    };
 
     /**
      * Internal. For test use only. May change without notice.

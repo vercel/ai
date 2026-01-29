@@ -645,13 +645,13 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_retention',
-      type: 'RetentionSettings',
+      type: '{ requestBody?: boolean; responseBody?: boolean }',
       isOptional: true,
       description:
         'Controls retention of request and response bodies in step results. By default, bodies are retained. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Experimental feature.',
       properties: [
         {
-          type: 'RetentionSettings',
+          type: 'Object',
           parameters: [
             {
               name: 'requestBody',
