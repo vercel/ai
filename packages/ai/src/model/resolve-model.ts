@@ -1,12 +1,12 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   EmbeddingModelV3,
+  Experimental_VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
   SpeechModelV3,
   TranscriptionModelV3,
-  VideoModelV3,
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
@@ -123,11 +123,13 @@ export function resolveImageModel(model: ImageModel): ImageModelV3 {
   return getGlobalProvider().imageModel(model);
 }
 
-export function resolveVideoModel(model: VideoModel): VideoModelV3 {
+export function resolveVideoModel(
+  model: VideoModel,
+): Experimental_VideoModelV3 {
   if (typeof model === 'string') {
     throw new Error(
       'Video models cannot be resolved from strings. ' +
-        'Please use a VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+        'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
     );
   }
 

@@ -1,21 +1,26 @@
-import { AISDKError, VideoModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  type Experimental_VideoModelV3,
+  type Experimental_VideoModelV3ProviderMetadata,
+  type SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createJsonResponseHandler,
   delay,
-  FetchFunction,
+  type FetchFunction,
   getFromApi,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
+  type Resolvable,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import { ReplicateVideoModelId } from './replicate-video-settings';
+import type { ReplicateVideoModelId } from './replicate-video-settings';
 
 export type ReplicateVideoCallOptions = {
   // Polling configuration
@@ -72,7 +77,7 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements VideoModelV3 {
+export class ReplicateVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
@@ -86,8 +91,8 @@ export class ReplicateVideoModel implements VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
@@ -194,7 +199,7 @@ export class ReplicateVideoModel implements VideoModelV3 {
       }
 
       // Pass through any additional options
-      for (const [key, value] of Object.entries(opts as any)) {
+      for (const [key, value] of Object.entries(opts)) {
         if (
           ![
             'pollIntervalMs',
@@ -326,7 +331,7 @@ export class ReplicateVideoModel implements VideoModelV3 {
     }
 
     // Build provider metadata
-    const providerMetadata: any = {
+    const providerMetadata: Experimental_VideoModelV3ProviderMetadata = {
       replicate: {
         videos: [
           {

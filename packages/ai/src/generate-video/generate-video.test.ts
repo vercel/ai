@@ -1,7 +1,7 @@
 import type {
-  VideoModelV3,
-  VideoModelV3ProviderMetadata,
-  VideoModelV3VideoData,
+  Experimental_VideoModelV3,
+  Experimental_VideoModelV3ProviderMetadata,
+  Experimental_VideoModelV3VideoData,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import {
@@ -32,11 +32,11 @@ vi.mock('../version', () => {
 });
 
 const createMockResponse = (options: {
-  videos: VideoModelV3VideoData[];
+  videos: Experimental_VideoModelV3VideoData[];
   warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
-  providerMetadata?: VideoModelV3ProviderMetadata;
+  providerMetadata?: Experimental_VideoModelV3ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   videos: options.videos,
@@ -79,7 +79,7 @@ describe('experimental_generateVideo', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+    let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
 
     await experimental_generateVideo({
       model: new MockVideoModelV3({
@@ -695,7 +695,7 @@ describe('experimental_generateVideo', () => {
 
   describe('prompt normalization', () => {
     it('should handle string prompt', async () => {
-      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV3({
@@ -716,7 +716,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle object prompt with text and files', async () => {
-      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const imageBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
 
@@ -743,7 +743,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle URL files in prompt', async () => {
-      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV3({
@@ -770,7 +770,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle data URL files in prompt', async () => {
-      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const dataUrl = `data:image/png;base64,${pngBase64}`;
@@ -801,7 +801,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle Uint8Array files in prompt', async () => {
-      let capturedArgs!: Parameters<VideoModelV3['doGenerate']>[0];
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const uint8Array = convertBase64ToUint8Array(pngBase64);

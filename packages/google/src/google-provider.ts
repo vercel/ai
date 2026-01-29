@@ -1,9 +1,9 @@
 import {
   EmbeddingModelV3,
+  Experimental_VideoModelV3,
+  ImageModelV3,
   LanguageModelV3,
   ProviderV3,
-  ImageModelV3,
-  VideoModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -45,7 +45,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   /**
 Creates a model for video generation.
  */
-  video(modelId: GoogleGenerativeAIVideoModelId): VideoModelV3;
+  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
 
   /**
    * @deprecated Use `chat()` instead.

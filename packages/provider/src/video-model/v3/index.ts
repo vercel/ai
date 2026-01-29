@@ -1,4 +1,8 @@
-export * from './video-model-v3';
-export * from './video-model-v3-call-options';
-export * from './video-model-v3-file';
-export * from './video-model-v3-usage';
+export type {
+  VideoModelV3 as Experimental_VideoModelV3,
+  VideoModelV3ProviderMetadata as Experimental_VideoModelV3ProviderMetadata,
+  VideoModelV3VideoData as Experimental_VideoModelV3VideoData,
+} from './video-model-v3';
+export type { VideoModelV3CallOptions as Experimental_VideoModelV3CallOptions } from './video-model-v3-call-options';
+export type { VideoModelV3File as Experimental_VideoModelV3File } from './video-model-v3-file';
+export type { VideoModelV3Usage as Experimental_VideoModelV3Usage } from './video-model-v3-usage';

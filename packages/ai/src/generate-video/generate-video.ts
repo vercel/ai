@@ -1,9 +1,9 @@
 import type {
+  Experimental_VideoModelV3,
+  Experimental_VideoModelV3CallOptions,
+  Experimental_VideoModelV3File,
+  Experimental_VideoModelV3ProviderMetadata,
   JSONArray,
-  VideoModelV3,
-  VideoModelV3CallOptions,
-  VideoModelV3File,
-  VideoModelV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -189,7 +189,7 @@ Only applicable for HTTP-based providers.
           providerOptions: providerOptions ?? {},
           headers: headersWithUserAgent,
           abortSignal,
-        } satisfies VideoModelV3CallOptions),
+        } satisfies Experimental_VideoModelV3CallOptions),
       ),
     ),
   );
@@ -198,7 +198,7 @@ Only applicable for HTTP-based providers.
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: VideoModelV3ProviderMetadata = {};
+  const providerMetadata: Experimental_VideoModelV3ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -288,10 +288,10 @@ Only applicable for HTTP-based providers.
                 ...(currentEntry.videos ?? []),
                 ...gatewayMetadata.videos,
               ],
-            } as VideoModelV3ProviderMetadata[string];
+            } as Experimental_VideoModelV3ProviderMetadata[string];
           } else {
             providerMetadata[targetProvider] =
-              metadata as VideoModelV3ProviderMetadata[string];
+              metadata as Experimental_VideoModelV3ProviderMetadata[string];
           }
 
           // Remove the gateway-specific 'provider' field from the merged metadata
@@ -312,10 +312,10 @@ Only applicable for HTTP-based providers.
                 ...(currentEntry.videos ?? []),
                 ...(metadata.videos ?? []),
               ],
-            } as VideoModelV3ProviderMetadata[string];
+            } as Experimental_VideoModelV3ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
-              metadata as VideoModelV3ProviderMetadata[string];
+              metadata as Experimental_VideoModelV3ProviderMetadata[string];
           }
         }
       }
@@ -345,7 +345,7 @@ Only applicable for HTTP-based providers.
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  files: VideoModelV3File[] | undefined;
+  files: Experimental_VideoModelV3File[] | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -354,7 +354,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  const files: VideoModelV3File[] = [];
+  const files: Experimental_VideoModelV3File[] = [];
   for (const dataContent of promptArg.files ?? []) {
     if (typeof dataContent === 'string') {
       if (
@@ -408,7 +408,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV3) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }

@@ -1,10 +1,10 @@
 import {
+  Experimental_VideoModelV3,
   ImageModelV3,
   NoSuchModelError,
   ProviderV3,
   SpeechModelV3,
   TranscriptionModelV3,
-  VideoModelV3,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -68,7 +68,7 @@ Creates a model for transcription.
   /*
 Creates a model for video generation.
    */
-  video(modelId: FalVideoModelId): VideoModelV3;
+  video(modelId: FalVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Creates a model for speech generation.

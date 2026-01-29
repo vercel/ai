@@ -1,4 +1,8 @@
-import { AISDKError, VideoModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  Experimental_VideoModelV3,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -61,7 +65,7 @@ interface FalVideoModelConfig extends FalConfig {
   };
 }
 
-export class FalVideoModel implements VideoModelV3 {
+export class FalVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 
@@ -75,8 +79,8 @@ export class FalVideoModel implements VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 

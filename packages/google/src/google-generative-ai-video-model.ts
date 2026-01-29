@@ -1,4 +1,8 @@
-import { AISDKError, VideoModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  Experimental_VideoModelV3,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
@@ -69,7 +73,7 @@ interface GoogleGenerativeAIVideoModelConfig {
   };
 }
 
-export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
+export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
 
   get provider(): string {
@@ -87,8 +91,8 @@ export class GoogleGenerativeAIVideoModel implements VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 

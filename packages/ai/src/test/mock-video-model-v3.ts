@@ -1,13 +1,13 @@
-import { VideoModelV3 } from '@ai-sdk/provider';
+import { Experimental_VideoModelV3 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockVideoModelV3 implements VideoModelV3 {
+export class MockVideoModelV3 implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
-  readonly provider: VideoModelV3['provider'];
-  readonly modelId: VideoModelV3['modelId'];
-  readonly maxVideosPerCall: VideoModelV3['maxVideosPerCall'];
+  readonly provider: Experimental_VideoModelV3['provider'];
+  readonly modelId: Experimental_VideoModelV3['modelId'];
+  readonly maxVideosPerCall: Experimental_VideoModelV3['maxVideosPerCall'];
 
-  doGenerate: VideoModelV3['doGenerate'];
+  doGenerate: Experimental_VideoModelV3['doGenerate'];
 
   constructor({
     provider = 'mock-provider',
@@ -15,10 +15,10 @@ export class MockVideoModelV3 implements VideoModelV3 {
     maxVideosPerCall = 1,
     doGenerate = notImplemented,
   }: {
-    provider?: VideoModelV3['provider'];
-    modelId?: VideoModelV3['modelId'];
-    maxVideosPerCall?: VideoModelV3['maxVideosPerCall'];
-    doGenerate?: VideoModelV3['doGenerate'];
+    provider?: Experimental_VideoModelV3['provider'];
+    modelId?: Experimental_VideoModelV3['modelId'];
+    maxVideosPerCall?: Experimental_VideoModelV3['maxVideosPerCall'];
+    doGenerate?: Experimental_VideoModelV3['doGenerate'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;

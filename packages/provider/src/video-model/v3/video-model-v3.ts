@@ -1,13 +1,13 @@
-import { JSONArray, JSONValue } from '../../json-value';
-import { VideoModelV3Usage } from './video-model-v3-usage';
-import { VideoModelV3CallOptions } from './video-model-v3-call-options';
-import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
+import type { JSONArray, JSONObject } from '../../json-value';
+import type { VideoModelV3Usage } from './video-model-v3-usage';
+import type { VideoModelV3CallOptions } from './video-model-v3-call-options';
+import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 
 export type VideoModelV3ProviderMetadata = Record<
   string,
   {
     videos: JSONArray;
-  } & JSONValue
+  } & JSONObject
 >;
 
 type GetMaxVideosPerCallFunction = (options: {

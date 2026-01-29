@@ -265,7 +265,7 @@ describe('resolveVideoModel', () => {
     it('should throw an error', () => {
       expect(() => resolveVideoModel('test-model-id' as any)).toThrow(
         'Video models cannot be resolved from strings. ' +
-          'Please use a VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+          'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
       );
     });
   });
