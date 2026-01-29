@@ -172,14 +172,125 @@ describe('doGenerate', () => {
       providerOptions: {
         groq: {
           timestampGranularities: ['segment'],
-          responseFormat: 'verbose_json',
         },
       },
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       'timestamp_granularities[]': 'segment',
-      response_format: 'verbose_json',
     });
+  });
+
+  it('should pass response_format as verbose_json when providerOptions are set', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
+      model: 'whisper-large-v3-turbo',
+      response_format: 'verbose_json',
+      'timestamp_granularities[]': 'word',
+    });
+  });
+
+  it('should fallback to words when segments are not available', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world',
+        words: [
+          { word: 'Hello', start: 0.0, end: 1.0 },
+          { word: 'world', start: 1.0, end: 2.0 },
+        ],
+        language: 'en',
+        duration: 2.0,
+        x_groq: { id: 'req_123' },
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        groq: {
+          timestampGranularities: ['word'],
+        },
+      },
+    });
+
+    expect(result.segments).toEqual([
+      { text: 'Hello', startSecond: 0.0, endSecond: 1.0 },
+      { text: 'world', startSecond: 1.0, endSecond: 2.0 },
+    ]);
+  });
+
+  it('should prefer segments over words when both are present', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world!',
+        words: [
+          { word: 'Hello', start: 0.0, end: 1.0 },
+          { word: 'world', start: 1.0, end: 1.8 },
+          { word: '!', start: 1.8, end: 2.0 },
+        ],
+        segments: [
+          {
+            id: 0,
+            seek: 0,
+            start: 0,
+            end: 2.0,
+            text: 'Hello world!',
+            tokens: [1, 2, 3],
+            temperature: 0,
+            avg_logprob: -0.3,
+            compression_ratio: 0.8,
+            no_speech_prob: 0.01,
+          },
+        ],
+        x_groq: { id: 'req_123' },
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toEqual([
+      { text: 'Hello world!', startSecond: 0, endSecond: 2.0 },
+    ]);
+  });
+
+  it('should handle empty words array gracefully', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world',
+        words: [],
+        x_groq: { id: 'req_123' },
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toEqual([]);
   });
 });
