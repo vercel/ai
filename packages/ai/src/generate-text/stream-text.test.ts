@@ -4336,7 +4336,7 @@ describe('streamText', () => {
           request: { body: 'test body' },
         }),
         prompt: 'test-input',
-        experimental_retention: { requestBody: false },
+        experimental_include: { requestBody: false },
       });
 
       expect(await result.request).toStrictEqual({

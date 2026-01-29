@@ -64,7 +64,7 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_retention: { requestBody: false },
+        experimental_include: { requestBody: false },
       });
 
       // Body should be excluded
@@ -111,7 +111,7 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_retention: { responseBody: false },
+        experimental_include: { responseBody: false },
       });
 
       // Response body should be excluded
@@ -137,7 +137,7 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_retention: { requestBody: false, responseBody: false },
+        experimental_include: { requestBody: false, responseBody: false },
       });
 
       // Both bodies should be excluded
@@ -208,7 +208,7 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_retention: { requestBody: false },
+        experimental_include: { requestBody: false },
       });
 
       const request = await result.request;
@@ -265,7 +265,7 @@ describe('retention benchmark', () => {
           }),
         }),
         prompt: 'test',
-        experimental_retention: { requestBody: false, responseBody: false },
+        experimental_include: { requestBody: false, responseBody: false },
       });
 
       const memoryAfterExcluded = process.memoryUsage().heapUsed;

@@ -647,7 +647,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_retention: { requestBody: false },
+        experimental_include: { requestBody: false },
       });
 
       expect(result.request).toStrictEqual({

@@ -17,13 +17,13 @@ This is especially noticeable when using `experimental_download` to process imag
 
 ## Background
 
-By default, the AI SDK retains the full request and response bodies in the step results. When processing images, the request body contains the base64-encoded image data, which can be very large (a single image can be 1MB+ when base64 encoded). If you process many images and keep references to the results, this data accumulates in memory.
+By default, the AI SDK includes the full request and response bodies in the step results. When processing images, the request body contains the base64-encoded image data, which can be very large (a single image can be 1MB+ when base64 encoded). If you process many images and keep references to the results, this data accumulates in memory.
 
-For example, processing 100 images of 500KB each would retain ~50MB+ of request body data in memory.
+For example, processing 100 images of 500KB each would include ~50MB+ of request body data in memory.
 
 ## Solution
 
-Use the `experimental_retention` option to disable retention of request and/or response bodies:
+Use the `experimental_include` option to disable inclusion of request and/or response bodies:
 
 ```ts
 import { generateText } from 'ai';
@@ -40,8 +40,8 @@ const result = await generateText({
       ],
     },
   ],
-  // Disable retention of request body to reduce memory usage
-  experimental_retention: {
+  // Disable inclusion of request body to reduce memory usage
+  experimental_include: {
     requestBody: false,
     responseBody: false,
   },
@@ -50,7 +50,7 @@ const result = await generateText({
 
 ### Options
 
-The `experimental_retention` option accepts:
+The `experimental_include` option accepts:
 
 - `requestBody`: Set to `false` to exclude the request body from step results. This is where base64-encoded images are stored. Default: `true`. Available in both `generateText` and `streamText`.
 - `responseBody`: Set to `false` to exclude the response body from step results. Default: `true`. Only available in `generateText`.
@@ -63,7 +63,7 @@ The `experimental_retention` option accepts:
 
 ### Trade-offs
 
-When you disable body retention:
+When you disable body inclusion:
 
 - You won't have access to `result.request.body` or `result.response.body`
 - Debugging may be harder since you can't inspect the raw request/response
@@ -92,7 +92,7 @@ for (const imageUrl of imageUrls) {
         ],
       },
     ],
-    experimental_retention: {
+    experimental_include: {
       requestBody: false,
     },
   });

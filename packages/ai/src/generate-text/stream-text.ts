@@ -286,7 +286,7 @@ export function streamText<
   onAbort,
   onStepFinish,
   experimental_context,
-  experimental_retention: retention,
+  experimental_include: include,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -431,13 +431,13 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
-     * Settings for controlling what data is retained in step results.
-     * Disabling retention can help reduce memory usage when processing
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is retained for backwards compatibility.
+     * By default, all data is included for backwards compatibility.
      */
-    experimental_retention?: {
+    experimental_include?: {
       /**
        * Whether to retain the request body in step results.
        * The request body can be large when sending images or files.
@@ -499,7 +499,7 @@ export function streamText<
     generateId,
     experimental_context,
     download,
-    retention,
+    include,
   });
 }
 
@@ -670,7 +670,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onStepFinish,
     experimental_context,
     download,
-    retention,
+    include,
   }: {
     model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
@@ -699,7 +699,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     generateId: () => string;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
-    retention: { requestBody?: boolean } | undefined;
+    include: { requestBody?: boolean } | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1468,10 +1468,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
             });
 
-            // Conditionally retain request.body based on retention settings.
+            // Conditionally include request.body based on include settings.
             // Large payloads (e.g., base64-encoded images) can cause memory issues.
             const stepRequest: LanguageModelRequestMetadata =
-              (retention?.requestBody ?? true)
+              (include?.requestBody ?? true)
                 ? (request ?? {})
                 : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];

@@ -688,11 +688,11 @@ To see `streamText` in action, check out [these examples](#examples).
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
     },
     {
-      name: 'experimental_retention',
+      name: 'experimental_include',
       type: '{ requestBody?: boolean }',
       isOptional: true,
       description:
-        'Controls retention of request body in step results. By default, the body is retained. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
+        'Controls inclusion of request body in step results. By default, the body is included. When processing many large payloads (e.g., images), set requestBody to false to reduce memory usage. Experimental feature.',
       properties: [
         {
           type: 'Object',
@@ -702,7 +702,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'boolean',
               isOptional: true,
               description:
-                'Whether to retain the request body in step results. The request body can be large when sending images or files. Default: true.',
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
             },
           ],
         },

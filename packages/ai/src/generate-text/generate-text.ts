@@ -193,7 +193,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
-  experimental_retention: retention,
+  experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
@@ -302,13 +302,13 @@ export async function generateText<
     experimental_context?: unknown;
 
     /**
-     * Settings for controlling what data is retained in step results.
-     * Disabling retention can help reduce memory usage when processing
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
      *
-     * By default, all data is retained for backwards compatibility.
+     * By default, all data is included for backwards compatibility.
      */
-    experimental_retention?: {
+    experimental_include?: {
       /**
        * Whether to retain the request body in step results.
        * The request body can be large when sending images or files.
@@ -816,10 +816,10 @@ export async function generateText<
             );
 
             // Add step information (after response messages are updated):
-            // Conditionally retain request.body and response.body based on retention settings.
+            // Conditionally include request.body and response.body based on include settings.
             // Large payloads (e.g., base64-encoded images) can cause memory issues.
             const stepRequest: LanguageModelRequestMetadata =
-              (retention?.requestBody ?? true)
+              (include?.requestBody ?? true)
                 ? (currentModelResponse.request ?? {})
                 : { ...currentModelResponse.request, body: undefined };
 
@@ -827,9 +827,9 @@ export async function generateText<
               ...currentModelResponse.response,
               // deep clone msgs to avoid mutating past messages in multi-step:
               messages: structuredClone(responseMessages),
-              // Conditionally retain response body:
+              // Conditionally include response body:
               body:
-                (retention?.responseBody ?? true)
+                (include?.responseBody ?? true)
                   ? currentModelResponse.response?.body
                   : undefined,
             };
