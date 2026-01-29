@@ -8,9 +8,7 @@ run(async () => {
     model: groq.transcription('whisper-large-v3-turbo'),
     audio: Buffer.from(await readFile('./data/galileo.mp3')).toString('base64'),
     providerOptions: {
-      groq: {
-        responseFormat: 'verbose_json',
-      },
+      groq: {},
     },
   });
 
