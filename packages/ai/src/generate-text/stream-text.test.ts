@@ -5116,6 +5116,8 @@ describe('streamText', () => {
           "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "output": "Hello, world!",
+          "outputError": undefined,
           "providerMetadata": {
             "testProvider": {
               "testKey": "testValue",
@@ -5414,6 +5416,8 @@ describe('streamText', () => {
           "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "output": "Hello!",
+          "outputError": undefined,
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -5641,6 +5645,8 @@ describe('streamText', () => {
             },
           ],
           "finishReason": "stop",
+          "output": "Hello!",
+          "outputError": undefined,
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -6337,6 +6343,8 @@ describe('streamText', () => {
               "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "output": "Hello, world!",
+              "outputError": undefined,
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -8125,6 +8133,8 @@ describe('streamText', () => {
               "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "output": "Hello, world!",
+              "outputError": undefined,
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -12026,6 +12036,8 @@ describe('streamText', () => {
             "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "output": "HELLO, WORLD!",
+            "outputError": undefined,
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -13277,6 +13289,10 @@ describe('streamText', () => {
             "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "output": {
+              "value": "Hello, world!",
+            },
+            "outputError": undefined,
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "reasoning": [],
@@ -13393,6 +13409,72 @@ describe('streamText', () => {
             "warnings": [],
           }
         `);
+      });
+
+      it('should call onFinish with parsed output', async () => {
+        let onFinishOutput: { value: string } | undefined;
+        let onFinishOutputError: unknown | undefined;
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ "value": "test" }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: async event => {
+            onFinishOutput = event.output;
+            onFinishOutputError = event.outputError;
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(onFinishOutput).toStrictEqual({ value: 'test' });
+        expect(onFinishOutputError).toBeUndefined();
+      });
+
+      it('should call onFinish with outputError when parsing fails', async () => {
+        let onFinishOutput: unknown;
+        let onFinishOutputError: unknown;
+
+        const resultObject = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '{ "wrong": 123 }' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          prompt: 'prompt',
+          onFinish: async event => {
+            onFinishOutput = event.output;
+            onFinishOutputError = event.outputError;
+          },
+        });
+
+        await resultObject.consumeStream();
+
+        expect(onFinishOutput).toBeUndefined();
+        expect(onFinishOutputError).toBeDefined();
       });
     });
 
