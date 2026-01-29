@@ -1,3 +1,4 @@
+import { TypeValidationContext } from '@ai-sdk/provider';
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
@@ -288,6 +289,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 await validateTypes({
                   value: mergedMetadata,
                   schema: messageMetadataSchema,
+                  context: {
+                    field: 'message.metadata',
+                    entityId: state.message.id,
+                  },
                 });
               }
 
@@ -710,9 +715,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               if (isDataUIMessageChunk(chunk)) {
                 // validate data chunk if dataPartSchemas is provided
                 if (dataPartSchemas?.[chunk.type] != null) {
+                  const partIdx = state.message.parts.findIndex(
+                    p =>
+                      'id' in p &&
+                      'data' in p &&
+                      p.id === chunk.id &&
+                      p.type === chunk.type,
+                  );
+                  const actualPartIdx =
+                    partIdx >= 0 ? partIdx : state.message.parts.length;
+
                   await validateTypes({
                     value: chunk.data,
                     schema: dataPartSchemas[chunk.type],
+                    context: {
+                      field: `message.parts[${actualPartIdx}].data`,
+                      entityName: chunk.type,
+                      entityId: chunk.id,
+                    },
                   });
                 }
 
