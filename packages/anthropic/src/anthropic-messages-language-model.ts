@@ -152,6 +152,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
+  /**
+   * Extracts the dynamic provider name from the config.provider string.
+   * e.g., 'my-custom-anthropic.messages' -> 'my-custom-anthropic'
+   */
+  private get providerOptionsName(): string {
+    const provider = this.config.provider;
+    const dotIndex = provider.indexOf('.');
+    return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
+  }
+
   get supportedUrls() {
     return this.config.supportedUrls?.() ?? {};
   }
@@ -218,11 +228,33 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const anthropicOptions = await parseProviderOptions({
+    const providerOptionsName = this.providerOptionsName;
+
+    // Parse provider options from both canonical 'anthropic' key and custom key
+    const canonicalOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
       schema: anthropicProviderOptions,
     });
+
+    const customProviderOptions =
+      providerOptionsName !== 'anthropic'
+        ? await parseProviderOptions({
+            provider: providerOptionsName,
+            providerOptions,
+            schema: anthropicProviderOptions,
+          })
+        : null;
+
+    // Track if custom key was explicitly used
+    const usedCustomProviderKey = customProviderOptions != null;
+
+    // Merge options
+    const anthropicOptions = Object.assign(
+      {},
+      canonicalOptions ?? {},
+      customProviderOptions ?? {},
+    );
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
@@ -567,6 +599,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas: new Set([...betas, ...toolsBetas, ...userSuppliedBetas]),
       usesJsonResponseTool: jsonResponseTool != null,
       toolNameMapping,
+      providerOptionsName,
+      usedCustomProviderKey,
     };
   }
 
@@ -659,12 +693,19 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings, betas, usesJsonResponseTool, toolNameMapping } =
-      await this.getArgs({
-        ...options,
-        stream: false,
-        userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
-      });
+    const {
+      args,
+      warnings,
+      betas,
+      usesJsonResponseTool,
+      toolNameMapping,
+      providerOptionsName,
+      usedCustomProviderKey,
+    } = await this.getArgs({
+      ...options,
+      stream: false,
+      userSuppliedBetas: await this.getBetasFromHeaders(options.headers),
+    });
 
     // Extract citation documents for response processing
     const citationDocuments = [
@@ -987,8 +1028,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
         // tool search tool results:
         case 'tool_search_tool_result': {
-          const providerToolName =
-            serverToolCalls[part.tool_use_id] ?? 'tool_search_tool_regex';
+          let providerToolName = serverToolCalls[part.tool_use_id];
+
+          if (providerToolName == null) {
+            const bm25CustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_bm25',
+            );
+            const regexCustomName = toolNameMapping.toCustomToolName(
+              'tool_search_tool_regex',
+            );
+
+            if (bm25CustomName !== 'tool_search_tool_bm25') {
+              providerToolName = 'tool_search_tool_bm25';
+            } else if (regexCustomName !== 'tool_search_tool_regex') {
+              providerToolName = 'tool_search_tool_regex';
+            } else {
+              providerToolName = 'tool_search_tool_regex';
+            }
+          }
+
           if (part.content.type === 'tool_search_tool_search_result') {
             content.push({
               type: 'tool-result',
@@ -1034,8 +1092,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         body: rawResponse,
       },
       warnings,
-      providerMetadata: {
-        anthropic: {
+      providerMetadata: (() => {
+        const anthropicMetadata = {
           usage: response.usage as JSONObject,
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
@@ -1056,8 +1114,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             mapAnthropicResponseContextManagement(
               response.context_management,
             ) ?? null,
-        } satisfies AnthropicMessageMetadata,
-      },
+        } satisfies AnthropicMessageMetadata;
+
+        const providerMetadata: SharedV3ProviderMetadata = {
+          anthropic: anthropicMetadata,
+        };
+
+        if (usedCustomProviderKey && providerOptionsName !== 'anthropic') {
+          providerMetadata[providerOptionsName] = anthropicMetadata;
+        }
+
+        return providerMetadata;
+      })(),
     };
   }
 
@@ -1070,6 +1138,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas,
       usesJsonResponseTool,
       toolNameMapping,
+      providerOptionsName,
+      usedCustomProviderKey,
     } = await this.getArgs({
       ...options,
       stream: true,
@@ -1480,9 +1550,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
                 // tool search tool results:
                 case 'tool_search_tool_result': {
-                  const providerToolName =
-                    serverToolCalls[part.tool_use_id] ??
-                    'tool_search_tool_regex';
+                  let providerToolName = serverToolCalls[part.tool_use_id];
+
+                  if (providerToolName == null) {
+                    const bm25CustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_bm25',
+                    );
+                    const regexCustomName = toolNameMapping.toCustomToolName(
+                      'tool_search_tool_regex',
+                    );
+
+                    if (bm25CustomName !== 'tool_search_tool_bm25') {
+                      providerToolName = 'tool_search_tool_bm25';
+                    } else if (regexCustomName !== 'tool_search_tool_regex') {
+                      providerToolName = 'tool_search_tool_regex';
+                    } else {
+                      providerToolName = 'tool_search_tool_regex';
+                    }
+                  }
+
                   if (part.content.type === 'tool_search_tool_search_result') {
                     controller.enqueue({
                       type: 'tool-result',
@@ -1861,6 +1947,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               }
               usage.output_tokens = value.usage.output_tokens;
 
+              if (value.usage.cache_read_input_tokens != null) {
+                usage.cache_read_input_tokens =
+                  value.usage.cache_read_input_tokens;
+              }
+              if (value.usage.cache_creation_input_tokens != null) {
+                usage.cache_creation_input_tokens =
+                  value.usage.cache_creation_input_tokens;
+                cacheCreationInputTokens =
+                  value.usage.cache_creation_input_tokens;
+              }
+
               finishReason = {
                 unified: mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
@@ -1899,19 +1996,30 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             }
 
             case 'message_stop': {
+              const anthropicMetadata = {
+                usage: (rawUsage as JSONObject) ?? null,
+                cacheCreationInputTokens,
+                stopSequence,
+                container,
+                contextManagement,
+              } satisfies AnthropicMessageMetadata;
+
+              const providerMetadata: SharedV3ProviderMetadata = {
+                anthropic: anthropicMetadata,
+              };
+
+              if (
+                usedCustomProviderKey &&
+                providerOptionsName !== 'anthropic'
+              ) {
+                providerMetadata[providerOptionsName] = anthropicMetadata;
+              }
+
               controller.enqueue({
                 type: 'finish',
                 finishReason,
                 usage: convertAnthropicMessagesUsage(usage),
-                providerMetadata: {
-                  anthropic: {
-                    usage: (rawUsage as JSONObject) ?? null,
-                    cacheCreationInputTokens,
-                    stopSequence,
-                    container,
-                    contextManagement,
-                  } satisfies AnthropicMessageMetadata,
-                },
+                providerMetadata,
               });
               return;
             }

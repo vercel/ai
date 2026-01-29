@@ -1,5 +1,27 @@
 # @ai-sdk/mcp
 
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 1.0.13
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 1.0.12
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 1.0.11
 
 ### Patch Changes

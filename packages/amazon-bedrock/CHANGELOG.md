@@ -1,5 +1,106 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.38
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 4.0.37
+
+### Patch Changes
+
+- Updated dependencies [b9d105f]
+  - @ai-sdk/anthropic@3.0.29
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [2445da4]
+  - @ai-sdk/anthropic@3.0.28
+
+## 4.0.35
+
+### Patch Changes
+
+- Updated dependencies [572ea12]
+  - @ai-sdk/anthropic@3.0.27
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [2c70b90]
+  - @ai-sdk/anthropic@3.0.26
+
+## 4.0.33
+
+### Patch Changes
+
+- Updated dependencies [0bb9bcd]
+  - @ai-sdk/anthropic@3.0.25
+
+## 4.0.32
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/anthropic@3.0.24
+
+## 4.0.31
+
+### Patch Changes
+
+- 151c4aa: Add support for Amazon Nova embedding models by sending the required `taskType` and `singleEmbeddingParams` payload and parsing Nova-style responses.
+
+## 4.0.30
+
+### Patch Changes
+
+- 6ece44c: Fix Cohere embedding model request format on Bedrock by sending the required `input_type` and parsing Cohere-style responses.
+
+## 4.0.29
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/anthropic@3.0.23
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 4.0.28
+
+### Patch Changes
+
+- Updated dependencies [8ccf04b]
+  - @ai-sdk/anthropic@3.0.22
+
+## 4.0.27
+
+### Patch Changes
+
+- Updated dependencies [662d359]
+  - @ai-sdk/anthropic@3.0.21
+
+## 4.0.26
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/anthropic@3.0.20
+
+## 4.0.25
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/anthropic@3.0.19
+
 ## 4.0.24
 
 ### Patch Changes

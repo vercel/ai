@@ -1,5 +1,47 @@
 # @ai-sdk/google
 
+## 3.0.16
+
+### Patch Changes
+
+- 97b3ebb: fix (provider/google): make `segment` optional in `groundingSupports` schema
+
+  The Google Generative AI API sometimes returns grounding supports without a `segment` field. This change makes the `segment` field optional to handle these responses correctly.
+
+## 3.0.15
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.13
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.12
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.11
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.10
 
 ### Patch Changes

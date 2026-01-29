@@ -1,5 +1,45 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.22
+
+### Patch Changes
+
+- 9d056e6: chore(openai-compatible): add docs to package
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 2.0.20
+
+### Patch Changes
+
+- a1a0175: fix(openai-compatible): include reasoning_content in assistant messages for multi-turn tool calls
+
+## 2.0.19
+
+### Patch Changes
+
+- 6900916: fix(openai-compat): add metadata extractor to provider settings
+
+## 2.0.18
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 2.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 2.0.16
 
 ### Patch Changes

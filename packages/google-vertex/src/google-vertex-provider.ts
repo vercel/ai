@@ -42,7 +42,7 @@ function createExpressModeFetch(
 
 export interface GoogleVertexProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
+   * Creates a model for text generation.
    */
   (modelId: GoogleVertexModelId): LanguageModelV3;
 
@@ -54,7 +54,7 @@ Creates a model for text generation.
   image(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
 
@@ -77,13 +77,13 @@ export interface GoogleVertexProviderSettings {
   apiKey?: string;
 
   /**
-Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
+   * Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
    */
   location?: string;
 
   /**
-Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
-  */
+   * Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
+   */
   project?: string;
 
   /**
@@ -96,22 +96,22 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
 
   /**
-Base URL for the Google Vertex API calls.
-     */
+   * Base URL for the Google Vertex API calls.
+   */
   baseURL?: string;
 }
 
 /**
-Create a Google Vertex AI provider instance.
+ * Create a Google Vertex AI provider instance.
  */
 export function createVertex(
   options: GoogleVertexProviderSettings = {},

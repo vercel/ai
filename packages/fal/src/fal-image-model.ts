@@ -251,9 +251,9 @@ function removeOnlyUndefined<T extends Record<string, unknown>>(obj: T) {
 }
 
 /**
-Converts an aspect ratio to an image size compatible with fal.ai APIs.
-@param aspectRatio - The aspect ratio to convert.
-@returns The image size.
+ * Converts an aspect ratio to an image size compatible with fal.ai APIs.
+ * @param aspectRatio - The aspect ratio to convert.
+ * @returns The image size.
  */
 function convertAspectRatioToSize(
   aspectRatio: `${number}:${number}`,

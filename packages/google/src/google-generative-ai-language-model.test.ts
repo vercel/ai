@@ -242,6 +242,20 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingSupports with missing segment', () => {
+    const metadata = {
+      groundingSupports: [
+        {
+          // Missing `segment`
+          groundingChunkIndices: [0],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('rejects invalid data types', () => {
     const metadata = {
       webSearchQueries: 'not an array', // Should be an array
@@ -2041,6 +2055,54 @@ describe('doGenerate', () => {
       generationConfig: {
         imageConfig: {
           aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
+  it('should pass imageConfig.imageSize in provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            imageSize: '4K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          imageSize: '4K',
+        },
+      },
+    });
+  });
+
+  it('should pass imageConfig with both aspectRatio and imageSize', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          imageConfig: {
+            aspectRatio: '16:9',
+            imageSize: '2K',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        imageConfig: {
+          aspectRatio: '16:9',
+          imageSize: '2K',
         },
       },
     });

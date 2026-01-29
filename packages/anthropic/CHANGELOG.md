@@ -1,5 +1,75 @@
 # @ai-sdk/anthropic
 
+## 3.0.29
+
+### Patch Changes
+
+- b9d105f: Fix cache usage reporting for anthropic stream
+
+## 3.0.28
+
+### Patch Changes
+
+- 2445da4: fix(provider/anthropic): populate outputTokens.text field in usage
+
+## 3.0.27
+
+### Patch Changes
+
+- 572ea12: feat(anthropic): allow custom/dynamic key for providerOptions
+
+## 3.0.26
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.25
+
+### Patch Changes
+
+- 0bb9bcd: feat(provider/anthropic): add computer_20251124 tool for claude opus 4.5
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.23
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.22
+
+### Patch Changes
+
+- 8ccf04b: Add `authToken` option to support `Authorization: Bearer` authentication as an alternative to `x-api-key` header authentication.
+
+## 3.0.21
+
+### Patch Changes
+
+- 662d359: feat(anthropic): deferred results for tool search tool
+
+## 3.0.20
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.19
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 3.0.18
 
 ### Patch Changes

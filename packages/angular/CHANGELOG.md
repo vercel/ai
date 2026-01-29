@@ -1,5 +1,108 @@
 # @ai-sdk/angular
 
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [5fc42fa]
+  - ai@6.0.60
+
+## 2.0.59
+
+### Patch Changes
+
+- ai@6.0.59
+
+## 2.0.58
+
+### Patch Changes
+
+- ai@6.0.58
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [65865d8]
+  - ai@6.0.57
+
+## 2.0.56
+
+### Patch Changes
+
+- ai@6.0.56
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [43a74df]
+  - ai@6.0.55
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [2f8ac87]
+  - ai@6.0.54
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [7ee3f10]
+  - ai@6.0.53
+
+## 2.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - ai@6.0.52
+
+## 2.0.51
+
+### Patch Changes
+
+- Updated dependencies [ea0feb5]
+  - ai@6.0.51
+
+## 2.0.50
+
+### Patch Changes
+
+- ai@6.0.50
+
+## 2.0.49
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 2.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+  - @ai-sdk/provider-utils@4.0.9
+
+## 2.0.47
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 2.0.46
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
 ## 2.0.45
 
 ### Patch Changes

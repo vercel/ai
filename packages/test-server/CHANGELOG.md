@@ -1,5 +1,17 @@
 # @ai-sdk/test-server
 
+## 1.0.3
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
+## 1.0.2
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
 ## 1.0.1
 
 ### Patch Changes

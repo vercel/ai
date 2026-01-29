@@ -1,122 +1,148 @@
 ---
 title: SAP AI Core
-description: SAP AI Core Provider for the AI SDK
+description: Learn how to use the SAP AI Core provider for the AI SDK.
 ---
 
-# SAP AI Core
+# SAP AI Core Provider
 
-## Important Note
+The AI SDK supports [SAP AI Core](https://help.sap.com/docs/ai-core) through two community providers:
 
-> **Third-Party Provider**: This SAP AI Core provider (`@mymediset/sap-ai-provider`) is developed and maintained by Mymediset, not by SAP SE. While it uses the official SAP AI SDK and integrates with SAP AI Core services, it is not an official SAP product. For official SAP AI solutions, please refer to the [SAP AI Core Documentation](https://help.sap.com/docs/ai-functions).
+- [@jerome-benoit/sap-ai-provider](https://github.com/jerome-benoit/sap-ai-provider) - Language Model V3 for AI SDK 5.x & 6.x (recommended)
+- [@jerome-benoit/sap-ai-provider-v2](https://github.com/jerome-benoit/sap-ai-provider-v2) - Language Model V2 for AI SDK 5.x
 
-[SAP AI Core](https://help.sap.com/docs/ai-core) is SAP's enterprise-grade AI platform that provides access to leading AI models from OpenAI, Anthropic, Google, Amazon, and more through a unified, secure, and scalable infrastructure. The SAP AI Core provider for the AI SDK enables seamless integration with enterprise AI capabilities while offering unique advantages:
+Both providers are built on the official **@sap-ai-sdk/orchestration** package and provide access to 80+ models (GPT-4o, Claude, Gemini, Amazon Nova, Llama) through SAP's enterprise-grade AI platform.
 
-- **Multi-Model Access**: Support for 40+ models including GPT-4, Claude, Gemini, and Amazon Nova
-- **Automatic Authentication**: Built-in credential handling via SAP AI SDK
-- **Data Masking**: Built-in SAP Data Privacy Integration (DPI) for privacy
-- **Content Filtering**: Azure Content Safety and Llama Guard support
-- **Cost Management**: Enterprise billing and usage tracking through SAP BTP
-- **High Availability**: Enterprise-grade infrastructure with SLA guarantees
-- **Hybrid Deployment**: Support for both cloud and on-premise deployments
-- **Tool Calling**: Full function calling capabilities for compatible models
-- **Multi-modal Support**: Text and image inputs for compatible models
+## Choosing Your Provider
 
-Learn more about SAP AI Core's capabilities in the [SAP AI Core Documentation](https://help.sap.com/docs/ai-core).
+### For New Projects (Recommended)
+
+[@jerome-benoit/sap-ai-provider](https://github.com/jerome-benoit/sap-ai-provider) implements Language Model V3 specification with:
+
+- AI SDK 5.x and 6.x compatibility
+- Enhanced streaming with structured V3 blocks
+- Latest AI SDK features support
+
+### For AI SDK 5.x with V2 Specification
+
+[@jerome-benoit/sap-ai-provider-v2](https://github.com/jerome-benoit/sap-ai-provider-v2) is maintained for projects that require Language Model V2 specification compatibility.
+
+Both providers share the same API surface and features - only the underlying specification differs.
 
 ## Setup
 
-The SAP AI Core provider is available in the `@mymediset/sap-ai-provider` module. You can install it with:
+Choose and install your preferred provider:
+
+### @jerome-benoit/sap-ai-provider (V3)
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @mymediset/sap-ai-provider ai" dark />
+    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider ai" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @mymediset/sap-ai-provider ai" dark />
+    <Snippet text="npm install @jerome-benoit/sap-ai-provider ai" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @mymediset/sap-ai-provider ai" dark />
+    <Snippet text="yarn add @jerome-benoit/sap-ai-provider ai" dark />
   </Tab>
   <Tab>
-    <Snippet text="bun add @mymediset/sap-ai-provider ai" dark />
+    <Snippet text="bun add @jerome-benoit/sap-ai-provider ai" dark />
   </Tab>
 </Tabs>
 
+### @jerome-benoit/sap-ai-provider-v2 (V2)
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @jerome-benoit/sap-ai-provider-v2 ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @jerome-benoit/sap-ai-provider-v2 ai" dark />
+  </Tab>
+</Tabs>
+
+<Note>
+  The features documented below require version 4.3.0 or higher of the provider
+  package.
+</Note>
+
+### Environment Variables
+
+Authentication is handled via the `AICORE_SERVICE_KEY` environment variable containing your SAP AI Core service key JSON.
+
 ## Provider Instance
 
-To create an SAP AI Core provider instance, use the `createSAPAIProvider` function. The provider is now **synchronous** and authentication is handled automatically via the SAP AI SDK:
+You can import the default provider instance `sapai` from the package:
 
-```typescript
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
-
-// Authentication via AICORE_SERVICE_KEY environment variable
-const sapai = createSAPAIProvider();
+```ts
+import { sapai } from '@jerome-benoit/sap-ai-provider';
 ```
 
-You can obtain your SAP AI Core service key from your SAP BTP Cockpit by creating a service key for your AI Core instance, then set it as the `AICORE_SERVICE_KEY` environment variable.
+If you need a customized setup, you can import `createSAPAIProvider` and create a provider instance with your settings:
+
+```ts
+import { createSAPAIProvider } from '@jerome-benoit/sap-ai-provider';
+
+const sapai = createSAPAIProvider({
+  resourceGroup: 'default',
+  // optional settings
+});
+```
+
+You can use the following optional settings to customize the provider instance:
+
+- **resourceGroup** _string_
+
+  SAP AI Core resource group. Defaults to `'default'`.
+
+- **deploymentId** _string_
+
+  Specific deployment ID. If not provided, the SDK resolves deployment automatically.
 
 ## Language Models
 
-You can create SAP AI Core models using the provider instance and model name:
+You can create models that call the SAP AI Core Orchestration API using the provider instance. The first argument is the model id.
 
-```typescript
-// Azure OpenAI models
+```ts
+const model = sapai('gpt-4o');
+```
+
+Model naming follows SAP AI Core conventions. Some models require vendor prefixes:
+
+```ts
 const gpt4Model = sapai('gpt-4o');
-
-// Anthropic models (via AWS Bedrock)
 const claudeModel = sapai('anthropic--claude-3.5-sonnet');
-
-// Google Vertex AI models
-const geminiModel = sapai('gemini-2.5-flash');
-
-// Amazon Nova models (via AWS Bedrock)
+const geminiModel = sapai('gemini-2.0-flash');
 const novaModel = sapai('amazon--nova-pro');
 ```
 
-## Supported Models
+<Note>
+  Model availability depends on your SAP AI Core tenant configuration and
+  region.
+</Note>
 
-The provider supports a wide range of models available in your SAP AI Core deployment:
+## Embedding Models
 
-### Azure OpenAI Models
+You can create models that call the SAP AI Core embeddings API using the `.embeddingModel()` factory method.
 
-- `gpt-4o`, `gpt-4o-mini`
-- `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`
-- `o1`, `o3`, `o3-mini`, `o4-mini`
+```ts
+const model = sapai.embeddingModel('text-embedding-ada-002');
+```
 
-### Anthropic Models (AWS Bedrock)
-
-- `anthropic--claude-3-haiku`, `anthropic--claude-3-sonnet`, `anthropic--claude-3-opus`
-- `anthropic--claude-3.5-sonnet`, `anthropic--claude-3.7-sonnet`
-- `anthropic--claude-4-sonnet`, `anthropic--claude-4-opus`
-
-### Google Vertex AI Models
-
-- `gemini-2.0-flash`, `gemini-2.0-flash-lite`
-- `gemini-2.5-flash`, `gemini-2.5-pro`
-
-### Amazon Nova Models (AWS Bedrock)
-
-- `amazon--nova-premier`, `amazon--nova-pro`, `amazon--nova-lite`, `amazon--nova-micro`
-
-### AI Core Open Source Models
-
-- `mistralai--mistral-large-instruct`, `mistralai--mistral-medium-instruct`, `mistralai--mistral-small-instruct`
-- `cohere--command-a-reasoning`
-
-Note: Model availability may vary based on your SAP AI Core subscription and region. Some models may require additional configuration or permissions.
+Embedding models use the same naming convention as language models. Azure OpenAI embedding models (e.g., `text-embedding-ada-002`, `text-embedding-3-small`) do not require a vendor prefix.
 
 ## Examples
 
-Here are examples of using SAP AI Core with the AI SDK:
+### `generateText`
 
-### generateText
-
-```typescript
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
+```ts
+import { sapai } from '@jerome-benoit/sap-ai-provider';
 import { generateText } from 'ai';
-
-// Authentication via AICORE_SERVICE_KEY environment variable
-const sapai = createSAPAIProvider();
 
 const { text } = await generateText({
   model: sapai('gpt-4o'),
@@ -126,15 +152,13 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-### streamText
+### `streamText`
 
-```typescript
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
+```ts
+import { sapai } from '@jerome-benoit/sap-ai-provider';
 import { streamText } from 'ai';
 
-const sapai = createSAPAIProvider();
-
-const result = await streamText({
+const result = streamText({
   model: sapai('anthropic--claude-3.5-sonnet'),
   prompt: 'Write a short story about AI.',
 });
@@ -144,254 +168,82 @@ for await (const textPart of result.textStream) {
 }
 ```
 
+### Embeddings
+
+```ts
+import { sapai } from '@jerome-benoit/sap-ai-provider';
+import { embed, embedMany } from 'ai';
+
+const { embedding } = await embed({
+  model: sapai.embeddingModel('text-embedding-ada-002'),
+  value: 'What is machine learning?',
+});
+
+console.log(embedding);
+
+const { embeddings } = await embedMany({
+  model: sapai.embeddingModel('text-embedding-3-small'),
+  values: ['Hello world', 'AI is amazing', 'Vector search'],
+});
+
+console.log(embeddings);
+```
+
 ### Tool Calling
 
-```typescript
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
+```ts
+import { sapai } from '@jerome-benoit/sap-ai-provider';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
-const sapai = createSAPAIProvider();
-
-const result = await generateText({
+const { text } = await generateText({
   model: sapai('gpt-4o'),
-  prompt: 'What is the current status of our inventory system?',
+  prompt: 'What is the weather in Tokyo?',
   tools: {
-    checkInventory: tool({
-      description: 'Check current inventory levels',
-      parameters: z.object({
-        item: z.string().describe('Item to check'),
-        location: z.string().describe('Warehouse location'),
-      }),
-      execute: async ({ item, location }) => {
-        // Your inventory system integration
-        return { item, location, quantity: 150, status: 'In Stock' };
-      },
+    getWeather: tool({
+      description: 'Get weather for a location',
+      parameters: z.object({ location: z.string() }),
+      execute: async ({ location }) => `Weather in ${location}: sunny, 72°F`,
     }),
   },
   maxSteps: 3,
 });
 
-console.log(result.text);
+console.log(text);
 ```
 
-### Multi-modal Input
+## Advanced Features
 
-```typescript
-import { createSAPAIProvider } from '@mymediset/sap-ai-provider';
-import { generateText } from 'ai';
+The provider supports SAP AI Core enterprise features:
 
-const sapai = createSAPAIProvider();
+- **Data Masking** - SAP Data Privacy Integration (DPI) for anonymization
+- **Content Filtering** - Azure Content Safety and Llama Guard
+- **Document Grounding** - RAG with vector databases
+- **Translation** - Automatic input/output translation
 
-const result = await generateText({
-  model: sapai('gpt-4o'),
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'Analyze this business process diagram.' },
-        {
-          type: 'image',
-          image: new URL('https://example.com/diagram.jpg'),
-        },
-      ],
-    },
-  ],
-});
+For complete documentation on these features, see the [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider).
 
-console.log(result.text);
-```
+## Model Capabilities
 
-### Data Masking (SAP DPI)
+| Model                          | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4o`                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic--claude-3.5-sonnet` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.0-flash`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `amazon--nova-pro`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
-Use SAP's Data Privacy Integration to automatically mask sensitive data:
+<Note>
+  Google Gemini models have a 1 tool limit per request. For multi-tool
+  applications, use GPT-4o, Claude, or Amazon Nova models.
+</Note>
 
-```typescript
-import {
-  createSAPAIProvider,
-  buildDpiMaskingProvider,
-} from '@mymediset/sap-ai-provider';
-import { generateText } from 'ai';
+## Resources
 
-const dpiConfig = buildDpiMaskingProvider({
-  method: 'anonymization',
-  entities: [
-    'profile-email',
-    'profile-person',
-    {
-      type: 'profile-phone',
-      replacement_strategy: { method: 'constant', value: 'REDACTED' },
-    },
-  ],
-});
-
-const sapai = createSAPAIProvider({
-  defaultSettings: {
-    masking: {
-      masking_providers: [dpiConfig],
-    },
-  },
-});
-
-const result = await generateText({
-  model: sapai('gpt-4o'),
-  prompt: 'Email john@example.com about the meeting.',
-});
-
-console.log(result.text);
-```
-
-### Content Filtering
-
-```typescript
-import {
-  createSAPAIProvider,
-  buildAzureContentSafetyFilter,
-} from '@mymediset/sap-ai-provider';
-
-const sapai = createSAPAIProvider({
-  defaultSettings: {
-    filtering: {
-      input: {
-        filters: [
-          buildAzureContentSafetyFilter('input', {
-            hate: 'ALLOW_SAFE',
-            violence: 'ALLOW_SAFE_LOW_MEDIUM',
-          }),
-        ],
-      },
-    },
-  },
-});
-```
-
-## Configuration
-
-### Provider Settings
-
-```typescript
-interface SAPAIProviderSettings {
-  resourceGroup?: string; // SAP AI Core resource group (default: 'default')
-  deploymentId?: string; // Specific deployment ID (auto-resolved if not set)
-  destination?: HttpDestinationOrFetchOptions; // Custom destination
-  defaultSettings?: SAPAISettings; // Default settings for all models
-}
-```
-
-### Model Settings
-
-```typescript
-interface SAPAISettings {
-  modelVersion?: string; // Model version (default: 'latest')
-  modelParams?: {
-    maxTokens?: number; // Maximum tokens to generate
-    temperature?: number; // Sampling temperature (0-2)
-    topP?: number; // Nucleus sampling parameter
-    frequencyPenalty?: number; // Frequency penalty (-2 to 2)
-    presencePenalty?: number; // Presence penalty (-2 to 2)
-    n?: number; // Number of completions
-    parallel_tool_calls?: boolean; // Enable parallel tool calls
-  };
-  masking?: MaskingModule; // Data masking configuration
-  filtering?: FilteringModule; // Content filtering configuration
-}
-```
-
-## Environment Variables
-
-### On SAP BTP (Recommended)
-
-When running on SAP BTP, bind an AI Core service instance to your application. The SDK will automatically detect the service binding from `VCAP_SERVICES`.
-
-### Local Development
-
-Set the `AICORE_SERVICE_KEY` environment variable with your service key JSON:
-
-```bash
-AICORE_SERVICE_KEY='{"serviceurls":{"AI_API_URL":"https://..."},"clientid":"...","clientsecret":"...","url":"..."}'
-```
-
-Get your service key from SAP BTP:
-
-1. Go to your SAP BTP Cockpit
-2. Navigate to your AI Core instance
-3. Create a service key
-4. Copy the JSON and set it as the environment variable
-
-## Enterprise Features
-
-SAP AI Core offers several enterprise-grade features:
-
-- **Multi-Tenant Architecture**: Isolated environments for different business units
-- **Cost Allocation**: Detailed usage tracking and cost center allocation
-- **Custom Models**: Deploy and manage your own fine-tuned models
-- **Hybrid Deployment**: Support for both cloud and on-premise installations
-- **Integration Ready**: Native integration with SAP S/4HANA, SuccessFactors, and other SAP solutions
-
-For more information about these features and advanced configuration options, visit the [SAP AI Core Documentation](https://help.sap.com/docs/ai-core).
-
-## Migration from v1
-
-Version 2.0 is a complete rewrite using the official SAP AI SDK. Here are the key changes:
-
-### Authentication
-
-**Before (v1):**
-
-```typescript
-const provider = await createSAPAIProvider({
-  serviceKey: process.env.SAP_AI_SERVICE_KEY,
-});
-```
-
-**After (v2):**
-
-```typescript
-// Set AICORE_SERVICE_KEY env var instead
-const provider = createSAPAIProvider();
-```
-
-### Provider is now synchronous
-
-**Before (v1):**
-
-```typescript
-const provider = await createSAPAIProvider({ serviceKey });
-```
-
-**After (v2):**
-
-```typescript
-const provider = createSAPAIProvider();
-```
-
-### Data Masking Configuration
-
-**Before (v1):**
-
-```typescript
-const dpiMasking = {
-  type: 'sap_data_privacy_integration',
-  method: 'anonymization',
-  entities: [{ type: 'profile-email' }],
-};
-```
-
-**After (v2):**
-
-```typescript
-import { buildDpiMaskingProvider } from '@mymediset/sap-ai-provider';
-
-const dpiMasking = buildDpiMaskingProvider({
-  method: 'anonymization',
-  entities: ['profile-email'],
-});
-```
-
-## Additional Resources
-
-- [SAP AI Provider Repository](https://github.com/BITASIA/sap-ai-provider)
+- [SAP AI Provider Repository](https://github.com/jerome-benoit/sap-ai-provider)
+- [SAP AI Provider on NPM](https://www.npmjs.com/package/@jerome-benoit/sap-ai-provider)
 - [SAP AI Core Documentation](https://help.sap.com/docs/ai-core)
-- [SAP BTP Documentation](https://help.sap.com/docs/btp)
-- [SAP Community](https://community.sap.com/t5/c-khhcw49343/SAP+AI+Core/pd-p/73555000100800003283)
-- [SAP AI Core Service Guide](https://help.sap.com/docs/sap-ai-core/sap-ai-core-service-guide)
+
+<Note type="warning">
+  This provider is developed by jerome-benoit, not SAP SE. While it uses the
+  official SAP AI SDK, it is not an official SAP product.
+</Note>

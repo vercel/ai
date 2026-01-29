@@ -17,7 +17,7 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 ## Import
 
-<Tabs items={['React', 'Svelte', 'Vue']}>
+<Tabs items={['React', 'Svelte', 'Vue', 'Angular']}>
   <Tab>
     <Snippet
       text="import { useChat } from '@ai-sdk/react'"
@@ -30,6 +30,13 @@ Allows you to easily create a conversational user interface for your chatbot app
   </Tab>
   <Tab>
     <Snippet text="import { Chat } from '@ai-sdk/vue'" dark prompt={false} />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="import { Chat } from '@ai-sdk/angular'"
+      dark
+      prompt={false}
+    />
   </Tab>
 </Tabs>
 
@@ -79,6 +86,13 @@ Allows you to easily create a conversational user interface for your chatbot app
               type: 'object',
               isOptional: true,
               description: 'Extra body object to send with requests.',
+            },
+            {
+              name: 'fetch',
+              type: 'FetchFunction',
+              isOptional: true,
+              description:
+                'Custom fetch implementation. You can use it as a middleware to intercept requests, or to provide a custom fetch implementation for e.g. testing.',
             },
             {
               name: 'prepareSendMessagesRequest',
@@ -224,6 +238,25 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'UIMessage[]',
       isOptional: true,
       description: 'Initial chat messages to populate the conversation with.',
+    },
+    {
+      name: 'messageMetadataSchema',
+      type: 'FlexibleSchema',
+      isOptional: true,
+      description: 'Schema for validating message metadata.',
+    },
+    {
+      name: 'dataPartSchemas',
+      type: 'UIDataTypesToSchemas',
+      isOptional: true,
+      description: 'Schemas for validating data parts in messages.',
+    },
+    {
+      name: 'generateId',
+      type: 'IdGenerator',
+      isOptional: true,
+      description:
+        'A function to generate unique IDs for messages and the chat. If not provided, the default AI SDK generateId is used.',
     },
     {
       name: 'onToolCall',
@@ -373,9 +406,9 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'sendMessage',
-      type: '(message: CreateUIMessage | string, options?: ChatRequestOptions) => void',
+      type: '(message?: { text: string; files?: FileList | FileUIPart[]; metadata?; messageId?: string } | CreateUIMessage, options?: ChatRequestOptions) => Promise<void>',
       description:
-        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response.',
+        'Function to send a new message to the chat. This will trigger an API call to generate the assistant response. If a messageId is provided, the message will be replaced (useful for editing). If no message is provided, resubmits the current messages (useful after adding tool outputs).',
       properties: [
         {
           type: 'ChatRequestOptions',
@@ -383,18 +416,21 @@ Allows you to easily create a conversational user interface for your chatbot app
             {
               name: 'headers',
               type: 'Record<string, string> | Headers',
+              isOptional: true,
               description:
                 'Additional headers that should be to be passed to the API endpoint.',
             },
             {
               name: 'body',
               type: 'object',
+              isOptional: true,
               description:
                 'Additional body JSON properties that should be sent to the API endpoint.',
             },
             {
               name: 'metadata',
-              type: 'JSONValue',
+              type: 'unknown',
+              isOptional: true,
               description: 'Additional data to be sent to the API endpoint.',
             },
           ],
@@ -403,9 +439,9 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
     {
       name: 'regenerate',
-      type: '(options?: { messageId?: string }) => void',
+      type: '(options?: { messageId?: string } & ChatRequestOptions) => Promise<void>',
       description:
-        'Function to regenerate the last assistant message or a specific message. If no messageId is provided, regenerates the last assistant message.',
+        'Function to regenerate the last assistant message or a specific message. If no messageId is provided, regenerates the last assistant message. Accepts ChatRequestOptions for headers, body, and metadata.',
     },
     {
       name: 'stop',
@@ -429,6 +465,17 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
       description:
         'Function to add a tool result to the chat. This will update the chat messages with the tool result. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+    },
+    {
+      name: 'addToolApprovalResponse',
+      type: '(options: { id: string; approved: boolean; reason?: string }) => void | PromiseLike<void>',
+      description:
+        'Function to respond to a tool approval request. The id should match the approval id from the tool call. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
+    },
+    {
+      name: 'addToolResult',
+      type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
+      description: 'Deprecated. Use addToolOutput instead.',
     },
     {
       name: 'setMessages',

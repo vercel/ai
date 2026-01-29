@@ -51,17 +51,17 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
 
 export interface BedrockAnthropicProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: BedrockAnthropicModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: BedrockAnthropicModelId): LanguageModelV3;
 
   /**
-Anthropic-specific computer use tool.
+   * Anthropic-specific computer use tool.
    */
   tools: typeof anthropicTools;
 
@@ -73,65 +73,65 @@ Anthropic-specific computer use tool.
 
 export interface BedrockAnthropicProviderSettings {
   /**
-The AWS region to use for the Bedrock provider. Defaults to the value of the
-`AWS_REGION` environment variable.
+   * The AWS region to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_REGION` environment variable.
    */
   region?: string;
 
   /**
-API key for authenticating requests using Bearer token authentication.
-When provided, this will be used instead of AWS SigV4 authentication.
-Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
+   * API key for authenticating requests using Bearer token authentication.
+   * When provided, this will be used instead of AWS SigV4 authentication.
+   * Defaults to the value of the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
    */
   apiKey?: string;
 
   /**
-The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
-`AWS_ACCESS_KEY_ID` environment variable.
+   * The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_ACCESS_KEY_ID` environment variable.
    */
   accessKeyId?: string;
 
   /**
-The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
-`AWS_SECRET_ACCESS_KEY` environment variable.
+   * The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_SECRET_ACCESS_KEY` environment variable.
    */
   secretAccessKey?: string;
 
   /**
-The AWS session token to use for the Bedrock provider. Defaults to the value of the
-`AWS_SESSION_TOKEN` environment variable.
+   * The AWS session token to use for the Bedrock provider. Defaults to the value of the
+   * `AWS_SESSION_TOKEN` environment variable.
    */
   sessionToken?: string;
 
   /**
-Base URL for the Bedrock API calls.
+   * Base URL for the Bedrock API calls.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-The AWS credential provider to use for the Bedrock provider to get dynamic
-credentials similar to the AWS SDK. Setting a provider here will cause its
-credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
-and `sessionToken` settings.
+   * The AWS credential provider to use for the Bedrock provider to get dynamic
+   * credentials similar to the AWS SDK. Setting a provider here will cause its
+   * credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+   * and `sessionToken` settings.
    */
   credentialProvider?: () => PromiseLike<Omit<BedrockCredentials, 'region'>>;
 }
 
 /**
-Create an Amazon Bedrock Anthropic provider instance.
-This provider uses the native Anthropic API through Bedrock's InvokeModel endpoint,
-bypassing the Converse API for better feature compatibility.
+ * Create an Amazon Bedrock Anthropic provider instance.
+ * This provider uses the native Anthropic API through Bedrock's InvokeModel endpoint,
+ * bypassing the Converse API for better feature compatibility.
  */
 export function createBedrockAnthropic(
   options: BedrockAnthropicProviderSettings = {},
@@ -352,6 +352,6 @@ export function createBedrockAnthropic(
 }
 
 /**
-Default Bedrock Anthropic provider instance.
+ * Default Bedrock Anthropic provider instance.
  */
 export const bedrockAnthropic = createBedrockAnthropic();

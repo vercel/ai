@@ -1,5 +1,96 @@
 # @ai-sdk/xai
 
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
+## 3.0.40
+
+### Patch Changes
+
+- 05f3f36: Add native `file_search` server-side tool support:
+
+  - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
+  - Add `include` option supporting `file_search_call.results` to get inline search results
+  - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`
+  - Fix invalid `grok-4-1` model type (only `grok-4-1-fast-reasoning` and `grok-4-1-fast-non-reasoning` exist)
+  - Fix `toolChoice` for server-side tools: xAI API doesn't support forcing specific server-side tools, now emits warning instead of sending invalid request
+
+## 3.0.39
+
+### Patch Changes
+
+- 58800f3: fix(xai): emit reasoning-start before reasoning-end for encrypted reasoning
+
+## 3.0.38
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai-compatible@2.0.21
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [a1a0175]
+  - @ai-sdk/openai-compatible@2.0.20
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [6900916]
+  - @ai-sdk/openai-compatible@2.0.19
+
+## 3.0.34
+
+### Patch Changes
+
+- 648c8f3: fix(xai): make usage nullable in responses schema for streaming compatibility
+
+  xAI sends `usage: null` in early streaming events (`response.created`, `response.in_progress`) because token counts aren't available until the stream completes. This change makes the `usage` field nullish in `xaiResponsesResponseSchema` to accept these values without validation errors.
+
+## 3.0.33
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.30
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
 ## 3.0.29
 
 ### Patch Changes
