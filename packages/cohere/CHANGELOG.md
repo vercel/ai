@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.14
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 3.0.13
 
 ### Patch Changes

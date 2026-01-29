@@ -1,5 +1,13 @@
 # @ai-sdk/togetherai
 
+## 2.0.26
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
 ## 2.0.25
 
 ### Patch Changes

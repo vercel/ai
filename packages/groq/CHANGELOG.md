@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.18
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 3.0.17
 
 ### Patch Changes
