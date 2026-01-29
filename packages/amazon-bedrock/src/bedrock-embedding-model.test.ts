@@ -141,6 +141,7 @@ describe('doEmbed', () => {
       input_type: 'search_query',
       texts: [testValues[0]],
       truncate: undefined,
+      output_dimension: undefined,
     });
   });
 
@@ -164,6 +165,35 @@ describe('doEmbed', () => {
       input_type: 'search_query',
       texts: [testValues[0]],
       truncate: undefined,
+      output_dimension: undefined,
+    });
+  });
+
+  it('should pass dimensions for Cohere v4 embedding models', async () => {
+    const cohereV4Model = new BedrockEmbeddingModel('cohere.embed-v4:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: mockConfigHeaders,
+      fetch: fakeFetchWithAuth,
+    });
+
+    const { embeddings } = await cohereV4Model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          dimensions: 256,
+        },
+      },
+    });
+
+    expect(embeddings.length).toBe(1);
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      input_type: 'search_query',
+      texts: [testValues[0]],
+      truncate: undefined,
+      output_dimension: 256,
     });
   });
 
@@ -276,6 +306,32 @@ describe('should support Nova embeddings', () => {
       singleEmbeddingParams: {
         embeddingPurpose: 'GENERIC_INDEX',
         embeddingDimension: 1024,
+        text: {
+          truncationMode: 'END',
+          value: testValues[0],
+        },
+      },
+    });
+  });
+
+  it('should pass dimensions for Nova embeddings', async () => {
+    const { embeddings } = await model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        bedrock: {
+          dimensions: 256,
+        },
+      },
+    });
+
+    expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).toEqual({
+      taskType: 'SINGLE_EMBEDDING',
+      singleEmbeddingParams: {
+        embeddingPurpose: 'GENERIC_INDEX',
+        embeddingDimension: 256,
         text: {
           truncationMode: 'END',
           value: testValues[0],
