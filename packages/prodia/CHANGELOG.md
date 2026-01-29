@@ -1,5 +1,17 @@
 # @ai-sdk/prodia
 
+## 1.0.10
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 1.0.9
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 1.0.8
 
 ### Patch Changes

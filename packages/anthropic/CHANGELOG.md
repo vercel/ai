@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 3.0.30
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.29
+
+### Patch Changes
+
+- b9d105f: Fix cache usage reporting for anthropic stream
+
 ## 3.0.28
 
 ### Patch Changes

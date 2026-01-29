@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 3.0.17
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.16
+
+### Patch Changes
+
+- 97b3ebb: fix (provider/google): make `segment` optional in `groundingSupports` schema
+
+  The Google Generative AI API sometimes returns grounding supports without a `segment` field. This change makes the `segment` field optional to handle these responses correctly.
+
 ## 3.0.15
 
 ### Patch Changes

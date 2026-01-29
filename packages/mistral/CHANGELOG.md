@@ -1,5 +1,17 @@
 # @ai-sdk/mistral
 
+## 3.0.15
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.14
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 3.0.13
 
 ### Patch Changes

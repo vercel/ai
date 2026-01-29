@@ -1,5 +1,26 @@
 # @ai-sdk/fireworks
 
+## 2.0.25
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
+## 2.0.24
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
 ## 2.0.22
 
 ### Patch Changes

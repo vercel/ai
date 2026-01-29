@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 0.0.9
+
+### Patch Changes
+
+- 87e5e2a: Fix typo in README.md: `devToolsMiddleware` should be called as a function `devToolsMiddleware()`.
+
 ## 0.0.8
 
 ### Patch Changes

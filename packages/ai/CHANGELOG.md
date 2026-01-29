@@ -1,5 +1,32 @@
 # ai
 
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
+## 6.0.59
+
+### Patch Changes
+
+- Updated dependencies [0acff64]
+  - @ai-sdk/gateway@3.0.27
+
+## 6.0.58
+
+### Patch Changes
+
+- Updated dependencies [a8be296]
+  - @ai-sdk/gateway@3.0.26
+
 ## 6.0.57
 
 ### Patch Changes
