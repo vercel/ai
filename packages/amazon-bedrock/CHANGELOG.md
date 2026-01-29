@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.41
+
+### Patch Changes
+
+- 0df64d6: Add `outputDimension` option for Cohere embedding models to control the size of the output embedding vector (256, 512, 1024, or 1536).
+
 ## 4.0.40
 
 ### Patch Changes
