@@ -144,6 +144,7 @@ export type OpenAIResponsesShellCallOutput = {
   type: 'shell_call_output';
   call_id: string;
   max_output_length?: number;
+  status?: 'in_progress' | 'completed' | 'incomplete';
   output: Array<{
     stdout: string;
     stderr: string;
