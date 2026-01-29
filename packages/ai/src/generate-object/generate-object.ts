@@ -6,6 +6,7 @@ import {
   ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { SpanKind } from '@opentelemetry/api';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
 import { extractTextContent } from '../generate-text/extract-text-content';
@@ -24,6 +25,11 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import {
   CallWarning,
   FinishReason,
@@ -306,9 +312,14 @@ export async function generateObject<
           download,
         });
 
+        const genAIOperationName = getGenAIOperationName(
+          'ai.generateObject.doGenerate',
+        );
+
         const generateResult = await retry(() =>
           recordSpan({
-            name: 'ai.generateObject.doGenerate',
+            name: `${genAIOperationName} ${model.modelId}`,
+            kind: SpanKind.CLIENT,
             attributes: selectTelemetryAttributes({
               telemetry,
               attributes: {
@@ -321,7 +332,8 @@ export async function generateObject<
                   input: () => stringifyForTelemetry(promptMessages),
                 },
 
-                // standardized gen-ai llm span attributes:
+                'gen_ai.operation.name': genAIOperationName,
+                'gen_ai.provider.name': model.provider,
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty':
@@ -331,6 +343,12 @@ export async function generateObject<
                 'gen_ai.request.temperature': callSettings.temperature,
                 'gen_ai.request.top_k': callSettings.topK,
                 'gen_ai.request.top_p': callSettings.topP,
+                'gen_ai.input.messages': {
+                  input: () =>
+                    JSON.stringify(
+                      convertToOTelGenAIInputMessages(promptMessages),
+                    ),
+                },
               },
             }),
             tracer,
@@ -390,7 +408,6 @@ export async function generateObject<
                     'ai.usage.completionTokens':
                       result.usage.outputTokens.total,
 
-                    // standardized gen-ai llm span attributes:
                     'gen_ai.response.finish_reasons': [
                       result.finishReason.unified,
                     ],
@@ -399,6 +416,15 @@ export async function generateObject<
                     'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
                     'gen_ai.usage.output_tokens':
                       result.usage.outputTokens.total,
+                    'gen_ai.output.messages': {
+                      output: () =>
+                        JSON.stringify(
+                          convertToOTelGenAIOutputMessages({
+                            text,
+                            finishReason: result.finishReason.unified,
+                          }),
+                        ),
+                    },
                   },
                 }),
               );

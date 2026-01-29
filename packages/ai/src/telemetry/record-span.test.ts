@@ -1,4 +1,4 @@
-import { Span } from '@opentelemetry/api';
+import { Span, SpanKind } from '@opentelemetry/api';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { recordSpan, recordErrorOnSpan } from './record-span';
 import { MockTracer } from '../test/mock-tracer';
@@ -80,6 +80,19 @@ describe('recordSpan', () => {
 
     expect(tracer.spans).toHaveLength(1);
     expect(tracer.spans[0].attributes).toEqual({ async: 'attribute' });
+  });
+
+  it('should pass the span kind to the tracer', async () => {
+    await recordSpan({
+      name: 'test-span',
+      tracer,
+      kind: SpanKind.CLIENT,
+      attributes: {},
+      fn: async () => 'result',
+    });
+
+    expect(tracer.spans).toHaveLength(1);
+    expect(tracer.spans[0].options?.kind).toBe(SpanKind.CLIENT);
   });
 });
 

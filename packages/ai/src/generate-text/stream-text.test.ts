@@ -8937,6 +8937,10 @@ describe('streamText', () => {
                 "ai.usage.inputTokens": 3,
                 "ai.usage.outputTokens": 10,
                 "ai.usage.totalTokens": 13,
+                "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]}]",
+                "gen_ai.operation.name": "chat",
+                "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"value"}}],"finish_reason":"tool-calls"}]",
+                "gen_ai.provider.name": "mock-provider",
                 "gen_ai.request.model": "mock-model-id",
                 "gen_ai.response.finish_reasons": [
                   "tool-calls",
@@ -8944,6 +8948,7 @@ describe('streamText', () => {
                 "gen_ai.response.id": "id-0",
                 "gen_ai.response.model": "mock-model-id",
                 "gen_ai.system": "mock-provider",
+                "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
                 "gen_ai.usage.input_tokens": 3,
                 "gen_ai.usage.output_tokens": 10,
                 "operation.name": "ai.streamText.doStream",
@@ -8960,7 +8965,7 @@ describe('streamText', () => {
                   "name": "ai.stream.finish",
                 },
               ],
-              "name": "ai.streamText.doStream",
+              "name": "chat mock-model-id",
             },
             {
               "attributes": {
@@ -8998,6 +9003,10 @@ describe('streamText', () => {
                 "ai.usage.outputTokens": 10,
                 "ai.usage.reasoningTokens": 10,
                 "ai.usage.totalTokens": 13,
+                "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"test-input"}]},{"role":"assistant","parts":[{"type":"tool_call","id":"call-1","name":"tool1","arguments":{"value":"value"}}]},{"role":"tool","parts":[{"type":"tool_call_response","id":"call-1","result":"RESULT1"}]}]",
+                "gen_ai.operation.name": "chat",
+                "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello, world!"}],"finish_reason":"stop"}]",
+                "gen_ai.provider.name": "mock-provider",
                 "gen_ai.request.model": "mock-model-id",
                 "gen_ai.response.finish_reasons": [
                   "stop",
@@ -9005,6 +9014,7 @@ describe('streamText', () => {
                 "gen_ai.response.id": "id-1",
                 "gen_ai.response.model": "mock-model-id",
                 "gen_ai.system": "mock-provider",
+                "gen_ai.tool.definitions": "[{"type":"function","name":"tool1","parameters":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}]",
                 "gen_ai.usage.input_tokens": 3,
                 "gen_ai.usage.output_tokens": 10,
                 "operation.name": "ai.streamText.doStream",
@@ -9021,7 +9031,7 @@ describe('streamText', () => {
                   "name": "ai.stream.finish",
                 },
               ],
-              "name": "ai.streamText.doStream",
+              "name": "chat mock-model-id",
             },
           ]
         `);
@@ -10725,7 +10735,7 @@ describe('streamText', () => {
 
       // Check that we have the expected spans
       expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
-      expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
+      expect(tracer.jsonSpans[1].name).toBe('chat mock-model-id');
       expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
 
       // Check that the tool call span has error status
