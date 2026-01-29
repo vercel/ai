@@ -83,6 +83,8 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 
 The following image models are currently supported by the Replicate provider:
 
+**Text-to-Image Models:**
+
 - [black-forest-labs/flux-1.1-pro-ultra](https://replicate.com/black-forest-labs/flux-1.1-pro-ultra)
 - [black-forest-labs/flux-1.1-pro](https://replicate.com/black-forest-labs/flux-1.1-pro)
 - [black-forest-labs/flux-dev](https://replicate.com/black-forest-labs/flux-dev)
@@ -110,6 +112,18 @@ The following image models are currently supported by the Replicate provider:
 - [stability-ai/stable-diffusion-3.5-large](https://replicate.com/stability-ai/stable-diffusion-3.5-large)
 - [stability-ai/stable-diffusion-3.5-medium](https://replicate.com/stability-ai/stable-diffusion-3.5-medium)
 - [tstramer/material-diffusion](https://replicate.com/tstramer/material-diffusion)
+
+**Inpainting and Image Editing Models:**
+
+- [black-forest-labs/flux-fill-pro](https://replicate.com/black-forest-labs/flux-fill-pro)
+- [black-forest-labs/flux-fill-dev](https://replicate.com/black-forest-labs/flux-fill-dev)
+
+**Flux-2 Models (Multi-Reference Image Generation):**
+
+These models support up to 8 input reference images for style transfer and composition:
+
+- [black-forest-labs/flux-2-pro](https://replicate.com/black-forest-labs/flux-2-pro)
+- [black-forest-labs/flux-2-dev](https://replicate.com/black-forest-labs/flux-2-dev)
 
 You can also use [versioned models](https://replicate.com/docs/topics/models/versions).
 The id for versioned models is the Replicate model id followed by a colon and the version ID (`$modelId:$versionId`), e.g.
@@ -181,7 +195,7 @@ Transform an existing image using text prompts:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: replicate.image('black-forest-labs/flux-kontext-dev'),
+  model: replicate.image('black-forest-labs/flux-fill-dev'),
   prompt: {
     text: 'Turn the cat into a golden retriever dog',
     images: [imageBuffer],
@@ -218,6 +232,32 @@ const { images } = await generateImage({
   },
 });
 ```
+
+#### Multi-Reference Image Generation (Flux-2)
+
+Flux-2 models support up to 8 input reference images for style transfer, composition, and multi-subject generation:
+
+```ts
+import { replicate } from '@ai-sdk/replicate';
+import { generateImage } from 'ai';
+
+const reference1 = readFileSync('./style-reference.png');
+const reference2 = readFileSync('./subject-reference.png');
+
+const { images } = await generateImage({
+  model: replicate.image('black-forest-labs/flux-2-pro'),
+  prompt: {
+    text: 'Combine the style and subjects from the reference images',
+    images: [reference1, reference2],
+  },
+});
+```
+
+<Note>
+  Flux-2 models use a different input format internally (`input_image`,
+  `input_image_2`, etc.) which is handled automatically. Note that Flux-2 models
+  do not support mask-based inpainting.
+</Note>
 
 <Note>
   Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
