@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.14
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 1.0.13
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai@3.0.22
+
 ## 3.0.22
 
 ### Patch Changes

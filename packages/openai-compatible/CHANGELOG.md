@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 2.0.22
 
 ### Patch Changes
