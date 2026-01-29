@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.22
+
+### Patch Changes
+
+- 9d056e6: chore(openai-compatible): add docs to package
+
 ## 2.0.21
 
 ### Patch Changes
