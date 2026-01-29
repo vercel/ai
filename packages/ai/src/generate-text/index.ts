@@ -7,7 +7,7 @@ export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
-  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v5
+  type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
   type GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
