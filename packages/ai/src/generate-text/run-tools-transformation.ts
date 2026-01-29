@@ -150,13 +150,23 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   const toolCallsByToolCallId = new Map<string, TypedToolCall<TOOLS>>();
 
   let canClose = false;
+  let closed = false; // Prevent race condition when multiple tools complete simultaneously
   let finishChunk:
     | (SingleRequestTextStreamPart<TOOLS> & { type: 'finish' })
     | undefined = undefined;
 
   function attemptClose() {
+    // Prevent re-entry: if already closed, nothing to do
+    if (closed) {
+      return;
+    }
+
     // close the tool results controller if no more outstanding tool calls
     if (canClose && outstandingToolResults.size === 0) {
+      // Mark as closed BEFORE doing any work to prevent race conditions
+      // where multiple finally() blocks call attemptClose() simultaneously
+      closed = true;
+
       // we delay sending the finish chunk until all tool results (incl. delayed ones)
       // are received to ensure that the frontend receives tool results before a message
       // finish event arrives.
@@ -324,17 +334,26 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 abortSignal,
                 experimental_context,
                 onPreliminaryToolResult: result => {
-                  toolResultsStreamController!.enqueue(result);
+                  // Guard against enqueueing after stream is closed
+                  if (!closed) {
+                    toolResultsStreamController!.enqueue(result);
+                  }
                 },
               })
                 .then(result => {
-                  toolResultsStreamController!.enqueue(result);
+                  // Guard against enqueueing after stream is closed
+                  if (!closed) {
+                    toolResultsStreamController!.enqueue(result);
+                  }
                 })
                 .catch(error => {
-                  toolResultsStreamController!.enqueue({
-                    type: 'error',
-                    error,
-                  });
+                  // Guard against enqueueing after stream is closed
+                  if (!closed) {
+                    toolResultsStreamController!.enqueue({
+                      type: 'error',
+                      error,
+                    });
+                  }
                 })
                 .finally(() => {
                   outstandingToolResults.delete(toolExecutionId);
