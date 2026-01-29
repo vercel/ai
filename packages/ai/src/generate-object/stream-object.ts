@@ -13,6 +13,7 @@ import {
   ProviderOptions,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { SpanKind } from '@opentelemetry/api';
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -29,6 +30,11 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import {
+  convertToOTelGenAIInputMessages,
+  convertToOTelGenAIOutputMessages,
+  getGenAIOperationName,
+} from '../telemetry/convert-to-otel-genai-messages';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
@@ -521,13 +527,18 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           },
         };
 
+        const genAIOperationName = getGenAIOperationName(
+          'ai.streamObject.doStream',
+        );
+
         const {
           result: { stream, response, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
           recordSpan({
-            name: 'ai.streamObject.doStream',
+            name: `${genAIOperationName} ${model.modelId}`,
+            kind: SpanKind.CLIENT,
             attributes: selectTelemetryAttributes({
               telemetry,
               attributes: {
@@ -541,6 +552,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 },
 
                 // standardized gen-ai llm span attributes:
+                'gen_ai.operation.name': genAIOperationName,
+                'gen_ai.provider.name': model.provider,
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty':
@@ -550,6 +563,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 'gen_ai.request.temperature': callSettings.temperature,
                 'gen_ai.request.top_k': callSettings.topK,
                 'gen_ai.request.top_p': callSettings.topP,
+                'gen_ai.input.messages': {
+                  input: () =>
+                    JSON.stringify(
+                      convertToOTelGenAIInputMessages(callOptions.prompt),
+                    ),
+                },
               },
             }),
             tracer,
@@ -782,6 +801,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'gen_ai.response.model': fullResponse.modelId,
                         'gen_ai.usage.input_tokens': finalUsage.inputTokens,
                         'gen_ai.usage.output_tokens': finalUsage.outputTokens,
+                        'gen_ai.output.messages': {
+                          output: () =>
+                            JSON.stringify(
+                              convertToOTelGenAIOutputMessages({
+                                text: accumulatedText || undefined,
+                                finishReason,
+                              }),
+                            ),
+                        },
                       },
                     }),
                   );
