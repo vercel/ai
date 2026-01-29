@@ -1,4 +1,5 @@
 import type {
+  JSONArray,
   VideoModelV3,
   VideoModelV3CallOptions,
   VideoModelV3File,
@@ -277,52 +278,54 @@ Only applicable for HTTP-based providers.
     });
 
     if (result.providerMetadata != null) {
-      for (const [provider, metadata] of Object.entries(
-        result.providerMetadata,
-      )) {
-        if (provider === 'gateway') {
+      for (const [providerName, metadata] of Object.entries<{
+        videos: JSONArray;
+      }>(result.providerMetadata)) {
+        if (providerName === 'gateway') {
           // Special handling for gateway provider - merge metadata from actual provider
           const gatewayMetadata = metadata as {
             provider: string;
-            videos: any[];
-          } & Record<string, any>;
+            videos: JSONArray;
+          };
+          const targetProvider = gatewayMetadata.provider;
+          const currentEntry = providerMetadata[targetProvider];
 
-          if (providerMetadata[gatewayMetadata.provider] == null) {
-            providerMetadata[gatewayMetadata.provider] = {
-              videos: [],
-            };
+          if (currentEntry != null && typeof currentEntry === 'object') {
+            providerMetadata[targetProvider] = {
+              ...(currentEntry as object),
+              ...metadata,
+              videos: [
+                ...(currentEntry.videos ?? []),
+                ...gatewayMetadata.videos,
+              ],
+            } as VideoModelV3ProviderMetadata[string];
+          } else {
+            providerMetadata[targetProvider] =
+              metadata as VideoModelV3ProviderMetadata[string];
           }
 
-          const existingMetadata = providerMetadata[gatewayMetadata.provider];
-
-          existingMetadata.videos = [
-            ...(existingMetadata.videos ?? []),
-            ...gatewayMetadata.videos,
-          ];
-
-          for (const [key, value] of Object.entries(gatewayMetadata)) {
-            if (key !== 'videos' && key !== 'provider') {
-              (existingMetadata as any)[key] = value;
-            }
+          // Remove the gateway-specific 'provider' field from the merged metadata
+          const mergedEntry = providerMetadata[targetProvider] as {
+            provider?: string;
+          };
+          if ('provider' in mergedEntry) {
+            delete mergedEntry.provider;
           }
         } else {
-          if (providerMetadata[provider] == null) {
-            providerMetadata[provider] = {
-              videos: [],
-            };
-          }
+          const currentEntry = providerMetadata[providerName];
 
-          const existingMetadata = providerMetadata[provider];
-
-          existingMetadata.videos = [
-            ...(existingMetadata.videos ?? []),
-            ...(metadata.videos ?? []),
-          ];
-
-          for (const [key, value] of Object.entries(metadata)) {
-            if (key !== 'videos') {
-              (existingMetadata as any)[key] = value;
-            }
+          if (currentEntry != null && typeof currentEntry === 'object') {
+            providerMetadata[providerName] = {
+              ...(currentEntry as object),
+              ...metadata,
+              videos: [
+                ...(currentEntry.videos ?? []),
+                ...(metadata.videos ?? []),
+              ],
+            } as VideoModelV3ProviderMetadata[string];
+          } else {
+            providerMetadata[providerName] =
+              metadata as VideoModelV3ProviderMetadata[string];
           }
         }
       }
