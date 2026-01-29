@@ -1,5 +1,11 @@
 # @ai-sdk/cerebras
 
+## 2.0.25
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 2.0.24
 
 ### Patch Changes
