@@ -95,25 +95,148 @@ Hugging Face language models can be used in the `streamText` function
 
 You can explore the latest and trending models with their capabilities, context size, throughput and pricing on the [Hugging Face Inference Models](https://huggingface.co/inference/models) page.
 
+### Provider Options
+
+Hugging Face language models support provider-specific options that you can pass via `providerOptions.huggingface`:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: huggingface('deepseek-ai/DeepSeek-R1'),
+  prompt: 'Explain the theory of relativity.',
+  providerOptions: {
+    huggingface: {
+      reasoningEffort: 'high',
+      instructions: 'Respond in a clear and educational manner.',
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **metadata** _Record&lt;string, string&gt;_
+
+  Additional metadata to include with the request.
+
+- **instructions** _string_
+
+  Instructions for the model. Can be used to provide additional context or guidance.
+
+- **strictJsonSchema** _boolean_
+
+  Whether to use strict JSON schema validation for structured outputs. Defaults to `false`.
+
+- **reasoningEffort** _string_
+
+  Controls the reasoning effort for reasoning models like DeepSeek-R1. Higher values result in more thorough reasoning.
+
+### Reasoning Output
+
+For reasoning models like `deepseek-ai/DeepSeek-R1`, you can control the reasoning effort and access the model's reasoning process in the response:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: huggingface('deepseek-ai/DeepSeek-R1'),
+  prompt: 'How many r letters are in the word strawberry?',
+  providerOptions: {
+    huggingface: {
+      reasoningEffort: 'high',
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    console.log(`Reasoning: ${part.textDelta}`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+For non-streaming calls with `generateText`, the reasoning content is available in the `reasoning` field of the response:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: huggingface('deepseek-ai/DeepSeek-R1'),
+  prompt: 'What is 25 * 37?',
+  providerOptions: {
+    huggingface: {
+      reasoningEffort: 'medium',
+    },
+  },
+});
+
+console.log('Reasoning:', result.reasoning);
+console.log('Answer:', result.text);
+```
+
+### Image Input
+
+For vision-capable models like `Qwen/Qwen2.5-VL-7B-Instruct`, you can pass images as part of the message content:
+
+```ts
+import { huggingface } from '@ai-sdk/huggingface';
+import { generateText } from 'ai';
+import { readFileSync } from 'fs';
+
+const result = await generateText({
+  model: huggingface('Qwen/Qwen2.5-VL-7B-Instruct'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe this image in detail.' },
+        {
+          type: 'image',
+          image: readFileSync('./image.png'),
+        },
+      ],
+    },
+  ],
+});
+```
+
+You can also pass image URLs:
+
+```ts
+{
+  type: 'image',
+  image: 'https://example.com/image.png',
+}
+```
+
 ## Model Capabilities
 
-| Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Llama-3.1-8B-Instruct`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.1-70B-Instruct`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.3-70B-Instruct`         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-4-Scout-17B-16E-Instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-V3-0324`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-R1`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen3-235B-A22B-Instruct-2507`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen3-Coder-480B-A35B-Instruct`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen2.5-VL-7B-Instruct`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `google/gemma-3-27b-it`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `moonshotai/Kimi-K2-Instruct`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model                                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ----------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `meta-llama/Llama-3.1-8B-Instruct`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.1-70B-Instruct`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-3.3-70B-Instruct`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3.1`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-V3-0324`                  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-32B`                                | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `Qwen/Qwen2.5-VL-7B-Instruct`                   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `google/gemma-3-27b-it`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `moonshotai/Kimi-K2-Instruct`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  The capabilities depend on the specific model you're using. Check the model
-  documentation on Hugging Face Hub for detailed information about each model's
-  features.
+  The table above lists popular models. You can explore all available models on
+  the [Hugging Face Inference Models](https://huggingface.co/inference/models)
+  page. The capabilities depend on the specific model you're using. Check the
+  model documentation on Hugging Face Hub for detailed information about each
+  model's features.
 </Note>

@@ -83,7 +83,7 @@ import { readFile } from 'fs/promises';
 const result = await transcribe({
   model: gladia.transcription(),
   audio: await readFile('audio.mp3'),
-  providerOptions: { gladia: { summarize: true } },
+  providerOptions: { gladia: { summarization: true } },
 });
 ```
 
@@ -167,7 +167,6 @@ The following provider options are available:
 - **diarization** _boolean_
 
   Enable speaker diarization.
-  Defaults to `true`.
   Optional.
 
 - **diarizationConfig** _object_

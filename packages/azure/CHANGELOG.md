@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 3.0.22
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 3.0.21
 
 ### Patch Changes

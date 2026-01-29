@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 1.0.9
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 1.0.8
 
 ### Patch Changes

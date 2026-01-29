@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.29
+
+### Patch Changes
+
+- b9d105f: Fix cache usage reporting for anthropic stream
+
 ## 3.0.28
 
 ### Patch Changes

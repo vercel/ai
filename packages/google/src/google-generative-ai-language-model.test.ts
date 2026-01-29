@@ -242,6 +242,20 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingSupports with missing segment', () => {
+    const metadata = {
+      groundingSupports: [
+        {
+          // Missing `segment`
+          groundingChunkIndices: [0],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('rejects invalid data types', () => {
     const metadata = {
       webSearchQueries: 'not an array', // Should be an array

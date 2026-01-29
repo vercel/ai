@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.13
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
 ## 1.0.12
 
 ### Patch Changes
