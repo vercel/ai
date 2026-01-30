@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.63
+
+### Patch Changes
+
+- be95579: fix(ui): respect `Promise<false>` when returned by `sendAutomaticallyWhen`
+
 ## 6.0.62
 
 ### Patch Changes
