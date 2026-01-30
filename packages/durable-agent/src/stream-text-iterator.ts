@@ -426,6 +426,7 @@ async function writeToolOutputToUI(
   toolResults: LanguageModelV2ToolResultPart[],
   collectUIChunks?: boolean,
 ): Promise<UIMessageChunk[]> {
+  'use step';
   const writer = writable.getWriter();
   const chunks: UIMessageChunk[] = [];
   try {
