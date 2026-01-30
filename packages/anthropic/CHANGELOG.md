@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.33
+
+### Patch Changes
+
+- 445cbe3: fix streaming context_management field location - was incorrectly expected inside delta object but API returns it at message_delta root level
+
 ## 3.0.32
 
 ### Patch Changes
