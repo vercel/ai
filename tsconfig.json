@@ -15,6 +15,7 @@
     { "path": "packages/deepgram" },
     { "path": "packages/deepinfra" },
     { "path": "packages/deepseek" },
+    { "path": "packages/durable-agent" },
     { "path": "packages/elevenlabs" },
     { "path": "packages/fal" },
     { "path": "packages/fireworks" },
