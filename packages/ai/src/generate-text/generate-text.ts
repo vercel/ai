@@ -36,7 +36,11 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types';
+import {
+  LanguageModel,
+  LanguageModelRequestMetadata,
+  ToolChoice,
+} from '../types';
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
@@ -190,6 +194,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
+  experimental_include: include,
   experimental_toolErrorHandler,
   _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
@@ -297,6 +302,28 @@ export async function generateText<
      * @default undefined
      */
     experimental_context?: unknown;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is included for backwards compatibility.
+     */
+    experimental_include?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+
+      /**
+       * Whether to retain the response body in step results.
+       * @default true
+       */
+      responseBody?: boolean;
+    };
 
     /**
      * Handler that determines what to do when a tool execution fails.
@@ -805,6 +832,24 @@ export async function generateText<
             );
 
             // Add step information (after response messages are updated):
+            // Conditionally include request.body and response.body based on include settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (include?.requestBody ?? true)
+                ? (currentModelResponse.request ?? {})
+                : { ...currentModelResponse.request, body: undefined };
+
+            const stepResponse = {
+              ...currentModelResponse.response,
+              // deep clone msgs to avoid mutating past messages in multi-step:
+              messages: structuredClone(responseMessages),
+              // Conditionally include response body:
+              body:
+                (include?.responseBody ?? true)
+                  ? currentModelResponse.response?.body
+                  : undefined,
+            };
+
             const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
               content: stepContent,
               finishReason: currentModelResponse.finishReason.unified,
@@ -812,12 +857,8 @@ export async function generateText<
               usage: asLanguageModelUsage(currentModelResponse.usage),
               warnings: currentModelResponse.warnings,
               providerMetadata: currentModelResponse.providerMetadata,
-              request: currentModelResponse.request ?? {},
-              response: {
-                ...currentModelResponse.response,
-                // deep clone msgs to avoid mutating past messages in multi-step:
-                messages: structuredClone(responseMessages),
-              },
+              request: stepRequest,
+              response: stepResponse,
             });
 
             logWarnings({

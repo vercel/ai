@@ -1,5 +1,35 @@
 # @ai-sdk/cerebras
 
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 2.0.26
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
+## 2.0.25
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
 ## 2.0.23
 
 ### Patch Changes

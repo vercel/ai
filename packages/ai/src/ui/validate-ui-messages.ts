@@ -1,4 +1,4 @@
-import { TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
   lazySchema,
@@ -346,79 +346,107 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
     });
 
     if (metadataSchema) {
-      for (const message of validatedMessages) {
+      for (const [msgIdx, message] of validatedMessages.entries()) {
         await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
+          context: {
+            field: `messages[${msgIdx}].metadata`,
+            entityId: message.id,
+          },
         });
       }
     }
 
-    if (dataSchemas) {
-      for (const message of validatedMessages) {
-        const dataParts = message.parts.filter(part =>
-          part.type.startsWith('data-'),
-        ) as DataUIPart<InferUIMessageData<UI_MESSAGE>>[];
+    if (dataSchemas || tools) {
+      for (const [msgIdx, message] of validatedMessages.entries()) {
+        for (const [partIdx, part] of message.parts.entries()) {
+          // Data part validation
+          if (dataSchemas && part.type.startsWith('data-')) {
+            const dataPart = part as DataUIPart<InferUIMessageData<UI_MESSAGE>>;
+            const dataName = dataPart.type.slice(5);
+            const dataSchema = dataSchemas[dataName];
 
-        for (const dataPart of dataParts) {
-          const dataName = dataPart.type.slice(5);
-          const dataSchema = dataSchemas[dataName];
+            if (!dataSchema) {
+              return {
+                success: false,
+                error: new TypeValidationError({
+                  value: dataPart.data,
+                  cause: `No data schema found for data part ${dataName}`,
+                  context: {
+                    field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                    entityName: dataName,
+                    entityId: dataPart.id,
+                  },
+                }),
+              };
+            }
 
-          if (!dataSchema) {
-            return {
-              success: false,
-              error: new TypeValidationError({
-                value: dataPart.data,
-                cause: `No data schema found for data part ${dataName}`,
-              }),
-            };
+            await validateTypes({
+              value: dataPart.data,
+              schema: dataSchema,
+              context: {
+                field: `messages[${msgIdx}].parts[${partIdx}].data`,
+                entityName: dataName,
+                entityId: dataPart.id,
+              },
+            });
           }
 
-          await validateTypes({
-            value: dataPart.data,
-            schema: dataSchema,
-          });
-        }
-      }
-    }
+          // Tool part validation
+          if (tools && part.type.startsWith('tool-')) {
+            const toolPart = part as ToolUIPart<
+              InferUIMessageTools<UI_MESSAGE>
+            >;
+            const toolName = toolPart.type.slice(5);
+            const tool = tools[toolName];
 
-    if (tools) {
-      for (const message of validatedMessages) {
-        const toolParts = message.parts.filter(part =>
-          part.type.startsWith('tool-'),
-        ) as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>[];
+            // TODO support dynamic tools
+            if (!tool) {
+              return {
+                success: false,
+                error: new TypeValidationError({
+                  value: toolPart.input,
+                  cause: `No tool schema found for tool part ${toolName}`,
+                  context: {
+                    field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                    entityName: toolName,
+                    entityId: toolPart.toolCallId,
+                  },
+                }),
+              };
+            }
 
-        for (const toolPart of toolParts) {
-          const toolName = toolPart.type.slice(5);
-          const tool = tools[toolName];
-
-          // TODO support dynamic tools
-          if (!tool) {
-            return {
-              success: false,
-              error: new TypeValidationError({
+            // Tool input validation
+            if (
+              toolPart.state === 'input-available' ||
+              toolPart.state === 'output-available' ||
+              (toolPart.state === 'output-error' &&
+                toolPart.input !== undefined)
+            ) {
+              await validateTypes({
                 value: toolPart.input,
-                cause: `No tool schema found for tool part ${toolName}`,
-              }),
-            };
-          }
+                schema: tool.inputSchema,
+                context: {
+                  field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                  entityName: toolName,
+                  entityId: toolPart.toolCallId,
+                },
+              });
+            }
 
-          if (
-            toolPart.state === 'input-available' ||
-            toolPart.state === 'output-available' ||
-            (toolPart.state === 'output-error' && toolPart.input !== undefined)
-          ) {
-            await validateTypes({
-              value: toolPart.input,
-              schema: tool.inputSchema,
-            });
-          }
-
-          if (toolPart.state === 'output-available' && tool.outputSchema) {
-            await validateTypes({
-              value: toolPart.output,
-              schema: tool.outputSchema,
-            });
+            // Tool output validation
+            if (toolPart.state === 'output-available' && tool.outputSchema) {
+              await validateTypes({
+                value: toolPart.output,
+                schema: tool.outputSchema,
+                context: {
+                  field: `messages[${msgIdx}].parts[${partIdx}].output`,
+                  entityName: toolName,
+                  entityId: toolPart.toolCallId,
+                },
+              });
+            }
           }
         }
       }

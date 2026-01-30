@@ -278,8 +278,6 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
-  experimental_context,
-  experimental_toolErrorHandler,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -288,6 +286,9 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
+  experimental_context,
+  experimental_include: include,
+  experimental_toolErrorHandler,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -432,6 +433,22 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is included for backwards compatibility.
+     */
+    experimental_include?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+    };
+
+    /**
      * Handler that determines what to do when a tool execution fails.
      *
      * Experimental (can break in patch releases).
@@ -497,6 +514,7 @@ export function streamText<
     experimental_context,
     experimental_toolErrorHandler,
     download,
+    include,
   });
 }
 
@@ -668,6 +686,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     experimental_context,
     experimental_toolErrorHandler,
     download,
+    include,
   }: {
     model: LanguageModelV3;
     telemetry: TelemetrySettings | undefined;
@@ -697,6 +716,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     experimental_context: unknown;
     experimental_toolErrorHandler?: ToolErrorHandler<TOOLS>;
     download: DownloadFunction | undefined;
+    include: { requestBody?: boolean } | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -1466,7 +1486,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               generateId,
             });
 
-            const stepRequest = request ?? {};
+            // Conditionally include request.body based on include settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (include?.requestBody ?? true)
+                ? (request ?? {})
+                : { ...request, body: undefined };
             const stepToolCalls: TypedToolCall<TOOLS>[] = [];
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;
