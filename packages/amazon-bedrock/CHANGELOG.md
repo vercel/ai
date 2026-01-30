@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.44
+
+### Patch Changes
+
+- b128d9b: add TTL support for prompt caching
+
 ## 4.0.43
 
 ### Patch Changes
