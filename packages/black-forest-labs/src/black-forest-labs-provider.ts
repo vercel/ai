@@ -11,47 +11,52 @@ import { VERSION } from './version';
 
 export interface BlackForestLabsProviderSettings {
   /**
-Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
+   * Black Forest Labs API key. Default value is taken from the `BFL_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
+   * Base URL for the API calls. Defaults to `https://api.bfl.ai/v1`.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept
-requests, or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation. You can use it as a middleware to intercept
+   * requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 
   /**
- Poll interval in milliseconds between status checks. Defaults to 500ms.
+   * Poll interval in milliseconds between status checks. Defaults to 500ms.
    */
   pollIntervalMillis?: number;
 
   /**
- Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
+   * Overall timeout in milliseconds for polling before giving up. Defaults to 60s.
    */
   pollTimeoutMillis?: number;
 }
 
 export interface BlackForestLabsProvider extends ProviderV3 {
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   image(modelId: BlackForestLabsImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: BlackForestLabsImageModelId): ImageModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api.bfl.ai/v1';
@@ -83,6 +88,13 @@ export function createBlackForestLabs(
       pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3',
     imageModel: createImageModel,
@@ -93,12 +105,8 @@ export function createBlackForestLabs(
         modelType: 'languageModel',
       });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
   };
 }
 

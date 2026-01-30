@@ -29,7 +29,7 @@ vi.mock('../version', () => {
 });
 
 const dummyResponseValues = {
-  finishReason: 'stop' as const,
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
   usage: {
     inputTokens: {
       total: 10,
@@ -341,25 +341,25 @@ describe('generateObject', () => {
         ]
       `);
         expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
-        {
-          "description": undefined,
-          "name": undefined,
-          "schema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "content": {
-                "type": "number",
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "content",
+              ],
+              "type": "object",
             },
-            "required": [
-              "content",
-            ],
-            "type": "object",
-          },
-          "type": "json",
-        }
-      `);
+            "type": "json",
+          }
+        `);
       });
 
       it('should generate object when using zod prePreprocess', async () => {

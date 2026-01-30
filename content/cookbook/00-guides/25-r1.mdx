@@ -149,7 +149,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: deepseek('deepseek-reasoner'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse({
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
 
 <Note>
   You can forward the model's reasoning tokens to the client with
-  `sendReasoning: true` in the `toDataStreamResponse` method.
+  `sendReasoning: true` in the `toUIMessageStreamResponse` method.
 </Note>
 
 Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:

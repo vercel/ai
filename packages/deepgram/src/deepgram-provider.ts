@@ -24,36 +24,41 @@ export interface DeepgramProvider extends ProviderV3 {
   };
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV3;
 
   /**
-Creates a model for speech generation.
+   * Creates a model for speech generation.
    */
   speech(modelId: DeepgramSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface DeepgramProviderSettings {
   /**
-API key for authenticating requests.
-     */
+   * API key for authenticating requests.
+   */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 /**
-Create an Deepgram provider instance.
+ * Create an Deepgram provider instance.
  */
 export function createDeepgram(
   options: DeepgramProviderSettings = {},
@@ -115,6 +120,7 @@ export function createDeepgram(
       message: 'Deepgram does not provide text embedding models',
     });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
@@ -128,6 +134,6 @@ export function createDeepgram(
 }
 
 /**
-Default Deepgram provider instance.
+ * Default Deepgram provider instance.
  */
 export const deepgram = createDeepgram();

@@ -221,8 +221,9 @@ const tools = {
   getWeatherInformation: tool({
     description: 'show the weather in a given city to the user',
     inputSchema: z.object({ city: z.string() }),
-    execute: async ({}: { city: string }) => {
+    execute: async ({ city }: { city: string }) => {
       return {
+        city,
         value: 24,
         unit: 'celsius',
         weeklyForecast: [
@@ -261,7 +262,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: 'openai/gpt-4.1',
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
     tools,
     stopWhen: stepCountIs(5),
   });

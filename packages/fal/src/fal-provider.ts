@@ -20,49 +20,54 @@ import { VERSION } from './version';
 
 export interface FalProviderSettings {
   /**
-fal.ai API key. Default value is taken from the `FAL_API_KEY` environment
-variable, falling back to `FAL_KEY`.
-  */
+   * fal.ai API key. Default value is taken from the `FAL_API_KEY` environment
+   * variable, falling back to `FAL_KEY`.
+   */
   apiKey?: string;
 
   /**
-Base URL for the API calls.
-The default prefix is `https://fal.run`.
+   * Base URL for the API calls.
+   * The default prefix is `https://fal.run`.
    */
   baseURL?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept
-requests, or to provide a custom fetch implementation for e.g. testing.
+   * Custom fetch implementation. You can use it as a middleware to intercept
+   * requests, or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
 }
 
 export interface FalProvider extends ProviderV3 {
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   image(modelId: FalImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: FalImageModelId): ImageModelV3;
 
   /**
-Creates a model for transcription.
+   * Creates a model for transcription.
    */
   transcription(modelId: FalTranscriptionModelId): TranscriptionModelV3;
 
   /**
-Creates a model for speech generation.
+   * Creates a model for speech generation.
    */
   speech(modelId: FalSpeechModelId): SpeechModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://fal.run';
@@ -109,7 +114,7 @@ function loadFalApiKey({
 }
 
 /**
-Create a fal.ai provider instance.
+ * Create a fal.ai provider instance.
  */
 export function createFal(options: FalProviderSettings = {}): FalProvider {
   const baseURL = withoutTrailingSlash(options.baseURL ?? defaultBaseURL);
@@ -148,6 +153,13 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'embeddingModel',
+    });
+  };
+
   return {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
@@ -159,17 +171,13 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       });
     },
     speech: createSpeechModel,
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'embeddingModel',
-      });
-    },
+    embeddingModel,
+    textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
   };
 }
 
 /**
-Default fal.ai provider instance.
+ * Default fal.ai provider instance.
  */
 export const fal = createFal();

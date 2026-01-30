@@ -201,21 +201,18 @@ const { output } = await generateText({
 // ]
 ```
 
-With `streamText`, you can also iterate over the generated array elements using `elementStream`:
+When streaming arrays with `streamText`, you can use `elementStream` to receive each completed element as it is generated:
 
-```ts highlight="7,18"
+```ts
 import { streamText, Output } from 'ai';
-__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const { elementStream } = streamText({
-  model: __MODEL__,
+  // ...
   output: Output.array({
     element: z.object({
       name: z.string(),
-      class: z
-        .string()
-        .describe('Character class, e.g. warrior, mage, or thief.'),
+      class: z.string(),
       description: z.string(),
     }),
   }),
@@ -223,13 +220,14 @@ const { elementStream } = streamText({
 });
 
 for await (const hero of elementStream) {
-  console.log(hero);
+  console.log(hero); // Each hero is complete and validated
 }
 ```
 
 <Note>
   Each element emitted by `elementStream` is complete and validated against your
-  element schema, ensuring type safety for each item as it is generated.
+  element schema. This differs from `partialOutputStream`, which streams the
+  entire partial array including incomplete elements.
 </Note>
 
 ### `Output.choice()`
@@ -353,6 +351,37 @@ Property descriptions are particularly useful for:
 - Specifying expected formats or conventions
 - Providing context for complex nested structures
 
+## Output Name and Description
+
+You can optionally specify a `name` and `description` for the output. These are used by some providers for additional LLM guidance, e.g. via tool or schema name.
+
+```ts highlight="6-7"
+import { generateText, Output } from 'ai';
+__PROVIDER_IMPORT__;
+import { z } from 'zod';
+
+const { output } = await generateText({
+  model: __MODEL__,
+  output: Output.object({
+    name: 'Recipe',
+    description: 'A recipe for a dish.',
+    schema: z.object({
+      name: z.string(),
+      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+```
+
+This works with all output types that support structured generation:
+
+- `Output.object({ name, description, schema })`
+- `Output.array({ name, description, element })`
+- `Output.choice({ name, description, options })`
+- `Output.json({ name, description })`
+
 ## Accessing Reasoning
 
 You can access the reasoning used by the language model to generate the object via the `reasoning` property on the result. This property contains a string with the model's thought process, if available.
@@ -381,7 +410,7 @@ const result = await generateText({
   prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(result.reasoning);
+console.log(result.reasoningText);
 ```
 
 ## Error Handling

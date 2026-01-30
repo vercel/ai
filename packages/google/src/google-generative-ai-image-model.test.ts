@@ -65,6 +65,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await modelWithHeaders.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -115,6 +117,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -130,6 +134,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -137,13 +143,19 @@ describe('GoogleGenerativeAIImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "16:9",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
 
     it('should pass aspect ratio directly when specified', async () => {
@@ -151,6 +163,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '16:9',
@@ -158,13 +172,19 @@ describe('GoogleGenerativeAIImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "16:9",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
 
     it('should combine aspectRatio and provider options', async () => {
@@ -172,6 +192,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt: 'test prompt',
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: '1:1',
@@ -183,14 +205,20 @@ describe('GoogleGenerativeAIImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt: 'test prompt' }],
-        parameters: {
-          sampleCount: 1,
-          personGeneration: 'dont_allow',
-          aspectRatio: '1:1',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "test prompt",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "1:1",
+            "personGeneration": "dont_allow",
+            "sampleCount": 1,
+          },
+        }
+      `);
     });
 
     it('should return warnings for unsupported settings', async () => {
@@ -198,6 +226,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: '1024x1024',
         aspectRatio: '1:1',
@@ -246,6 +276,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await customModel.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -271,6 +303,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: undefined,
@@ -294,6 +328,8 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       await model.doGenerate({
         prompt,
+        files: undefined,
+        mask: undefined,
         n: 2,
         size: undefined,
         aspectRatio: '16:9',
@@ -302,20 +338,74 @@ describe('GoogleGenerativeAIImageModel', () => {
           google: {
             addWatermark: false,
             personGeneration: 'allow_all',
-            foo: 'bar', // Invalid option
-            negativePrompt: 'negative prompt', // Invalid option
+            foo: 'bar',
+            negativePrompt: 'negative prompt',
           },
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 2,
-          personGeneration: 'allow_all',
-          aspectRatio: '16:9',
-        },
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "instances": [
+            {
+              "prompt": "A cute baby sea otter",
+            },
+          ],
+          "parameters": {
+            "aspectRatio": "16:9",
+            "personGeneration": "allow_all",
+            "sampleCount": 2,
+          },
+        }
+      `);
+    });
+  });
+
+  describe('Image Editing (Not Supported)', () => {
+    it('should throw error when files are provided', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit this image',
+          files: [
+            {
+              type: 'file',
+              data: 'base64-source-image',
+              mediaType: 'image/png',
+            },
+          ],
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Google Generative AI does not support image editing. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
+    });
+
+    it('should throw error when mask is provided', async () => {
+      await expect(
+        model.doGenerate({
+          prompt: 'Edit this image',
+          files: undefined,
+          mask: {
+            type: 'file',
+            data: 'base64-mask-image',
+            mediaType: 'image/png',
+          },
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(
+        'Google Generative AI does not support image editing with masks. ' +
+          'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
+      );
     });
   });
 });

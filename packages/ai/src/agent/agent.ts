@@ -4,11 +4,15 @@ import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
+import { TimeoutConfiguration } from '../prompt/call-settings';
+import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
  * Parameters for calling an agent.
  */
-export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
+export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
+  CALL_OPTIONS,
+] extends [never]
   ? { options?: never }
   : { options: CALL_OPTIONS }) &
   (
@@ -47,6 +51,16 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
      * Abort signal.
      */
     abortSignal?: AbortSignal;
+
+    /**
+     * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
+     */
+    timeout?: TimeoutConfiguration;
+
+    /**
+     * Callback that is called when each step (LLM call) is finished, including intermediate steps.
+     */
+    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
   };
 
 /**
@@ -55,7 +69,7 @@ export type AgentCallParameters<CALL_OPTIONS> = ([CALL_OPTIONS] extends [never]
 export type AgentStreamParameters<
   CALL_OPTIONS,
   TOOLS extends ToolSet,
-> = AgentCallParameters<CALL_OPTIONS> & {
+> = AgentCallParameters<CALL_OPTIONS, TOOLS> & {
   /**
    * Optional stream transformations.
    * They are applied in the order they are provided.
@@ -98,7 +112,7 @@ export interface Agent<
    * Generates an output from the agent (non-streaming).
    */
   generate(
-    options: AgentCallParameters<CALL_OPTIONS>,
+    options: AgentCallParameters<CALL_OPTIONS, TOOLS>,
   ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
 
   /**

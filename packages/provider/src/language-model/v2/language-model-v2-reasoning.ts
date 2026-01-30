@@ -1,7 +1,7 @@
 import { SharedV2ProviderMetadata } from '../../shared';
 
 /**
-Reasoning that the model has generated.
+ * Reasoning that the model has generated.
  */
 export type LanguageModelV2Reasoning = {
   type: 'reasoning';

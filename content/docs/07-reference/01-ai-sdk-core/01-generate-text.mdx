@@ -436,8 +436,15 @@ To see `generateText` in action, check out [these examples](#examples).
         'An optional abort signal that can be used to cancel the call.',
     },
     {
+      name: 'timeout',
+      type: 'number | { totalMs?: number; stepMs?: number }',
+      isOptional: true,
+      description:
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+    },
+    {
       name: 'headers',
-      type: 'Record<string, string>',
+      type: 'Record<string, string | undefined>',
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
@@ -611,6 +618,13 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
             },
+            {
+              name: 'providerOptions',
+              type: 'ProviderOptions',
+              isOptional: true,
+              description:
+                'Additional provider-specific options for this step. Can be used to pass provider-specific configuration such as container IDs for Anthropic code execution.',
+            },
           ],
         },
       ],
@@ -628,6 +642,34 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Custom download function to control how URLs are fetched when they appear in prompts. By default, files are downloaded if the model does not support the URL for the given media type. Experimental feature. Return null to pass the URL directly to the model (when supported), or return downloaded content with data and media type.',
+    },
+    {
+      name: 'experimental_include',
+      type: '{ requestBody?: boolean; responseBody?: boolean }',
+      isOptional: true,
+      description:
+        'Controls inclusion of request and response bodies in step results. By default, bodies are included. When processing many large payloads (e.g., images), set requestBody and/or responseBody to false to reduce memory usage. Experimental feature.',
+      properties: [
+        {
+          type: 'Object',
+          parameters: [
+            {
+              name: 'requestBody',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the request body in step results. The request body can be large when sending images or files. Default: true.',
+            },
+            {
+              name: 'responseBody',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to include the response body in step results. Default: true.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'experimental_repairToolCall',
@@ -705,6 +747,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Schema<OBJECT>',
                       description: 'The schema of the object to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -724,6 +780,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       description:
                         'The schema of the array elements to generate.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -742,6 +812,20 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Array<string>',
                       description: 'The available choices.',
                     },
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
                   ],
                 },
               ],
@@ -750,7 +834,28 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'Output.json()',
               type: 'Output',
               description:
-                ' Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+                'Output specification for unstructured JSON generation. When the model generates a text response, it will return a JSON object.',
+              properties: [
+                {
+                  type: 'Options',
+                  parameters: [
+                    {
+                      name: 'name',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional name of the output. Used by some providers for additional LLM guidance.',
+                    },
+                    {
+                      name: 'description',
+                      type: 'string',
+                      isOptional: true,
+                      description:
+                        'Optional description of the output. Used by some providers for additional LLM guidance.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -767,9 +872,15 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description:
                 'The reason the model finished generating the text for the step.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1046,8 +1157,14 @@ To see `generateText` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'finishReason',
-              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other" | "unknown"',
+              type: '"stop" | "length" | "content-filter" | "tool-calls" | "error" | "other"',
               description: 'The reason the model finished generating the text.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',
@@ -1303,7 +1420,7 @@ To see `generateText` in action, check out [these examples](#examples).
                         'The response identifier. The AI SDK uses the ID from the provider response when available, and generates an ID otherwise.',
                     },
                     {
-                      name: 'model',
+                      name: 'modelId',
                       type: 'string',
                       description:
                         'The model that was used to generate the response. The AI SDK uses the response model from the provider response when available, and the model from the function call otherwise.',
@@ -1476,9 +1593,39 @@ To see `generateText` in action, check out [these examples](#examples).
       description: 'The results of the tool calls from the last step.',
     },
     {
+      name: 'staticToolCalls',
+      type: 'Array<StaticToolCall<TOOLS>>',
+      description:
+        'The static tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'dynamicToolCalls',
+      type: 'Array<DynamicToolCall>',
+      description:
+        'The dynamic tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'staticToolResults',
+      type: 'Array<StaticToolResult<TOOLS>>',
+      description:
+        'The static tool results that have been generated in the last step.',
+    },
+    {
+      name: 'dynamicToolResults',
+      type: 'Array<DynamicToolResult>',
+      description:
+        'The dynamic tool results that have been generated in the last step.',
+    },
+    {
       name: 'finishReason',
-      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+      type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
       description: 'The reason the model finished generating the text.',
+    },
+    {
+      name: 'rawFinishReason',
+      type: 'string | undefined',
+      description:
+        'The raw reason why the generation finished (from the provider).',
     },
     {
       name: 'usage',
@@ -1826,8 +1973,14 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'finishReason',
-              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other' | 'unknown'",
+              type: "'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'",
               description: 'The reason why the generation finished.',
+            },
+            {
+              name: 'rawFinishReason',
+              type: 'string | undefined',
+              description:
+                'The raw reason why the generation finished (from the provider).',
             },
             {
               name: 'usage',

@@ -96,7 +96,10 @@ describe('Chat', () => {
           formatChunk({ type: 'text-delta', id: 'text-1', delta: '.' }),
           formatChunk({ type: 'text-end', id: 'text-1' }),
           formatChunk({ type: 'finish-step' }),
-          formatChunk({ type: 'finish', finishReason: 'stop' }),
+          formatChunk({
+            type: 'finish',
+            finishReason: 'stop',
+          }),
         ],
       };
 
@@ -903,7 +906,10 @@ describe('Chat', () => {
         }),
         formatChunk({ type: 'text-end', id: 'text-1' }),
         formatChunk({ type: 'finish-step' }),
-        formatChunk({ type: 'finish', finishReason: 'stop' }),
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
       ],
     };
 
@@ -1556,7 +1562,12 @@ describe('Chat', () => {
 
       // finish stream
       controller1.write(formatChunk({ type: 'finish-step' }));
-      controller1.write(formatChunk({ type: 'finish', finishReason: 'stop' }));
+      controller1.write(
+        formatChunk({
+          type: 'finish',
+          finishReason: 'stop',
+        }),
+      );
 
       await controller1.close();
 
@@ -1923,7 +1934,10 @@ describe('Chat', () => {
             }),
             formatChunk({ type: 'text-end', id: 'id-1' }),
             formatChunk({ type: 'finish-step' }),
-            formatChunk({ type: 'finish', finishReason: 'stop' }),
+            formatChunk({
+              type: 'finish',
+              finishReason: 'stop',
+            }),
           ],
         },
       ];
@@ -2283,6 +2297,97 @@ describe('Chat', () => {
         `[Error: Internal Server Error]`,
       );
     });
+
+    it('should not send message when sendAutomaticallyWhen returns false via promise', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start' }),
+            formatChunk({ type: 'start-step' }),
+            formatChunk({
+              type: 'tool-input-available',
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              input: { testArg: 'test-value' },
+            }),
+            formatChunk({ type: 'finish-step' }),
+            formatChunk({ type: 'finish' }),
+          ],
+        },
+      ];
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: () => Promise.resolve(false),
+        onFinish: () => {
+          onFinishPromise.resolve();
+        },
+      });
+
+      await chat.sendMessage({
+        text: 'Hello, world!',
+      });
+
+      await onFinishPromise.promise;
+
+      // user submits the tool output
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+
+      // UI should show the tool output
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "errorText": undefined,
+                "input": {
+                  "testArg": "test-value",
+                },
+                "output": "test-output",
+                "preliminary": undefined,
+                "providerExecuted": undefined,
+                "rawInput": undefined,
+                "state": "output-available",
+                "title": undefined,
+                "toolCallId": "tool-call-0",
+                "type": "tool-test-tool",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // should not have made a 2nd call since sendAutomaticallyWhen returns false
+      expect(server.calls.length).toBe(1);
+    });
   });
 
   describe('clearError', () => {
@@ -2426,7 +2531,10 @@ describe('Chat', () => {
               }),
               formatChunk({ type: 'text-end', id: 'txt-1' }),
               formatChunk({ type: 'finish-step' }),
-              formatChunk({ type: 'finish', finishReason: 'stop' }),
+              formatChunk({
+                type: 'finish',
+                finishReason: 'stop',
+              }),
             ],
           },
         ];

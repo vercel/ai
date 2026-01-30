@@ -197,17 +197,17 @@ Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK,
 
 ```tsx filename="app/api/chat/route.ts"
 import { deepinfra } from '@ai-sdk/deepinfra';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
     model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();
@@ -218,20 +218,39 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit } = useChat();
+  const [input, setInput] = useState('');
+  const { messages, sendMessage } = useChat();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  };
 
   return (
     <>
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <span key={index}>{part.text}</span>;
+            }
+            return null;
+          })}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
+        <input
+          name="prompt"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
         <button type="submit">Submit</button>
       </form>
     </>

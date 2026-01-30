@@ -80,7 +80,7 @@ You can use the following optional settings to customize the AI Gateway provider
 
 - **baseURL** _string_
 
-  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v1/ai`.
+  Use a different URL prefix for API calls. The default prefix is `https://ai-gateway.vercel.sh/v3/ai`.
 
 - **apiKey** _string_
 
@@ -318,6 +318,221 @@ console.dir(result.text);
   you must bring your own key (BYOK) directly to the provider.
 </Note>
 
+### Gateway Tools
+
+The AI Gateway provider includes built-in tools that are executed by the gateway itself. These tools can be used with any model through the gateway.
+
+#### Perplexity Search
+
+The Perplexity Search tool enables models to search the web using [Perplexity's search API](https://docs.perplexity.ai/guides/search-quickstart). This tool is executed by the AI Gateway and returns web search results that the model can use to provide up-to-date information.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Search for news about AI regulations in January 2025.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can also configure the search with optional parameters:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt:
+    'Search for news about AI regulations from the first week of January 2025.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch({
+      maxResults: 5,
+      searchLanguageFilter: ['en'],
+      country: 'US',
+      searchDomainFilter: ['reuters.com', 'bbc.com', 'nytimes.com'],
+    }),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+The Perplexity Search tool supports the following optional configuration options:
+
+- **maxResults** _number_
+
+  The maximum number of search results to return (1-20, default: 10).
+
+- **maxTokensPerPage** _number_
+
+  The maximum number of tokens to extract per search result page (256-2048, default: 2048).
+
+- **maxTokens** _number_
+
+  The maximum total tokens across all search results (default: 25000, max: 1000000).
+
+- **searchLanguageFilter** _string[]_
+
+  Filter search results by language using ISO 639-1 language codes (e.g., `['en']` for English, `['en', 'es']` for English and Spanish).
+
+- **country** _string_
+
+  Filter search results by country using ISO 3166-1 alpha-2 country codes (e.g., `'US'` for United States, `'GB'` for United Kingdom).
+
+- **searchDomainFilter** _string[]_
+
+  Limit search results to specific domains (e.g., `['reuters.com', 'bbc.com']`). This is useful for restricting results to trusted sources.
+
+- **searchRecencyFilter** _'day' | 'week' | 'month' | 'year'_
+
+  Filter search results by relative time period. Useful for always getting recent results (e.g., 'week' for results from the last week).
+
+The tool works with both `generateText` and `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Search for the latest news about AI regulations.',
+  tools: {
+    perplexity_search: gateway.tools.perplexitySearch(),
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.text);
+      break;
+    case 'tool-call':
+      console.log('\nTool call:', JSON.stringify(part, null, 2));
+      break;
+    case 'tool-result':
+      console.log('\nTool result:', JSON.stringify(part, null, 2));
+      break;
+  }
+}
+```
+
+#### Parallel Search
+
+The Parallel Search tool enables models to search the web using [Parallel AI's Search API](https://docs.parallel.ai/api-reference/search-beta/search). This tool is optimized for LLM consumption, returning relevant excerpts from web pages that can replace multiple keyword searches with a single call.
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Research the latest developments in quantum computing.',
+  tools: {
+    parallel_search: gateway.tools.parallelSearch(),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+You can also configure the search with optional parameters:
+
+```ts
+import { gateway, generateText } from 'ai';
+
+const result = await generateText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Find detailed information about TypeScript 5.0 features.',
+  tools: {
+    parallel_search: gateway.tools.parallelSearch({
+      mode: 'agentic',
+      maxResults: 5,
+      sourcePolicy: {
+        includeDomains: ['typescriptlang.org', 'github.com'],
+      },
+      excerpts: {
+        maxCharsPerResult: 8000,
+      },
+    }),
+  },
+});
+
+console.log(result.text);
+console.log('Tool calls:', JSON.stringify(result.toolCalls, null, 2));
+console.log('Tool results:', JSON.stringify(result.toolResults, null, 2));
+```
+
+The Parallel Search tool supports the following optional configuration options:
+
+- **mode** _'one-shot' | 'agentic'_
+
+  Mode preset for different use cases:
+
+  - `'one-shot'` - Comprehensive results with longer excerpts for single-response answers (default)
+  - `'agentic'` - Concise, token-efficient results optimized for multi-step agentic workflows
+
+- **maxResults** _number_
+
+  Maximum number of results to return (1-20). Defaults to 10 if not specified.
+
+- **sourcePolicy** _object_
+
+  Source policy for controlling which domains to include/exclude:
+
+  - `includeDomains` - List of domains to include in search results
+  - `excludeDomains` - List of domains to exclude from search results
+  - `afterDate` - Only include results published after this date (ISO 8601 format)
+
+- **excerpts** _object_
+
+  Excerpt configuration for controlling result length:
+
+  - `maxCharsPerResult` - Maximum characters per result
+  - `maxCharsTotal` - Maximum total characters across all results
+
+- **fetchPolicy** _object_
+
+  Fetch policy for controlling content freshness:
+
+  - `maxAgeSeconds` - Maximum age in seconds for cached content (set to 0 for always fresh)
+
+The tool works with both `generateText` and `streamText`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: 'openai/gpt-5-nano',
+  prompt: 'Research the latest AI safety guidelines.',
+  tools: {
+    parallel_search: gateway.tools.parallelSearch(),
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-delta':
+      process.stdout.write(part.text);
+      break;
+    case 'tool-call':
+      console.log('\nTool call:', JSON.stringify(part, null, 2));
+      break;
+    case 'tool-result':
+      console.log('\nTool result:', JSON.stringify(part, null, 2));
+      break;
+  }
+}
+```
+
 ### Usage Tracking with User and Tags
 
 Track usage per end-user and categorize requests with tags:
@@ -400,6 +615,22 @@ The following gateway provider options are available:
 
   Example: `tags: ['chat', 'v2']` will tag this request with "chat" and "v2" for filtering in usage analytics.
 
+- **byok** _Record&lt;string, Array&lt;Record&lt;string, unknown&gt;&gt;&gt;_
+
+  Request-scoped BYOK (Bring Your Own Key) credentials to use for this request. When provided, any cached BYOK credentials configured in the gateway system are not considered. Requests may still fall back to use system credentials if the provided credentials fail.
+
+  Each provider can have multiple credentials (tried in order). The structure is a record where keys are provider slugs and values are arrays of credential objects.
+
+  Examples:
+
+  - Single provider: `byok: { 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
+  - Multiple credentials: `byok: { 'vertex': [{ project: 'proj-1', googleCredentials: { privateKey: '...', clientEmail: '...' } }, { project: 'proj-2', googleCredentials: { privateKey: '...', clientEmail: '...' } }] }`
+  - Multiple providers: `byok: { 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+
+- **zeroDataRetention** _boolean_
+
+  Restricts routing requests to providers that have zero data retention policies.
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
@@ -441,6 +672,27 @@ const { text } = await generateText({
 // 2. If it fails, try openai/gpt-5-nano
 // 3. If that fails, try gemini-2.0-flash
 // 4. Return the result from the first model that succeeds
+```
+
+#### Zero Data Retention Example
+
+Set `zeroDataRetention` to true to ensure requests are only routed to providers
+that have zero data retention policies. When `zeroDataRetention` is `false` or not
+specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Analyze this sensitive document...',
+  providerOptions: {
+    gateway: {
+      zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
 ```
 
 ### Provider-Specific Options

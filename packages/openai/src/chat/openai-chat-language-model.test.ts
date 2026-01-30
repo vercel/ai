@@ -168,10 +168,12 @@ describe('doGenerate', () => {
     };
     annotations?: Array<{
       type: 'url_citation';
-      start_index: number;
-      end_index: number;
-      url: string;
-      title: string;
+      url_citation: {
+        start_index: number;
+        end_index: number;
+        url: string;
+        title: string;
+      };
     }>;
     logprobs?: {
       content:
@@ -427,7 +429,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('stop');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "stop",
+        "unified": "stop",
+      }
+    `);
   });
 
   it('should support unknown finish reason', async () => {
@@ -439,7 +446,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual('unknown');
+    expect(response.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "eos",
+        "unified": "other",
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -540,6 +552,25 @@ describe('doGenerate', () => {
       model: 'o4-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
+    });
+  });
+
+  it('should pass reasoningEffort xhigh setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.1-codex-max');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'xhigh' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.1-codex-max',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'xhigh',
     });
   });
 
@@ -711,10 +742,12 @@ describe('doGenerate', () => {
       annotations: [
         {
           type: 'url_citation',
-          start_index: 24,
-          end_index: 29,
-          url: 'https://example.com/doc1.pdf',
-          title: 'Document 1',
+          url_citation: {
+            start_index: 24,
+            end_index: 29,
+            url: 'https://example.com/doc1.pdf',
+            title: 'Document 1',
+          },
         },
       ],
     });
@@ -1260,6 +1293,71 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should allow forcing reasoning behavior for unrecognized model IDs via providerOptions', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('stealth-reasoning-model');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.5,
+      topP: 0.7,
+      providerOptions: {
+        openai: {
+          forceReasoning: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stealth-reasoning-model',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "temperature is not supported for reasoning models",
+          "feature": "temperature",
+          "type": "unsupported",
+        },
+        {
+          "details": "topP is not supported for reasoning models",
+          "feature": "topP",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should default systemMessageMode to developer when forcing reasoning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('stealth-reasoning-model');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        openai: {
+          forceReasoning: true,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'stealth-reasoning-model',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
   it('should use developer messages for o1', async () => {
     prepareJsonResponse();
 
@@ -1276,6 +1374,57 @@ describe('doGenerate', () => {
       model: 'o1',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should allow overriding systemMessageMode via providerOptions', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      providerOptions: {
+        openai: {
+          systemMessageMode: 'developer',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'developer', content: 'You are a helpful assistant.' },
+        { role: 'user', content: 'Hello' },
+      ],
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
+  it('should use default systemMessageMode when not overridden', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o');
+
+    const result = await model.doGenerate({
+      prompt: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: 'Hello' },
       ],
     });
@@ -1839,7 +1988,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "logprobs": [
@@ -1969,7 +2121,7 @@ describe('doStream', () => {
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Based on search results"},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}]},"finish_reason":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"annotations":[{"type":"url_citation","url_citation":{"start_index":24,"end_index":29,"url":"https://example.com/doc1.pdf","title":"Document 1"}}]},"finish_reason":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
           `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"gpt-3.5-turbo-0125",` +
@@ -2005,7 +2157,7 @@ describe('doStream', () => {
         { type: 'text-end', id: '0' },
         expect.objectContaining({
           type: 'finish',
-          finishReason: 'stop',
+          finishReason: { unified: 'stop', raw: 'stop' },
         }),
       ]),
     );
@@ -2129,7 +2281,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2280,7 +2435,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2435,7 +2593,10 @@ describe('doStream', () => {
           "type": "text-end",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2530,7 +2691,10 @@ describe('doStream', () => {
           "type": "tool-call",
         },
         {
-          "finishReason": "tool-calls",
+          "finishReason": {
+            "raw": "tool_calls",
+            "unified": "tool-calls",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2589,7 +2753,10 @@ describe('doStream', () => {
           "type": "error",
         },
         {
-          "finishReason": "error",
+          "finishReason": {
+            "raw": undefined,
+            "unified": "error",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2638,7 +2805,10 @@ describe('doStream', () => {
             "type": "error",
           },
           {
-            "finishReason": "error",
+            "finishReason": {
+              "raw": undefined,
+              "unified": "error",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -2810,7 +2980,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {},
           },
@@ -2869,7 +3042,10 @@ describe('doStream', () => {
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
         {
-          "finishReason": "stop",
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
           "providerMetadata": {
             "openai": {
               "acceptedPredictionTokens": 123,
@@ -3072,7 +3248,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },
@@ -3152,7 +3331,10 @@ describe('doStream', () => {
             "type": "text-end",
           },
           {
-            "finishReason": "stop",
+            "finishReason": {
+              "raw": "stop",
+              "unified": "stop",
+            },
             "providerMetadata": {
               "openai": {},
             },

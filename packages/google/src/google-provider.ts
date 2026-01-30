@@ -32,8 +32,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   chat(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
   /**
-Creates a model for image generation.
- */
+   * Creates a model for image generation.
+   */
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
@@ -44,40 +44,58 @@ Creates a model for image generation.
    */
   generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
 
+  /**
+   * Creates a model for text embeddings.
+   */
   embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embedding` instead.
+   */
+  textEmbedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(
+    modelId: GoogleGenerativeAIEmbeddingModelId,
+  ): EmbeddingModelV3;
 
   tools: typeof googleTools;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
   /**
-Use a different URL prefix for API calls, e.g. to use proxy servers.
-The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
+   * Use a different URL prefix for API calls, e.g. to use proxy servers.
+   * The default prefix is `https://generativelanguage.googleapis.com/v1beta`.
    */
   baseURL?: string;
 
   /**
-API key that is being send using the `x-goog-api-key` header.
-It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
+   * API key that is being send using the `x-goog-api-key` header.
+   * It defaults to the `GOOGLE_GENERATIVE_AI_API_KEY` environment variable.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string | undefined>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-Optional function to generate a unique ID for each request.
-     */
+   * Optional function to generate a unique ID for each request.
+   */
   generateId?: () => string;
 
   /**
@@ -88,7 +106,7 @@ Optional function to generate a unique ID for each request.
 }
 
 /**
-Create a Google Generative AI provider instance.
+ * Create a Google Generative AI provider instance.
  */
 export function createGoogleGenerativeAI(
   options: GoogleGenerativeAIProviderSettings = {},
@@ -168,6 +186,8 @@ export function createGoogleGenerativeAI(
   provider.generativeAI = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.textEmbedding = createEmbeddingModel;
+  provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.tools = googleTools;
@@ -176,6 +196,6 @@ export function createGoogleGenerativeAI(
 }
 
 /**
-Default Google Generative AI provider instance.
+ * Default Google Generative AI provider instance.
  */
 export const google = createGoogleGenerativeAI();

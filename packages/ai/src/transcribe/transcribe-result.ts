@@ -3,8 +3,8 @@ import { TranscriptionModelResponseMetadata } from '../types/transcription-model
 import { Warning } from '../types/warning';
 
 /**
-The result of a `transcribe` call.
-It contains the transcript and additional information.
+ * The result of a `transcribe` call.
+ * It contains the transcript and additional information.
  */
 export interface TranscriptionResult {
   /**
@@ -44,17 +44,17 @@ export interface TranscriptionResult {
   readonly durationInSeconds: number | undefined;
 
   /**
-  Warnings for the call, e.g. unsupported settings.
-     */
+   * Warnings for the call, e.g. unsupported settings.
+   */
   readonly warnings: Array<Warning>;
 
   /**
-  Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
+   * Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
   readonly responses: Array<TranscriptionModelResponseMetadata>;
 
   /**
-  Provider metadata from the provider.
+   * Provider metadata from the provider.
    */
   readonly providerMetadata: Record<string, JSONObject>;
 }

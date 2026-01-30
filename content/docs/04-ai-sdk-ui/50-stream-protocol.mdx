@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toTextStreamResponse();
@@ -378,6 +378,19 @@ data: {"type":"finish"}
 
 ```
 
+### Abort Part
+
+Indicates the stream was aborted.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"abort","reason":"user cancelled"}
+
+```
+
 ### Stream Termination
 
 The stream ends with a special `[DONE]` marker.
@@ -456,7 +469,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

@@ -5,8 +5,7 @@ description: API Reference for embedMany.
 
 # `embedMany()`
 
-Embed several values using an embedding model. The type of the value is defined
-by the embedding model.
+Embed several values using an embedding model.
 
 `embedMany` automatically splits large requests into smaller chunks if the model
 has a limit on how many embeddings can be generated in a single call.
@@ -42,8 +41,8 @@ const { embeddings } = await embedMany({
     },
     {
       name: 'values',
-      type: 'Array<VALUE>',
-      description: 'The values to embed. The type depends on the model.',
+      type: 'Array<string>',
+      description: 'The values to embed.',
     },
     {
       name: 'maxRetries',
@@ -65,6 +64,20 @@ const { embeddings } = await embedMany({
       isOptional: true,
       description:
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description:
+        'Provider-specific options that are passed through to the provider.',
+    },
+    {
+      name: 'maxParallelCalls',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of concurrent requests to the provider. Default: Infinity.',
     },
     {
       name: 'experimental_telemetry',
@@ -129,7 +142,7 @@ const { embeddings } = await embedMany({
   content={[
     {
       name: 'values',
-      type: 'Array<VALUE>',
+      type: 'Array<string>',
       description: 'The values that were embedded.',
     },
     {
@@ -150,15 +163,15 @@ const { embeddings } = await embedMany({
               type: 'number',
               description: 'The total number of input tokens.',
             },
-            {
-              name: 'body',
-              type: 'unknown',
-              isOptional: true,
-              description: 'The response body.',
-            },
           ],
         },
       ],
+    },
+    {
+      name: 'warnings',
+      type: 'Warning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
     },
     {
       name: 'providerMetadata',
@@ -166,6 +179,13 @@ const { embeddings } = await embedMany({
       isOptional: true,
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
+      name: 'responses',
+      type: 'Array<{ headers?: Record<string, string>; body?: unknown } | undefined>',
+      isOptional: true,
+      description:
+        'Optional raw response data from each chunk request. There may be multiple responses if the request was split into multiple chunks.',
     },
   ]}
 />

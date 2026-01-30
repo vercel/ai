@@ -31,61 +31,66 @@ const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
 
 export interface XaiProvider extends ProviderV3 {
   /**
-Creates an Xai chat model for text generation.
+   * Creates an Xai chat model for text generation.
    */
   (modelId: XaiChatModelId): LanguageModelV3;
 
   /**
-Creates an Xai language model for text generation.
+   * Creates an Xai language model for text generation.
    */
   languageModel(modelId: XaiChatModelId): LanguageModelV3;
 
   /**
-Creates an Xai chat model for text generation.
+   * Creates an Xai chat model for text generation.
    */
   chat: (modelId: XaiChatModelId) => LanguageModelV3;
 
   /**
-Creates an Xai responses model for agentic tool calling.
+   * Creates an Xai responses model for agentic tool calling.
    */
   responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
 
   /**
-Creates an Xai image model for image generation.
+   * Creates an Xai image model for image generation.
    */
   image(modelId: XaiImageModelId): ImageModelV3;
 
   /**
-Creates an Xai image model for image generation.
+   * Creates an Xai image model for image generation.
    */
   imageModel(modelId: XaiImageModelId): ImageModelV3;
 
   /**
-Server-side agentic tools for use with the responses API.
+   * Server-side agentic tools for use with the responses API.
    */
   tools: typeof xaiTools;
+
+  /**
+   * @deprecated Use `embeddingModel` instead.
+   */
+  textEmbeddingModel(modelId: string): never;
 }
 
 export interface XaiProviderSettings {
   /**
-Base URL for the xAI API calls.
-     */
+   * Base URL for the xAI API calls.
+   */
   baseURL?: string;
 
   /**
-API key for authenticating requests.
+   * API key for authenticating requests.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
+   * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-  */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
@@ -146,6 +151,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;
   provider.image = createImageModel;
   provider.tools = xaiTools;

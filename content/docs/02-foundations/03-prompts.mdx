@@ -153,7 +153,7 @@ const messages: ModelMessage[] = [
       {
         type: 'image',
         image:
-          'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+          'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         // Sets image detail configuration for image part:
         providerOptions: {
           openai: { imageDetail: 'low' },
@@ -168,7 +168,7 @@ const messages: ModelMessage[] = [
   AI SDK UI hooks like [`useChat`](/docs/reference/ai-sdk-ui/use-chat) return
   arrays of `UIMessage` objects, which do not support provider options. We
   recommend using the
-  [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-core-messages)
+  [`convertToModelMessages`](/docs/reference/ai-sdk-ui/convert-to-model-messages)
   function to convert `UIMessage` objects to
   [`ModelMessage`](/docs/reference/ai-sdk-core/model-message) objects before
   applying or appending message(s) or message parts with `providerOptions`.
@@ -268,7 +268,7 @@ const result = await generateText({
         {
           type: 'image',
           image:
-            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+            'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/comic-cat.png?raw=true',
         },
       ],
     },
@@ -540,14 +540,10 @@ const result = await generateText({
 
 #### Multi-modal Tool Results
 
-<Note type="warning">
-  Multi-part tool results are experimental and only supported by Anthropic.
-</Note>
-
 Tool results can be multi-part and multi-modal, e.g. a text and an image.
-You can use the `experimental_content` property on tool parts to specify multi-part tool results.
+You can use `output: { type: 'content', value: [...] }` to specify multi-part tool results.
 
-```ts highlight="24-46"
+```ts highlight="14-27"
 const result = await generateText({
   model: __MODEL__,
   messages: [
@@ -582,10 +578,10 @@ const result = await generateText({
             value: [
               {
                 type: 'text',
-                text: 'Here is an image of the nutrition data for the cheese:',
+                text: 'Here is the nutrition data for the cheese:',
               },
               {
-                type: 'media',
+                type: 'image-data',
                 data: fs
                   .readFileSync('./data/roquefort-nutrition-data.png')
                   .toString('base64'),
