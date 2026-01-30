@@ -499,7 +499,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 const tools = {
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
-    async execute({ command, path, old_str, new_str }) {
+    async execute({ command, path, old_str, new_str, insert_text }) {
       // ...
     },
   }),
@@ -523,7 +523,8 @@ Parameters:
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
