@@ -1,5 +1,12 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.32
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 7aadb9b: fix(openai-compatible): include reasoning_content in assistant messages for multi-turn tool calls
+
 ## 1.0.31
 
 ### Patch Changes
