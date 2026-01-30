@@ -1142,24 +1142,6 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 .nullish(),
             })
             .nullish(),
-          context_management: z
-            .object({
-              applied_edits: z.array(
-                z.union([
-                  z.object({
-                    type: z.literal('clear_tool_uses_20250919'),
-                    cleared_tool_uses: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                  z.object({
-                    type: z.literal('clear_thinking_20251015'),
-                    cleared_thinking_turns: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                ]),
-              ),
-            })
-            .nullish(),
         }),
         usage: z.looseObject({
           input_tokens: z.number().nullish(),
@@ -1167,6 +1149,24 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
         }),
+        context_management: z
+          .object({
+            applied_edits: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+              ]),
+            ),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('message_stop'),
