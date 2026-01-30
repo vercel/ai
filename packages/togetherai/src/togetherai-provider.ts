@@ -27,48 +27,48 @@ import { VERSION } from './version';
 
 export interface TogetherAIProviderSettings {
   /**
-TogetherAI API key.
-*/
+   * TogetherAI API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface TogetherAIProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   chatModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   languageModel(modelId: TogetherAIChatModelId): LanguageModelV3;
 
   /**
-Creates a completion model for text generation.
-*/
+   * Creates a completion model for text generation.
+   */
   completionModel(modelId: TogetherAICompletionModelId): LanguageModelV3;
 
   /**
-Creates a text embedding model for text generation.
-*/
+   * Creates a text embedding model for text generation.
+   */
   embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -77,13 +77,13 @@ Creates a text embedding model for text generation.
   textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * Creates a model for image generation.
+   */
   image(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * Creates a model for image generation.
+   */
   imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
 
   /**

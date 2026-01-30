@@ -66,6 +66,20 @@ const { embeddings } = await embedMany({
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      isOptional: true,
+      description:
+        'Provider-specific options that are passed through to the provider.',
+    },
+    {
+      name: 'maxParallelCalls',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of concurrent requests to the provider. Default: Infinity.',
+    },
+    {
       name: 'experimental_telemetry',
       type: 'TelemetrySettings',
       isOptional: true,
@@ -165,6 +179,13 @@ const { embeddings } = await embedMany({
       isOptional: true,
       description:
         'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
+    },
+    {
+      name: 'responses',
+      type: 'Array<{ headers?: Record<string, string>; body?: unknown } | undefined>',
+      isOptional: true,
+      description:
+        'Optional raw response data from each chunk request. There may be multiple responses if the request was split into multiple chunks.',
     },
   ]}
 />

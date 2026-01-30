@@ -1,10 +1,10 @@
 import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
 
 /**
-Extracts provider-specific metadata from API responses.
-Used to standardize metadata handling across different LLM providers while allowing
-provider-specific metadata to be captured.
-*/
+ * Extracts provider-specific metadata from API responses.
+ * Used to standardize metadata handling across different LLM providers while allowing
+ * provider-specific metadata to be captured.
+ */
 export type MetadataExtractor = {
   /**
    * Extracts provider metadata from a complete, non-streaming response.

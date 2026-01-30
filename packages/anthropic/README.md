@@ -10,6 +10,14 @@ The Anthropic provider is available in the `@ai-sdk/anthropic` module. You can i
 npm i @ai-sdk/anthropic
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `anthropic` from `@ai-sdk/anthropic`:

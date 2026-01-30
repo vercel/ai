@@ -1,5 +1,32 @@
 # @ai-sdk/revai
 
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 2.0.14
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 2.0.13
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 2.0.11
 
 ### Patch Changes

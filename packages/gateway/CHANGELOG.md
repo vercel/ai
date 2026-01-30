@@ -1,5 +1,44 @@
 # @ai-sdk/gateway
 
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.28
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.27
+
+### Patch Changes
+
+- 0acff64: feat (provider/gateway): add parallel search tool
+
+## 3.0.26
+
+### Patch Changes
+
+- a8be296: chore(provider/gateway): update gateway model settings files
+
+## 3.0.25
+
+### Patch Changes
+
+- 15a78c7: chore(provider/gateway): update gateway model settings files
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 3.0.23
 
 ### Patch Changes

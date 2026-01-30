@@ -6,7 +6,7 @@ import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
- * Extract an XML-tagged reasoning section from the generated text and exposes it
+ * Extracts an XML-tagged reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
  * @param tagName - The name of the XML tag to extract reasoning from.

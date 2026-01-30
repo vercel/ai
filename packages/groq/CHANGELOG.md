@@ -1,5 +1,32 @@
 # @ai-sdk/groq
 
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.17
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 3.0.15
 
 ### Patch Changes

@@ -1029,3 +1029,67 @@ The following provider options are available:
 | `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+## Speech Models
+
+You can create models that call the Azure OpenAI speech API using the `.speech()` factory method.
+
+The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`).
+
+```ts
+const model = azure.speech('your-tts-deployment-name');
+```
+
+### Example
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('your-tts-deployment-name'),
+  text: 'Hello, world!',
+  voice: 'alloy', // OpenAI voice ID
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument:
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('your-tts-deployment-name'),
+  text: 'Hello, world!',
+  voice: 'alloy',
+  providerOptions: {
+    openai: {
+      speed: 1.2,
+    },
+  },
+});
+```
+
+The following provider options are available:
+
+- **instructions** _string_
+  Control the voice of your generated audio with additional instructions e.g. "Speak in a slow and steady tone".
+  Does not work with `tts-1` or `tts-1-hd`.
+  Optional.
+
+- **speed** _number_
+  The speed of the generated audio.
+  Select a value from 0.25 to 4.0.
+  Defaults to 1.0.
+  Optional.
+
+### Model Capabilities
+
+Azure OpenAI supports TTS models through deployments. The capabilities depend on which model version your deployment is using:
+
+| Model Version     | Instructions        |
+| ----------------- | ------------------- |
+| `tts-1`           | <Cross size={18} /> |
+| `tts-1-hd`        | <Cross size={18} /> |
+| `gpt-4o-mini-tts` | <Check size={18} /> |

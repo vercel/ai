@@ -1,5 +1,87 @@
 # ai
 
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
+## 6.0.59
+
+### Patch Changes
+
+- Updated dependencies [0acff64]
+  - @ai-sdk/gateway@3.0.27
+
+## 6.0.58
+
+### Patch Changes
+
+- Updated dependencies [a8be296]
+  - @ai-sdk/gateway@3.0.26
+
+## 6.0.57
+
+### Patch Changes
+
+- 65865d8: Fix handling of error results in deferrable tools
+
+## 6.0.56
+
+### Patch Changes
+
+- Updated dependencies [15a78c7]
+  - @ai-sdk/gateway@3.0.25
+
+## 6.0.55
+
+### Patch Changes
+
+- 43a74df: chore(ai): add skill to README
+
+## 6.0.54
+
+### Patch Changes
+
+- 2f8ac87: docs(ai): fix incorrect and outdated jsdoc
+
+## 6.0.53
+
+### Patch Changes
+
+- 7ee3f10: chore: updated docs
+
+## 6.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/gateway@3.0.24
+
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
 ## 6.0.50
 
 ### Patch Changes

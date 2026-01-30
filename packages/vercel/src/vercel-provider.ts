@@ -15,33 +15,33 @@ import { VERSION } from './version';
 
 export interface VercelProviderSettings {
   /**
-Vercel API key.
-*/
+   * Vercel API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface VercelProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: VercelChatModelId): LanguageModelV3;
 
   /**
-Creates a language model for text generation.
-*/
+   * Creates a language model for text generation.
+   */
   languageModel(modelId: VercelChatModelId): LanguageModelV3;
 
   /**
