@@ -1,5 +1,20 @@
 # @ai-sdk/xai
 
+## 3.0.44
+
+### Patch Changes
+
+- 9a2427e: chore(xai): remove duplicate schema definition
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
 ## 3.0.42
 
 ### Patch Changes
