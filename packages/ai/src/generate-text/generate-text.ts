@@ -70,6 +70,7 @@ import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
+import { ToolErrorHandler } from './tool-error-handler';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -189,6 +190,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
+  experimental_toolErrorHandler,
   _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
@@ -297,6 +299,18 @@ export async function generateText<
     experimental_context?: unknown;
 
     /**
+     * Handler that determines what to do when a tool execution fails.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @returns 'retry' to re-throw the error (default behavior)
+     * @returns 'send-to-llm' to convert error to tool result sent to the model
+     *
+     * @default undefined
+     */
+    experimental_toolErrorHandler?: ToolErrorHandler<NoInfer<TOOLS>>;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -389,6 +403,7 @@ export async function generateText<
             messages: initialMessages,
             abortSignal: mergedAbortSignal,
             experimental_context,
+            experimental_toolErrorHandler,
           });
 
           const toolContent: Array<any> = [];
@@ -738,6 +753,7 @@ export async function generateText<
                   messages: stepInputMessages,
                   abortSignal: mergedAbortSignal,
                   experimental_context,
+                  experimental_toolErrorHandler,
                 })),
               );
             }
@@ -933,6 +949,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  experimental_toolErrorHandler,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
@@ -941,6 +958,7 @@ async function executeTools<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  experimental_toolErrorHandler?: ToolErrorHandler<TOOLS>;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>
@@ -952,6 +970,7 @@ async function executeTools<TOOLS extends ToolSet>({
         messages,
         abortSignal,
         experimental_context,
+        experimental_toolErrorHandler,
       }),
     ),
   );

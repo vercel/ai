@@ -8,6 +8,7 @@ import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import { ToolErrorHandler } from '../generate-text/tool-error-handler';
 import { ToolSet } from '../generate-text/tool-set';
 import { CallSettings } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
@@ -114,6 +115,18 @@ export type ToolLoopAgentSettings<
    * @default undefined
    */
   experimental_context?: unknown;
+
+  /**
+   * Handler that determines what to do when a tool execution fails.
+   *
+   * Experimental (can break in patch releases).
+   *
+   * @returns 'retry' to re-throw the error (default behavior)
+   * @returns 'send-to-llm' to convert error to tool result sent to the model
+   *
+   * @default undefined
+   */
+  experimental_toolErrorHandler?: ToolErrorHandler<NoInfer<TOOLS>>;
 
   /**
    * Custom download function to use for URLs.

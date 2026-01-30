@@ -40,6 +40,7 @@ export type {
   TypedToolCall,
 } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair-function';
+export type { ToolErrorHandler } from './tool-error-handler';
 export type {
   DynamicToolError,
   StaticToolError,

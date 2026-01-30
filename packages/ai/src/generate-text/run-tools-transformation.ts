@@ -19,6 +19,7 @@ import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
+import { ToolErrorHandler } from './tool-error-handler';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
@@ -115,6 +116,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal,
   repairToolCall,
   experimental_context,
+  experimental_toolErrorHandler,
   generateId,
 }: {
   tools: TOOLS | undefined;
@@ -126,6 +128,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   experimental_context: unknown;
+  experimental_toolErrorHandler?: ToolErrorHandler<TOOLS>;
   generateId: IdGenerator;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {
   // tool results stream
@@ -323,6 +326,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
                 messages,
                 abortSignal,
                 experimental_context,
+                experimental_toolErrorHandler,
                 onPreliminaryToolResult: result => {
                   toolResultsStreamController!.enqueue(result);
                 },

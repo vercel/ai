@@ -106,6 +106,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { ToolErrorHandler } from './tool-error-handler';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
@@ -277,6 +278,8 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
+  experimental_context,
+  experimental_toolErrorHandler,
   includeRawChunks = false,
   onChunk,
   onError = ({ error }) => {
@@ -285,7 +288,6 @@ export function streamText<
   onFinish,
   onAbort,
   onStepFinish,
-  experimental_context,
   _internal: { now = originalNow, generateId = originalGenerateId } = {},
   ...settings
 }: CallSettings &
@@ -430,6 +432,18 @@ export function streamText<
     experimental_context?: unknown;
 
     /**
+     * Handler that determines what to do when a tool execution fails.
+     *
+     * Experimental (can break in patch releases).
+     *
+     * @returns 'retry' to re-throw the error (default behavior)
+     * @returns 'send-to-llm' to convert error to tool result sent to the model
+     *
+     * @default undefined
+     */
+    experimental_toolErrorHandler?: ToolErrorHandler<NoInfer<TOOLS>>;
+
+    /**
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
@@ -481,6 +495,7 @@ export function streamText<
     now,
     generateId,
     experimental_context,
+    experimental_toolErrorHandler,
     download,
   });
 }
@@ -651,6 +666,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     onAbort,
     onStepFinish,
     experimental_context,
+    experimental_toolErrorHandler,
     download,
   }: {
     model: LanguageModelV3;
@@ -679,6 +695,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
     now: () => number;
     generateId: () => string;
     experimental_context: unknown;
+    experimental_toolErrorHandler?: ToolErrorHandler<TOOLS>;
     download: DownloadFunction | undefined;
 
     // callbacks:
@@ -1445,6 +1462,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               repairToolCall,
               abortSignal,
               experimental_context,
+              experimental_toolErrorHandler,
               generateId,
             });
 

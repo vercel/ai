@@ -9,6 +9,7 @@ import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { ToolErrorHandler } from './tool-error-handler';
 
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
@@ -18,6 +19,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   experimental_context,
+  experimental_toolErrorHandler,
   onPreliminaryToolResult,
 }: {
   toolCall: TypedToolCall<TOOLS>;
@@ -27,6 +29,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
+  experimental_toolErrorHandler?: ToolErrorHandler<TOOLS>;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
 }): Promise<ToolOutput<TOOLS> | undefined> {
   const { toolName, toolCallId, input } = toolCall;
@@ -82,6 +85,32 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         }
       } catch (error) {
         recordErrorOnSpan(span, error);
+
+        // Check if we should send error to LLM
+        const handler = experimental_toolErrorHandler;
+        const action = handler
+          ? await handler({ toolCallId, toolName, input, error, messages })
+          : 'retry';
+
+        if (action === 'send-to-llm') {
+          // Convert to tool-result (sent to LLM)
+          return {
+            type: 'tool-result',
+            toolCallId,
+            toolName,
+            input,
+            output: {
+              type: 'error',
+              message: error instanceof Error ? error.message : String(error),
+            },
+            dynamic: tool.type === 'dynamic',
+            ...(toolCall.providerMetadata != null
+              ? { providerMetadata: toolCall.providerMetadata }
+              : {}),
+          } as TypedToolResult<TOOLS>;
+        }
+
+        // Default: return tool-error (stops execution)
         return {
           type: 'tool-error',
           toolCallId,
