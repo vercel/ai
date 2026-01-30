@@ -1,5 +1,6 @@
 import { codeExecution } from './tool/code-execution';
 import { enterpriseWebSearch } from './tool/enterprise-web-search';
+import { externalApi } from './tool/external-api';
 import { fileSearch } from './tool/file-search';
 import { googleMaps } from './tool/google-maps';
 import { googleSearch } from './tool/google-search';
@@ -68,4 +69,12 @@ export const googleTools = {
    * Must have name "vertex_rag_store".
    */
   vertexRagStore,
+
+  /**
+   * Creates an External API grounding tool that gives the model access to your search API.
+   * Must have name "external_api".
+   *
+   * @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+   */
+  externalApi,
 };

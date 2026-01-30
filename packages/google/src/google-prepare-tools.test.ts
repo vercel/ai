@@ -472,3 +472,93 @@ it('should add warnings for google maps on unsupported models', () => {
     ]
   `);
 });
+
+it('should handle external api tool (simple search)', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.external_api',
+        name: 'external_api',
+        args: {
+          apiSpec: 'SIMPLE_SEARCH',
+          endpoint: 'https://example.com/v0/search',
+          apiAuth: {
+            apiKeyConfig: {
+              apiKeyString: 'SECRET_STRING',
+            },
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      retrieval: {
+        externalApi: {
+          apiSpec: 'SIMPLE_SEARCH',
+          endpoint: 'https://example.com/v0/search',
+          apiAuth: {
+            apiKeyConfig: {
+              apiKeyString: 'SECRET_STRING',
+            },
+          },
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should handle external api tool (elasticsearch)', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.external_api',
+        name: 'external_api',
+        args: {
+          apiSpec: 'ELASTIC_SEARCH',
+          endpoint: 'https://example.com/elasticsearch',
+          apiAuth: {
+            apiKeyConfig: {
+              apiKeyString: 'ApiKey {ELASTIC_SEARCH_API_KEY}',
+            },
+          },
+          elasticSearchParams: {
+            index: 'some_index',
+            searchTemplate: 'some_search_template_name',
+            numHits: 10,
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-2.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      retrieval: {
+        externalApi: {
+          apiSpec: 'ELASTIC_SEARCH',
+          endpoint: 'https://example.com/elasticsearch',
+          apiAuth: {
+            apiKeyConfig: {
+              apiKeyString: 'ApiKey {ELASTIC_SEARCH_API_KEY}',
+            },
+          },
+          elasticSearchParams: {
+            index: 'some_index',
+            searchTemplate: 'some_search_template_name',
+            numHits: 10,
+          },
+        },
+      },
+    },
+  ]);
+  expect(result.toolConfig).toBeUndefined();
+  expect(result.toolWarnings).toEqual([]);
+});
