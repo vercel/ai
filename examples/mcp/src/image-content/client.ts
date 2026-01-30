@@ -1,5 +1,5 @@
 import { createMCPClient } from '@ai-sdk/mcp';
-import { Experimental_StdioMCPTransport as StdioTransport } from '@ai-sdk/mcp/mcp-stdio';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 async function main() {
   console.log('Starting MCP server via stdio...\n');
 
-  const transport = new StdioTransport({
+  const transport = new StdioClientTransport({
     command: 'node',
     args: [join(__dirname, 'server.mjs')],
   });

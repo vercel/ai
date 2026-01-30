@@ -21,9 +21,6 @@
     },
     {
       "path": "../../packages/openai"
-    },
-    {
-      "path": "../../packages/mcp"
     }
   ]
 }
