@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.32
+
+### Patch Changes
+
+- c33343b: fix(anthropic): add missing param in tool schema
+
 ## 3.0.31
 
 ### Patch Changes
