@@ -109,6 +109,8 @@ export async function doStreamStep(
   tools?: LanguageModelV2CallOptions['tools'],
   options?: DoStreamStepOptions,
 ) {
+  'use step';
+
   // Model can be LanguageModelV2 (AI SDK v5) or LanguageModelV3 (AI SDK v6)
   // Both have compatible doStream interfaces for our use case
   let model: CompatibleLanguageModel | undefined;

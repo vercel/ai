@@ -1002,6 +1002,8 @@ function filterTools<TTools extends ToolSet>(
 }
 
 async function writeFinishChunk(writable: WritableStream<UIMessageChunk>) {
+  'use step';
+
   const writer = writable.getWriter();
   try {
     await writer.write({ type: 'finish' });
@@ -1015,6 +1017,8 @@ async function closeStream(
   preventClose?: boolean,
   sendFinish?: boolean,
 ) {
+  'use step';
+
   // Conditionally write the finish chunk
   if (sendFinish) {
     await writeFinishChunk(writable);
@@ -1028,6 +1032,7 @@ async function closeStream(
 
 /**
  * Convert UIMessageChunks to UIMessage[] using the AI SDK's readUIMessageStream.
+ * This must be a step function because it performs stream operations.
  *
  * @param chunks - The collected UIMessageChunks to convert
  * @returns The accumulated UIMessage array
@@ -1035,6 +1040,8 @@ async function closeStream(
 async function convertChunksToUIMessages(
   chunks: UIMessageChunk[],
 ): Promise<UIMessage[]> {
+  'use step';
+
   if (chunks.length === 0) {
     return [];
   }
