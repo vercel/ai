@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 2.0.58
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 008ce2f: fix `input_tokens` compatibility
+
 ## 2.0.57
 
 ### Patch Changes
