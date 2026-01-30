@@ -90,6 +90,83 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should convert MCP image content to AI SDK format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-image',
+              description: 'Returns an image',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-image': {
+              content: [
+                {
+                  type: 'image',
+                  data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+                  mimeType: 'image/png',
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-image'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "mimeType": "image/png",
+            "type": "image",
+          },
+        ],
+        "isError": false,
+      }
+    `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            {
+              type: 'image',
+              data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+              mimeType: 'image/png',
+            },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "mediaType": "image/png",
+            "type": "image-data",
+          },
+        ],
+      }
+    `);
+  });
+
   it('should expose _meta field from MCP tool definition', async () => {
     createMockTransport.mockImplementation(
       () =>
