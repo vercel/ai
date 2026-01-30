@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.16
+
+### Patch Changes
+
+- 8d022fd: fix(mcp): support image returns in tool results
+
 ## 1.0.15
 
 ### Patch Changes

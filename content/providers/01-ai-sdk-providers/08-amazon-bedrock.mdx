@@ -539,6 +539,7 @@ const textEditorTool = bedrock.tools.textEditor_20250429({
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range,
   }) => {
@@ -558,6 +559,7 @@ const textEditorTool = bedrock.tools.textEditor_20241022({
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range,
   }) => {
@@ -573,7 +575,8 @@ Parameters:
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
@@ -1414,7 +1417,7 @@ const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
   tools: {
     str_replace_editor: bedrockAnthropic.tools.textEditor_20241022({
-      execute: async ({ command, path, old_str, new_str }) => {
+      execute: async ({ command, path, old_str, new_str, insert_text }) => {
         // Implement your text editing logic here
         return 'File updated successfully';
       },
