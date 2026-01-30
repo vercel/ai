@@ -1,5 +1,22 @@
 # @ai-sdk/huggingface
 
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 1.0.25
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
 ## 1.0.24
 
 ### Patch Changes

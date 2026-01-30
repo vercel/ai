@@ -95,6 +95,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV3 {
             input_type: bedrockOptions.inputType ?? 'search_query',
             texts: [values[0]],
             truncate: bedrockOptions.truncate,
+            output_dimension: bedrockOptions.outputDimension,
           }
         : {
             inputText: values[0],

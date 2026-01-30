@@ -80,6 +80,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
         texts: values,
         input_type: embeddingOptions?.inputType ?? 'search_query',
         truncate: embeddingOptions?.truncate,
+        output_dimension: embeddingOptions?.outputDimension,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

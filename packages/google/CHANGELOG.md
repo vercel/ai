@@ -1,5 +1,19 @@
 # @ai-sdk/google
 
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.17
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 3.0.16
 
 ### Patch Changes

@@ -1,5 +1,28 @@
 # ai
 
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
 ## 6.0.59
 
 ### Patch Changes

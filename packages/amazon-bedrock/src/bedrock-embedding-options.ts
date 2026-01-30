@@ -17,7 +17,7 @@ export const bedrockEmbeddingProviderOptions = z.object({
     .optional(),
 
   /**
-   * Flag indicating whether or not to normalize the output embeddings. Defaults to true
+   * Flag indicating whether or not to normalize the output embeddings. Defaults to true.
    * Only supported in amazon.titan-embed-text-v2:0.
    */
   normalize: z.boolean().optional(),
@@ -63,4 +63,12 @@ export const bedrockEmbeddingProviderOptions = z.object({
    * Supported in Cohere and Nova embedding models. Defaults to 'END' for Nova models.
    */
   truncate: z.enum(['NONE', 'START', 'END']).optional(),
+
+  /**
+   * The number of dimensions the resulting output embeddings should have (defaults to 1536).
+   * Only supported in cohere.embed-v4:0 and newer Cohere embedding models.
+   */
+  outputDimension: z
+    .union([z.literal(256), z.literal(512), z.literal(1024), z.literal(1536)])
+    .optional(),
 });

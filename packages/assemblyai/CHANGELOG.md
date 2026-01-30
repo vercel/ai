@@ -1,5 +1,19 @@
 # @ai-sdk/assemblyai
 
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 2.0.14
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 2.0.13
 
 ### Patch Changes
