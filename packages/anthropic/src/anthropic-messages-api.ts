@@ -362,6 +362,15 @@ export type AnthropicTool =
     }
   | {
       name: string;
+      type: 'computer_20251124';
+      display_width_px: number;
+      display_height_px: number;
+      display_number: number;
+      enable_zoom?: boolean;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      name: string;
       type:
         | 'text_editor_20250124'
         | 'text_editor_20241022'
@@ -1156,6 +1165,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
         }),
       }),
       z.object({

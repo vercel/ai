@@ -482,7 +482,7 @@ To see `generateObject` in action, check out the [additional examples](#more-exa
     },
     {
       name: 'experimental_repairText',
-      type: '(options: RepairTextOptions) => Promise<string>',
+      type: '(options: RepairTextOptions) => Promise<string | null>',
       isOptional: true,
       description:
         'A function that attempts to repair the raw output of the model to enable JSON parsing. Should return the repaired text or null if the text cannot be repaired.',

@@ -1,5 +1,44 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 2.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 2.0.22
+
+### Patch Changes
+
+- 9d056e6: chore(openai-compatible): add docs to package
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 2.0.20
+
+### Patch Changes
+
+- a1a0175: fix(openai-compatible): include reasoning_content in assistant messages for multi-turn tool calls
+
+## 2.0.19
+
+### Patch Changes
+
+- 6900916: fix(openai-compat): add metadata extractor to provider settings
+
 ## 2.0.18
 
 ### Patch Changes

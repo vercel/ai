@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 4.0.11
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
 ## 4.0.9
 
 ### Patch Changes

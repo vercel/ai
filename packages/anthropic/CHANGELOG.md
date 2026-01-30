@@ -1,5 +1,56 @@
 # @ai-sdk/anthropic
 
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.30
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.29
+
+### Patch Changes
+
+- b9d105f: Fix cache usage reporting for anthropic stream
+
+## 3.0.28
+
+### Patch Changes
+
+- 2445da4: fix(provider/anthropic): populate outputTokens.text field in usage
+
+## 3.0.27
+
+### Patch Changes
+
+- 572ea12: feat(anthropic): allow custom/dynamic key for providerOptions
+
+## 3.0.26
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.25
+
+### Patch Changes
+
+- 0bb9bcd: feat(provider/anthropic): add computer_20251124 tool for claude opus 4.5
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
 ## 3.0.23
 
 ### Patch Changes

@@ -5,8 +5,10 @@
  * It doesn't process or return the data from the stream; it simply ensures
  * that the entire stream is read.
  *
- * @param {ReadableStream} stream - The ReadableStream to be consumed.
- * @returns {Promise<void>} A promise that resolves when the stream is fully consumed.
+ * @param options - The options for consuming the stream.
+ * @param options.stream - The ReadableStream to be consumed.
+ * @param options.onError - Optional callback to handle errors that occur during consumption.
+ * @returns A promise that resolves when the stream is fully consumed.
  */
 export async function consumeStream({
   stream,

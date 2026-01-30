@@ -1,5 +1,75 @@
 # @ai-sdk/xai
 
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 3.0.42
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
+## 3.0.40
+
+### Patch Changes
+
+- 05f3f36: Add native `file_search` server-side tool support:
+
+  - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
+  - Add `include` option supporting `file_search_call.results` to get inline search results
+  - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`
+  - Fix invalid `grok-4-1` model type (only `grok-4-1-fast-reasoning` and `grok-4-1-fast-non-reasoning` exist)
+  - Fix `toolChoice` for server-side tools: xAI API doesn't support forcing specific server-side tools, now emits warning instead of sending invalid request
+
+## 3.0.39
+
+### Patch Changes
+
+- 58800f3: fix(xai): emit reasoning-start before reasoning-end for encrypted reasoning
+
+## 3.0.38
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai-compatible@2.0.21
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [a1a0175]
+  - @ai-sdk/openai-compatible@2.0.20
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [6900916]
+  - @ai-sdk/openai-compatible@2.0.19
+
 ## 3.0.34
 
 ### Patch Changes

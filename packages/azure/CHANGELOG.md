@@ -1,5 +1,43 @@
 # @ai-sdk/azure
 
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai@3.0.23
+
+## 3.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai@3.0.22
+
+## 3.0.22
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [2c70b90]
+  - @ai-sdk/openai@3.0.21
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai@3.0.20
+
 ## 3.0.19
 
 ### Patch Changes
