@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.64
+
+### Patch Changes
+
+- ce9daa3: Fixed 'reasoning part reasoning-0 not found' error by ensuring 'reasoning-start' event is emitted for empty thinking blocks (eg. <think></think>)
+
 ## 6.0.63
 
 ### Patch Changes
