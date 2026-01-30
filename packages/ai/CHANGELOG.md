@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
 ## 6.0.61
 
 ### Patch Changes

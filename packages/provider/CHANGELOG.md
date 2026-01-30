@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.6
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+
 ## 3.0.5
 
 ### Patch Changes
