@@ -348,7 +348,21 @@ console.log('Response:', result.object);
 
 In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
 
-Cache usage information is returned in the `providerMetadata` object`. See examples below.
+You can also specify a TTL (time-to-live) for cache points using the `ttl` property. Supported values are `'5m'` (5 minutes, default) and `'1h'` (1 hour). The 1-hour TTL is only supported by Claude Opus 4.5, Claude Haiku 4.5, and Claude Sonnet 4.5.
+
+```ts
+providerOptions: {
+  bedrock: { cachePoint: { type: 'default', ttl: '1h' } },
+}
+```
+
+<Note>
+  When using multiple cache points with different TTLs, cache entries with
+  longer TTL must appear before shorter TTLs (i.e., 1-hour cache entries must
+  come before 5-minute cache entries).
+</Note>
+
+Cache usage information is returned in the `providerMetadata` object. See examples below.
 
 <Note>
   Cache points have model-specific token minimums and limits. For example,
