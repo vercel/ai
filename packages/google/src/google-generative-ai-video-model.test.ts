@@ -360,11 +360,9 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
       const result = await model.doGenerate({ ...defaultOptions });
 
-      expect(result.response).toStrictEqual({
-        timestamp: testDate,
-        modelId: 'veo-3.1-generate-preview',
-        headers: undefined,
-      });
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-3.1-generate-preview');
+      expect(result.response.headers).toBeDefined();
     });
   });
 

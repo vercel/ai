@@ -372,11 +372,9 @@ describe('GoogleVertexVideoModel', () => {
 
       const result = await model.doGenerate({ ...defaultOptions });
 
-      expect(result.response).toStrictEqual({
-        timestamp: testDate,
-        modelId: 'veo-2.0-generate-001',
-        headers: undefined,
-      });
+      expect(result.response.timestamp).toStrictEqual(testDate);
+      expect(result.response.modelId).toBe('veo-2.0-generate-001');
+      expect(result.response.headers).toBeDefined();
     });
   });
 

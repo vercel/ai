@@ -259,6 +259,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
 
     const startTime = Date.now();
     let finalOperation = operation;
+    let responseHeaders: Record<string, string> | undefined;
 
     while (!finalOperation.done) {
       // Check timeout
@@ -284,24 +285,26 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       // Vertex AI video requires POST to fetchPredictOperation with operationName in body
       const pollUrl = `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`;
 
-      const { value: statusOperation } = await postJsonToApi({
-        url: pollUrl,
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-          options.headers,
-        ),
-        body: {
-          operationName,
-        },
-        successfulResponseHandler: createJsonResponseHandler(
-          vertexOperationSchema,
-        ),
-        failedResponseHandler: googleVertexFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
+      const { value: statusOperation, responseHeaders: pollHeaders } =
+        await postJsonToApi({
+          url: pollUrl,
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
+          body: {
+            operationName,
+          },
+          successfulResponseHandler: createJsonResponseHandler(
+            vertexOperationSchema,
+          ),
+          failedResponseHandler: googleVertexFailedResponseHandler,
+          abortSignal: options.abortSignal,
+          fetch: this.config.fetch,
+        });
 
       finalOperation = statusOperation;
+      responseHeaders = pollHeaders;
     }
 
     // Check for error
@@ -371,7 +374,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: undefined,
+        headers: responseHeaders,
       },
       providerMetadata,
     };

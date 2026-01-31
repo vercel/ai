@@ -260,6 +260,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
 
     const startTime = Date.now();
     let finalOperation = operation;
+    let responseHeaders: Record<string, string> | undefined;
 
     while (!finalOperation.done) {
       // Check timeout
@@ -284,21 +285,23 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       // Poll operation status - use the full operation name
       const statusUrl = `${this.config.baseURL}/${operationName}`;
 
-      const { value: statusOperation } = await getFromApi({
-        url: statusUrl,
-        headers: combineHeaders(
-          await resolve(this.config.headers),
-          options.headers,
-        ),
-        successfulResponseHandler: createJsonResponseHandler(
-          googleOperationSchema,
-        ),
-        failedResponseHandler: googleFailedResponseHandler,
-        abortSignal: options.abortSignal,
-        fetch: this.config.fetch,
-      });
+      const { value: statusOperation, responseHeaders: pollHeaders } =
+        await getFromApi({
+          url: statusUrl,
+          headers: combineHeaders(
+            await resolve(this.config.headers),
+            options.headers,
+          ),
+          successfulResponseHandler: createJsonResponseHandler(
+            googleOperationSchema,
+          ),
+          failedResponseHandler: googleFailedResponseHandler,
+          abortSignal: options.abortSignal,
+          fetch: this.config.fetch,
+        });
 
       finalOperation = statusOperation;
+      responseHeaders = pollHeaders;
     }
 
     // Check for error
@@ -368,7 +371,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: undefined,
+        headers: responseHeaders,
       },
       providerMetadata,
     };
