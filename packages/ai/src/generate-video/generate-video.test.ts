@@ -892,5 +892,66 @@ describe('experimental_generateVideo', () => {
       expect(capturedArgs.files?.length).toBe(1);
       expect(capturedArgs.files?.[0].type).toBe('file');
     });
+
+    it('should detect image mediaType from raw base64 string via signature detection', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
+      // Raw base64 PNG (not a data URL) - must be detected via signature
+      const pngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          files: [pngBase64],
+        },
+      });
+
+      expect(capturedArgs.files).toStrictEqual([
+        {
+          type: 'file',
+          data: convertBase64ToUint8Array(pngBase64),
+          mediaType: 'image/png',
+        },
+      ]);
+    });
+
+    it('should detect image mediaType from Uint8Array via signature detection', async () => {
+      let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
+      // JPEG magic bytes: 0xFF 0xD8 0xFF
+      const jpegBytes = new Uint8Array([
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46,
+      ]);
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async args => {
+            capturedArgs = args;
+            return createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            });
+          },
+        }),
+        prompt: {
+          files: [jpegBytes],
+        },
+      });
+
+      expect(capturedArgs.files?.length).toBe(1);
+      expect(capturedArgs.files?.[0].type).toBe('file');
+      if (capturedArgs.files?.[0].type === 'file') {
+        expect(capturedArgs.files[0].mediaType).toBe('image/jpeg');
+      }
+    });
   });
 });

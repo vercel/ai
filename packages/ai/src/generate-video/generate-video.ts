@@ -22,6 +22,7 @@ import type { VideoModelResponseMetadata } from '../types/video-model-response-m
 import type { Warning } from '../types/warning';
 import {
   detectMediaType,
+  imageMediaTypeSignatures,
   videoMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { download } from '../util/download/download';
@@ -339,7 +340,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         const mediaType =
           detectMediaType({
             data: bytes,
-            signatures: videoMediaTypeSignatures,
+            signatures: imageMediaTypeSignatures,
           }) ?? 'image/png';
 
         files.push({
@@ -352,7 +353,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
       const mediaType =
         detectMediaType({
           data: dataContent,
-          signatures: videoMediaTypeSignatures,
+          signatures: imageMediaTypeSignatures,
         }) ?? 'image/png';
 
       files.push({
