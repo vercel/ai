@@ -25,6 +25,7 @@ export {
 
 // directory exports
 export * from './agent';
+export * from './count-tokens';
 export * from './embed';
 export * from './error';
 export * from './generate-image';

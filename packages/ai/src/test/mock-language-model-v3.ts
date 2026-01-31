@@ -1,6 +1,8 @@
 import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamResult,
 } from '@ai-sdk/provider';
@@ -16,9 +18,11 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
 
   doGenerate: LanguageModelV3['doGenerate'];
   doStream: LanguageModelV3['doStream'];
+  doCountTokens?: LanguageModelV3['doCountTokens'];
 
   doGenerateCalls: LanguageModelV3CallOptions[] = [];
   doStreamCalls: LanguageModelV3CallOptions[] = [];
+  doCountTokensCalls: LanguageModelV3CountTokensOptions[] = [];
 
   constructor({
     provider = 'mock-provider',
@@ -26,6 +30,7 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
     supportedUrls = {},
     doGenerate = notImplemented,
     doStream = notImplemented,
+    doCountTokens,
   }: {
     provider?: LanguageModelV3['provider'];
     modelId?: LanguageModelV3['modelId'];
@@ -40,6 +45,9 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
       | LanguageModelV3['doStream']
       | LanguageModelV3StreamResult
       | LanguageModelV3StreamResult[];
+    doCountTokens?:
+      | LanguageModelV3['doCountTokens']
+      | LanguageModelV3CountTokensResult;
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
@@ -65,6 +73,17 @@ export class MockLanguageModelV3 implements LanguageModelV3 {
         return doStream;
       }
     };
+    if (doCountTokens !== undefined) {
+      this.doCountTokens = async options => {
+        this.doCountTokensCalls.push(options);
+
+        if (typeof doCountTokens === 'function') {
+          return doCountTokens(options);
+        } else {
+          return doCountTokens;
+        }
+      };
+    }
     this._supportedUrls =
       typeof supportedUrls === 'function'
         ? supportedUrls
