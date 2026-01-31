@@ -1,5 +1,4 @@
 import type { JSONArray, JSONObject } from '../../json-value';
-import type { VideoModelV3Usage } from './video-model-v3-usage';
 import type { VideoModelV3CallOptions } from './video-model-v3-call-options';
 import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
 
@@ -44,103 +43,98 @@ export type VideoModelV3VideoData =
     };
 
 /**
-Video generation model specification version 3.
+ * Video generation model specification version 3.
  */
 export type VideoModelV3 = {
   /**
-The video model must specify which video model interface
-version it implements. This will allow us to evolve the video
-model interface and retain backwards compatibility. The different
-implementation versions can be handled as a discriminated union
-on our side.
+   * The video model must specify which video model interface
+   * version it implements. This will allow us to evolve the video
+   * model interface and retain backwards compatibility. The different
+   * implementation versions can be handled as a discriminated union
+   * on our side.
    */
   readonly specificationVersion: 'v3';
 
   /**
-Name of the provider for logging purposes.
+   * Name of the provider for logging purposes.
    */
   readonly provider: string;
 
   /**
-Provider-specific model ID for logging purposes.
+   * Provider-specific model ID for logging purposes.
    */
   readonly modelId: string;
 
   /**
-Limit of how many videos can be generated in a single API call.
-Can be set to a number for a fixed limit, to undefined to use
-the global limit, or a function that returns a number or undefined,
-optionally as a promise.
-
-Most video models only support generating 1 video at a time due to
-computational cost. Default is typically 1.
+   * Limit of how many videos can be generated in a single API call.
+   * Can be set to a number for a fixed limit, to undefined to use
+   * the global limit, or a function that returns a number or undefined,
+   * optionally as a promise.
+   *
+   * Most video models only support generating 1 video at a time due to
+   * computational cost. Default is typically 1.
    */
   readonly maxVideosPerCall: number | undefined | GetMaxVideosPerCallFunction;
 
   /**
-Generates an array of videos.
+   * Generates an array of videos.
    */
   doGenerate(options: VideoModelV3CallOptions): PromiseLike<{
     /**
-Generated videos as URLs, base64 strings, or binary data.
-
-Most providers return URLs to video files (MP4, WebM) due to large file sizes.
-Use the discriminated union to indicate the type of video data being returned.
+     * Generated videos as URLs, base64 strings, or binary data.
+     *
+     * Most providers return URLs to video files (MP4, WebM) due to large file sizes.
+     * Use the discriminated union to indicate the type of video data being returned.
      */
     videos: Array<VideoModelV3VideoData>;
 
     /**
-Warnings for the call, e.g. unsupported features.
+     * Warnings for the call, e.g. unsupported features.
      */
     warnings: Array<SharedV3Warning>;
 
     /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-
-The outer record is keyed by the provider name, and the inner
-record is provider-specific metadata. It always includes a
-`videos` key with video-specific metadata.
-
-```ts
-{
-  "fal": {
-    "videos": [{
-      "duration": 5.0,
-      "fps": 24,
-      "width": 1280,
-      "height": 720
-    }]
-  }
-}
-```
-      */
+     * Additional provider-specific metadata. They are passed through
+     * from the provider to the AI SDK and enable provider-specific
+     * results that can be fully encapsulated in the provider.
+     *
+     * The outer record is keyed by the provider name, and the inner
+     * record is provider-specific metadata. It always includes a
+     * `videos` key with video-specific metadata.
+     *
+     * ```ts
+     * {
+     *   "fal": {
+     *     "videos": [{
+     *       "duration": 5.0,
+     *       "fps": 24,
+     *       "width": 1280,
+     *       "height": 720
+     *     }]
+     *   }
+     * }
+     * ```
+     */
     providerMetadata?: VideoModelV3ProviderMetadata;
 
     /**
-Response information for telemetry and debugging purposes.
+     * Response information for telemetry and debugging purposes.
      */
     response: {
       /**
-Timestamp for the start of the generated response.
-      */
+       * Timestamp for the start of the generated response.
+       */
       timestamp: Date;
 
       /**
-The ID of the response model that was used to generate the response.
-      */
+       * The ID of the response model that was used to generate the response.
+       */
       modelId: string;
 
       /**
-Response headers.
-      */
+       * Response headers.
+       */
       headers: Record<string, string> | undefined;
     };
-
-    /**
-Optional token usage for the video generation call (if the provider reports it).
-     */
-    usage?: VideoModelV3Usage;
   }>;
 };

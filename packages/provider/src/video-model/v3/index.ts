@@ -5,4 +5,3 @@ export type {
 } from './video-model-v3';
 export type { VideoModelV3CallOptions as Experimental_VideoModelV3CallOptions } from './video-model-v3-call-options';
 export type { VideoModelV3File as Experimental_VideoModelV3File } from './video-model-v3-file';
-export type { VideoModelV3Usage as Experimental_VideoModelV3Usage } from './video-model-v3-usage';
