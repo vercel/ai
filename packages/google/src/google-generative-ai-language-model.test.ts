@@ -4676,3 +4676,109 @@ describe('GEMMA Model System Instruction Fix', () => {
     `);
   });
 });
+
+describe('doCountTokens', () => {
+  const TEST_URL_COUNT_TOKENS =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:countTokens';
+
+  const server = createTestServer({
+    [TEST_URL_COUNT_TOKENS]: {},
+  });
+
+  const prepareCountTokensResponse = ({
+    totalTokens,
+    cachedContentTokenCount,
+    headers,
+  }: {
+    totalTokens: number;
+    cachedContentTokenCount?: number;
+    headers?: Record<string, string>;
+  }) => {
+    server.urls[TEST_URL_COUNT_TOKENS].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        totalTokens,
+        ...(cachedContentTokenCount != null && { cachedContentTokenCount }),
+      },
+    };
+  };
+
+  it('should return token count for simple prompt', async () => {
+    prepareCountTokensResponse({ totalTokens: 15 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.tokens).toBe(15);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should include tools in request body', async () => {
+    prepareCountTokensResponse({ totalTokens: 30 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    expect(result.tokens).toBe(30);
+
+    const lastCall = server.calls[server.calls.length - 1];
+    const requestBody = await lastCall.requestBodyJson;
+    expect(requestBody.tools).toBeDefined();
+    expect(requestBody.tools[0].functionDeclarations[0].name).toBe(
+      'get_weather',
+    );
+  });
+
+  it('should include provider metadata with cached token count', async () => {
+    prepareCountTokensResponse({
+      totalTokens: 20,
+      cachedContentTokenCount: 5,
+    });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.tokens).toBe(20);
+    expect(result.providerMetadata?.google?.cachedContentTokenCount).toBe(5);
+  });
+
+  it('should include response headers', async () => {
+    prepareCountTokensResponse({
+      totalTokens: 10,
+      headers: { 'x-request-id': 'test-123' },
+    });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.tokens).toBe(10);
+    expect(result.response?.headers?.['x-request-id']).toBe('test-123');
+  });
+
+  it('should include request and response body', async () => {
+    prepareCountTokensResponse({ totalTokens: 12 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.request?.body).toBeDefined();
+    expect(result.response?.body).toEqual({ totalTokens: 12 });
+  });
+});
