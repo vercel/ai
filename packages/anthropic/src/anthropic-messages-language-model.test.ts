@@ -29,12 +29,14 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
 const provider = createAnthropic({
   apiKey: 'test-api-key',
   generateId: mockId({ prefix: 'id' }),
+  baseURL: 'https://api.anthropic.com/v1',
 });
 const model = provider('claude-3-haiku-20240307');
 
 describe('AnthropicMessagesLanguageModel', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
+    'https://api.anthropic.com/v1/messages/count_tokens': {},
   });
 
   function prepareJsonFixtureResponse(filename: string) {
@@ -1358,6 +1360,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
         headers: {
           'Custom-Provider-Header': 'provider-header-value',
         },
@@ -1807,6 +1810,7 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should process text citation responses', async () => {
       const mockProvider = createAnthropic({
         apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
         generateId: () => 'test-text-citation-id',
       });
       const modelWithMockId = mockProvider('claude-3-haiku-20240307');
@@ -2548,6 +2552,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const provider = createAnthropic({
           apiKey: 'test-api-key',
+          baseURL: 'https://api.anthropic.com/v1',
           generateId: mockId(),
         });
         const model = provider('claude-3-5-sonnet-latest');
@@ -5491,6 +5496,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
         headers: {
           'Custom-Provider-Header': 'provider-header-value',
         },
@@ -5530,6 +5536,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
+        baseURL: 'https://api.anthropic.com/v1',
         headers: { 'anthropic-beta': 'CONFIG-beta1,config-beta2' },
       });
 
@@ -6120,6 +6127,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         // Create a model with predictable ID generation for testing
         const mockProvider = createAnthropic({
           apiKey: 'test-api-key',
+          baseURL: 'https://api.anthropic.com/v1',
           generateId: mockId(),
         });
         const modelWithMockId = mockProvider('claude-3-haiku-20240307');
@@ -7494,6 +7502,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         apiKey: 'test-api-key',
         name: providerName,
         generateId: mockId({ prefix: 'id' }),
+        baseURL: 'https://api.anthropic.com/v1',
       })('claude-3-haiku-20240307');
     }
 
@@ -7743,6 +7752,104 @@ describe('AnthropicMessagesLanguageModel', () => {
           tool_choice: { type: 'auto', disable_parallel_tool_use: true },
         });
       });
+    });
+  });
+
+  describe('doCountTokens', () => {
+    function prepareCountTokensResponse({
+      inputTokens,
+      headers,
+    }: {
+      inputTokens: number;
+      headers?: Record<string, string>;
+    }) {
+      server.urls[
+        'https://api.anthropic.com/v1/messages/count_tokens'
+      ].response = {
+        type: 'json-value',
+        headers,
+        body: { input_tokens: inputTokens },
+      };
+    }
+
+    it('should return token count for simple prompt', async () => {
+      prepareCountTokensResponse({ inputTokens: 10 });
+
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBe(10);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should include tools in request body', async () => {
+      prepareCountTokensResponse({ inputTokens: 25 });
+
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+            },
+          },
+        ],
+      });
+
+      expect(result.tokens).toBe(25);
+
+      const lastCall = server.calls[server.calls.length - 1];
+      const requestBody = await lastCall.requestBodyJson;
+      expect(requestBody.tools).toHaveLength(1);
+      expect(requestBody.tools[0].name).toBe('get_weather');
+    });
+
+    it('should include response headers and body', async () => {
+      prepareCountTokensResponse({
+        inputTokens: 15,
+        headers: { 'x-request-id': 'test-123' },
+      });
+
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.tokens).toBe(15);
+      expect(result.response?.headers?.['x-request-id']).toBe('test-123');
+      expect(result.response?.body).toEqual({ input_tokens: 15 });
+    });
+
+    it('should include request body', async () => {
+      prepareCountTokensResponse({ inputTokens: 10 });
+
+      const result = await model.doCountTokens!({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.request?.body).toBeDefined();
+      expect((result.request?.body as any).model).toBe(
+        'claude-3-haiku-20240307',
+      );
+      expect((result.request?.body as any).messages).toBeDefined();
+    });
+
+    it('should handle API errors', async () => {
+      server.urls[
+        'https://api.anthropic.com/v1/messages/count_tokens'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: '{"type":"error","error":{"type":"invalid_request_error","message":"Invalid request"}}',
+      };
+
+      await expect(
+        model.doCountTokens!({ prompt: TEST_PROMPT }),
+      ).rejects.toThrow(APICallError);
     });
   });
 });
