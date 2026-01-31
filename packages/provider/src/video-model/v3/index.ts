@@ -1,6 +1,5 @@
 export type {
   VideoModelV3 as Experimental_VideoModelV3,
-  VideoModelV3ProviderMetadata as Experimental_VideoModelV3ProviderMetadata,
   VideoModelV3VideoData as Experimental_VideoModelV3VideoData,
 } from './video-model-v3';
 export type { VideoModelV3CallOptions as Experimental_VideoModelV3CallOptions } from './video-model-v3-call-options';

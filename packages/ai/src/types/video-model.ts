@@ -1,6 +1,6 @@
 import {
   Experimental_VideoModelV3,
-  Experimental_VideoModelV3ProviderMetadata,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 
 /**
@@ -8,5 +8,4 @@ import {
  */
 export type VideoModel = string | Experimental_VideoModelV3;
 
-export type VideoModelProviderMetadata =
-  Experimental_VideoModelV3ProviderMetadata;
+export type VideoModelProviderMetadata = SharedV3ProviderMetadata;

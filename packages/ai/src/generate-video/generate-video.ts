@@ -2,8 +2,7 @@ import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV3CallOptions,
   Experimental_VideoModelV3File,
-  Experimental_VideoModelV3ProviderMetadata,
-  JSONArray,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -189,7 +188,7 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: Experimental_VideoModelV3ProviderMetadata = {};
+  const providerMetadata: SharedV3ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
@@ -255,55 +254,30 @@ export async function experimental_generateVideo({
     });
 
     if (result.providerMetadata != null) {
-      for (const [providerName, metadata] of Object.entries<{
-        videos: JSONArray;
-      }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          // Special handling for gateway provider - merge metadata from actual provider
-          const gatewayMetadata = metadata as {
-            provider: string;
-            videos: JSONArray;
+      for (const [providerName, metadata] of Object.entries(
+        result.providerMetadata,
+      )) {
+        const existingMetadata = providerMetadata[providerName];
+        if (existingMetadata != null && typeof existingMetadata === 'object') {
+          providerMetadata[providerName] = {
+            ...existingMetadata,
+            ...metadata,
           };
-          const targetProvider = gatewayMetadata.provider;
-          const currentEntry = providerMetadata[targetProvider];
 
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[targetProvider] = {
-              ...(currentEntry as object),
-              ...metadata,
-              videos: [
-                ...(currentEntry.videos ?? []),
-                ...gatewayMetadata.videos,
-              ],
-            } as Experimental_VideoModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[targetProvider] =
-              metadata as Experimental_VideoModelV3ProviderMetadata[string];
-          }
-
-          // Remove the gateway-specific 'provider' field from the merged metadata
-          const mergedEntry = providerMetadata[targetProvider] as {
-            provider?: string;
-          };
-          if ('provider' in mergedEntry) {
-            delete mergedEntry.provider;
+          // Merge videos arrays if both exist
+          if (
+            'videos' in existingMetadata &&
+            Array.isArray(existingMetadata.videos) &&
+            'videos' in metadata &&
+            Array.isArray(metadata.videos)
+          ) {
+            (providerMetadata[providerName] as { videos: unknown[] }).videos = [
+              ...existingMetadata.videos,
+              ...metadata.videos,
+            ];
           }
         } else {
-          const currentEntry = providerMetadata[providerName];
-
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-              videos: [
-                ...(currentEntry.videos ?? []),
-                ...(metadata.videos ?? []),
-              ],
-            } as Experimental_VideoModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as Experimental_VideoModelV3ProviderMetadata[string];
-          }
+          providerMetadata[providerName] = metadata;
         }
       }
     }

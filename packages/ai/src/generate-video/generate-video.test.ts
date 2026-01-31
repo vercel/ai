@@ -1,7 +1,7 @@
 import type {
   Experimental_VideoModelV3,
-  Experimental_VideoModelV3ProviderMetadata,
   Experimental_VideoModelV3VideoData,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import {
@@ -36,7 +36,7 @@ const createMockResponse = (options: {
   warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
-  providerMetadata?: Experimental_VideoModelV3ProviderMetadata;
+  providerMetadata?: SharedV3ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   videos: options.videos,
@@ -630,7 +630,6 @@ describe('experimental_generateVideo', () => {
                   ],
                   providerMetadata: {
                     gateway: {
-                      provider: 'fal',
                       videos: [{ seed: 111 }],
                       routing: { provider: 'fal' },
                     },
@@ -643,7 +642,6 @@ describe('experimental_generateVideo', () => {
                   ],
                   providerMetadata: {
                     gateway: {
-                      provider: 'fal',
                       videos: [{ seed: 222 }],
                       cost: '0.08',
                     },
@@ -658,14 +656,12 @@ describe('experimental_generateVideo', () => {
         n: 2,
       });
 
-      // Gateway provider should be merged to the target provider (fal)
-      // and should not have the 'provider' field in the result
-      expect(result.providerMetadata.fal).toStrictEqual({
+      // Gateway metadata is merged like any other provider
+      expect(result.providerMetadata.gateway).toStrictEqual({
         videos: [{ seed: 111 }, { seed: 222 }],
         routing: { provider: 'fal' },
         cost: '0.08',
       });
-      expect(result.providerMetadata.fal).not.toHaveProperty('provider');
     });
 
     it('should handle undefined providerMetadata', async () => {

@@ -1,13 +1,6 @@
-import type { JSONArray, JSONObject } from '../../json-value';
 import type { VideoModelV3CallOptions } from './video-model-v3-call-options';
+import type { SharedV3ProviderMetadata } from '../../shared/v3/shared-v3-provider-metadata';
 import type { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
-
-export type VideoModelV3ProviderMetadata = Record<
-  string,
-  {
-    videos: JSONArray;
-  } & JSONObject
->;
 
 type GetMaxVideosPerCallFunction = (options: {
   modelId: string;
@@ -99,8 +92,7 @@ export type VideoModelV3 = {
      * results that can be fully encapsulated in the provider.
      *
      * The outer record is keyed by the provider name, and the inner
-     * record is provider-specific metadata. It always includes a
-     * `videos` key with video-specific metadata.
+     * record is provider-specific metadata.
      *
      * ```ts
      * {
@@ -115,7 +107,7 @@ export type VideoModelV3 = {
      * }
      * ```
      */
-    providerMetadata?: VideoModelV3ProviderMetadata;
+    providerMetadata?: SharedV3ProviderMetadata;
 
     /**
      * Response information for telemetry and debugging purposes.

@@ -1,7 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
-  type Experimental_VideoModelV3ProviderMetadata,
+  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -331,7 +331,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Build provider metadata
-    const providerMetadata: Experimental_VideoModelV3ProviderMetadata = {
+    const providerMetadata: SharedV3ProviderMetadata = {
       replicate: {
         videos: [
           {
