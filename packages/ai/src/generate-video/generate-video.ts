@@ -38,23 +38,23 @@ export type GenerateVideoPrompt =
     };
 
 /**
-Generates videos using a video model.
-
-@param model - The video model to use.
-@param prompt - The prompt that should be used to generate the video.
-@param n - Number of videos to generate. Default: 1.
-@param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
-@param resolution - Resolution of the videos to generate. Must have the format `{width}x{height}`.
-@param duration - Duration of the video in seconds.
-@param fps - Frames per second for the video.
-@param seed - Seed for the video generation.
-@param providerOptions - Additional provider-specific options that are passed through to the provider
-as body parameters.
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@returns A result object that contains the generated videos.
+ * Generates videos using a video model.
+ *
+ * @param model - The video model to use.
+ * @param prompt - The prompt that should be used to generate the video.
+ * @param n - Number of videos to generate. Default: 1.
+ * @param aspectRatio - Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
+ * @param resolution - Resolution of the videos to generate. Must have the format `{width}x{height}`.
+ * @param duration - Duration of the video in seconds.
+ * @param fps - Frames per second for the video.
+ * @param seed - Seed for the video generation.
+ * @param providerOptions - Additional provider-specific options that are passed through to the provider
+ * as body parameters.
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @returns A result object that contains the generated videos.
  */
 export async function experimental_generateVideo({
   model: modelArg,
@@ -72,82 +72,72 @@ export async function experimental_generateVideo({
   headers,
 }: {
   /**
-The video model to use.
-     */
+   * The video model to use.
+   */
   model: VideoModel;
 
   /**
-The prompt that should be used to generate the video.
+   * The prompt that should be used to generate the video.
    */
   prompt: GenerateVideoPrompt;
 
   /**
-Number of videos to generate.
+   * Number of videos to generate.
    */
   n?: number;
 
   /**
-Maximum number of videos per API call. If not provided, the model's default will be used.
+   * Maximum number of videos per API call. If not provided, the model's default will be used.
    */
   maxVideosPerCall?: number;
 
   /**
-Aspect ratio of the videos to generate. Must have the format `{width}:{height}`. If not provided, the default aspect ratio will be used.
+   * Aspect ratio of the videos to generate. Must have the format `{width}:{height}`.
    */
   aspectRatio?: `${number}:${number}`;
 
   /**
-Resolution of the videos to generate. Must have the format `{width}x{height}`. If not provided, the default resolution will be used.
+   * Resolution of the videos to generate. Must have the format `{width}x{height}`.
    */
   resolution?: `${number}x${number}`;
 
   /**
-Duration of the video in seconds. If not provided, the default duration will be used.
+   * Duration of the video in seconds.
    */
   duration?: number;
 
   /**
-Frames per second for the video. If not provided, the default FPS will be used.
+   * Frames per second for the video.
    */
   fps?: number;
 
   /**
-Seed for the video generation. If not provided, a random seed will be used.
+   * Seed for the video generation.
    */
   seed?: number;
 
   /**
-Additional provider-specific options that are passed through to the provider
-as body parameters.
-
-The outer record is keyed by the provider name, and the inner
-record is keyed by the provider-specific metadata key.
-```ts
-{
-  "fal": {
-    "loop": true
-  }
-}
-```
-     */
+   * Additional provider-specific options that are passed through to the provider
+   * as body parameters.
+   */
   providerOptions?: ProviderOptions;
 
   /**
-Maximum number of retries per video model call. Set to 0 to disable retries.
-
-@default 2
+   * Maximum number of retries per video model call. Set to 0 to disable retries.
+   *
+   * @default 2
    */
   maxRetries?: number;
 
   /**
-Abort signal.
- */
+   * Abort signal.
+   */
   abortSignal?: AbortSignal;
 
   /**
-Additional headers to include in the request.
-Only applicable for HTTP-based providers.
- */
+   * Additional headers to include in the request.
+   * Only applicable for HTTP-based providers.
+   */
   headers?: Record<string, string>;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
@@ -387,7 +377,6 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
         });
       }
     } else if (dataContent instanceof Uint8Array) {
-      // Uint8Array
       const mediaType =
         detectMediaType({
           data: dataContent,
