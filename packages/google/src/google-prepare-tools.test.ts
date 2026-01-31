@@ -562,3 +562,35 @@ it('should handle external api tool (elasticsearch)', () => {
   expect(result.toolConfig).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
+
+it('should add warnings for external api on unsupported models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'provider',
+        id: 'google.external_api',
+        name: 'google_maps',
+        args: {
+          apiSpec: 'SIMPLE_SEARCH',
+          endpoint: 'https://example.com/v0/search',
+          apiAuth: {
+            apiKeyConfig: {
+              apiKeyString: 'SECRET_STRING',
+            },
+          },
+        },
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+  expect(result.tools).toBeUndefined();
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "The External API tool is not supported with other Gemini models than Gemini 2.",
+        "feature": "provider-defined tool google.external_api",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
