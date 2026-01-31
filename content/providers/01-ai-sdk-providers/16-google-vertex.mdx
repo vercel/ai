@@ -449,6 +449,72 @@ const result = await generateText({
 
 The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context.
 
+### External API Grounding
+
+With [External API Grounding](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-your-search-api),
+the model can ground its responses using your own external search API. This enables you to connect Gemini to your existing search infrastructure,
+whether it's a custom simple search API or an Elasticsearch deployment.
+
+#### Simple Search API
+
+Use a custom search API that implements the [Simple Search spec](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-your-search-api#simple-search):
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: {
+    retrieval: vertex.tools.externalApi({
+      apiSpec: 'SIMPLE_SEARCH',
+      endpoint: 'https://your-search-api.example.com/search',
+      authConfig: {
+        apiKeyConfig: {
+          name: 'x-api-key',
+          apiKeyString: 'your-api-key',
+          httpElementLocation: 'HTTP_IN_HEADER',
+        },
+      },
+    }),
+  },
+  prompt: 'What are the key points from https://example.com/article?',
+});
+```
+
+#### Elasticsearch
+
+Connect to your Elasticsearch deployment for grounding:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  tools: {
+    retrieval: vertex.tools.externalApi({
+      apiSpec: 'ELASTIC_SEARCH',
+      endpoint: 'https://your-elasticsearch.example.com',
+      authConfig: {
+        httpBasicAuthConfig: {
+          credentialSecret:
+            'projects/my-project/secrets/elastic-credentials/versions/latest',
+        },
+      },
+      params: {
+        elasticSearchParams: {
+          index: 'my-index',
+          searchTemplate: 'my-search-template',
+          numHits: 10,
+        },
+      },
+    }),
+  },
+  prompt: 'What are the key points from https://example.com/article?',
+});
+```
+
 #### Reasoning (Thinking Tokens)
 
 Google Vertex AI, through its support for Gemini models, can also emit "thinking" tokens, representing the model's reasoning process. The AI SDK exposes these as reasoning information.
