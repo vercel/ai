@@ -3,6 +3,8 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3FunctionTool,
   LanguageModelV3GenerateResult,
@@ -865,11 +867,82 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     };
   }
 
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const warnings: SharedV3Warning[] = [];
+
+    // Convert prompt to Bedrock format
+    const isMistral = isMistralModel(this.modelId);
+    const { system, messages } = await convertToBedrockChatMessages(
+      options.prompt,
+      isMistral,
+    );
+
+    // Prepare tools if provided
+    const { toolConfig, toolWarnings } = await prepareTools({
+      tools: options.tools,
+      toolChoice: undefined,
+      modelId: this.modelId,
+    });
+    warnings.push(...toolWarnings);
+
+    // Build the converse input for count-tokens
+    const converseInput: {
+      messages: typeof messages;
+      system?: typeof system;
+      toolConfig?: typeof toolConfig;
+    } = {
+      messages,
+    };
+
+    if (system && system.length > 0) {
+      converseInput.system = system;
+    }
+
+    if (toolConfig.tools && toolConfig.tools.length > 0) {
+      converseInput.toolConfig = toolConfig;
+    }
+
+    const body = {
+      input: {
+        converse: converseInput,
+      },
+    };
+
+    const url = `${this.getUrl(this.modelId)}/count-tokens`;
+    const { value: response, responseHeaders } = await postJsonToApi({
+      url,
+      headers: await this.getHeaders({ headers: options.headers }),
+      body,
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: BedrockErrorSchema,
+        errorToMessage: error => `${error.message ?? 'Unknown error'}`,
+      }),
+      successfulResponseHandler: createJsonResponseHandler(
+        BedrockCountTokensResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      tokens: response.inputTokens,
+      warnings,
+      request: { body },
+      response: { headers: responseHeaders, body: response },
+    };
+  }
+
   private getUrl(modelId: string) {
     const encodedModelId = encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
+
+const BedrockCountTokensResponseSchema = z.object({
+  inputTokens: z.number(),
+});
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
