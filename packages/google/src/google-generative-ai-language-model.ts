@@ -2,6 +2,8 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3CountTokensOptions,
+  LanguageModelV3CountTokensResult,
   LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3Source,
@@ -671,6 +673,73 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       request: { body: args },
     };
   }
+
+  async doCountTokens(
+    options: LanguageModelV3CountTokensOptions,
+  ): Promise<LanguageModelV3CountTokensResult> {
+    const warnings: SharedV3Warning[] = [];
+
+    const providerOptionsName = this.config.provider.includes('vertex')
+      ? 'vertex'
+      : 'google';
+    const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+
+    // Reuse existing prompt conversion
+    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
+      options.prompt,
+      {
+        isGemmaModel,
+        providerOptionsName,
+      },
+    );
+
+    // Prepare tools
+    const { tools: googleTools, toolConfig: googleToolConfig } = prepareTools({
+      tools: options.tools,
+      toolChoice: undefined,
+      modelId: this.modelId,
+    });
+
+    const body = {
+      contents,
+      systemInstruction: isGemmaModel ? undefined : systemInstruction,
+      tools: googleTools,
+      toolConfig: googleToolConfig,
+    };
+
+    const mergedHeaders = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
+
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: `${this.config.baseURL}/${getModelPath(this.modelId)}:countTokens`,
+      headers: mergedHeaders,
+      body,
+      failedResponseHandler: googleFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        countTokensResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      tokens: response.totalTokens,
+      warnings,
+      request: { body },
+      response: { headers: responseHeaders, body: rawResponse },
+      providerMetadata: {
+        [providerOptionsName]: {
+          cachedContentTokenCount: response.cachedContentTokenCount ?? null,
+        },
+      },
+    };
+  }
 }
 
 function getToolCallsFromParts({
@@ -1009,3 +1078,13 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+// Response schema for countTokens endpoint
+const countTokensResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      totalTokens: z.number(),
+      cachedContentTokenCount: z.number().nullish(),
+    }),
+  ),
+);
