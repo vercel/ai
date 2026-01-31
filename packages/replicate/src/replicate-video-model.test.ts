@@ -274,7 +274,88 @@ describe('ReplicateVideoModel', () => {
       expect(capturedBody).toMatchObject({
         input: {
           prompt,
-          aspect_ratio: '16:9',
+          aspect_ratio: 'landscape', // 16:9 is mapped to 'landscape'
+        },
+      });
+    });
+
+    it('should map 9:16 aspect ratio to portrait', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '9:16',
+      });
+
+      expect(capturedBody).toMatchObject({
+        input: {
+          prompt,
+          aspect_ratio: 'portrait',
+        },
+      });
+    });
+
+    it('should map 1:1 aspect ratio to square', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '1:1',
+      });
+
+      expect(capturedBody).toMatchObject({
+        input: {
+          prompt,
+          aspect_ratio: 'square',
+        },
+      });
+    });
+
+    it('should pass through unmapped aspect ratios', async () => {
+      let capturedBody: unknown;
+      const model = createMockModel({
+        pollsUntilDone: 0,
+        onRequest: (url, body) => {
+          if (
+            url.includes('/predictions') &&
+            !url.includes('test-prediction')
+          ) {
+            capturedBody = body;
+          }
+        },
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '4:3',
+      });
+
+      expect(capturedBody).toMatchObject({
+        input: {
+          prompt,
+          aspect_ratio: '4:3', // Unmapped ratios pass through
         },
       });
     });

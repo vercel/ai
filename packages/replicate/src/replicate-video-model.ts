@@ -135,7 +135,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
 
     // Map SDK options to Replicate API
     if (options.aspectRatio) {
-      input.aspect_ratio = options.aspectRatio;
+      input.aspect_ratio = mapAspectRatio(options.aspectRatio);
     }
 
     if (options.resolution) {
@@ -359,6 +359,20 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       },
       providerMetadata,
     };
+  }
+}
+
+function mapAspectRatio(aspectRatio: `${number}:${number}`): string {
+  switch (aspectRatio) {
+    case '16:9':
+      return 'landscape';
+    case '9:16':
+      return 'portrait';
+    case '1:1':
+      return 'square';
+    default:
+      // Pass through for models that accept numeric ratios directly
+      return aspectRatio;
   }
 }
 
