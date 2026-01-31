@@ -8,4 +8,5 @@ export const googleVertexTools = {
   fileSearch: googleTools.fileSearch,
   codeExecution: googleTools.codeExecution,
   vertexRagStore: googleTools.vertexRagStore,
+  externalApi: googleTools.externalApi,
 };
