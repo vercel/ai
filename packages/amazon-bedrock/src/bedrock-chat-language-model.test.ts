@@ -4567,3 +4567,92 @@ describe('doGenerate', () => {
     `);
   });
 });
+
+describe('doCountTokens', () => {
+  const countTokensUrl = `${baseUrl}/model/${encodeURIComponent(
+    modelId,
+  )}/count-tokens`;
+
+  const countTokensServer = createTestServer({
+    [countTokensUrl]: {},
+  });
+
+  function prepareCountTokensResponse({
+    inputTokens,
+    headers,
+  }: {
+    inputTokens: number;
+    headers?: Record<string, string>;
+  }) {
+    countTokensServer.urls[countTokensUrl].response = {
+      type: 'json-value',
+      headers,
+      body: { inputTokens },
+    };
+  }
+
+  it('should return token count for simple prompt', async () => {
+    prepareCountTokensResponse({ inputTokens: 15 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.tokens).toBe(15);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should include tools in request body', async () => {
+    prepareCountTokensResponse({ inputTokens: 30 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
+      ],
+    });
+
+    expect(result.tokens).toBe(30);
+
+    const lastCall =
+      countTokensServer.calls[countTokensServer.calls.length - 1];
+    const requestBody = await lastCall.requestBodyJson;
+    expect(requestBody.input.converse.toolConfig).toBeDefined();
+  });
+
+  it('should include response headers and body', async () => {
+    prepareCountTokensResponse({
+      inputTokens: 20,
+      headers: { 'x-request-id': 'test-123' },
+    });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.tokens).toBe(20);
+    expect(result.response?.headers?.['x-request-id']).toBe('test-123');
+    expect(result.response?.body).toEqual({ inputTokens: 20 });
+  });
+
+  it('should include request body with converse format', async () => {
+    prepareCountTokensResponse({ inputTokens: 10 });
+
+    const result = await model.doCountTokens!({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.request?.body).toBeDefined();
+    const requestBody = result.request?.body as any;
+    expect(requestBody.input.converse).toBeDefined();
+    expect(requestBody.input.converse.messages).toBeDefined();
+  });
+});
