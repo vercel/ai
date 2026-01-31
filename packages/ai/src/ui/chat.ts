@@ -467,12 +467,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+            });
+          }
         });
       }
     });
@@ -525,12 +529,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         this.status !== 'streaming' &&
         this.status !== 'submitted' &&
-        this.sendAutomaticallyWhen?.({ messages: this.state.messages })
+        this.sendAutomaticallyWhen
       ) {
-        // no await to avoid deadlocking
-        this.makeRequest({
-          trigger: 'submit-message',
-          messageId: this.lastMessage?.id,
+        this.shouldSendAutomatically().then(shouldSend => {
+          if (shouldSend) {
+            // no await to avoid deadlocking
+            this.makeRequest({
+              trigger: 'submit-message',
+              messageId: this.lastMessage?.id,
+            });
+          }
         });
       }
     });
@@ -548,6 +556,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       this.activeResponse.abortController.abort();
     }
   };
+
+  private async shouldSendAutomatically(): Promise<boolean> {
+    if (!this.sendAutomaticallyWhen) return false;
+
+    const result = this.sendAutomaticallyWhen({
+      messages: this.state.messages,
+    });
+
+    // Check if result is a promise
+    if (result && typeof result === 'object' && 'then' in result) {
+      return await result;
+    }
+
+    return result as boolean;
+  }
 
   private async makeRequest({
     trigger,
@@ -700,10 +723,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (
-      this.sendAutomaticallyWhen?.({ messages: this.state.messages }) &&
-      !isError
-    ) {
+    if (!isError && (await this.shouldSendAutomatically())) {
       await this.makeRequest({
         trigger: 'submit-message',
         messageId: this.lastMessage?.id,

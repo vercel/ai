@@ -1981,9 +1981,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
                   : null;
 
-              if (value.delta.context_management) {
+              if (value.context_management) {
                 contextManagement = mapAnthropicResponseContextManagement(
-                  value.delta.context_management,
+                  value.context_management,
                 );
               }
 
