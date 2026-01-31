@@ -25,6 +25,7 @@ import {
   detectMediaType,
   videoMediaTypeSignatures,
 } from '../util/detect-media-type';
+import { download } from '../util/download/download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
@@ -194,25 +195,21 @@ export async function experimental_generateVideo({
     for (const videoData of result.videos) {
       switch (videoData.type) {
         case 'url': {
-          const response = await fetch(videoData.url);
-          if (!response.ok) {
-            throw new Error(
-              `Failed to download video from ${videoData.url}: ${response.status} ${response.statusText}`,
-            );
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
+          const { data, mediaType: downloadedMediaType } = await download({
+            url: new URL(videoData.url),
+          });
           const mediaType =
             videoData.mediaType ||
+            downloadedMediaType ||
             detectMediaType({
-              data: uint8Array,
+              data,
               signatures: videoMediaTypeSignatures,
             }) ||
             'video/mp4';
 
           videos.push(
             new DefaultGeneratedFile({
-              data: uint8Array,
+              data,
               mediaType,
             }),
           );

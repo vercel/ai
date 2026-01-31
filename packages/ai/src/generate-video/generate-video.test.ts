@@ -282,13 +282,11 @@ describe('experimental_generateVideo', () => {
         prompt,
       });
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        'https://example.com/video.mp4',
-      );
+      expect(global.fetch).toHaveBeenCalled();
       expect(result.videos.length).toBe(1);
     });
 
-    it('should throw error when fetch fails', async () => {
+    it('should throw DownloadError when fetch fails', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
         async () => {
           return new Response(null, { status: 404, statusText: 'Not Found' });
@@ -312,7 +310,7 @@ describe('experimental_generateVideo', () => {
           prompt,
         }),
       ).rejects.toThrow(
-        'Failed to download video from https://example.com/video.mp4: 404 Not Found',
+        'Failed to download https://example.com/video.mp4: 404 Not Found',
       );
     });
   });
