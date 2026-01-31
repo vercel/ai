@@ -536,6 +536,11 @@ describe('experimental_generateVideo', () => {
         timestamp: testDate,
         modelId: 'test-model',
         headers: testHeaders,
+        providerMetadata: {
+          testProvider: {
+            videos: [null],
+          },
+        },
       },
     ]);
   });
@@ -684,6 +689,74 @@ describe('experimental_generateVideo', () => {
       });
 
       expect(result.providerMetadata).toStrictEqual({});
+    });
+
+    it('should preserve per-call providerMetadata in responses array', async () => {
+      let callCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          maxVideosPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    testProvider: {
+                      videos: [{ seed: 111, duration: 5 }],
+                      requestId: 'req-001',
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  videos: [
+                    { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                  ],
+                  providerMetadata: {
+                    testProvider: {
+                      videos: [{ seed: 222, duration: 8 }],
+                      requestId: 'req-002',
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      // Verify per-call metadata is preserved in responses array
+      expect(result.responses).toHaveLength(2);
+      expect(result.responses[0].providerMetadata).toStrictEqual({
+        testProvider: {
+          videos: [{ seed: 111, duration: 5 }],
+          requestId: 'req-001',
+        },
+      });
+      expect(result.responses[1].providerMetadata).toStrictEqual({
+        testProvider: {
+          videos: [{ seed: 222, duration: 8 }],
+          requestId: 'req-002',
+        },
+      });
+
+      // Top-level merged metadata still works
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          videos: [
+            { seed: 111, duration: 5 },
+            { seed: 222, duration: 8 },
+          ],
+          requestId: 'req-002', // Last call wins for non-array fields
+        },
+      });
     });
   });
 

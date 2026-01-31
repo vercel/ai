@@ -251,6 +251,7 @@ export async function experimental_generateVideo({
       timestamp: result.response.timestamp,
       modelId: result.response.modelId,
       headers: result.response.headers,
+      providerMetadata: result.providerMetadata,
     });
 
     if (result.providerMetadata != null) {
