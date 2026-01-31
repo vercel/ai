@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.44
+
+### Patch Changes
+
+- 9a2427e: chore(xai): remove duplicate schema definition
+
 ## 3.0.43
 
 ### Patch Changes
