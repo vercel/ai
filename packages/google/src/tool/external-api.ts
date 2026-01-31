@@ -26,13 +26,19 @@ const externalAPIArgsBaseSchema = z.object({
   apiAuth: z
     .object({
       /**
-       * The SecretManager secret version resource name storing API key. e.g. projects/{project}/secrets/{secret}/versions/{version}
+       * The API secret.
+       * @see {@link https://docs.cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1beta1/ApiKeyConfig | ApiKeyConfig}
        */
-      apiKeySecretVersion: z.string().optional(),
-      /**
-       * The API key string.
-       */
-      apiKeyString: z.string().optional(),
+      apiKeyConfig: z.object({
+        /**
+         * The SecretManager secret version resource name storing API key. e.g. projects/{project}/secrets/{secret}/versions/{version}
+         */
+        apiKeySecretVersion: z.string().optional(),
+        /**
+         * The API key string.
+         */
+        apiKeyString: z.string().optional(),
+      }),
     })
     .optional(),
   /**

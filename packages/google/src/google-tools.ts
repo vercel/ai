@@ -74,7 +74,7 @@ export const googleTools = {
    * Creates an External API grounding tool that gives the model access to your search API.
    * Must have name "external_api".
    *
-   * @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+   * @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-your-search-api
    */
   externalApi,
 };
