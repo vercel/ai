@@ -43,8 +43,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   ): ImageModelV3;
 
   /**
-Creates a model for video generation.
- */
+   * Creates a model for video generation.
+   */
   video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
 
   /**

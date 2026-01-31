@@ -59,14 +59,11 @@ export interface FalProvider extends ProviderV3 {
 
   /**
    * Creates a model for transcription.
-
-  /**
-Creates a model for transcription.
    */
   transcription(modelId: FalTranscriptionModelId): TranscriptionModelV3;
 
-  /*
-Creates a model for video generation.
+  /**
+   * Creates a model for video generation.
    */
   video(modelId: FalVideoModelId): Experimental_VideoModelV3;
 
