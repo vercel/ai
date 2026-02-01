@@ -157,10 +157,6 @@ export const videoMediaTypeSignatures = [
     mediaType: 'video/x-msvideo' as const,
     bytesPrefix: [0x52, 0x49, 0x46, 0x46], // RIFF (AVI)
   },
-  {
-    mediaType: 'video/x-matroska' as const,
-    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3], // MKV (same as WebM)
-  },
 ] as const;
 
 const stripID3 = (data: Uint8Array | string) => {

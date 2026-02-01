@@ -87,21 +87,11 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       input.prompt = options.prompt;
     }
 
-    if (options.files != null && options.files.length > 0) {
-      const firstFile = options.files[0];
-
-      if (firstFile.type === 'url') {
-        input.image = firstFile.url;
+    if (options.image != null) {
+      if (options.image.type === 'url') {
+        input.image = options.image.url;
       } else {
-        input.image = convertImageModelFileToDataUri(firstFile);
-      }
-
-      if (options.files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'Replicate video models only support a single input image. Additional files are ignored.',
-        });
+        input.image = convertImageModelFileToDataUri(options.image);
       }
     }
 

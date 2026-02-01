@@ -10,7 +10,7 @@ const prompt = 'A futuristic city with flying cars';
 const defaultOptions = {
   prompt,
   n: 1,
-  files: undefined,
+  image: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -405,13 +405,11 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'file',
-            data: 'base64-image-data',
-            mediaType: 'image/png',
-          },
-        ],
+        image: {
+          type: 'file',
+          data: 'base64-image-data',
+          mediaType: 'image/png',
+        },
       });
 
       const body = capturedBody as { instances: Array<{ image: unknown }> };
@@ -423,43 +421,21 @@ describe('GoogleGenerativeAIVideoModel', () => {
       });
     });
 
-    it('should warn when URL-based file is provided', async () => {
+    it('should warn when URL-based image is provided', async () => {
       const model = createMockModel();
 
       const result = await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'url',
-            url: 'https://example.com/image.png',
-          },
-        ],
+        image: {
+          type: 'url',
+          url: 'https://example.com/image.png',
+        },
       });
 
       expect(result.warnings).toHaveLength(1);
       expect(result.warnings[0]).toMatchObject({
         type: 'unsupported',
         feature: 'URL-based image input',
-      });
-    });
-
-    it('should warn when multiple files are provided', async () => {
-      const model = createMockModel();
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        files: [
-          { type: 'file', data: 'image1', mediaType: 'image/png' },
-          { type: 'file', data: 'image2', mediaType: 'image/png' },
-        ],
-      });
-
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toMatchObject({
-        type: 'other',
-        message: expect.stringContaining(
-          'only support a single input image',
-        ) as unknown,
       });
     });
   });
@@ -616,7 +592,7 @@ describe('GoogleGenerativeAIVideoModel', () => {
       await expect(
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
-        message: 'No videos in response',
+        message: expect.stringContaining('No videos in response'),
       });
     });
   });

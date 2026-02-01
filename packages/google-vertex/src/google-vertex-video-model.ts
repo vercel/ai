@@ -89,10 +89,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       instance.prompt = options.prompt;
     }
 
-    if (options.files != null && options.files.length > 0) {
-      const firstFile = options.files[0];
-
-      if (firstFile.type === 'url') {
+    if (options.image != null) {
+      if (options.image.type === 'url') {
         warnings.push({
           type: 'unsupported',
           feature: 'URL-based image input',
@@ -101,21 +99,13 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         });
       } else {
         const base64Data =
-          typeof firstFile.data === 'string'
-            ? firstFile.data
-            : convertUint8ArrayToBase64(firstFile.data);
+          typeof options.image.data === 'string'
+            ? options.image.data
+            : convertUint8ArrayToBase64(options.image.data);
 
         instance.image = {
           bytesBase64Encoded: base64Data,
         };
-      }
-
-      if (options.files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'Vertex AI video models only support a single input image for the main prompt. Additional files are ignored.',
-        });
       }
     }
 

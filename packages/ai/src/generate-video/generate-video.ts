@@ -34,7 +34,7 @@ import { splitDataUrl } from '../prompt/split-data-url';
 export type GenerateVideoPrompt =
   | string
   | {
-      files: Array<DataContent>;
+      image: DataContent;
       text?: string;
     };
 
@@ -153,7 +153,7 @@ export async function experimental_generateVideo({
     abortSignal,
   });
 
-  const { prompt, files } = normalizePrompt(promptArg);
+  const { prompt, image } = normalizePrompt(promptArg);
 
   const maxVideosPerCallWithDefault =
     maxVideosPerCall ?? (await invokeModelMaxVideosPerCall(model)) ?? 1;
@@ -176,7 +176,7 @@ export async function experimental_generateVideo({
           duration,
           fps,
           seed,
-          files,
+          image,
           providerOptions: providerOptions ?? {},
           headers: headersWithUserAgent,
           abortSignal,
@@ -313,33 +313,36 @@ export async function experimental_generateVideo({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  files: Experimental_VideoModelV3File[] | undefined;
+  image: Experimental_VideoModelV3File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
       prompt: promptArg,
-      files: undefined,
+      image: undefined,
     };
   }
 
-  const files: Experimental_VideoModelV3File[] = [];
-  for (const dataContent of promptArg.files ?? []) {
+  let image: Experimental_VideoModelV3File | undefined;
+
+  if (promptArg.image != null) {
+    const dataContent = promptArg.image;
+
     if (typeof dataContent === 'string') {
       if (
         dataContent.startsWith('http://') ||
         dataContent.startsWith('https://')
       ) {
-        files.push({
+        image = {
           type: 'url',
           url: dataContent,
-        });
+        };
       } else if (dataContent.startsWith('data:')) {
         const { mediaType, base64Content } = splitDataUrl(dataContent);
-        files.push({
+        image = {
           type: 'file',
           mediaType: mediaType ?? 'image/png',
           data: convertBase64ToUint8Array(base64Content ?? ''),
-        });
+        };
       } else {
         const bytes = convertBase64ToUint8Array(dataContent);
         const mediaType =
@@ -348,11 +351,11 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
             signatures: imageMediaTypeSignatures,
           }) ?? 'image/png';
 
-        files.push({
+        image = {
           type: 'file',
           mediaType,
           data: bytes,
-        });
+        };
       }
     } else if (dataContent instanceof Uint8Array) {
       const mediaType =
@@ -361,17 +364,17 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
           signatures: imageMediaTypeSignatures,
         }) ?? 'image/png';
 
-      files.push({
+      image = {
         type: 'file',
         mediaType,
         data: dataContent,
-      });
+      };
     }
   }
 
   return {
     prompt: promptArg.text,
-    files: files.length > 0 ? files : undefined,
+    image,
   };
 }
 

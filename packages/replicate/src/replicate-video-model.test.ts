@@ -10,7 +10,7 @@ const prompt = 'A rocket launching into space';
 const defaultOptions = {
   prompt,
   n: 1,
-  files: undefined,
+  image: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -517,12 +517,10 @@ describe('ReplicateVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'url',
-            url: 'https://example.com/image.png',
-          },
-        ],
+        image: {
+          type: 'url',
+          url: 'https://example.com/image.png',
+        },
       });
 
       const body = capturedBody as { input: { image: string } };
@@ -545,37 +543,15 @@ describe('ReplicateVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'file',
-            data: 'base64-image-data',
-            mediaType: 'image/png',
-          },
-        ],
+        image: {
+          type: 'file',
+          data: 'base64-image-data',
+          mediaType: 'image/png',
+        },
       });
 
       const body = capturedBody as { input: { image: string } };
       expect(body.input.image).toBe('data:image/png;base64,base64-image-data');
-    });
-
-    it('should warn when multiple files are provided', async () => {
-      const model = createMockModel({ pollsUntilDone: 0 });
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        files: [
-          { type: 'file', data: 'image1', mediaType: 'image/png' },
-          { type: 'file', data: 'image2', mediaType: 'image/png' },
-        ],
-      });
-
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toMatchObject({
-        type: 'other',
-        message: expect.stringContaining(
-          'only support a single input image',
-        ) as unknown,
-      });
     });
   });
 

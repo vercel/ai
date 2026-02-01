@@ -71,6 +71,10 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     return this.config.provider;
   }
 
+  private get normalizedModelId(): string {
+    return this.modelId.replace(/^fal-ai\//, '').replace(/^fal\//, '');
+  }
+
   constructor(
     readonly modelId: FalVideoModelId,
     private readonly config: FalVideoModelConfig,
@@ -94,21 +98,11 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       body.prompt = options.prompt;
     }
 
-    if (options.files != null && options.files.length > 0) {
-      const firstFile = options.files[0];
-
-      if (firstFile.type === 'url') {
-        body.image_url = firstFile.url;
+    if (options.image != null) {
+      if (options.image.type === 'url') {
+        body.image_url = options.image.url;
       } else {
-        body.image_url = convertImageModelFileToDataUri(firstFile);
-      }
-
-      if (options.files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'FAL video models only support a single input image. Additional files are ignored.',
-        });
+        body.image_url = convertImageModelFileToDataUri(options.image);
       }
     }
 
@@ -161,7 +155,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
 
     const { value: queueResponse } = await postJsonToApi({
       url: this.config.url({
-        path: `https://queue.fal.run/fal-ai/${this.modelId}`,
+        path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
@@ -173,11 +167,11 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    const requestId = queueResponse.request_id;
-    if (!requestId) {
+    const responseUrl = queueResponse.response_url;
+    if (!responseUrl) {
       throw new AISDKError({
         name: 'FAL_VIDEO_GENERATION_ERROR',
-        message: 'No request ID returned from queue endpoint',
+        message: 'No response URL returned from queue endpoint',
       });
     }
 
@@ -192,7 +186,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         const { value: statusResponse, responseHeaders: statusHeaders } =
           await getFromApi({
             url: this.config.url({
-              path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${requestId}`,
+              path: responseUrl,
               modelId: this.modelId,
             }),
             headers: combineHeaders(this.config.headers(), options.headers),
@@ -303,6 +297,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
 
 const falJobResponseSchema = z.object({
   request_id: z.string().nullish(),
+  response_url: z.string().nullish(),
 });
 
 const falVideoResponseSchema = z.object({

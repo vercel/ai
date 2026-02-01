@@ -49,13 +49,10 @@ export type VideoModelV3CallOptions = {
   seed: number | undefined;
 
   /**
-   * Array of images or video frames for video editing or image-to-video generation.
-   * Used for:
-   * - Image-to-video: Single image as starting frame
-   * - Video editing: Multiple frames or reference images
-   * - Animation: Key frames for interpolation
+   * Input image for image-to-video generation.
+   * The image serves as the starting frame that the model will animate.
    */
-  files: VideoModelV3File[] | undefined;
+  image: VideoModelV3File | undefined;
 
   /**
    * Additional provider-specific options that are passed through to the provider

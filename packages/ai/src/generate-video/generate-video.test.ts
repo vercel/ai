@@ -112,7 +112,7 @@ describe('experimental_generateVideo', () => {
     expect(capturedArgs).toStrictEqual({
       n: 1,
       prompt,
-      files: undefined,
+      image: undefined,
       aspectRatio: '16:9',
       resolution: '1920x1080',
       duration: 5,
@@ -811,10 +811,10 @@ describe('experimental_generateVideo', () => {
       });
 
       expect(capturedArgs.prompt).toBe('a simple text prompt');
-      expect(capturedArgs.files).toBeUndefined();
+      expect(capturedArgs.image).toBeUndefined();
     });
 
-    it('should handle object prompt with text and files', async () => {
+    it('should handle object prompt with text and image', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const imageBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -832,16 +832,15 @@ describe('experimental_generateVideo', () => {
         }),
         prompt: {
           text: 'image to video prompt',
-          files: [imageBase64],
+          image: imageBase64,
         },
       });
 
       expect(capturedArgs.prompt).toBe('image to video prompt');
-      expect(capturedArgs.files).toBeDefined();
-      expect(capturedArgs.files?.length).toBe(1);
+      expect(capturedArgs.image).toBeDefined();
     });
 
-    it('should handle URL files in prompt', async () => {
+    it('should handle URL image in prompt', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
 
       await experimental_generateVideo({
@@ -856,19 +855,17 @@ describe('experimental_generateVideo', () => {
           },
         }),
         prompt: {
-          files: ['https://example.com/image.png'],
+          image: 'https://example.com/image.png',
         },
       });
 
-      expect(capturedArgs.files).toStrictEqual([
-        {
-          type: 'url',
-          url: 'https://example.com/image.png',
-        },
-      ]);
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'url',
+        url: 'https://example.com/image.png',
+      });
     });
 
-    it('should handle data URL files in prompt', async () => {
+    it('should handle data URL image in prompt', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -886,20 +883,18 @@ describe('experimental_generateVideo', () => {
           },
         }),
         prompt: {
-          files: [dataUrl],
+          image: dataUrl,
         },
       });
 
-      expect(capturedArgs.files).toStrictEqual([
-        {
-          type: 'file',
-          data: convertBase64ToUint8Array(pngBase64),
-          mediaType: 'image/png',
-        },
-      ]);
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      });
     });
 
-    it('should handle Uint8Array files in prompt', async () => {
+    it('should handle Uint8Array image in prompt', async () => {
       let capturedArgs!: Parameters<Experimental_VideoModelV3['doGenerate']>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -917,12 +912,12 @@ describe('experimental_generateVideo', () => {
           },
         }),
         prompt: {
-          files: [uint8Array],
+          image: uint8Array,
         },
       });
 
-      expect(capturedArgs.files?.length).toBe(1);
-      expect(capturedArgs.files?.[0].type).toBe('file');
+      expect(capturedArgs.image).toBeDefined();
+      expect(capturedArgs.image?.type).toBe('file');
     });
 
     it('should detect image mediaType from raw base64 string via signature detection', async () => {
@@ -943,17 +938,15 @@ describe('experimental_generateVideo', () => {
           },
         }),
         prompt: {
-          files: [pngBase64],
+          image: pngBase64,
         },
       });
 
-      expect(capturedArgs.files).toStrictEqual([
-        {
-          type: 'file',
-          data: convertBase64ToUint8Array(pngBase64),
-          mediaType: 'image/png',
-        },
-      ]);
+      expect(capturedArgs.image).toStrictEqual({
+        type: 'file',
+        data: convertBase64ToUint8Array(pngBase64),
+        mediaType: 'image/png',
+      });
     });
 
     it('should detect image mediaType from Uint8Array via signature detection', async () => {
@@ -975,14 +968,14 @@ describe('experimental_generateVideo', () => {
           },
         }),
         prompt: {
-          files: [jpegBytes],
+          image: jpegBytes,
         },
       });
 
-      expect(capturedArgs.files?.length).toBe(1);
-      expect(capturedArgs.files?.[0].type).toBe('file');
-      if (capturedArgs.files?.[0].type === 'file') {
-        expect(capturedArgs.files[0].mediaType).toBe('image/jpeg');
+      expect(capturedArgs.image).toBeDefined();
+      expect(capturedArgs.image?.type).toBe('file');
+      if (capturedArgs.image?.type === 'file') {
+        expect(capturedArgs.image.mediaType).toBe('image/jpeg');
       }
     });
   });

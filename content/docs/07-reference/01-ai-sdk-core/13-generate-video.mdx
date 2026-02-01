@@ -19,7 +19,7 @@ such as creating visual content, animations, or generating videos from images.
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: fal.video('luma-dream-machine'),
+  model: fal.video('luma-dream-machine/ray-2'),
   prompt: 'A cat walking on a treadmill',
   aspectRatio: '16:9',
 });
@@ -54,13 +54,13 @@ console.log(videos);
           type: 'GenerateVideoPrompt',
           type: 'object',
           description:
-            'A prompt object for video generation with optional input files',
+            'A prompt object for video generation with optional input image',
           parameters: [
             {
-              name: 'files',
-              type: 'Array<DataContent>',
+              name: 'image',
+              type: 'DataContent',
               description:
-                'Input files (images) for image-to-video generation. Each item can be a URL string, base64-encoded string, a `Uint8Array`, an `ArrayBuffer`, or a `Buffer`.',
+                'Input image for image-to-video generation. Can be a URL string, base64-encoded string, a `Uint8Array`, an `ArrayBuffer`, or a `Buffer`.',
             },
             {
               name: 'text',

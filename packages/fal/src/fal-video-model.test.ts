@@ -8,7 +8,7 @@ const prompt = 'A futuristic city with flying cars';
 const defaultOptions = {
   prompt,
   n: 1,
-  files: undefined,
+  image: undefined,
   aspectRatio: undefined,
   resolution: undefined,
   duration: undefined,
@@ -46,6 +46,8 @@ describe('FalVideoModel', () => {
         type: 'json-value',
         body: {
           request_id: 'test-request-id-123',
+          response_url:
+            'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
         },
       },
     },
@@ -74,6 +76,8 @@ describe('FalVideoModel', () => {
         type: 'json-value',
         body: {
           request_id: 'ray2-request-id',
+          response_url:
+            'https://queue.fal.run/fal-ai/luma-ray-2/requests/ray2-request-id',
         },
       },
     },
@@ -353,13 +357,11 @@ describe('FalVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'file',
-            data: imageData,
-            mediaType: 'image/png',
-          },
-        ],
+        image: {
+          type: 'file',
+          data: imageData,
+          mediaType: 'image/png',
+        },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
@@ -369,7 +371,7 @@ describe('FalVideoModel', () => {
       });
     });
 
-    it('should send image_url with URL-based file', async () => {
+    it('should send image_url with URL-based image', async () => {
       server.urls[
         'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123'
       ].response = {
@@ -386,51 +388,16 @@ describe('FalVideoModel', () => {
 
       await model.doGenerate({
         ...defaultOptions,
-        files: [
-          {
-            type: 'url',
-            url: 'https://example.com/input-image.png',
-          },
-        ],
+        image: {
+          type: 'url',
+          url: 'https://example.com/input-image.png',
+        },
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchObject({
         prompt,
         image_url: 'https://example.com/input-image.png',
-      });
-    });
-
-    it('should warn when multiple files are provided', async () => {
-      server.urls[
-        'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123'
-      ].response = {
-        type: 'json-value',
-        body: {
-          video: {
-            url: 'https://fal.media/files/video-output.mp4',
-            content_type: 'video/mp4',
-          },
-        },
-      };
-
-      const model = createBasicModel();
-      const imageData = new Uint8Array([137, 80, 78, 71]);
-
-      const result = await model.doGenerate({
-        ...defaultOptions,
-        files: [
-          { type: 'file', data: imageData, mediaType: 'image/png' },
-          { type: 'file', data: imageData, mediaType: 'image/png' },
-        ],
-      });
-
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toMatchObject({
-        type: 'other',
-        message: expect.stringContaining(
-          'only support a single input image',
-        ) as unknown,
       });
     });
   });
@@ -632,7 +599,7 @@ describe('FalVideoModel', () => {
       await expect(
         model.doGenerate({ ...defaultOptions }),
       ).rejects.toMatchObject({
-        message: 'No request ID returned from queue endpoint',
+        message: 'No response URL returned from queue endpoint',
       });
     });
 
@@ -642,6 +609,8 @@ describe('FalVideoModel', () => {
           type: 'json-value',
           body: {
             request_id: 'test-request-id-123',
+            response_url:
+              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
           },
         };
       server.urls[
@@ -700,7 +669,11 @@ describe('FalVideoModel', () => {
             init?.method === 'POST'
           ) {
             return new Response(
-              JSON.stringify({ request_id: 'poll-test-id' }),
+              JSON.stringify({
+                request_id: 'poll-test-id',
+                response_url:
+                  'https://queue.fal.run/fal-ai/luma-dream-machine/requests/poll-test-id',
+              }),
               {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
@@ -771,7 +744,11 @@ describe('FalVideoModel', () => {
             init?.method === 'POST'
           ) {
             return new Response(
-              JSON.stringify({ request_id: 'timeout-test-id' }),
+              JSON.stringify({
+                request_id: 'timeout-test-id',
+                response_url:
+                  'https://queue.fal.run/fal-ai/luma-dream-machine/requests/timeout-test-id',
+              }),
               {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
@@ -823,7 +800,11 @@ describe('FalVideoModel', () => {
             init?.method === 'POST'
           ) {
             return new Response(
-              JSON.stringify({ request_id: 'abort-test-id' }),
+              JSON.stringify({
+                request_id: 'abort-test-id',
+                response_url:
+                  'https://queue.fal.run/fal-ai/luma-dream-machine/requests/abort-test-id',
+              }),
               {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
@@ -870,6 +851,8 @@ describe('FalVideoModel', () => {
           type: 'json-value',
           body: {
             request_id: 'test-request-id-123',
+            response_url:
+              'https://queue.fal.run/fal-ai/luma-dream-machine/requests/test-request-id-123',
           },
         };
       server.urls[
