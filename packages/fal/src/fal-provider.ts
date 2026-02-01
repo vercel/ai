@@ -1,4 +1,5 @@
 import {
+  Experimental_VideoModelV3,
   ImageModelV3,
   NoSuchModelError,
   ProviderV3,
@@ -16,6 +17,8 @@ import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
 import { FalSpeechModelId } from './fal-speech-settings';
 import { FalSpeechModel } from './fal-speech-model';
+import { FalVideoModel } from './fal-video-model';
+import { FalVideoModelId } from './fal-video-settings';
 import { VERSION } from './version';
 
 export interface FalProviderSettings {
@@ -58,6 +61,11 @@ export interface FalProvider extends ProviderV3 {
    * Creates a model for transcription.
    */
   transcription(modelId: FalTranscriptionModelId): TranscriptionModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: FalVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Creates a model for speech generation.
@@ -153,6 +161,14 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
+  const createVideoModel = (modelId: FalVideoModelId) =>
+    new FalVideoModel(modelId, {
+      provider: 'fal.video',
+      url: ({ path }) => path,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,
@@ -164,6 +180,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     specificationVersion: 'v3' as const,
     imageModel: createImageModel,
     image: createImageModel,
+    video: createVideoModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({
         modelId,
