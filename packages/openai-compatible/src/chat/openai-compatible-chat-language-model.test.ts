@@ -100,6 +100,7 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      cached_tokens?: number;
       prompt_tokens_details?: {
         cached_tokens?: number;
       };
@@ -1324,6 +1325,43 @@ describe('doGenerate', () => {
             "prompt_tokens_details": {
               "cached_tokens": 5,
             },
+            "total_tokens": 50,
+          },
+        }
+      `);
+    });
+
+    it('should handle top-level cached_tokens (Moonshot style)', async () => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          cached_tokens: 8,
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 8,
+            "cacheWrite": undefined,
+            "noCache": 12,
+            "total": 20,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 30,
+            "total": 30,
+          },
+          "raw": {
+            "cached_tokens": 8,
+            "completion_tokens": 30,
+            "prompt_tokens": 20,
             "total_tokens": 50,
           },
         }

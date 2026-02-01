@@ -5,6 +5,7 @@ export function convertOpenAICompatibleChatUsage(
     | {
         prompt_tokens?: number | null;
         completion_tokens?: number | null;
+        cached_tokens?: number | null;
         prompt_tokens_details?: {
           cached_tokens?: number | null;
         } | null;
@@ -34,7 +35,8 @@ export function convertOpenAICompatibleChatUsage(
 
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_tokens_details?.cached_tokens ?? usage.cached_tokens ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 
