@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.67
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/gateway@3.0.32
+  - @ai-sdk/provider-utils@4.0.13
+
 ## 6.0.66
 
 ### Patch Changes
