@@ -1,26 +1,26 @@
 import {
   AISDKError,
-  Experimental_VideoModelV3,
-  SharedV3Warning,
+  type Experimental_VideoModelV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  FetchFunction,
+  type FetchFunction,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
+  type Resolvable,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
+import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
-export type GoogleVertexVideoCallOptions = {
+export type GoogleVertexVideoProviderOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -39,33 +39,8 @@ export type GoogleVertexVideoCallOptions = {
     gcsUri?: string;
   }> | null;
 
-  [key: string]: any; // For passthrough
+  [key: string]: unknown; // For passthrough
 };
-
-const vertexVideoProviderOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        generateAudio: z.boolean().nullish(),
-        gcsOutputDirectory: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface GoogleVertexVideoModelConfig {
   provider: string;
@@ -101,23 +76,19 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
     const vertexOptions = (await parseProviderOptions({
       provider: 'vertex',
       providerOptions: options.providerOptions,
       schema: vertexVideoProviderOptionsSchema,
-    })) as GoogleVertexVideoCallOptions | undefined;
+    })) as GoogleVertexVideoProviderOptions | undefined;
 
-    // Build request body
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
 
-    // Add prompt
     if (options.prompt != null) {
       instance.prompt = options.prompt;
     }
 
-    // Handle image-to-video: convert first file to base64
     if (options.files != null && options.files.length > 0) {
       const firstFile = options.files[0];
 
@@ -148,23 +119,19 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Add reference images if provided
     if (vertexOptions?.referenceImages != null) {
       instance.referenceImages = vertexOptions.referenceImages;
     }
 
-    // Build parameters object
     const parameters: Record<string, unknown> = {
       sampleCount: options.n,
     };
 
-    // Map SDK options to Vertex API
     if (options.aspectRatio) {
       parameters.aspectRatio = options.aspectRatio;
     }
 
     if (options.resolution) {
-      // Vertex uses specific resolution strings
       const resolutionMap: Record<string, string> = {
         '1280x720': '720p',
         '1920x1080': '1080p',
@@ -182,9 +149,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       parameters.seed = options.seed;
     }
 
-    // Add provider-specific options
     if (vertexOptions != null) {
-      const opts = vertexOptions as GoogleVertexVideoCallOptions;
+      const opts = vertexOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -205,8 +171,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         parameters.gcsOutputDirectory = opts.gcsOutputDirectory;
       }
 
-      // Pass through any additional options
-      for (const [key, value] of Object.entries(opts as any)) {
+      for (const [key, value] of Object.entries(opts)) {
         if (
           ![
             'pollIntervalMs',
@@ -223,11 +188,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Submit long-running operation
-    const url = `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`;
-
     const { value: operation } = await postJsonToApi({
-      url,
+      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -244,9 +206,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    // Poll for completion
     const operationName = operation.name;
-
     if (!operationName) {
       throw new AISDKError({
         name: 'VERTEX_VIDEO_GENERATION_ERROR',
@@ -262,7 +222,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     let responseHeaders: Record<string, string> | undefined;
 
     while (!finalOperation.done) {
-      // Check timeout
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
           name: 'VERTEX_VIDEO_GENERATION_TIMEOUT',
@@ -270,10 +229,8 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // Wait before next poll
       await delay(pollIntervalMs);
 
-      // Check abort signal
       if (options.abortSignal?.aborted) {
         throw new AISDKError({
           name: 'VERTEX_VIDEO_GENERATION_ABORTED',
@@ -281,13 +238,9 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // Poll operation status using fetchPredictOperation endpoint
-      // Vertex AI video requires POST to fetchPredictOperation with operationName in body
-      const pollUrl = `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`;
-
       const { value: statusOperation, responseHeaders: pollHeaders } =
         await postJsonToApi({
-          url: pollUrl,
+          url: `${this.config.baseURL}/models/${this.modelId}:fetchPredictOperation`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
@@ -307,7 +260,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       responseHeaders = pollHeaders;
     }
 
-    // Check for error
     if (finalOperation.error) {
       throw new AISDKError({
         name: 'VERTEX_VIDEO_GENERATION_FAILED',
@@ -315,7 +267,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Extract videos from response
     const response = finalOperation.response;
     if (!response?.generated_videos || response.generated_videos.length === 0) {
       throw new AISDKError({
@@ -329,7 +280,11 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       | { type: 'base64'; data: string; mediaType: string }
       | { type: 'url'; url: string; mediaType: string }
     > = [];
-    const videoMetadata: any[] = [];
+    const videoMetadata: Array<{
+      uri?: string;
+      gcsUri?: string | null | undefined;
+      mimeType?: string | null | undefined;
+    }> = [];
 
     for (const generatedVideo of response.generated_videos) {
       if (generatedVideo.video?.bytesBase64Encoded) {
@@ -361,13 +316,6 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Build provider metadata
-    const providerMetadata: any = {
-      'google-vertex': {
-        videos: videoMetadata,
-      },
-    };
-
     return {
       videos,
       warnings,
@@ -376,7 +324,11 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata,
+      providerMetadata: {
+        'google-vertex': {
+          videos: videoMetadata,
+        },
+      },
     };
   }
 }
@@ -409,3 +361,28 @@ const vertexOperationSchema = z.object({
     })
     .nullish(),
 });
+
+const vertexVideoProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        pollIntervalMs: z.number().positive().nullish(),
+        pollTimeoutMs: z.number().positive().nullish(),
+        personGeneration: z
+          .enum(['dont_allow', 'allow_adult', 'allow_all'])
+          .nullish(),
+        negativePrompt: z.string().nullish(),
+        generateAudio: z.boolean().nullish(),
+        gcsOutputDirectory: z.string().nullish(),
+        referenceImages: z
+          .array(
+            z.object({
+              bytesBase64Encoded: z.string().nullish(),
+              gcsUri: z.string().nullish(),
+            }),
+          )
+          .nullish(),
+      })
+      .passthrough(),
+  ),
+);

@@ -198,9 +198,14 @@ export async function experimental_generateVideo({
           const { data, mediaType: downloadedMediaType } = await download({
             url: new URL(videoData.url),
           });
+
+          // Filter out generic/unknown media types that should fall through to detection
+          const isUsableMediaType = (type: string | undefined): boolean =>
+            !!type && type !== 'application/octet-stream';
+
           const mediaType =
-            videoData.mediaType ||
-            downloadedMediaType ||
+            (isUsableMediaType(videoData.mediaType) && videoData.mediaType) ||
+            (isUsableMediaType(downloadedMediaType) && downloadedMediaType) ||
             detectMediaType({
               data,
               signatures: videoMediaTypeSignatures,

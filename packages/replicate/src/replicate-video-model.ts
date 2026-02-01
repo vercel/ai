@@ -1,7 +1,6 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
-  type SharedV3ProviderMetadata,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -43,29 +42,8 @@ export type ReplicateVideoCallOptions = {
   // MiniMax specific
   prompt_optimizer?: boolean | null;
 
-  [key: string]: any; // For passthrough
+  [key: string]: unknown; // For passthrough
 };
-
-const replicateVideoProviderOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        maxWaitTimeInSeconds: z.number().positive().nullish(),
-        guidance_scale: z.number().nullish(),
-        num_inference_steps: z.number().nullish(),
-        motion_bucket_id: z.number().nullish(),
-        cond_aug: z.number().nullish(),
-        decoding_t: z.number().nullish(),
-        video_length: z.string().nullish(),
-        sizing_strategy: z.string().nullish(),
-        frames_per_second: z.number().nullish(),
-        prompt_optimizer: z.boolean().nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface ReplicateVideoModelConfig {
   provider: string;
@@ -96,25 +74,19 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
     const replicateOptions = (await parseProviderOptions({
       provider: 'replicate',
       providerOptions: options.providerOptions,
       schema: replicateVideoProviderOptionsSchema,
     })) as ReplicateVideoCallOptions | undefined;
 
-    // Parse model ID and version
     const [modelId, version] = this.modelId.split(':');
-
-    // Build input object
     const input: Record<string, unknown> = {};
 
-    // Add prompt
     if (options.prompt != null) {
       input.prompt = options.prompt;
     }
 
-    // Handle image-to-video: convert first file
     if (options.files != null && options.files.length > 0) {
       const firstFile = options.files[0];
 
@@ -133,7 +105,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Map SDK options to Replicate API
     if (options.aspectRatio) {
       input.aspect_ratio = mapAspectRatio(options.aspectRatio);
     }
@@ -154,10 +125,8 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       input.seed = options.seed;
     }
 
-    // Add provider-specific options
     if (replicateOptions != null) {
-      const opts = replicateOptions as ReplicateVideoCallOptions;
-
+      const opts = replicateOptions;
       if (opts.guidance_scale !== undefined && opts.guidance_scale !== null) {
         input.guidance_scale = opts.guidance_scale;
       }
@@ -198,7 +167,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
         input.prompt_optimizer = opts.prompt_optimizer;
       }
 
-      // Pass through any additional options
       for (const [key, value] of Object.entries(opts)) {
         if (
           ![
@@ -221,15 +189,12 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Extract maxWaitTimeInSeconds for prefer header
     const maxWaitTimeInSeconds = replicateOptions?.maxWaitTimeInSeconds;
-
     const preferHeader: Record<string, string> =
       maxWaitTimeInSeconds != null
         ? { prefer: `wait=${maxWaitTimeInSeconds}` }
         : { prefer: 'wait' };
 
-    // Create prediction
     const predictionUrl =
       version != null
         ? `${this.config.baseURL}/predictions`
@@ -254,9 +219,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    // Handle async predictions (status polling)
     let finalPrediction = prediction;
-
     if (
       prediction.status === 'starting' ||
       prediction.status === 'processing'
@@ -270,7 +233,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
         finalPrediction.status === 'starting' ||
         finalPrediction.status === 'processing'
       ) {
-        // Check timeout
         if (Date.now() - startTime > pollTimeoutMs) {
           throw new AISDKError({
             name: 'REPLICATE_VIDEO_GENERATION_TIMEOUT',
@@ -278,10 +240,8 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
           });
         }
 
-        // Wait before next poll
         await delay(pollIntervalMs);
 
-        // Check abort signal
         if (options.abortSignal?.aborted) {
           throw new AISDKError({
             name: 'REPLICATE_VIDEO_GENERATION_ABORTED',
@@ -289,7 +249,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
           });
         }
 
-        // Poll status
         const { value: statusPrediction } = await getFromApi({
           url: finalPrediction.urls.get,
           headers: await resolve(this.config.headers),
@@ -305,7 +264,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Check if prediction failed
     if (finalPrediction.status === 'failed') {
       throw new AISDKError({
         name: 'REPLICATE_VIDEO_GENERATION_FAILED',
@@ -320,28 +278,13 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Extract video URL
     const videoUrl = finalPrediction.output;
-
     if (!videoUrl) {
       throw new AISDKError({
         name: 'REPLICATE_VIDEO_GENERATION_ERROR',
         message: 'No video URL in response',
       });
     }
-
-    // Build provider metadata
-    const providerMetadata: SharedV3ProviderMetadata = {
-      replicate: {
-        videos: [
-          {
-            url: videoUrl,
-          },
-        ],
-        predictionId: finalPrediction.id,
-        metrics: finalPrediction.metrics,
-      },
-    };
 
     return {
       videos: [
@@ -357,7 +300,17 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata,
+      providerMetadata: {
+        replicate: {
+          videos: [
+            {
+              url: videoUrl,
+            },
+          ],
+          predictionId: finalPrediction.id,
+          metrics: finalPrediction.metrics,
+        },
+      },
     };
   }
 }
@@ -390,3 +343,24 @@ const replicatePredictionSchema = z.object({
     })
     .nullish(),
 });
+
+const replicateVideoProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        pollIntervalMs: z.number().positive().nullish(),
+        pollTimeoutMs: z.number().positive().nullish(),
+        maxWaitTimeInSeconds: z.number().positive().nullish(),
+        guidance_scale: z.number().nullish(),
+        num_inference_steps: z.number().nullish(),
+        motion_bucket_id: z.number().nullish(),
+        cond_aug: z.number().nullish(),
+        decoding_t: z.number().nullish(),
+        video_length: z.string().nullish(),
+        sizing_strategy: z.string().nullish(),
+        frames_per_second: z.number().nullish(),
+        prompt_optimizer: z.boolean().nullish(),
+      })
+      .loose(),
+  ),
+);

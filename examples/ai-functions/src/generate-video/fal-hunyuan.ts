@@ -1,4 +1,4 @@
-import { fal } from '@ai-sdk/fal';
+import { fal, type FalVideoCallOptions } from '@ai-sdk/fal';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -12,6 +12,12 @@ run(async () => {
         'A raven surveying downtown San Francisco at night with neon lights in the style of ukiyo-e.',
       aspectRatio: '16:9',
       duration: 5,
+      providerOptions: {
+        fal: {
+          pollTimeoutMs: 600000, // 10 minutes
+          resolution: '580p',
+        } satisfies FalVideoCallOptions,
+      },
     }),
   );
 

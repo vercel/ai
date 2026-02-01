@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  Experimental_VideoModelV3,
-  SharedV3Warning,
+  type Experimental_VideoModelV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,28 +9,26 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
-  FetchFunction,
   getFromApi,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { FalConfig } from './fal-config';
+import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
-import { FalVideoModelId } from './fal-video-settings';
+import type { FalVideoModelId } from './fal-video-settings';
 
-export type FalVideoCallOptions = {
+export type FalVideoProviderOptions = {
   loop?: boolean | null;
   motionStrength?: number | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
-  resolution?: '540p' | '720p' | '1080p' | null;
+  resolution?: string | null;
   negativePrompt?: string | null;
   promptOptimizer?: boolean | null;
-  [key: string]: any; // For passthrough
+  [key: string]: unknown; // For passthrough
 };
 
 // Provider options schema for FAL video generation
@@ -48,8 +46,8 @@ export const falVideoProviderOptionsSchema = lazySchema(() =>
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
 
-        // Ray 2 specific options
-        resolution: z.enum(['540p', '720p', '1080p']).nullish(),
+        // Resolution (model-specific, e.g., '480p', '720p', '1080p')
+        resolution: z.string().nullish(),
 
         // Model-specific parameters
         negativePrompt: z.string().nullish(),
@@ -84,22 +82,18 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
     const falOptions = (await parseProviderOptions({
       provider: 'fal',
       providerOptions: options.providerOptions,
       schema: falVideoProviderOptionsSchema,
-    })) as FalVideoCallOptions | undefined;
+    })) as FalVideoProviderOptions | undefined;
 
-    // Build request body
     const body: Record<string, unknown> = {};
 
-    // Add prompt
     if (options.prompt != null) {
       body.prompt = options.prompt;
     }
 
-    // Handle image-to-video: convert first file to image_url
     if (options.files != null && options.files.length > 0) {
       const firstFile = options.files[0];
 
@@ -118,7 +112,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Map SDK options to FAL API
     if (options.aspectRatio) {
       body.aspect_ratio = options.aspectRatio;
     }
@@ -131,9 +124,8 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       body.seed = options.seed;
     }
 
-    // Add provider-specific options
     if (falOptions != null) {
-      const opts = falOptions as FalVideoCallOptions;
+      const opts = falOptions;
       if (opts.loop !== undefined && opts.loop !== null) {
         body.loop = opts.loop;
       }
@@ -150,8 +142,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         body.prompt_optimizer = opts.promptOptimizer;
       }
 
-      // Pass through any additional options
-      for (const [key, value] of Object.entries(opts as any)) {
+      for (const [key, value] of Object.entries(opts)) {
         if (
           ![
             'loop',
@@ -168,14 +159,11 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Submit to queue endpoint
-    const queueUrl = this.config.url({
-      path: `https://queue.fal.run/fal-ai/${this.modelId}`,
-      modelId: this.modelId,
-    });
-
     const { value: queueResponse } = await postJsonToApi({
-      url: queueUrl,
+      url: this.config.url({
+        path: `https://queue.fal.run/fal-ai/${this.modelId}`,
+        modelId: this.modelId,
+      }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
@@ -185,9 +173,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    // Poll for completion
     const requestId = queueResponse.request_id;
-
     if (!requestId) {
       throw new AISDKError({
         name: 'FAL_VIDEO_GENERATION_ERROR',
@@ -195,25 +181,20 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    const pollIntervalMs =
-      (falOptions as FalVideoCallOptions | undefined)?.pollIntervalMs ?? 2000; // 2 seconds
-    const pollTimeoutMs =
-      (falOptions as FalVideoCallOptions | undefined)?.pollTimeoutMs ?? 300000; // 5 minutes
-
+    const pollIntervalMs = falOptions?.pollIntervalMs ?? 2000; // 2 seconds
+    const pollTimeoutMs = falOptions?.pollTimeoutMs ?? 300000; // 5 minutes
     const startTime = Date.now();
-    let response;
-    let responseHeaders;
+    let response: FalVideoResponse;
+    let responseHeaders: Record<string, string> | undefined;
 
     while (true) {
       try {
-        const statusUrl = this.config.url({
-          path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${requestId}`,
-          modelId: this.modelId,
-        });
-
         const { value: statusResponse, responseHeaders: statusHeaders } =
           await getFromApi({
-            url: statusUrl,
+            url: this.config.url({
+              path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${requestId}`,
+              modelId: this.modelId,
+            }),
             headers: combineHeaders(this.config.headers(), options.headers),
             failedResponseHandler: async ({
               response,
@@ -222,7 +203,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
             }) => {
               const body = await response.clone().json();
 
-              // Check if it's still in progress
               if (body.detail === 'Request is still in progress') {
                 return {
                   value: new Error('Request is still in progress'),
@@ -231,7 +211,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
                 };
               }
 
-              // Otherwise, use standard error handler
               return createJsonErrorResponseHandler({
                 errorSchema: falErrorDataSchema,
                 errorToMessage: data => data.error.message,
@@ -258,7 +237,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         }
       }
 
-      // Check timeout
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
           name: 'FAL_VIDEO_GENERATION_TIMEOUT',
@@ -266,10 +244,8 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // Wait before next poll
       await delay(pollIntervalMs);
 
-      // Check abort signal
       if (options.abortSignal?.aborted) {
         throw new AISDKError({
           name: 'FAL_VIDEO_GENERATION_ABORTED',
@@ -278,7 +254,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Extract video URL
     const videoUrl = response.video?.url;
 
     if (!videoUrl || !response.video) {
@@ -286,38 +261,6 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         name: 'FAL_VIDEO_GENERATION_ERROR',
         message: 'No video URL in response',
       });
-    }
-
-    // Build provider metadata
-    const providerMetadata: any = {
-      fal: {
-        videos: [
-          {
-            url: videoUrl,
-            width: response.video.width,
-            height: response.video.height,
-            duration: response.video.duration,
-            fps: response.video.fps,
-            contentType: response.video.content_type,
-          },
-        ],
-      },
-    };
-
-    if (response.seed !== undefined) {
-      providerMetadata.fal.seed = response.seed;
-    }
-
-    if (response.timings) {
-      providerMetadata.fal.timings = response.timings;
-    }
-
-    if (response.has_nsfw_concepts !== undefined) {
-      providerMetadata.fal.has_nsfw_concepts = response.has_nsfw_concepts;
-    }
-
-    if (response.prompt) {
-      providerMetadata.fal.prompt = response.prompt;
     }
 
     return {
@@ -334,7 +277,26 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata,
+      providerMetadata: {
+        fal: {
+          videos: [
+            {
+              url: videoUrl,
+              width: response.video.width,
+              height: response.video.height,
+              duration: response.video.duration,
+              fps: response.video.fps,
+              contentType: response.video.content_type,
+            },
+          ],
+          ...(response.seed !== undefined ? { seed: response.seed } : {}),
+          ...(response.timings ? { timings: response.timings } : {}),
+          ...(response.has_nsfw_concepts !== undefined
+            ? { has_nsfw_concepts: response.has_nsfw_concepts }
+            : {}),
+          ...(response.prompt ? { prompt: response.prompt } : {}),
+        },
+      },
     };
   }
 }
@@ -363,3 +325,5 @@ const falVideoResponseSchema = z.object({
   has_nsfw_concepts: z.array(z.boolean()).nullish(),
   prompt: z.string().nullish(),
 });
+
+type FalVideoResponse = z.infer<typeof falVideoResponseSchema>;

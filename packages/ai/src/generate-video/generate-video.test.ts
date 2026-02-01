@@ -313,6 +313,38 @@ describe('experimental_generateVideo', () => {
         'Failed to download https://example.com/video.mp4: 404 Not Found',
       );
     });
+
+    it('should detect mediaType via signature when provider and download return application/octet-stream', async () => {
+      // Mock fetch to return octet-stream content-type (simulating CDN behavior)
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
+        async () => {
+          return new Response(convertBase64ToUint8Array(mp4Base64), {
+            status: 200,
+            headers: { 'content-type': 'application/octet-stream' },
+          });
+        },
+      );
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV3({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                {
+                  type: 'url',
+                  url: 'https://example.com/video',
+                  // Provider also returns octet-stream (or could be empty)
+                  mediaType: 'application/octet-stream',
+                },
+              ],
+            }),
+        }),
+        prompt,
+      });
+
+      // Should detect MP4 from file signature, not use octet-stream
+      expect(result.video.mediaType).toBe('video/mp4');
+    });
   });
 
   describe('when several calls are required', () => {

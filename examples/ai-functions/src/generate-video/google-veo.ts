@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleGenerativeAIVideoCallOptions,
+} from '@ai-sdk/google';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -8,9 +11,15 @@ run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: google.video('veo-3.1-generate-preview'),
-      prompt: 'A kitchen of vercelians cooking up ai agents',
+      prompt:
+        'A Bedlington Terrier leaping at Crissy Field at sunset in pointillist style.',
       aspectRatio: '16:9',
       duration: 6,
+      providerOptions: {
+        google: {
+          pollTimeoutMs: 600000, // 10 minutes
+        } satisfies GoogleGenerativeAIVideoCallOptions,
+      },
     }),
   );
 

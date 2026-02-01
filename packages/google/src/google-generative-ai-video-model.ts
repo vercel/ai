@@ -1,27 +1,27 @@
 import {
   AISDKError,
-  Experimental_VideoModelV3,
-  SharedV3Warning,
+  type Experimental_VideoModelV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
-  FetchFunction,
+  type FetchFunction,
   getFromApi,
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  Resolvable,
+  type Resolvable,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
-export type GoogleGenerativeAIVideoCallOptions = {
+export type GoogleGenerativeAIVideoProviderOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -36,31 +36,8 @@ export type GoogleGenerativeAIVideoCallOptions = {
     gcsUri?: string;
   }> | null;
 
-  [key: string]: any; // For passthrough
+  [key: string]: unknown; // For passthrough
 };
-
-const googleVideoProviderOptionsSchema = lazySchema(() =>
-  zodSchema(
-    z
-      .object({
-        pollIntervalMs: z.number().positive().nullish(),
-        pollTimeoutMs: z.number().positive().nullish(),
-        personGeneration: z
-          .enum(['dont_allow', 'allow_adult', 'allow_all'])
-          .nullish(),
-        negativePrompt: z.string().nullish(),
-        referenceImages: z
-          .array(
-            z.object({
-              bytesBase64Encoded: z.string().nullish(),
-              gcsUri: z.string().nullish(),
-            }),
-          )
-          .nullish(),
-      })
-      .passthrough(),
-  ),
-);
 
 interface GoogleGenerativeAIVideoModelConfig {
   provider: string;
@@ -96,18 +73,15 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
     const googleOptions = (await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
       schema: googleVideoProviderOptionsSchema,
-    })) as GoogleGenerativeAIVideoCallOptions | undefined;
+    })) as GoogleGenerativeAIVideoProviderOptions | undefined;
 
-    // Build request body
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
 
-    // Add prompt
     if (options.prompt != null) {
       instance.prompt = options.prompt;
     }
@@ -146,7 +120,6 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Add reference images if provided
     if (googleOptions?.referenceImages != null) {
       instance.referenceImages = googleOptions.referenceImages.map(refImg => {
         if (refImg.bytesBase64Encoded) {
@@ -165,18 +138,15 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Build parameters object
     const parameters: Record<string, unknown> = {
       sampleCount: options.n,
     };
 
-    // Map SDK options to Google API
     if (options.aspectRatio) {
       parameters.aspectRatio = options.aspectRatio;
     }
 
     if (options.resolution) {
-      // Google uses specific resolution strings
       const resolutionMap: Record<string, string> = {
         '1280x720': '720p',
         '1920x1080': '1080p',
@@ -194,9 +164,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       parameters.seed = options.seed;
     }
 
-    // Add provider-specific options
     if (googleOptions != null) {
-      const opts = googleOptions as GoogleGenerativeAIVideoCallOptions;
+      const opts = googleOptions as GoogleGenerativeAIVideoProviderOptions;
 
       if (
         opts.personGeneration !== undefined &&
@@ -208,8 +177,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
         parameters.negativePrompt = opts.negativePrompt;
       }
 
-      // Pass through any additional options
-      for (const [key, value] of Object.entries(opts as any)) {
+      for (const [key, value] of Object.entries(opts)) {
         if (
           ![
             'pollIntervalMs',
@@ -224,11 +192,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       }
     }
 
-    // Submit long-running operation
-    const url = `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`;
-
     const { value: operation } = await postJsonToApi({
-      url,
+      url: `${this.config.baseURL}/models/${this.modelId}:predictLongRunning`,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -245,9 +210,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       fetch: this.config.fetch,
     });
 
-    // Poll for completion
     const operationName = operation.name;
-
     if (!operationName) {
       throw new AISDKError({
         name: 'GOOGLE_VIDEO_GENERATION_ERROR',
@@ -263,7 +226,6 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     let responseHeaders: Record<string, string> | undefined;
 
     while (!finalOperation.done) {
-      // Check timeout
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
           name: 'GOOGLE_VIDEO_GENERATION_TIMEOUT',
@@ -271,10 +233,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // Wait before next poll
       await delay(pollIntervalMs);
 
-      // Check abort signal
       if (options.abortSignal?.aborted) {
         throw new AISDKError({
           name: 'GOOGLE_VIDEO_GENERATION_ABORTED',
@@ -282,12 +242,9 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
         });
       }
 
-      // Poll operation status - use the full operation name
-      const statusUrl = `${this.config.baseURL}/${operationName}`;
-
       const { value: statusOperation, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: statusUrl,
+          url: `${this.config.baseURL}/${operationName}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
@@ -304,7 +261,6 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       responseHeaders = pollHeaders;
     }
 
-    // Check for error
     if (finalOperation.error) {
       throw new AISDKError({
         name: 'GOOGLE_VIDEO_GENERATION_FAILED',
@@ -312,7 +268,6 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Extract videos from response
     const response = finalOperation.response;
     if (
       !response?.generateVideoResponse?.generatedSamples ||
@@ -324,9 +279,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Process videos - Google returns video URLs
     const videos: Array<{ type: 'url'; url: string; mediaType: string }> = [];
-    const videoMetadata: any[] = [];
+    const videoMetadata: Array<{ uri: string }> = [];
 
     // Get API key from headers to append to download URLs
     const resolvedHeaders = await resolve(this.config.headers);
@@ -358,13 +312,6 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
-    // Build provider metadata
-    const providerMetadata: any = {
-      google: {
-        videos: videoMetadata,
-      },
-    };
-
     return {
       videos,
       warnings,
@@ -373,7 +320,11 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata,
+      providerMetadata: {
+        google: {
+          videos: videoMetadata,
+        },
+      },
     };
   }
 }
@@ -408,3 +359,26 @@ const googleOperationSchema = z.object({
     })
     .nullish(),
 });
+
+const googleVideoProviderOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z
+      .object({
+        pollIntervalMs: z.number().positive().nullish(),
+        pollTimeoutMs: z.number().positive().nullish(),
+        personGeneration: z
+          .enum(['dont_allow', 'allow_adult', 'allow_all'])
+          .nullish(),
+        negativePrompt: z.string().nullish(),
+        referenceImages: z
+          .array(
+            z.object({
+              bytesBase64Encoded: z.string().nullish(),
+              gcsUri: z.string().nullish(),
+            }),
+          )
+          .nullish(),
+      })
+      .passthrough(),
+  ),
+);

@@ -6,5 +6,3 @@ export type FalVideoModelId =
   | 'minimax-video-01'
   | 'hunyuan-video'
   | (string & {});
-
-export interface FalVideoSettings {}
