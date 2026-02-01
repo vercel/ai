@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.20
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
 ## 3.0.19
 
 ### Patch Changes
