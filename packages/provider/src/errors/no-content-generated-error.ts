@@ -5,7 +5,7 @@ const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
 
 /**
-Thrown when the AI provider fails to generate any content.
+ * Thrown when the AI provider fails to generate any content.
  */
 export class NoContentGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance

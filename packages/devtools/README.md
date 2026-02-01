@@ -26,7 +26,7 @@ import { wrapLanguageModel } from 'ai';
 import { devToolsMiddleware } from '@ai-sdk/devtools';
 
 const model = wrapLanguageModel({
-  middleware: devToolsMiddleware,
+  middleware: devToolsMiddleware(),
   model: yourModel,
 });
 ```

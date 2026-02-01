@@ -38,18 +38,18 @@ export interface DeepSeekProviderSettings {
 
 export interface DeepSeekProvider extends ProviderV3 {
   /**
-Creates a DeepSeek model for text generation.
-*/
+   * Creates a DeepSeek model for text generation.
+   */
   (modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
-Creates a DeepSeek model for text generation.
-*/
+   * Creates a DeepSeek model for text generation.
+   */
   languageModel(modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**
-Creates a DeepSeek chat model for text generation.
-*/
+   * Creates a DeepSeek chat model for text generation.
+   */
   chat(modelId: DeepSeekChatModelId): LanguageModelV3;
 
   /**

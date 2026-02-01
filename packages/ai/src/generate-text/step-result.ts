@@ -24,63 +24,63 @@ import { ToolSet } from './tool-set';
  */
 export type StepResult<TOOLS extends ToolSet> = {
   /**
-The content that was generated in the last step.
+   * The content that was generated in the last step.
    */
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-The generated text.
-*/
+   * The generated text.
+   */
   readonly text: string;
 
   /**
-The reasoning that was generated during the generation.
-*/
+   * The reasoning that was generated during the generation.
+   */
   readonly reasoning: Array<ReasoningPart>;
 
   /**
-The reasoning text that was generated during the generation.
-*/
+   * The reasoning text that was generated during the generation.
+   */
   readonly reasoningText: string | undefined;
 
   /**
-The files that were generated during the generation.
-*/
+   * The files that were generated during the generation.
+   */
   readonly files: Array<GeneratedFile>;
 
   /**
-The sources that were used to generate the text.
-*/
+   * The sources that were used to generate the text.
+   */
   readonly sources: Array<Source>;
 
   /**
-The tool calls that were made during the generation.
-*/
+   * The tool calls that were made during the generation.
+   */
   readonly toolCalls: Array<TypedToolCall<TOOLS>>;
 
   /**
-The static tool calls that were made in the last step.
-*/
+   * The static tool calls that were made in the last step.
+   */
   readonly staticToolCalls: Array<StaticToolCall<TOOLS>>;
 
   /**
-The dynamic tool calls that were made in the last step.
-*/
+   * The dynamic tool calls that were made in the last step.
+   */
   readonly dynamicToolCalls: Array<DynamicToolCall>;
 
   /**
-The results of the tool calls.
-*/
+   * The results of the tool calls.
+   */
   readonly toolResults: Array<TypedToolResult<TOOLS>>;
 
   /**
-The static tool results that were made in the last step.
-*/
+   * The static tool results that were made in the last step.
+   */
   readonly staticToolResults: Array<StaticToolResult<TOOLS>>;
 
   /**
-The dynamic tool results that were made in the last step.
-*/
+   * The dynamic tool results that were made in the last step.
+   */
   readonly dynamicToolResults: Array<DynamicToolResult>;
 
   /**
@@ -94,41 +94,41 @@ The dynamic tool results that were made in the last step.
   readonly rawFinishReason: string | undefined;
 
   /**
-The token usage of the generated text.
-*/
+   * The token usage of the generated text.
+   */
   readonly usage: LanguageModelUsage;
 
   /**
-Warnings from the model provider (e.g. unsupported settings).
-*/
+   * Warnings from the model provider (e.g. unsupported settings).
+   */
   readonly warnings: CallWarning[] | undefined;
 
   /**
-Additional request information.
+   * Additional request information.
    */
   readonly request: LanguageModelRequestMetadata;
 
   /**
-Additional response information.
-*/
+   * Additional response information.
+   */
   readonly response: LanguageModelResponseMetadata & {
     /**
-The response messages that were generated during the call.
-Response messages can be either assistant messages or tool messages.
-They contain a generated id.
-*/
+     * The response messages that were generated during the call.
+     * Response messages can be either assistant messages or tool messages.
+     * They contain a generated id.
+     */
     readonly messages: Array<ResponseMessage>;
 
     /**
-Response body (available only for providers that use HTTP requests).
+     * Response body (available only for providers that use HTTP requests).
      */
     body?: unknown;
   };
 
   /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
+   * Additional provider-specific metadata. They are passed through
+   * from the provider to the AI SDK and enable provider-specific
+   * results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
 };

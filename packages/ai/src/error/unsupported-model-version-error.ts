@@ -1,7 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 
 /**
-Error that is thrown when a model with an unsupported version is used.
+ * Error that is thrown when a model with an unsupported version is used.
  */
 export class UnsupportedModelVersionError extends AISDKError {
   readonly version: string;

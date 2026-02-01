@@ -69,6 +69,16 @@ You can use the following optional settings to customize the Google Generative A
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+- **generateId** _() => string_
+
+  Optional function to generate unique IDs for each request.
+  Defaults to the SDK's built-in ID generator.
+
+- **name** _string_
+
+  Custom provider name.
+  Defaults to `'google.generative-ai'`.
+
 ## Language Models
 
 You can create models that call the [Google Generative AI API](https://ai.google.dev/api/rest) using the provider instance.
@@ -141,10 +151,12 @@ The following optional provider options are available for Google Generative AI m
 
     The category of the safety setting. Can be one of the following:
 
+    - `HARM_CATEGORY_UNSPECIFIED`
     - `HARM_CATEGORY_HATE_SPEECH`
     - `HARM_CATEGORY_DANGEROUS_CONTENT`
     - `HARM_CATEGORY_HARASSMENT`
     - `HARM_CATEGORY_SEXUALLY_EXPLICIT`
+    - `HARM_CATEGORY_CIVIC_INTEGRITY`
 
   - **threshold** _string_
 
@@ -155,6 +167,7 @@ The following optional provider options are available for Google Generative AI m
     - `BLOCK_MEDIUM_AND_ABOVE`
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
+    - `OFF`
 
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
@@ -179,26 +192,60 @@ The following optional provider options are available for Google Generative AI m
 
   - **includeThoughts** _boolean_
 
-    Optional. If set to true, thought summaries are returned, which are synthisized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
+    Optional. If set to true, thought summaries are returned, which are synthesized versions of the model's raw thoughts and offer insights into the model's internal reasoning process.
 
-- **imageConfig** _\{ aspectRatio: string \}_
+- **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
   Optional. Configuration for the models image generation. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/image-generation).
 
   - **aspectRatio** _string_
 
-  Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
+    Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
 
-  - 1:1
-  - 2:3
-  - 3:2
-  - 3:4
-  - 4:3
-  - 4:5
-  - 5:4
-  - 9:16
-  - 16:9
-  - 21:9
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Controls the output image resolution. Defaults to 1K. Can be one of the following:
+
+    - 1K
+    - 2K
+    - 4K
+
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio-only files.
+  See [Google Cloud audio understanding documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding).
+
+- **mediaResolution** _string_
+
+  Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  See [Google API MediaResolution documentation](https://ai.google.dev/api/generate-content#MediaResolution).
+
+- **labels** _Record&lt;string, string&gt;_
+
+  Optional. Defines labels used in billing reports. Available on Vertex AI only.
+  See [Google Cloud labels documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls).
+
+- **threshold** _string_
+
+  Optional. Standalone threshold setting that can be used independently of `safetySettings`.
+  Uses the same values as the `safetySettings` threshold.
 
 ### Thinking
 
@@ -573,6 +620,19 @@ const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
 
+The `googleSearch` tool accepts the following optional configuration options:
+
+- **mode** _'MODE_DYNAMIC' | 'MODE_UNSPECIFIED'_
+
+  The mode of the predictor to be used in dynamic retrieval. Default is `'MODE_UNSPECIFIED'`.
+
+  - `MODE_DYNAMIC`: Run retrieval only when the system decides it is necessary
+  - `MODE_UNSPECIFIED`: Always trigger retrieval
+
+- **dynamicThreshold** _number_
+
+  The threshold to be used in dynamic retrieval. Default is `1`. If not set, a system default value is used.
+
 When Search Grounding is enabled, the model will include sources in the response.
 
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
@@ -620,6 +680,42 @@ Example response:
   }
 }
 ```
+
+### Enterprise Web Search
+
+With [Enterprise Web Search](https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/web-grounding-enterprise),
+the model has access to a compliance-focused web index designed for highly-regulated industries such as finance, healthcare, and public sector.
+
+<Note>
+  Enterprise Web Search is only available on Vertex AI. You must use the Google
+  Vertex provider (`@ai-sdk/google-vertex`) instead of the standard Google
+  provider (`@ai-sdk/google`) to use this feature. Requires Gemini 2.0 or newer
+  models.
+</Note>
+
+```ts
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const vertex = createVertex({
+  project: 'my-project',
+  location: 'us-central1',
+});
+
+const { text, sources, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-flash'),
+  tools: {
+    enterprise_web_search: vertex.tools.enterpriseWebSearch({}),
+  },
+  prompt: 'What are the latest regulatory updates for financial services?',
+});
+```
+
+Enterprise Web Search provides the following benefits:
+
+- Does not log customer data
+- Supports VPC service controls
+- Compliance-focused web index for regulated industries
 
 ### File Search
 
@@ -1032,6 +1128,8 @@ The following Zod features are known to not work with Google Generative AI:
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3-pro-image-preview`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3-flash-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash-lite`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1054,6 +1152,10 @@ The following Zod features are known to not work with Google Generative AI:
 ## Gemma Models
 
 You can use [Gemma models](https://deepmind.google/models/gemma/) with the Google Generative AI API.
+The following Gemma models are available:
+
+- `gemma-3-27b-it`
+- `gemma-3-12b-it`
 
 Gemma models don't natively support the `systemInstruction` parameter, but the provider automatically handles system instructions by prepending them to the first user message. This allows you to use system instructions with Gemma models seamlessly:
 
@@ -1176,6 +1278,8 @@ The following provider options are available:
 
 #### Model Capabilities
 
-| Model                     | Aspect Ratios             |
-| ------------------------- | ------------------------- |
-| `imagen-4.0-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| Model                           | Aspect Ratios             |
+| ------------------------------- | ------------------------- |
+| `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |

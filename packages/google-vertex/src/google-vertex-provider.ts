@@ -1,5 +1,10 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV3, LanguageModelV3, ProviderV3 } from '@ai-sdk/provider';
+import {
+  Experimental_VideoModelV3,
+  ImageModelV3,
+  LanguageModelV3,
+  ProviderV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -19,6 +24,8 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 import { googleVertexTools } from './google-vertex-tools';
+import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
 const EXPRESS_MODE_BASE_URL =
   'https://aiplatform.googleapis.com/v1/publishers/google';
@@ -42,7 +49,7 @@ function createExpressModeFetch(
 
 export interface GoogleVertexProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
+   * Creates a model for text generation.
    */
   (modelId: GoogleVertexModelId): LanguageModelV3;
 
@@ -54,9 +61,14 @@ Creates a model for text generation.
   image(modelId: GoogleVertexImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
+   * Creates a model for image generation.
    */
   imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
 
   tools: typeof googleVertexTools;
 
@@ -77,13 +89,13 @@ export interface GoogleVertexProviderSettings {
   apiKey?: string;
 
   /**
-Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
+   * Your Google Vertex location. Defaults to the environment variable `GOOGLE_VERTEX_LOCATION`.
    */
   location?: string;
 
   /**
-Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
-  */
+   * Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_PROJECT`.
+   */
   project?: string;
 
   /**
@@ -96,22 +108,22 @@ Your Google Vertex project. Defaults to the environment variable `GOOGLE_VERTEX_
   headers?: Resolvable<Record<string, string | undefined>>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
 
   /**
-Base URL for the Google Vertex API calls.
-     */
+   * Base URL for the Google Vertex API calls.
+   */
   baseURL?: string;
 }
 
 /**
-Create a Google Vertex AI provider instance.
+ * Create a Google Vertex AI provider instance.
  */
 export function createVertex(
   options: GoogleVertexProviderSettings = {},
@@ -195,6 +207,12 @@ export function createVertex(
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
     new GoogleVertexImageModel(modelId, createConfig('image'));
 
+  const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
+    new GoogleVertexVideoModel(modelId, {
+      ...createConfig('video'),
+      generateId: options.generateId ?? generateId,
+    });
+
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
@@ -211,6 +229,7 @@ export function createVertex(
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.video = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;
