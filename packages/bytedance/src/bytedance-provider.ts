@@ -1,4 +1,8 @@
-import { NoSuchModelError, ProviderV3, VideoModelV3 } from '@ai-sdk/provider';
+import {
+  type Experimental_VideoModelV3,
+  NoSuchModelError,
+  ProviderV3,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -36,7 +40,7 @@ export interface ByteDanceProvider extends ProviderV3 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ByteDanceVideoModelId): VideoModelV3;
+  video(modelId: ByteDanceVideoModelId): Experimental_VideoModelV3;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';
