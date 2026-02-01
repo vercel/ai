@@ -1,10 +1,14 @@
-import { AISDKError, VideoModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  type Experimental_VideoModelV3,
+  type SharedV3Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertImageModelFileToDataUri,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   delay,
-  FetchFunction,
   getFromApi,
   lazySchema,
   parseProviderOptions,
@@ -12,28 +16,15 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { ByteDanceConfig } from './bytedance-config';
-import { ByteDanceVideoModelId } from './bytedance-video-settings';
+import type { ByteDanceConfig } from './bytedance-config';
+import type { ByteDanceVideoModelId } from './bytedance-video-settings';
 
-const byteDanceErrorSchema = z.object({
-  error: z.object({
-    message: z.string(),
-    code: z.string().nullish(),
-  }).nullish(),
-  message: z.string().nullish(),
-});
-
-const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: byteDanceErrorSchema,
-  errorToMessage: data => data.error?.message ?? data.message ?? 'Unknown error',
-});
-
-export type ByteDanceVideoCallOptions = {
+export type ByteDanceVideoProviderOptions = {
   watermark?: boolean | null;
   generateAudio?: boolean | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
@@ -55,7 +46,7 @@ interface ByteDanceVideoModelConfig extends ByteDanceConfig {
   };
 }
 
-export class ByteDanceVideoModel implements VideoModelV3 {
+export class ByteDanceVideoModel implements Experimental_VideoModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
@@ -69,22 +60,19 @@ export class ByteDanceVideoModel implements VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
     const byteDanceOptions = (await parseProviderOptions({
       provider: 'bytedance',
       providerOptions: options.providerOptions,
       schema: byteDanceVideoProviderOptionsSchema,
-    })) as ByteDanceVideoCallOptions | undefined;
+    })) as ByteDanceVideoProviderOptions | undefined;
 
-    // Build content array
     const content: Array<Record<string, unknown>> = [];
 
-    // Add prompt as text content
     if (options.prompt != null) {
       content.push({
         type: 'text',
@@ -92,46 +80,18 @@ export class ByteDanceVideoModel implements VideoModelV3 {
       });
     }
 
-    // Handle image-to-video: convert first file to image_url
-    if (options.files != null && options.files.length > 0) {
-      const firstFile = options.files[0];
-
-      if (firstFile.type === 'url') {
-        content.push({
-          type: 'image_url',
-          image_url: { url: firstFile.url },
-        });
-      } else {
-        // Convert base64/binary to data URI
-        const base64Data =
-          typeof firstFile.data === 'string'
-            ? firstFile.data
-            : Buffer.from(firstFile.data).toString('base64');
-
-        content.push({
-          type: 'image_url',
-          image_url: {
-            url: `data:${firstFile.mediaType};base64,${base64Data}`,
-          },
-        });
-      }
-
-      if (options.files.length > 1) {
-        warnings.push({
-          type: 'other',
-          message:
-            'ByteDance video models only support a single input image. Additional files are ignored.',
-        });
-      }
+    if (options.image != null) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: convertImageModelFileToDataUri(options.image) },
+      });
     }
 
-    // Build request body
     const body: Record<string, unknown> = {
       model: this.modelId,
       content,
     };
 
-    // Map SDK options to ByteDance API
     if (options.aspectRatio) {
       body.ratio = options.aspectRatio;
     }
@@ -148,26 +108,34 @@ export class ByteDanceVideoModel implements VideoModelV3 {
       body.resolution = options.resolution;
     }
 
-    // Add provider-specific options
     if (byteDanceOptions != null) {
-      if (byteDanceOptions.watermark !== undefined && byteDanceOptions.watermark !== null) {
+      if (
+        byteDanceOptions.watermark !== undefined &&
+        byteDanceOptions.watermark !== null
+      ) {
         body.watermark = byteDanceOptions.watermark;
       }
-      if (byteDanceOptions.generateAudio !== undefined && byteDanceOptions.generateAudio !== null) {
+      if (
+        byteDanceOptions.generateAudio !== undefined &&
+        byteDanceOptions.generateAudio !== null
+      ) {
         body.generate_audio = byteDanceOptions.generateAudio;
       }
 
-      // Pass through any additional options
-      for (const [key, value] of Object.entries(byteDanceOptions as any)) {
+      for (const [key, value] of Object.entries(byteDanceOptions)) {
         if (
-          !['watermark', 'generateAudio', 'pollIntervalMs', 'pollTimeoutMs'].includes(key)
+          ![
+            'watermark',
+            'generateAudio',
+            'pollIntervalMs',
+            'pollTimeoutMs',
+          ].includes(key)
         ) {
           body[key] = value;
         }
       }
     }
 
-    // Submit task
     const createUrl = `${this.config.baseURL}/contents/generations/tasks`;
 
     const { value: createResponse } = await postJsonToApi({
@@ -191,35 +159,14 @@ export class ByteDanceVideoModel implements VideoModelV3 {
       });
     }
 
-    // Poll for completion
-    const pollIntervalMs = byteDanceOptions?.pollIntervalMs ?? 3000; // 3 seconds
-    const pollTimeoutMs = byteDanceOptions?.pollTimeoutMs ?? 300000; // 5 minutes
+    const pollIntervalMs = byteDanceOptions?.pollIntervalMs ?? 3000;
+    const pollTimeoutMs = byteDanceOptions?.pollTimeoutMs ?? 300000;
 
     const startTime = Date.now();
-    let response;
-    let responseHeaders;
+    let response: ByteDanceResponse;
+    let responseHeaders: Record<string, string> | undefined;
 
     while (true) {
-      // Check timeout
-      if (Date.now() - startTime > pollTimeoutMs) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_TIMEOUT',
-          message: `Video generation timed out after ${pollTimeoutMs}ms`,
-        });
-      }
-
-      // Wait before polling
-      await delay(pollIntervalMs);
-
-      // Check abort signal
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'BYTEDANCE_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
-
-      // Poll status
       const statusUrl = `${this.config.baseURL}/contents/generations/tasks/${taskId}`;
 
       const { value: statusResponse, responseHeaders: statusHeaders } =
@@ -247,26 +194,30 @@ export class ByteDanceVideoModel implements VideoModelV3 {
         });
       }
 
-      // Still running, continue polling
+      if (Date.now() - startTime > pollTimeoutMs) {
+        throw new AISDKError({
+          name: 'BYTEDANCE_VIDEO_GENERATION_TIMEOUT',
+          message: `Video generation timed out after ${pollTimeoutMs}ms`,
+        });
+      }
+
+      await delay(pollIntervalMs);
+
+      if (options.abortSignal?.aborted) {
+        throw new AISDKError({
+          name: 'BYTEDANCE_VIDEO_GENERATION_ABORTED',
+          message: 'Video generation request was aborted',
+        });
+      }
     }
 
-    // Extract video URL
     const videoUrl = response.content?.video_url;
-
     if (!videoUrl) {
       throw new AISDKError({
         name: 'BYTEDANCE_VIDEO_GENERATION_ERROR',
         message: 'No video URL in response',
       });
     }
-
-    // Build provider metadata
-    const providerMetadata: any = {
-      bytedance: {
-        taskId,
-        usage: response.usage,
-      },
-    };
 
     return {
       videos: [
@@ -282,7 +233,12 @@ export class ByteDanceVideoModel implements VideoModelV3 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata,
+      providerMetadata: {
+        bytedance: {
+          taskId,
+          usage: response.usage,
+        },
+      },
     };
   }
 }
@@ -290,6 +246,8 @@ export class ByteDanceVideoModel implements VideoModelV3 {
 const byteDanceTaskResponseSchema = z.object({
   id: z.string().nullish(),
 });
+
+type ByteDanceResponse = z.infer<typeof byteDanceStatusResponseSchema>;
 
 const byteDanceStatusResponseSchema = z.object({
   id: z.string().nullish(),
@@ -305,4 +263,20 @@ const byteDanceStatusResponseSchema = z.object({
       completion_tokens: z.number().nullish(),
     })
     .nullish(),
+});
+
+const byteDanceErrorSchema = z.object({
+  error: z
+    .object({
+      message: z.string(),
+      code: z.string().nullish(),
+    })
+    .nullish(),
+  message: z.string().nullish(),
+});
+
+const byteDanceFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: byteDanceErrorSchema,
+  errorToMessage: data =>
+    data.error?.message ?? data.message ?? 'Unknown error',
 });
