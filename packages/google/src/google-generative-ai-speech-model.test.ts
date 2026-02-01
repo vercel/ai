@@ -307,8 +307,16 @@ describe('GoogleGenerativeAISpeechModel', () => {
       // WAV header is 44 bytes + PCM data (11 bytes for "Hello World")
       expect(result.audio.length).toBe(44 + 11);
       // Check WAV header magic bytes
-      expect(String.fromCharCode(...result.audio.slice(0, 4))).toBe('RIFF');
-      expect(String.fromCharCode(...result.audio.slice(8, 12))).toBe('WAVE');
+      expect(
+        String.fromCharCode(
+          ...Array.from(result.audio.slice(0, 4) as Uint8Array),
+        ),
+      ).toBe('RIFF');
+      expect(
+        String.fromCharCode(
+          ...Array.from(result.audio.slice(8, 12) as Uint8Array),
+        ),
+      ).toBe('WAVE');
     });
 
     it('should include response metadata with timestamp, modelId, and headers', async () => {
