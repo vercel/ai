@@ -4,6 +4,7 @@ import {
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  SpeechModelV3,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,6 +27,8 @@ import {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import { GoogleGenerativeAISpeechModel } from './google-generative-ai-speech-model';
+import { GoogleGenerativeAISpeechModelId } from './google-generative-ai-speech-settings';
 
 export interface GoogleGenerativeAIProvider extends ProviderV3 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
@@ -46,6 +49,16 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
    * Creates a model for video generation.
    */
   video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for speech generation.
+   */
+  speech(modelId: GoogleGenerativeAISpeechModelId): SpeechModelV3;
+
+  /**
+   * Creates a model for speech generation.
+   */
+  speechModel(modelId: GoogleGenerativeAISpeechModelId): SpeechModelV3;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -187,6 +200,14 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
+  const createSpeechModel = (modelId: GoogleGenerativeAISpeechModelId) =>
+    new GoogleGenerativeAISpeechModel(modelId, {
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -208,6 +229,8 @@ export function createGoogleGenerativeAI(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;
