@@ -41,7 +41,7 @@ If you need a customized setup, you can import `createByteDance` and create a pr
 import { createByteDance } from '@ai-sdk/bytedance';
 
 const byteDance = createByteDance({
-  apiKey: 'your-api-key', // optional, defaults to ARK_API_KEY environment variable
+  apiKey: 'your-api-key', // optional, defaults to BYTEDANCE_ARK_API_KEY environment variable
   baseURL: 'custom-url', // optional
   headers: {
     /* custom headers */
@@ -156,7 +156,7 @@ Since ByteDance processes videos through an asynchronous queue system, these set
 
 ### Model Capabilities
 
-ByteDance offers the Seedance family of video generation models. Models are accessed via endpoint IDs provided by the BytePlus ModelArk platform.
+ByteDance offers the Seedance family of video generation models. To use these models, you must first [create an inference endpoint](https://docs.byteplus.com/en/docs/ModelArk/Video_Generation_API) in the BytePlus ModelArk console. Each endpoint you create will have a unique endpoint ID (e.g., `ep-xxxxxxxxxxxx-xxxxx`) that you pass to `byteDance.video()`.
 
 | Model                 | Description                                |
 | --------------------- | ------------------------------------------ |
