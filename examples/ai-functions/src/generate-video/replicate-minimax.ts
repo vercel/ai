@@ -1,4 +1,7 @@
-import { replicate } from '@ai-sdk/replicate';
+import {
+  type ReplicateVideoProviderOptions,
+  replicate,
+} from '@ai-sdk/replicate';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -8,9 +11,13 @@ run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: replicate.video('minimax/video-01'),
-      prompt:
-        'A bumblebee on a dandelion in the Marin Headlands surrounded by pollen dust.',
+      prompt: 'A bumblebee on a dandelion in Bali surrounded by pollen dust.',
       aspectRatio: '16:9',
+      providerOptions: {
+        replicate: {
+          pollTimeoutMs: 600000, // 10 minutes
+        } satisfies ReplicateVideoProviderOptions,
+      },
     }),
   );
 

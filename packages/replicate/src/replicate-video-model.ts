@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
 
-export type ReplicateVideoCallOptions = {
+export type ReplicateVideoProviderOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -78,7 +78,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
       provider: 'replicate',
       providerOptions: options.providerOptions,
       schema: replicateVideoProviderOptionsSchema,
-    })) as ReplicateVideoCallOptions | undefined;
+    })) as ReplicateVideoProviderOptions | undefined;
 
     const [modelId, version] = this.modelId.split(':');
     const input: Record<string, unknown> = {};
@@ -106,7 +106,7 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
     }
 
     if (options.aspectRatio) {
-      input.aspect_ratio = mapAspectRatio(options.aspectRatio);
+      input.aspect_ratio = options.aspectRatio;
     }
 
     if (options.resolution) {
@@ -312,20 +312,6 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
         },
       },
     };
-  }
-}
-
-function mapAspectRatio(aspectRatio: `${number}:${number}`): string {
-  switch (aspectRatio) {
-    case '16:9':
-      return 'landscape';
-    case '9:16':
-      return 'portrait';
-    case '1:1':
-      return 'square';
-    default:
-      // Pass through for models that accept numeric ratios directly
-      return aspectRatio;
   }
 }
 

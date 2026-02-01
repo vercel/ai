@@ -1,6 +1,6 @@
 import {
+  type GoogleGenerativeAIVideoProviderOptions,
   google,
-  type GoogleGenerativeAIVideoCallOptions,
 } from '@ai-sdk/google';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
@@ -11,14 +11,13 @@ run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: google.video('veo-3.1-generate-preview'),
-      prompt:
-        'A Bedlington Terrier leaping at Crissy Field at sunset in pointillist style.',
+      prompt: 'A Bedlington Terrier leaping at Crissy Field at sunset.',
       aspectRatio: '16:9',
       duration: 6,
       providerOptions: {
         google: {
           pollTimeoutMs: 600000, // 10 minutes
-        } satisfies GoogleGenerativeAIVideoCallOptions,
+        } satisfies GoogleGenerativeAIVideoProviderOptions,
       },
     }),
   );

@@ -1,4 +1,7 @@
-import { replicate } from '@ai-sdk/replicate';
+import {
+  type ReplicateVideoProviderOptions,
+  replicate,
+} from '@ai-sdk/replicate';
 import { experimental_generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
@@ -12,6 +15,11 @@ run(async () => {
         'A battle between Pikachu and Ultraman in San Francisco Bay with Alcatraz in the background with a lighthouse at night.',
       aspectRatio: '16:9',
       duration: 4,
+      providerOptions: {
+        replicate: {
+          pollTimeoutMs: 600000, // 10 minutes
+        } satisfies ReplicateVideoProviderOptions,
+      },
     }),
   );
 

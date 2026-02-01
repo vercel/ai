@@ -3,7 +3,7 @@ export type { GoogleGenerativeAIProviderOptions } from './google-generative-ai-o
 export type { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 export type { GoogleGenerativeAIImageProviderOptions } from './google-generative-ai-image-model';
 export type { GoogleGenerativeAIEmbeddingProviderOptions } from './google-generative-ai-embedding-options';
-export type { GoogleGenerativeAIVideoProviderOptions as GoogleGenerativeAIVideoCallOptions } from './google-generative-ai-video-model';
+export type { GoogleGenerativeAIVideoProviderOptions } from './google-generative-ai-video-model';
 export type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 export { createGoogleGenerativeAI, google } from './google-provider';
 export type {
