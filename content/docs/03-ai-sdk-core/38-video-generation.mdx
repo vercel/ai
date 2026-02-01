@@ -18,7 +18,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
 });
 ```
@@ -42,7 +42,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
   aspectRatio: '16:9',
 });
@@ -73,7 +73,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A timelapse of clouds moving across the sky',
   duration: 5,
 });
@@ -88,7 +88,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A hummingbird in slow motion',
   fps: 24,
 });
@@ -136,7 +136,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/stable-video-diffusion'),
+  model: fal.video('hunyuan-video'),
   prompt: {
     files: ['https://example.com/my-image.png'],
     text: 'Animate this image with gentle motion',
@@ -148,7 +148,7 @@ You can also provide images as base64-encoded strings or `Uint8Array`:
 
 ```tsx
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/stable-video-diffusion'),
+  model: fal.video('hunyuan-video'),
   prompt: {
     files: [imageBase64String], // or imageUint8Array
     text: 'Animate this image',
@@ -166,7 +166,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
   seed: 1234567890,
 });
@@ -184,7 +184,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
   aspectRatio: '16:9',
   providerOptions: {
@@ -204,7 +204,7 @@ import { fal } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
   abortSignal: AbortSignal.timeout(60000), // Abort after 60 seconds
 });
@@ -225,7 +225,7 @@ import { fal } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -237,7 +237,7 @@ If the model returns warnings, e.g. for unsupported parameters, they will be ava
 
 ```tsx
 const { video, warnings } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt: 'A cat walking on a treadmill',
 });
 ```
@@ -250,7 +250,7 @@ Some providers expose additional metadata for the result overall or per video.
 const prompt = 'A cat walking on a treadmill';
 
 const { video, providerMetadata } = await generateVideo({
-  model: fal.video('fal-ai/luma-dream-machine'),
+  model: fal.video('luma-dream-machine'),
   prompt,
 });
 
@@ -319,14 +319,12 @@ try {
 
 ## Video Models
 
-| Provider                                                                | Model                                 | Features                               |
-| ----------------------------------------------------------------------- | ------------------------------------- | -------------------------------------- |
-| [FAL](/providers/ai-sdk-providers/fal#video-models)                     | `fal-ai/luma-dream-machine`           | Text-to-video, image-to-video          |
-| [FAL](/providers/ai-sdk-providers/fal#video-models)                     | `fal-ai/minimax-video`                | Text-to-video                          |
-| [FAL](/providers/ai-sdk-providers/fal#video-models)                     | `fal-ai/stable-video-diffusion`       | Image-to-video                         |
-| [Google](/providers/ai-sdk-providers/google#video-models)               | `veo-2.0-generate-001`                | Text-to-video, up to 4 videos per call |
-| [Google Vertex](/providers/ai-sdk-providers/google-vertex#video-models) | `veo-2.0-generate-001`                | Text-to-video, up to 4 videos per call |
-| [Replicate](/providers/ai-sdk-providers/replicate#video-models)         | `minimax/video-01`                    | Text-to-video                          |
-| [Replicate](/providers/ai-sdk-providers/replicate#video-models)         | `stability-ai/stable-video-diffusion` | Image-to-video                         |
+| Provider                                                                | Model                  | Features                               |
+| ----------------------------------------------------------------------- | ---------------------- | -------------------------------------- |
+| [FAL](/providers/ai-sdk-providers/fal#video-models)                     | `luma-dream-machine`   | Text-to-video, image-to-video          |
+| [FAL](/providers/ai-sdk-providers/fal#video-models)                     | `minimax-video`        | Text-to-video                          |
+| [Google](/providers/ai-sdk-providers/google#video-models)               | `veo-2.0-generate-001` | Text-to-video, up to 4 videos per call |
+| [Google Vertex](/providers/ai-sdk-providers/google-vertex#video-models) | `veo-2.0-generate-001` | Text-to-video, up to 4 videos per call |
+| [Replicate](/providers/ai-sdk-providers/replicate#video-models)         | `minimax/video-01`     | Text-to-video                          |
 
 Above are a small subset of the video models supported by the AI SDK providers. For more, see the respective provider documentation.

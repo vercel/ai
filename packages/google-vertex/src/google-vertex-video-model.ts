@@ -268,10 +268,10 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
     }
 
     const response = finalOperation.response;
-    if (!response?.generated_videos || response.generated_videos.length === 0) {
+    if (!response?.videos || response.videos.length === 0) {
       throw new AISDKError({
         name: 'VERTEX_VIDEO_GENERATION_ERROR',
-        message: 'No videos in response',
+        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
       });
     }
 
@@ -281,30 +281,29 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
       | { type: 'url'; url: string; mediaType: string }
     > = [];
     const videoMetadata: Array<{
-      uri?: string;
       gcsUri?: string | null | undefined;
       mimeType?: string | null | undefined;
     }> = [];
 
-    for (const generatedVideo of response.generated_videos) {
-      if (generatedVideo.video?.bytesBase64Encoded) {
+    for (const video of response.videos) {
+      if (video.bytesBase64Encoded) {
         videos.push({
           type: 'base64',
-          data: generatedVideo.video.bytesBase64Encoded,
-          mediaType: generatedVideo.video.mimeType || 'video/mp4',
+          data: video.bytesBase64Encoded,
+          mediaType: video.mimeType || 'video/mp4',
         });
         videoMetadata.push({
-          mimeType: generatedVideo.video.mimeType,
+          mimeType: video.mimeType,
         });
-      } else if (generatedVideo.video?.gcsUri) {
+      } else if (video.gcsUri) {
         videos.push({
           type: 'url',
-          url: generatedVideo.video.gcsUri,
-          mediaType: generatedVideo.video.mimeType || 'video/mp4',
+          url: video.gcsUri,
+          mediaType: video.mimeType || 'video/mp4',
         });
         videoMetadata.push({
-          gcsUri: generatedVideo.video.gcsUri,
-          mimeType: generatedVideo.video.mimeType,
+          gcsUri: video.gcsUri,
+          mimeType: video.mimeType,
         });
       }
     }
@@ -345,19 +344,16 @@ const vertexOperationSchema = z.object({
     .nullish(),
   response: z
     .object({
-      generated_videos: z
+      videos: z
         .array(
           z.object({
-            video: z
-              .object({
-                bytesBase64Encoded: z.string().nullish(),
-                gcsUri: z.string().nullish(),
-                mimeType: z.string().nullish(),
-              })
-              .nullish(),
+            bytesBase64Encoded: z.string().nullish(),
+            gcsUri: z.string().nullish(),
+            mimeType: z.string().nullish(),
           }),
         )
         .nullish(),
+      raiMediaFilteredCount: z.number().nullish(),
     })
     .nullish(),
 });

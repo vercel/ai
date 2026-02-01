@@ -13,7 +13,7 @@ run(async () => {
   const { video } = await withSpinner('Generating video...', () =>
     experimental_generateVideo({
       model: vertex.video('veo-3.1-fast-generate-001'),
-      prompt: 'A salamander in a forest pond at dusk surrounded by fireflies.',
+      prompt: 'A salamander in a forest pond at dusk with luminescent algae.',
       aspectRatio: '16:9',
       resolution: '1920x1080',
       duration: 8,

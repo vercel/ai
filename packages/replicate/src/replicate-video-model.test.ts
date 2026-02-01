@@ -274,12 +274,12 @@ describe('ReplicateVideoModel', () => {
       expect(capturedBody).toMatchObject({
         input: {
           prompt,
-          aspect_ratio: 'landscape', // 16:9 is mapped to 'landscape'
+          aspect_ratio: '16:9',
         },
       });
     });
 
-    it('should map 9:16 aspect ratio to portrait', async () => {
+    it('should pass through 9:16 aspect ratio', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         pollsUntilDone: 0,
@@ -301,12 +301,12 @@ describe('ReplicateVideoModel', () => {
       expect(capturedBody).toMatchObject({
         input: {
           prompt,
-          aspect_ratio: 'portrait',
+          aspect_ratio: '9:16',
         },
       });
     });
 
-    it('should map 1:1 aspect ratio to square', async () => {
+    it('should pass through 1:1 aspect ratio', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         pollsUntilDone: 0,
@@ -328,12 +328,12 @@ describe('ReplicateVideoModel', () => {
       expect(capturedBody).toMatchObject({
         input: {
           prompt,
-          aspect_ratio: 'square',
+          aspect_ratio: '1:1',
         },
       });
     });
 
-    it('should pass through unmapped aspect ratios', async () => {
+    it('should pass through other aspect ratios', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         pollsUntilDone: 0,

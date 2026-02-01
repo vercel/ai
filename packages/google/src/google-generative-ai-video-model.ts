@@ -275,7 +275,7 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV3 {
     ) {
       throw new AISDKError({
         name: 'GOOGLE_VIDEO_GENERATION_ERROR',
-        message: 'No videos in response',
+        message: `No videos in response. Response: ${JSON.stringify(finalOperation)}`,
       });
     }
 
