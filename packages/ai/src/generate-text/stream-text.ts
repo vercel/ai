@@ -108,6 +108,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
+import { TextOnFinishEvent } from './text-on-finish-callback';
 import { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
@@ -172,26 +173,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
  * @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: StepResult<TOOLS> & {
-    /**
-     * Details for all steps.
-     */
-    readonly steps: StepResult<TOOLS>[];
-
-    /**
-     * Total usage for all steps. This is the sum of the usage of all steps.
-     */
-    readonly totalUsage: LanguageModelUsage;
-
-    /**
-     * Context that is passed into tool execution.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
-  },
+  event: TextOnFinishEvent<TOOLS>,
 ) => PromiseLike<void> | void;
 
 /**
