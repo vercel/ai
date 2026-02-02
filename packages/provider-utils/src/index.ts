@@ -60,7 +60,7 @@ export * from './without-trailing-slash';
 export * from './types';
 
 // external re-exports
-export * from '@standard-schema/spec';
+export type * from '@standard-schema/spec';
 export {
   EventSourceParserStream,
   type EventSourceMessage,

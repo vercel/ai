@@ -1,5 +1,25 @@
 # @ai-sdk/google-vertex
 
+## 4.0.41
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/google@3.0.20
+  - @ai-sdk/anthropic@3.0.35
+  - @ai-sdk/provider-utils@4.0.13
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/anthropic@3.0.34
+  - @ai-sdk/google@3.0.19
+
 ## 4.0.39
 
 ### Patch Changes
