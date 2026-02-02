@@ -940,7 +940,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "outputTokens": {
             "reasoning": undefined,
-            "text": 5,
+            "text": undefined,
             "total": 5,
           },
           "raw": {
@@ -1515,7 +1515,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": 50,
+              "text": undefined,
               "total": 50,
             },
             "raw": {
@@ -1677,7 +1677,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "outputTokens": {
               "reasoning": undefined,
-              "text": 50,
+              "text": undefined,
               "total": 50,
             },
             "raw": {
@@ -4316,7 +4316,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": 47,
+                  "text": undefined,
                   "total": 47,
                 },
                 "raw": {
@@ -4465,7 +4465,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": 47,
+                  "text": undefined,
                   "total": 47,
                 },
                 "raw": {
@@ -4659,7 +4659,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": 28,
+                    "text": undefined,
                     "total": 28,
                   },
                   "raw": {
@@ -4854,7 +4854,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -4995,7 +4995,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -5093,7 +5093,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -5177,7 +5177,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -5190,6 +5190,39 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
+    });
+
+    it('should parse context_management from streaming response', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50},"context_management":{"applied_edits":[{"type":"clear_tool_uses_20250919","cleared_tool_uses":5,"cleared_input_tokens":10000}]}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            clearedToolUses: 5,
+            clearedInputTokens: 10000,
+          },
+        ],
+      });
     });
 
     it('should stream tool deltas', async () => {
@@ -5329,7 +5362,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 65,
+                "text": undefined,
                 "total": 65,
               },
               "raw": {
@@ -5588,7 +5621,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -5683,7 +5716,96 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "outputTokens": {
                 "reasoning": undefined,
-                "text": 227,
+                "text": undefined,
+                "total": 227,
+              },
+              "raw": {
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 17,
+                "output_tokens": 227,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should support cache tokens in message_delta event', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type": "ping"}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          // cache tokens sent in message_delta:
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const model = provider('claude-3-haiku-20240307');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": 10,
+                "container": null,
+                "contextManagement": null,
+                "stopSequence": null,
+                "usage": {
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 227,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 5,
+                "cacheWrite": 10,
+                "noCache": 17,
+                "total": 32,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
                 "total": 227,
               },
               "raw": {
@@ -5798,7 +5920,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": 227,
+                  "text": undefined,
                   "total": 227,
                 },
                 "raw": {
@@ -5863,7 +5985,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": 227,
+                  "text": undefined,
                   "total": 227,
                 },
                 "raw": {
@@ -6115,7 +6237,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "outputTokens": {
                   "reasoning": undefined,
-                  "text": 227,
+                  "text": undefined,
                   "total": 227,
                 },
                 "raw": {
@@ -6324,7 +6446,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": 65,
+                    "text": undefined,
                     "total": 65,
                   },
                   "raw": {
@@ -6439,7 +6561,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   "outputTokens": {
                     "reasoning": undefined,
-                    "text": 48,
+                    "text": undefined,
                     "total": 48,
                   },
                   "raw": {

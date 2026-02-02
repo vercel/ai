@@ -1,5 +1,14 @@
 import { z } from 'zod/v4';
 
+export type XaiResponsesIncludeValue =
+  | 'file_search_call.results'
+  | 'reasoning.encrypted_content';
+
+export type XaiResponsesIncludeOptions =
+  | Array<XaiResponsesIncludeValue>
+  | undefined
+  | null;
+
 export type XaiResponsesInput = Array<XaiResponsesInputItem>;
 
 export type XaiResponsesInputItem =
@@ -82,7 +91,11 @@ export type XaiResponsesTool =
   | { type: 'code_interpreter' }
   | { type: 'view_image' }
   | { type: 'view_x_video' }
-  | { type: 'file_search' }
+  | {
+      type: 'file_search';
+      vector_store_ids?: string[];
+      max_num_results?: number;
+    }
   | {
       type: 'mcp';
       server_url: string;
@@ -166,6 +179,22 @@ const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('view_x_video_call'),
     ...toolCallSchema.shape,
+  }),
+  z.object({
+    type: z.literal('file_search_call'),
+    id: z.string(),
+    status: z.string(),
+    queries: z.array(z.string()).optional(),
+    results: z
+      .array(
+        z.object({
+          file_id: z.string(),
+          filename: z.string(),
+          score: z.number(),
+          text: z.string(),
+        }),
+      )
+      .nullish(),
   }),
   z.object({
     type: z.literal('custom_tool_call'),
@@ -343,12 +372,17 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
   }),
   z.object({
-    type: z.literal('response.custom_tool_call_input.done'),
+    type: z.literal('response.file_search_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),
   }),
   z.object({
-    type: z.literal('response.custom_tool_call_input.delta'),
+    type: z.literal('response.file_search_call.searching'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.file_search_call.completed'),
     item_id: z.string(),
     output_index: z.number(),
   }),

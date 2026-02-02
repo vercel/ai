@@ -1947,6 +1947,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               }
               usage.output_tokens = value.usage.output_tokens;
 
+              if (value.usage.cache_read_input_tokens != null) {
+                usage.cache_read_input_tokens =
+                  value.usage.cache_read_input_tokens;
+              }
+              if (value.usage.cache_creation_input_tokens != null) {
+                usage.cache_creation_input_tokens =
+                  value.usage.cache_creation_input_tokens;
+                cacheCreationInputTokens =
+                  value.usage.cache_creation_input_tokens;
+              }
+
               finishReason = {
                 unified: mapAnthropicStopReason({
                   finishReason: value.delta.stop_reason,
@@ -1970,9 +1981,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                     }
                   : null;
 
-              if (value.delta.context_management) {
+              if (value.context_management) {
                 contextManagement = mapAnthropicResponseContextManagement(
-                  value.delta.context_management,
+                  value.context_management,
                 );
               }
 
