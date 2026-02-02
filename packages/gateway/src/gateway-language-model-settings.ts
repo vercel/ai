@@ -124,8 +124,6 @@ export type GatewayModelId =
   | 'perplexity/sonar-reasoning'
   | 'perplexity/sonar-reasoning-pro'
   | 'prime-intellect/intellect-3'
-  | 'stealth/sonoma-dusk-alpha'
-  | 'stealth/sonoma-sky-alpha'
   | 'vercel/v0-1.0-md'
   | 'vercel/v0-1.5-md'
   | 'xai/grok-2-vision'
