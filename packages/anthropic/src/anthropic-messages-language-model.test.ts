@@ -5192,6 +5192,39 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+    it('should parse context_management from streaming response', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50},"context_management":{"applied_edits":[{"type":"clear_tool_uses_20250919","cleared_tool_uses":5,"cleared_input_tokens":10000}]}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            clearedToolUses: 5,
+            clearedInputTokens: 10000,
+          },
+        ],
+      });
+    });
+
     it('should stream tool deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -5666,6 +5699,95 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "ephemeral_1h_input_tokens": 10,
                     "ephemeral_5m_input_tokens": 0,
                   },
+                  "cache_creation_input_tokens": 10,
+                  "cache_read_input_tokens": 5,
+                  "input_tokens": 17,
+                  "output_tokens": 227,
+                },
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": {
+                "cacheRead": 5,
+                "cacheWrite": 10,
+                "noCache": 17,
+                "total": 32,
+              },
+              "outputTokens": {
+                "reasoning": undefined,
+                "text": undefined,
+                "total": 227,
+              },
+              "raw": {
+                "cache_creation_input_tokens": 10,
+                "cache_read_input_tokens": 5,
+                "input_tokens": 17,
+                "output_tokens": 227,
+              },
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should support cache tokens in message_delta event', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type": "ping"}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          // cache tokens sent in message_delta:
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227,"cache_creation_input_tokens":10,"cache_read_input_tokens":5}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const model = provider('claude-3-haiku-20240307');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "id": "0",
+            "type": "text-start",
+          },
+          {
+            "delta": "Hello",
+            "id": "0",
+            "type": "text-delta",
+          },
+          {
+            "id": "0",
+            "type": "text-end",
+          },
+          {
+            "finishReason": {
+              "raw": "end_turn",
+              "unified": "stop",
+            },
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": 10,
+                "container": null,
+                "contextManagement": null,
+                "stopSequence": null,
+                "usage": {
                   "cache_creation_input_tokens": 10,
                   "cache_read_input_tokens": 5,
                   "input_tokens": 17,
@@ -7363,6 +7485,264 @@ describe('AnthropicMessagesLanguageModel', () => {
         model: 'claude-3-haiku-20240307',
       });
       expect(requestBody).not.toHaveProperty('custom_field');
+    });
+  });
+
+  describe('custom provider name support', () => {
+    function createCustomModel(providerName: string) {
+      return createAnthropic({
+        apiKey: 'test-api-key',
+        name: providerName,
+        generateId: mockId({ prefix: 'id' }),
+      })('claude-3-haiku-20240307');
+    }
+
+    function prepareCustomJsonResponse() {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_custom_test',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hello, World!' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+          },
+        },
+      };
+    }
+
+    function prepareCustomStreamResponse() {
+      const chunks = [
+        `{"type":"message_start","message":{"id":"msg_custom_stream","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":0}}}`,
+        `{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+        `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}`,
+        `{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" World!"}}`,
+        `{"type":"content_block_stop","index":0}`,
+        `{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":20}}`,
+        `{"type":"message_stop"}`,
+      ];
+
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [...chunks.map(c => `data: ${c}\n\n`), 'data: [DONE]\n\n'],
+      };
+    }
+
+    describe('doGenerate', () => {
+      // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        // Only 'anthropic' key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // Case 2: providerOptions with custom key → both 'anthropic' and custom key in providerMetadata
+      it('should include both "anthropic" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        // Both 'anthropic' and custom key should be in providerMetadata
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(result.providerMetadata).toHaveProperty('my-custom-anthropic');
+      });
+
+      // Fallback: no providerOptions → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const result = await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Only 'anthropic' key should be in providerMetadata (default)
+        expect(result.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(result.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // providerOptions parsing tests
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+
+      it('should accept providerOptions with canonical "anthropic" key for backward compatibility', async () => {
+        prepareCustomJsonResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
+    });
+
+    describe('doStream', () => {
+      // Case 1: providerOptions with 'anthropic' key → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when providerOptions uses "anthropic" key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'anthropic' key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      // Case 2: providerOptions with custom key → both 'anthropic' and custom key in providerMetadata
+      it('should include both "anthropic" and custom key in providerMetadata when providerOptions uses custom key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              sendReasoning: true,
+            },
+          },
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Both 'anthropic' and custom key should be in providerMetadata
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(finishChunk?.providerMetadata).toHaveProperty(
+          'my-custom-anthropic',
+        );
+      });
+
+      // Fallback: no providerOptions → only 'anthropic' in providerMetadata
+      it('should only include "anthropic" key in providerMetadata when no providerOptions used', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        const { stream } = await customModel.doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const chunks = await convertReadableStreamToArray(stream);
+        const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+        // Only 'anthropic' key should be in providerMetadata (default)
+        expect(finishChunk?.providerMetadata).toHaveProperty('anthropic');
+        expect(Object.keys(finishChunk?.providerMetadata ?? {})).toStrictEqual([
+          'anthropic',
+        ]);
+      });
+
+      it('should accept providerOptions with custom provider name key', async () => {
+        prepareCustomStreamResponse();
+
+        const customModel = createCustomModel('my-custom-anthropic');
+
+        await customModel.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'my-custom-anthropic': {
+              disableParallelToolUse: true,
+            },
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'testTool',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+      });
     });
   });
 });

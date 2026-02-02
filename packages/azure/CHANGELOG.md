@@ -1,5 +1,75 @@
 # @ai-sdk/azure
 
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai@3.0.25
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai@3.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai@3.0.23
+
+## 3.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai@3.0.22
+
+## 3.0.22
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [2c70b90]
+  - @ai-sdk/openai@3.0.21
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai@3.0.20
+
+## 3.0.19
+
+### Patch Changes
+
+- 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
+
+  - Export the following types for use in client code:
+    - `OpenaiResponsesProviderMetadata`
+    - `OpenaiResponsesReasoningProviderMetadata`
+    - `AzureResponsesProviderMetadata`
+    - `AzureResponsesReasoningProviderMetadata`
+
+- Updated dependencies [04c89b1]
+  - @ai-sdk/openai@3.0.19
+
 ## 3.0.18
 
 ### Patch Changes

@@ -44,8 +44,8 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   | ChatInit<UI_MESSAGE>
 ) & {
   /**
-Custom throttle wait in ms for the chat messages and data updates.
-Default is undefined, which disables throttling.
+   * Custom throttle wait in ms for the chat messages and data updates.
+   * Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
 

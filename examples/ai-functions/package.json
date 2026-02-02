@@ -1,5 +1,5 @@
 {
-  "name": "@example/ai-functionstions",
+  "name": "@example/ai-functions",
   "version": "0.0.0",
   "private": true,
   "dependencies": {
@@ -27,7 +27,7 @@
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mcp": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
-    "@ai-sdk/openai": "3.0.18",
+    "@ai-sdk/openai": "3.0.25",
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/prodia": "workspace:*",

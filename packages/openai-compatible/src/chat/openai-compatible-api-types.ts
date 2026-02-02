@@ -58,6 +58,7 @@ export interface OpenAICompatibleAssistantMessage
   extends JsonRecord<OpenAICompatibleMessageToolCall> {
   role: 'assistant';
   content?: string | null;
+  reasoning_content?: string;
   tool_calls?: Array<OpenAICompatibleMessageToolCall>;
 }
 

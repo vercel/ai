@@ -7,13 +7,16 @@ import {
 import { Response } from '@/components/ai-elements/response';
 import ChatInput from '@/components/chat-input';
 import { ReasoningView } from '@/components/reasoning-view';
+import { OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, ProviderMetadata } from 'ai';
+import { DefaultChatTransport } from 'ai';
 import { useRef } from 'react';
 
 export default function OpenPreviousResponseIdPage() {
   // Keep the last provider metadata so we can supply previousResponseId on the next request.
-  const providerMetadataRef = useRef<ProviderMetadata | undefined>(undefined);
+  const providerMetadataRef = useRef<
+    OpenaiResponsesProviderMetadata | undefined
+  >(undefined);
 
   const { error, status, sendMessage, messages, regenerate } =
     useChat<PreviousResponseIdUIMessage>({

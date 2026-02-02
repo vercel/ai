@@ -36,7 +36,11 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types';
+import {
+  LanguageModel,
+  LanguageModelRequestMetadata,
+  ToolChoice,
+} from '../types';
 import {
   addLanguageModelUsage,
   asLanguageModelUsage,
@@ -81,18 +85,18 @@ const originalGenerateId = createIdGenerator({
 });
 
 /**
-Callback that is set using the `onStepFinish` option.
-
-@param stepResult - The result of the step.
+ * Callback that is set using the `onStepFinish` option.
+ *
+ * @param stepResult - The result of the step.
  */
 export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
 ) => Promise<void> | void;
 
 /**
-Callback that is set using the `onFinish` option.
-
-@param event - The event that is passed to the callback.
+ * Callback that is set using the `onFinish` option.
+ *
+ * @param event - The event that is passed to the callback.
  */
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
   event: StepResult<TOOLS> & {
@@ -118,52 +122,50 @@ export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
 ) => PromiseLike<void> | void;
 
 /**
-Generate a text and call tools for a given prompt using a language model.
-
-This function does not stream the output. If you want to stream the output, use `streamText` instead.
-
-@param model - The language model to use.
-
-@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
-@param toolChoice - The tool choice strategy. Default: 'auto'.
-
-@param system - A system message that will be part of the prompt.
-@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
-@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
-
-@param maxOutputTokens - Maximum number of tokens to generate.
-@param temperature - Temperature setting.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topP - Nucleus sampling.
-The value is passed through to the provider. The range depends on the provider and model.
-It is recommended to set either `temperature` or `topP`, but not both.
-@param topK - Only sample from the top K options for each subsequent token.
-Used to remove "long tail" low probability responses.
-Recommended for advanced use cases only. You usually only need to use temperature.
-@param presencePenalty - Presence penalty setting.
-It affects the likelihood of the model to repeat information that is already in the prompt.
-The value is passed through to the provider. The range depends on the provider and model.
-@param frequencyPenalty - Frequency penalty setting.
-It affects the likelihood of the model to repeatedly use the same words or phrases.
-The value is passed through to the provider. The range depends on the provider and model.
-@param stopSequences - Stop sequences.
-If set, the model will stop generating text when one of the stop sequences is generated.
-@param seed - The seed (integer) to use for random sampling.
-If set and supported by the model, calls will generate deterministic results.
-
-@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
-@param abortSignal - An optional abort signal that can be used to cancel the call.
-@param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
-@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
-
-@param experimental_generateMessageId - Generate a unique ID for each message.
-
-@param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
-@param onFinish - Callback that is called when all steps are finished and the response is complete.
-
-@returns
-A result object that contains the generated text, the results of the tool calls, and additional information.
+ * Generate a text and call tools for a given prompt using a language model.
+ *
+ * This function does not stream the output. If you want to stream the output, use `streamText` instead.
+ *
+ * @param model - The language model to use.
+ *
+ * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * @param toolChoice - The tool choice strategy. Default: 'auto'.
+ *
+ * @param system - A system message that will be part of the prompt.
+ * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+ * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ *
+ * @param maxOutputTokens - Maximum number of tokens to generate.
+ * @param temperature - Temperature setting.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topP - Nucleus sampling.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topK - Only sample from the top K options for each subsequent token.
+ * Used to remove "long tail" low probability responses.
+ * Recommended for advanced use cases only. You usually only need to use temperature.
+ * @param presencePenalty - Presence penalty setting.
+ * It affects the likelihood of the model to repeat information that is already in the prompt.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param frequencyPenalty - Frequency penalty setting.
+ * It affects the likelihood of the model to repeatedly use the same words or phrases.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param stopSequences - Stop sequences.
+ * If set, the model will stop generating text when one of the stop sequences is generated.
+ * @param seed - The seed (integer) to use for random sampling.
+ * If set and supported by the model, calls will generate deterministic results.
+ *
+ * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
+ * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ *
+ * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+ * @param onFinish - Callback that is called when all steps are finished and the response is complete.
+ *
+ * @returns
+ * A result object that contains the generated text, the results of the tool calls, and additional information.
  */
 export async function generateText<
   TOOLS extends ToolSet,
@@ -191,6 +193,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   experimental_context,
+  experimental_include: include,
   _internal: { generateId = originalGenerateId } = {},
   onStepFinish,
   onFinish,
@@ -198,40 +201,40 @@ export async function generateText<
 }: CallSettings &
   Prompt & {
     /**
-The language model to use.
+     * The language model to use.
      */
     model: LanguageModel;
 
     /**
-The tools that the model can call. The model needs to support calling tools.
-*/
+     * The tools that the model can call. The model needs to support calling tools.
+     */
     tools?: TOOLS;
 
     /**
-The tool choice strategy. Default: 'auto'.
+     * The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;
 
     /**
-Condition for stopping the generation when there are tool results in the last step.
-When the condition is an array, any of the conditions can be met to stop the generation.
-
-@default stepCountIs(1)
+     * Condition for stopping the generation when there are tool results in the last step.
+     * When the condition is an array, any of the conditions can be met to stop the generation.
+     *
+     * @default stepCountIs(1)
      */
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
-Optional telemetry configuration (experimental).
+     * Optional telemetry configuration (experimental).
      */
     experimental_telemetry?: TelemetrySettings;
 
     /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
     providerOptions?: ProviderOptions;
 
     /**
@@ -240,27 +243,27 @@ functionality that can be fully encapsulated in the provider.
     experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
-Limits the tools that are available for the model to call without
-changing the tool call and result types in the result.
+     * Limits the tools that are available for the model to call without
+     * changing the tool call and result types in the result.
      */
     activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
-Optional specification for parsing structured outputs from the LLM response.
+     * Optional specification for parsing structured outputs from the LLM response.
      */
     output?: OUTPUT;
 
     /**
-Optional specification for parsing structured outputs from the LLM response.
-
-@deprecated Use `output` instead.
+     * Optional specification for parsing structured outputs from the LLM response.
+     *
+     * @deprecated Use `output` instead.
      */
     experimental_output?: OUTPUT;
 
     /**
-Custom download function to use for URLs.
-
-By default, files are downloaded if the model does not support the URL for the given media type.
+     * Custom download function to use for URLs.
+     *
+     * By default, files are downloaded if the model does not support the URL for the given media type.
      */
     experimental_download?: DownloadFunction | undefined;
 
@@ -270,12 +273,12 @@ By default, files are downloaded if the model does not support the URL for the g
     experimental_prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
-Optional function that you can use to provide different settings for a step.
-    */
+     * Optional function that you can use to provide different settings for a step.
+     */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>>;
 
     /**
-A function that attempts to repair a tool call that failed to parse.
+     * A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<NoInfer<TOOLS>>;
 
@@ -297,6 +300,28 @@ A function that attempts to repair a tool call that failed to parse.
      * @default undefined
      */
     experimental_context?: unknown;
+
+    /**
+     * Settings for controlling what data is included in step results.
+     * Disabling inclusion can help reduce memory usage when processing
+     * large payloads like images.
+     *
+     * By default, all data is included for backwards compatibility.
+     */
+    experimental_include?: {
+      /**
+       * Whether to retain the request body in step results.
+       * The request body can be large when sending images or files.
+       * @default true
+       */
+      requestBody?: boolean;
+
+      /**
+       * Whether to retain the response body in step results.
+       * @default true
+       */
+      responseBody?: boolean;
+    };
 
     /**
      * Internal. For test use only. May change without notice.
@@ -792,6 +817,24 @@ A function that attempts to repair a tool call that failed to parse.
             );
 
             // Add step information (after response messages are updated):
+            // Conditionally include request.body and response.body based on include settings.
+            // Large payloads (e.g., base64-encoded images) can cause memory issues.
+            const stepRequest: LanguageModelRequestMetadata =
+              (include?.requestBody ?? true)
+                ? (currentModelResponse.request ?? {})
+                : { ...currentModelResponse.request, body: undefined };
+
+            const stepResponse = {
+              ...currentModelResponse.response,
+              // deep clone msgs to avoid mutating past messages in multi-step:
+              messages: structuredClone(responseMessages),
+              // Conditionally include response body:
+              body:
+                (include?.responseBody ?? true)
+                  ? currentModelResponse.response?.body
+                  : undefined,
+            };
+
             const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
               content: stepContent,
               finishReason: currentModelResponse.finishReason.unified,
@@ -799,12 +842,8 @@ A function that attempts to repair a tool call that failed to parse.
               usage: asLanguageModelUsage(currentModelResponse.usage),
               warnings: currentModelResponse.warnings,
               providerMetadata: currentModelResponse.providerMetadata,
-              request: currentModelResponse.request ?? {},
-              response: {
-                ...currentModelResponse.response,
-                // deep clone msgs to avoid mutating past messages in multi-step:
-                messages: structuredClone(responseMessages),
-              },
+              request: stepRequest,
+              response: stepResponse,
             });
 
             logWarnings({

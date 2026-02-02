@@ -118,17 +118,13 @@ await generateText({
 
 The following optional provider options are available for xAI chat models:
 
-- **reasoningEffort** _'low' | 'medium' | 'high'_
+- **reasoningEffort** _'low' | 'high'_
 
   Reasoning effort for reasoning models.
 
-- **store** _boolean_
+- **parallel_function_calling** _boolean_
 
-  Whether to store the generation. Defaults to `true`.
-
-- **previousResponseId** _string_
-
-  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
+  Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
 ## Responses API (Agentic Tools)
 
@@ -143,7 +139,10 @@ The Responses API provides server-side tools that the model can autonomously exe
 - **web_search**: Real-time web search and page browsing
 - **x_search**: Search X (Twitter) posts, users, and threads
 - **code_execution**: Execute Python code for calculations and data analysis
+- **view_image**: View and analyze images
+- **view_x_video**: View and analyze videos from X posts
 - **mcp_server**: Connect to remote MCP servers and use their tools
+- **file_search**: Search through documents in vector stores (collections)
 
 ### Vision
 
@@ -265,6 +264,34 @@ const { text } = await generateText({
 });
 ```
 
+### View Image Tool
+
+The view image tool enables the model to view and analyze images:
+
+```ts
+const { text } = await generateText({
+  model: xai.responses('grok-4-fast'),
+  prompt: 'Describe what you see in the image',
+  tools: {
+    view_image: xai.tools.viewImage(),
+  },
+});
+```
+
+### View X Video Tool
+
+The view X video tool enables the model to view and analyze videos from X (Twitter) posts:
+
+```ts
+const { text } = await generateText({
+  model: xai.responses('grok-4-fast'),
+  prompt: 'Summarize the content of this X video',
+  tools: {
+    view_x_video: xai.tools.viewXVideo(),
+  },
+});
+```
+
 ### MCP Server Tool
 
 The MCP server tool enables the model to connect to remote [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers and use their tools:
@@ -290,7 +317,7 @@ const { text } = await generateText({
 
   The URL of the remote MCP server.
 
-- **serverLabel** _string_ (required)
+- **serverLabel** _string_
 
   A label to identify the MCP server.
 
@@ -312,33 +339,49 @@ const { text } = await generateText({
 
 ### File Search Tool
 
-xAI supports file search through OpenAI compatibility. You can use the OpenAI provider with xAI's base URL to search vector stores:
+The file search tool enables searching through documents stored in xAI vector stores (collections):
 
 ```ts
-import { createOpenAI } from '@ai-sdk/openai';
+import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
-const openai = createOpenAI({
-  baseURL: 'https://api.x.ai/v1',
-  apiKey: process.env.XAI_API_KEY,
-});
-
 const result = streamText({
-  model: openai('grok-4'),
+  model: xai.responses('grok-4-1-fast-reasoning'),
   prompt: 'What documents do you have access to?',
   tools: {
-    file_search: openai.tools.fileSearch({
-      vectorStoreIds: ['your-vector-store-id'],
-      maxNumResults: 5,
+    file_search: xai.tools.fileSearch({
+      vectorStoreIds: ['collection_your-collection-id'],
+      maxNumResults: 10,
     }),
+  },
+  providerOptions: {
+    xai: {
+      include: ['file_search_call.results'],
+    },
   },
 });
 ```
 
+#### File Search Parameters
+
+- **vectorStoreIds** _string[]_ (required)
+
+  The IDs of the vector stores (collections) to search.
+
+- **maxNumResults** _number_
+
+  The maximum number of results to return from the search.
+
+#### Provider Options for File Search
+
+- **include** _Array<'file_search_call.results'>_
+
+  Include file search results in the response. When set to `['file_search_call.results']`, the response will contain the actual search results with file content and scores.
+
 <Note>
-  File search requires grok-4 family models. See the [OpenAI
-  provider](/providers/ai-sdk-providers/openai) documentation for additional
-  file search options like filters and ranking.
+  File search requires grok-4 family models and the Responses API. Vector stores
+  can be created using the [xAI
+  API](https://docs.x.ai/docs/guides/using-collections/api).
 </Note>
 
 ### Multiple Tools
@@ -356,6 +399,9 @@ const { fullStream } = streamText({
     web_search: xai.tools.webSearch(),
     x_search: xai.tools.xSearch(),
     code_execution: xai.tools.codeExecution(),
+    file_search: xai.tools.fileSearch({
+      vectorStoreIds: ['collection_your-documents'],
+    }),
     data_service: xai.tools.mcpServer({
       serverUrl: 'https://data.example.com/mcp',
       serverLabel: 'data-service',
@@ -393,9 +439,21 @@ const result = await generateText({
 
 The following provider options are available:
 
-- **reasoningEffort** _'low' | 'high'_
+- **reasoningEffort** _'low' | 'medium' | 'high'_
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+
+- **include** _Array<'file_search_call.results'>_
+
+  Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
+
+- **store** _boolean_
+
+  Whether to store the input message(s) and model response for later retrieval. Defaults to `true`.
+
+- **previousResponseId** _string_
+
+  The ID of the previous response from the model. You can use it to continue a conversation.
 
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side
@@ -676,28 +734,33 @@ console.log('Sources:', await result.sources);
 
 ## Model Capabilities
 
-| Model                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
-| --------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-4-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-code-fast-1`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-latest`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast-latest`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-mini`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-latest`        | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast-latest`   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-latest`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-1212`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision`             | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-latest`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-1212`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-beta`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-vision-beta`          | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
+| ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-4-1`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-1-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-4-1-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-fast-non-reasoning`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-fast-reasoning`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-code-fast-1`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-4`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-0709`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-fast-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-3-mini`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-3-mini-fast-latest`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-2`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-1212`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-latest`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-2-vision-1212`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-beta`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-vision-beta`            | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -742,6 +805,6 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
-| Model          | Sizes              | Notes                                                                                                                                                                                                    |
-| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grok-2-image` | 1024x768 (default) | xAI's text-to-image generation model, designed to create high-quality images from text prompts. It's trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
+| Model          | Sizes              | Notes                                                                                                                                                                                                              |
+| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `grok-2-image` | 1024x768 (default) | xAI&apos;s text-to-image generation model, designed to create high-quality images from text prompts. It&apos;s trained on a diverse dataset and can generate images across various styles, subjects, and settings. |

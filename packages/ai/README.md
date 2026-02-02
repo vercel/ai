@@ -14,6 +14,14 @@ You will need Node.js 18+ and npm (or another package manager) installed on your
 npm install ai
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Unified Provider Architecture
 
 The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).

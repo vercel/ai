@@ -42,6 +42,7 @@ import {
   type LanguageModelV3CallOptions,
   type LanguageModelV3,
 } from '@ai-sdk/provider';
+import { safeParseJSON } from '@ai-sdk/provider-utils';
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
@@ -71,7 +72,12 @@ const getCachedResult = (key: string | object) => {
   try {
     const cacheContent = fs.readFileSync(CACHE_FILE, 'utf-8');
 
-    const cache = JSON.parse(cacheContent);
+    const parseResult = safeParseJSON({ text: cacheContent });
+    if (!parseResult.success) {
+      console.error('Failed to parse cache:', parseResult.error);
+      return null;
+    }
+    const cache = parseResult.value as Record<string, unknown>;
 
     const result = cache[cacheKey];
 
@@ -85,7 +91,12 @@ const getCachedResult = (key: string | object) => {
 const updateCache = (key: string, value: any) => {
   ensureCacheFile();
   try {
-    const cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+    const parseResult = safeParseJSON({
+      text: fs.readFileSync(CACHE_FILE, 'utf-8'),
+    });
+    const cache = parseResult.success
+      ? (parseResult.value as Record<string, unknown>)
+      : {};
     const updatedCache = { ...cache, [key]: value };
     fs.writeFileSync(CACHE_FILE, JSON.stringify(updatedCache, null, 2));
   } catch (error) {
