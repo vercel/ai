@@ -2360,10 +2360,22 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
             case 'tool-error': {
               const dynamic = isDynamic(part);
 
+              // Extract errorCode from error object if available (for provider-executed tools)
+              const errorCode =
+                typeof part.error === 'object' &&
+                part.error !== null &&
+                'errorCode' in part.error &&
+                typeof (part.error as Record<string, unknown>).errorCode ===
+                  'string'
+                  ? ((part.error as Record<string, unknown>)
+                      .errorCode as string)
+                  : undefined;
+
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
                 errorText: onError(part.error),
+                ...(errorCode != null ? { errorCode } : {}),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),

@@ -692,7 +692,7 @@ export async function convertToAnthropicMessagesPrompt({
                         tool_use_id: part.toolCallId,
                         content: {
                           type: 'code_execution_tool_result_error' as const,
-                          error_code: errorInfo.errorCode ?? 'unknown',
+                          error_code: errorInfo.errorCode ?? 'unavailable',
                         },
                         cache_control: cacheControl,
                       });
@@ -703,7 +703,7 @@ export async function convertToAnthropicMessagesPrompt({
                         cache_control: cacheControl,
                         content: {
                           type: 'bash_code_execution_tool_result_error' as const,
-                          error_code: errorInfo.errorCode ?? 'unknown',
+                          error_code: errorInfo.errorCode ?? 'unavailable',
                         },
                       });
                     }
@@ -821,7 +821,7 @@ export async function convertToAnthropicMessagesPrompt({
                         errorCode:
                           typeof extractedErrorCode === 'string'
                             ? extractedErrorCode
-                            : 'unknown',
+                            : 'unavailable',
                       };
                     }
 
@@ -830,7 +830,7 @@ export async function convertToAnthropicMessagesPrompt({
                       tool_use_id: part.toolCallId,
                       content: {
                         type: 'web_fetch_tool_result_error',
-                        error_code: errorValue.errorCode ?? 'unknown',
+                        error_code: errorValue.errorCode ?? 'unavailable',
                       },
                       cache_control: cacheControl,
                     });
