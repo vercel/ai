@@ -52,6 +52,8 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
       messages: UI_MESSAGE[];
       /** Signal to abort the request if needed */
       abortSignal: AbortSignal | undefined;
+      /** Whether to filter out incomplete tool calls before sending. */
+      ignoreIncompleteToolCalls?: boolean;
     } & ChatRequestOptions,
   ) => Promise<ReadableStream<UIMessageChunk>>;
 
