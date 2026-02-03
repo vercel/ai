@@ -257,8 +257,14 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       });
     }
 
+    // a new boolean variable that tracks if tool calls present in doGenerate or not
+    let hasToolCalls = false;
+
     // extract tool calls
     if (choice.message.tool_calls != null) {
+      // marking hasToolCalls true as choice.message.tool_calls is !null
+      hasToolCalls = true;
+
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
@@ -284,7 +290,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapXaiFinishReason(choice.finish_reason),
+        unified: hasToolCalls
+          ? 'tool-calls'
+          : mapXaiFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertXaiChatUsage(response.usage!), // defined when there is no error
@@ -366,6 +374,8 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+    // a new boolean var that tracks if tool calls present in doStream or not
+    let hasStreamedToolCalls = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<
@@ -431,7 +441,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
             // update finish reason if present
             if (choice?.finish_reason != null) {
               finishReason = {
-                unified: mapXaiFinishReason(choice.finish_reason),
+                unified: hasStreamedToolCalls
+                  ? 'tool-calls'
+                  : mapXaiFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
             }
@@ -530,6 +542,9 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
                 contentBlocks[activeReasoningBlockId].ended = true;
                 activeReasoningBlockId = undefined;
               }
+
+              // make hasStreamedToolCalls true as delta.tool_calls is !null
+              hasStreamedToolCalls = true;
 
               for (const toolCall of delta.tool_calls) {
                 // xai tool calls come in one piece (like mistral)
