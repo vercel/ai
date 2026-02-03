@@ -24,7 +24,7 @@ run(async () => {
 
     const result = streamText({
       model: lmstudio('zai-org/glm-4.7-flash'),
-      tools: { weatherTool },
+      tools: { weather: weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       stopWhen: stepCountIs(5),
       messages,
@@ -41,57 +41,60 @@ run(async () => {
     process.stdout.write('\nAssistant: ');
     for await (const chunk of result.fullStream) {
       switch (chunk.type) {
-        case 'tool-input-start':
+        case 'tool-call': {
           process.stdout.write('\x1b[33m');
           console.log('Tool call:', chunk.toolName);
-          process.stdout.write('Tool args: ');
+          console.log('Tool args:', chunk.input);
+          process.stdout.write('\x1b[0m');
           break;
+        }
 
-        case 'tool-input-delta':
-          process.stdout.write(chunk.delta);
-          break;
-
-        case 'tool-input-end':
-          console.log();
-          break;
-
-        case 'tool-result':
+        case 'tool-result': {
+          process.stdout.write('\x1b[33m');
           console.log('Tool result:', chunk.output);
           process.stdout.write('\x1b[0m');
           break;
+        }
 
-        case 'tool-error':
+        case 'tool-error': {
           process.stdout.write('\x1b[0m');
           process.stderr.write('\x1b[31m');
           console.error('Tool error:', chunk.error);
           process.stderr.write('\x1b[0m');
           break;
+        }
 
-        case 'reasoning-start':
+        case 'reasoning-start': {
           process.stdout.write('\x1b[34m');
           break;
+        }
 
-        case 'reasoning-delta':
+        case 'reasoning-delta': {
           process.stdout.write(chunk.text);
           break;
+        }
 
-        case 'reasoning-end':
+        case 'reasoning-end': {
           process.stdout.write('\x1b[0m');
           console.log();
           break;
+        }
 
-        case 'text-start':
+        case 'text-start': {
           process.stdout.write('\x1b[32m');
           break;
+        }
 
-        case 'text-delta':
+        case 'text-delta': {
           process.stdout.write(chunk.text);
           break;
+        }
 
-        case 'text-end':
+        case 'text-end': {
           process.stdout.write('\x1b[0m');
           console.log();
           break;
+        }
       }
     }
     process.stdout.write('\n\n');

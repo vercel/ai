@@ -61,11 +61,15 @@ export async function convertToOpenResponsesInput({
               break;
             }
             case 'tool-call': {
+              const argumentsValue =
+                typeof part.input === 'string'
+                  ? part.input
+                  : JSON.stringify(part.input);
               toolCalls.push({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: part.toolName,
-                arguments: JSON.stringify(part.input),
+                arguments: argumentsValue,
               });
               break;
             }
@@ -107,50 +111,55 @@ export async function convertToOpenResponsesInput({
               case 'error-json':
                 contentValue = JSON.stringify(output.value);
                 break;
-              case 'content':
-                contentValue = output.value
-                  .map(item => {
-                    switch (item.type) {
-                      case 'text': {
-                        return { type: 'input_text' as const, text: item.text };
-                      }
-                      case 'image-data': {
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      }
-                      case 'image-url': {
-                        return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
-                        };
-                      }
-                      case 'file-data': {
-                        return {
-                          type: 'input_file' as const,
-                          filename: item.filename ?? 'data',
-                          file_data: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      }
-                      default: {
-                        warnings.push({
-                          type: 'other',
-                          message: `unsupported tool content part type: ${(item as { type: string }).type}`,
-                        });
-                        return undefined;
-                      }
+              case 'content': {
+                const contentParts: Array<
+                  | InputTextContentParam
+                  | InputImageContentParam
+                  | InputFileContentParam
+                > = [];
+                for (const item of output.value) {
+                  switch (item.type) {
+                    case 'text': {
+                      contentParts.push({
+                        type: 'input_text',
+                        text: item.text,
+                      });
+                      break;
                     }
-                  })
-                  .filter(
-                    (
-                      item,
-                    ): item is
-                      | InputTextContentParam
-                      | InputImageContentParam
-                      | InputFileContentParam => item !== undefined,
-                  );
+                    case 'image-data': {
+                      contentParts.push({
+                        type: 'input_image',
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
+                      });
+                      break;
+                    }
+                    case 'image-url': {
+                      contentParts.push({
+                        type: 'input_image',
+                        image_url: item.url,
+                      });
+                      break;
+                    }
+                    case 'file-data': {
+                      contentParts.push({
+                        type: 'input_file',
+                        filename: item.filename ?? 'data',
+                        file_data: `data:${item.mediaType};base64,${item.data}`,
+                      });
+                      break;
+                    }
+                    default: {
+                      warnings.push({
+                        type: 'other',
+                        message: `unsupported tool content part type: ${(item as { type: string }).type}`,
+                      });
+                      break;
+                    }
+                  }
+                }
+                contentValue = contentParts;
                 break;
+              }
             }
 
             input.push({

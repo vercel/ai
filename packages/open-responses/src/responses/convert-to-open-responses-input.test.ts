@@ -215,6 +215,35 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
+    it('should pass through tool-call string input', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_124',
+                toolName: 'get_weather',
+                input: '{"location":"Berlin"}',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{\"location\":\"Berlin\"}",
+            "call_id": "call_124",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should convert assistant message with text and tool-call', async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
@@ -660,6 +689,87 @@ describe('convertToOpenResponsesInput', () => {
             "call_id": "call_weather",
             "output": "{"temperature":25,"condition":"cloudy"}",
             "type": "function_call_output",
+          },
+        ]
+      `);
+    });
+
+    it('should convert a tool roundtrip with follow-up assistant message', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_weather',
+                toolName: 'get_weather',
+                input: '{"location":"Tokyo"}',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_weather',
+                toolName: 'get_weather',
+                output: {
+                  type: 'json',
+                  value: { temperature: 25, condition: 'cloudy' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'It is 25 C and cloudy in Tokyo.',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+          {
+            "arguments": "{\"location\":\"Tokyo\"}",
+            "call_id": "call_weather",
+            "name": "get_weather",
+            "type": "function_call",
+          },
+          {
+            "call_id": "call_weather",
+            "output": "{"temperature":25,"condition":"cloudy"}",
+            "type": "function_call_output",
+          },
+          {
+            "content": [
+              {
+                "text": "It is 25 C and cloudy in Tokyo.",
+                "type": "output_text",
+              },
+            ],
+            "role": "assistant",
+            "type": "message",
           },
         ]
       `);
