@@ -1,5 +1,34 @@
 # @ai-sdk/prodia
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 1.0.10
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 1.0.9
 
 ### Patch Changes

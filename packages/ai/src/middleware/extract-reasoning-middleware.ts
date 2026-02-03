@@ -212,8 +212,19 @@ export function extractReasoningMiddleware({
                     startIndex + nextTag.length,
                   );
 
-                  // reasoning part finished:
                   if (activeExtraction.isReasoning) {
+                    // Emit reasoning-start for empty reasoning blocks (no delta was published).
+                    // This handles both cases:
+                    // - startWithReasoning=false: <think></think> (afterSwitch=true)
+                    // - startWithReasoning=true: immediate </think> (afterSwitch=false)
+                    if (activeExtraction.isFirstReasoning) {
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: `reasoning-${activeExtraction.idCounter}`,
+                      });
+                    }
+
+                    // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `reasoning-${activeExtraction.idCounter++}`,
