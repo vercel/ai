@@ -327,16 +327,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     // DeepInfra issue with gemini models
     // Completion_tokens excludes reasoning_tokens, causing negative output tokens
     // Context: https://linear.app/vercel/issue/AI-5048/investigate-negative-output-tokens-for-deepinfra-gemini-fallback
-    if (
+    const usage = responseBody.usage;
+    const isDeepInfraGemini =
       this.config.provider.startsWith('deepinfra') &&
       (this.modelId == 'google/gemini-2.5-flash' ||
-        this.modelId == 'google/gemini-2.5-pro') &&
-      responseBody.usage?.completion_tokens != null &&
-      responseBody.usage?.completion_tokens_details?.reasoning_tokens != null
-    ) {
-      responseBody.usage.completion_tokens =
-        responseBody.usage.completion_tokens +
-        responseBody.usage.completion_tokens_details.reasoning_tokens;
+        this.modelId == 'google/gemini-2.5-pro');
+
+    if (isDeepInfraGemini && usage) {
+      const completionTokens = usage.completion_tokens ?? 0;
+      const reasoningTokens =
+        usage.completion_tokens_details?.reasoning_tokens ?? 0;
+      const promptTokens = usage.prompt_tokens ?? 0;
+      const totalTokens = usage.total_tokens ?? 0;
+
+      // Prevent double-counting if/when DeepInfra fixes their token calculation
+      const shouldFixTokens = completionTokens + promptTokens !== totalTokens;
+      if (shouldFixTokens) {
+        usage.completion_tokens = completionTokens + reasoningTokens;
+      }
     }
 
     return {
@@ -721,16 +729,24 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             // DeepInfra issue with gemini models
             // Completion_tokens excludes reasoning_tokens, causing negative output tokens
             // Context: https://linear.app/vercel/issue/AI-5048/investigate-negative-output-tokens-for-deepinfra-gemini-fallback
-            if (
+            const isDeepInfraGemini =
               provider.startsWith('deepinfra') &&
               (modelId == 'google/gemini-2.5-flash' ||
-                modelId == 'google/gemini-2.5-pro') &&
-              usage?.completion_tokens != null &&
-              usage?.completion_tokens_details?.reasoning_tokens != null
-            ) {
-              usage.completion_tokens =
-                usage.completion_tokens +
-                usage.completion_tokens_details.reasoning_tokens;
+                modelId == 'google/gemini-2.5-pro');
+
+            if (isDeepInfraGemini && usage) {
+              const completionTokens = usage.completion_tokens ?? 0;
+              const reasoningTokens =
+                usage.completion_tokens_details?.reasoning_tokens ?? 0;
+              const promptTokens = usage.prompt_tokens ?? 0;
+              const totalTokens = usage.total_tokens ?? 0;
+
+              //Prevent double-counting if/when DeepInfra fixes their token calculation
+              const shouldFixTokens =
+                completionTokens + promptTokens !== totalTokens;
+              if (shouldFixTokens) {
+                usage.completion_tokens = completionTokens + reasoningTokens;
+              }
             }
 
             controller.enqueue({
