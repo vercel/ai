@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
 ## 6.0.67
 
 ### Patch Changes
