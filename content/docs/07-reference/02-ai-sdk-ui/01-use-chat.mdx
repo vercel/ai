@@ -273,6 +273,13 @@ Allows you to easily create a conversational user interface for your chatbot app
         'When provided, this function will be called when the stream is finished or a tool call is added to determine if the current messages should be resubmitted. You can use the lastAssistantMessageIsCompleteWithToolCalls helper for common scenarios.',
     },
     {
+      name: 'ignoreIncompleteToolCalls',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'When true, tool calls with state "input-streaming" or "input-available" are filtered out before sending to the model. This allows users to send new messages even when frontend tools are awaiting input.',
+    },
+    {
       name: 'onFinish',
       type: '(options: OnFinishOptions) => void',
       isOptional: true,
