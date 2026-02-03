@@ -15,9 +15,6 @@ import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-fin
  *
  * @param agent - The agent to run.
  * @param uiMessages - The input UI messages.
- * @param originalMessages - The original messages for state reconstruction.
- *   Defaults to the validated uiMessages. Used for message ID management
- *   and to provide proper context for callbacks like onFinish.
  * @param abortSignal - The abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent.
