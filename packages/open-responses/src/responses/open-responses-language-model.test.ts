@@ -79,6 +79,21 @@ describe('OpenResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           maxOutputTokens: 100,
           temperature: 0.5,
+          topP: 0.9,
+          presencePenalty: 0.1,
+          frequencyPenalty: 0.2,
+          responseFormat: {
+            type: 'json',
+            name: 'response',
+            description: 'Example response schema',
+            schema: {
+              type: 'object',
+              properties: {
+                status: { type: 'string' },
+              },
+              required: ['status'],
+            },
+          },
         });
       });
 

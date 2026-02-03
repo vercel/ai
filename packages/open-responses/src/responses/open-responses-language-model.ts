@@ -66,6 +66,20 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     body: Omit<OpenResponsesRequestBody, 'stream' | 'stream_options'>;
     warnings: SharedV3Warning[];
   }> {
+    const warnings: SharedV3Warning[] = [];
+
+    if (stopSequences != null) {
+      warnings.push({ type: 'unsupported', feature: 'stopSequences' });
+    }
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported', feature: 'topK' });
+    }
+
+    if (seed != null) {
+      warnings.push({ type: 'unsupported', feature: 'seed' });
+    }
+
     const {
       input,
       instructions,
@@ -73,6 +87,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     } = await convertToOpenResponsesInput({
       prompt,
     });
+
+    warnings.push(...inputWarnings);
 
     // Convert function tools to the Open Responses format
     const functionTools: FunctionToolParam[] | undefined = tools
@@ -93,6 +109,21 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           ? { type: 'function', name: toolChoice.toolName }
           : toolChoice.type; // 'auto' | 'none' | 'required'
 
+    const textFormat =
+      responseFormat?.type === 'json'
+        ? {
+            type: 'json_schema' as const,
+            ...(responseFormat.schema != null
+              ? {
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: responseFormat.schema,
+                  strict: true,
+                }
+              : {}),
+          }
+        : undefined;
+
     return {
       body: {
         model: this.modelId,
@@ -100,10 +131,14 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         instructions,
         max_output_tokens: maxOutputTokens,
         temperature,
+        top_p: topP,
+        presence_penalty: presencePenalty,
+        frequency_penalty: frequencyPenalty,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
+        ...(textFormat != null && { text: { format: textFormat } }),
       },
-      warnings: inputWarnings,
+      warnings,
     };
   }
 

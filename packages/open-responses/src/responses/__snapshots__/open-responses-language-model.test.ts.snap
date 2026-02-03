@@ -107,6 +107,7 @@ exports[`OpenResponsesLanguageModel > doGenerate > multi-turn tool conversation 
 
 exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should send correct request body 1`] = `
 {
+  "frequency_penalty": 0.2,
   "input": [
     {
       "content": [
@@ -121,7 +122,28 @@ exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should s
   ],
   "max_output_tokens": 100,
   "model": "gemma-7b-it",
+  "presence_penalty": 0.1,
   "temperature": 0.5,
+  "text": {
+    "format": {
+      "description": "Example response schema",
+      "name": "response",
+      "schema": {
+        "properties": {
+          "status": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "status",
+        ],
+        "type": "object",
+      },
+      "strict": true,
+      "type": "json_schema",
+    },
+  },
+  "top_p": 0.9,
 }
 `;
 
