@@ -253,6 +253,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     };
 
     let isActiveReasoning = false;
+    const toolCallsByItemId: Record<
+      string,
+      { toolName?: string; toolCallId?: string; arguments?: string }
+    > = {};
 
     return {
       stream: response.pipeThrough(
@@ -279,8 +283,62 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
             const chunk = parseResult.value;
 
-            // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)
+            // Tool call events (single-shot tool-call when complete)
             if (
+              chunk.type === 'response.output_item.added' &&
+              chunk.item.type === 'function_call'
+            ) {
+              toolCallsByItemId[chunk.item.id] = {
+                toolName: chunk.item.name,
+                toolCallId: chunk.item.call_id,
+                arguments: chunk.item.arguments,
+              };
+            } else if (
+              (chunk as { type: string }).type ===
+              'response.function_call_arguments.delta'
+            ) {
+              const functionCallChunk = chunk as {
+                item_id: string;
+                delta: string;
+              };
+              const toolCall =
+                toolCallsByItemId[functionCallChunk.item_id] ??
+                (toolCallsByItemId[functionCallChunk.item_id] = {});
+              toolCall.arguments =
+                (toolCall.arguments ?? '') + functionCallChunk.delta;
+            } else if (
+              (chunk as { type: string }).type ===
+              'response.function_call_arguments.done'
+            ) {
+              const functionCallChunk = chunk as {
+                item_id: string;
+                arguments: string;
+              };
+              const toolCall =
+                toolCallsByItemId[functionCallChunk.item_id] ??
+                (toolCallsByItemId[functionCallChunk.item_id] = {});
+              toolCall.arguments = functionCallChunk.arguments;
+            } else if (
+              chunk.type === 'response.output_item.done' &&
+              chunk.item.type === 'function_call'
+            ) {
+              const toolCall = toolCallsByItemId[chunk.item.id];
+              const toolName = toolCall?.toolName ?? chunk.item.name;
+              const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
+              const input = toolCall?.arguments ?? chunk.item.arguments ?? '';
+
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallId,
+                toolName,
+                input,
+              });
+
+              delete toolCallsByItemId[chunk.item.id];
+            }
+
+            // Reasoning events (note: response.reasoning_text.delta is an LM Studio extension, not in official spec)
+            else if (
               chunk.type === 'response.output_item.added' &&
               chunk.item.type === 'reasoning'
             ) {

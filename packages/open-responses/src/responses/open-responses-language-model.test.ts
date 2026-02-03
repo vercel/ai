@@ -374,7 +374,7 @@ describe('OpenResponsesLanguageModel', () => {
 
     describe('reasoning with tool call', () => {
       it('should stream reasoning and tool call content', async () => {
-        prepareChunksFixtureResponse('lmstudio-tool-call.1');
+        prepareChunksFixtureResponse('lmstudio-tool-call.2');
 
         const result = await createModel().doStream({
           prompt: TEST_PROMPT,
