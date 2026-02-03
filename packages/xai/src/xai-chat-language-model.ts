@@ -374,6 +374,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+    let rawFinishReason: string | null | undefined;
     // a new boolean var that tracks if tool calls present in doStream or not
     let hasStreamedToolCalls = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
@@ -440,12 +441,7 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
 
             // update finish reason if present
             if (choice?.finish_reason != null) {
-              finishReason = {
-                unified: hasStreamedToolCalls
-                  ? 'tool-calls'
-                  : mapXaiFinishReason(choice.finish_reason),
-                raw: choice.finish_reason,
-              };
+              rawFinishReason = choice.finish_reason;
             }
 
             // exit if no delta to process
@@ -587,6 +583,13 @@ export class XaiChatLanguageModel implements LanguageModelV3 {
                 });
               }
             }
+
+            finishReason = {
+              unified: hasStreamedToolCalls
+                ? 'tool-calls'
+                : mapXaiFinishReason(rawFinishReason),
+              raw: rawFinishReason ?? undefined,
+            };
 
             controller.enqueue({ type: 'finish', finishReason, usage: usage! });
           },
