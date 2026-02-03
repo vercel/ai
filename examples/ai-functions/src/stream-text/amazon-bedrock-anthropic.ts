@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 run(async () => {
   const result = streamText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt: 'Hi, respond with lots of emoji! Use emoji in every sentence.',
   });
 
   for await (const textPart of result.textStream) {
