@@ -1329,6 +1329,45 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should include reasoning tokens in DeepInfra Gemini completion_tokens', async () => {
+      const deepinfraModel = new OpenAICompatibleChatLanguageModel(
+        'google/gemini-2.5-flash',
+        {
+          provider: 'deepinfra.chat',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        },
+      );
+
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 5,
+          completion_tokens: 10,
+          total_tokens: 35,
+          prompt_tokens_details: undefined,
+          completion_tokens_details: {
+            reasoning_tokens: 20,
+          },
+        },
+      });
+
+      const result = await deepinfraModel.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      // Verify completion_tokens was adjusted: 10 + 20 = 30
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 30,
+          "completion_tokens_details": {
+            "reasoning_tokens": 20,
+          },
+          "prompt_tokens": 5,
+          "total_tokens": 35,
+        }
+      `);
+    });
   });
 });
 
@@ -2932,6 +2971,51 @@ describe('doStream', () => {
               "total_tokens": 50,
             },
           },
+        }
+      `);
+    });
+
+    it('should include reasoning_tokens in DeepInfra Gemini completion_tokens in streaming', async () => {
+      const deepinfraModel = new OpenAICompatibleChatLanguageModel(
+        'google/gemini-2.5-flash',
+        {
+          provider: 'deepinfra.chat',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({ Authorization: 'Bearer test-api-key' }),
+        },
+      );
+
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":5,"completion_tokens":10,` +
+            `"total_tokens":35,` +
+            `"prompt_tokens_details":null,` +
+            `"completion_tokens_details":{"reasoning_tokens":20}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await deepinfraModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      // Verify completion_tokens was adjusted: 10 + 20 = 30
+      expect(finishPart!.usage!.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 30,
+          "completion_tokens_details": {
+            "reasoning_tokens": 20,
+          },
+          "prompt_tokens": 5,
+          "prompt_tokens_details": null,
+          "total_tokens": 35,
         }
       `);
     });

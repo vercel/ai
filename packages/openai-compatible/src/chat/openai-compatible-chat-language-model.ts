@@ -324,6 +324,21 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         completionTokenDetails?.rejected_prediction_tokens;
     }
 
+    // DeepInfra issue with gemini models
+    // Completion_tokens excludes reasoning_tokens, causing negative output tokens
+    // Context: https://linear.app/vercel/issue/AI-5048/investigate-negative-output-tokens-for-deepinfra-gemini-fallback
+    if (
+      this.config.provider.startsWith('deepinfra') &&
+      (this.modelId == 'google/gemini-2.5-flash' ||
+        this.modelId == 'google/gemini-2.5-pro') &&
+      responseBody.usage?.completion_tokens != null &&
+      responseBody.usage?.completion_tokens_details?.reasoning_tokens != null
+    ) {
+      responseBody.usage.completion_tokens =
+        responseBody.usage.completion_tokens +
+        responseBody.usage.completion_tokens_details.reasoning_tokens;
+    }
+
     return {
       content,
       finishReason: {
@@ -394,6 +409,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    const provider = this.config.provider;
+    const modelId = this.modelId;
     let isActiveReasoning = false;
     let isActiveText = false;
 
@@ -699,6 +716,21 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
             ) {
               providerMetadata[providerOptionsName].rejectedPredictionTokens =
                 usage?.completion_tokens_details?.rejected_prediction_tokens;
+            }
+
+            // DeepInfra issue with gemini models
+            // Completion_tokens excludes reasoning_tokens, causing negative output tokens
+            // Context: https://linear.app/vercel/issue/AI-5048/investigate-negative-output-tokens-for-deepinfra-gemini-fallback
+            if (
+              provider.startsWith('deepinfra') &&
+              (modelId == 'google/gemini-2.5-flash' ||
+                modelId == 'google/gemini-2.5-pro') &&
+              usage?.completion_tokens != null &&
+              usage?.completion_tokens_details?.reasoning_tokens != null
+            ) {
+              usage.completion_tokens =
+                usage.completion_tokens +
+                usage.completion_tokens_details.reasoning_tokens;
             }
 
             controller.enqueue({
