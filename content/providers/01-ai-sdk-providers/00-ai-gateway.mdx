@@ -631,6 +631,10 @@ The following gateway provider options are available:
 
   Restricts routing requests to providers that have zero data retention policies.
 
+- **hipaaCompliant** _boolean_
+
+  Restricts routing requests to providers that are HIPAA compliant.
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
@@ -690,6 +694,27 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### HIPAA Compliance Example
+
+Set `hipaaCompliant` to true to ensure requests are only routed to providers
+that are HIPAA compliant. When `hipaaCompliant` is `false` or not specified,
+there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'Analyze this patient data...',
+  providerOptions: {
+    gateway: {
+      hipaaCompliant: true,
     } satisfies GatewayProviderOptions,
   },
 });
