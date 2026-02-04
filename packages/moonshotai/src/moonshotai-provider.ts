@@ -64,7 +64,7 @@ export interface MoonshotAIProvider extends ProviderV3 {
   languageModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
 }
 
-const defaultBaseURL = 'https://api.moonshot.cn/v1';
+const defaultBaseURL = 'https://api.moonshot.ai/v1';
 
 export function createMoonshotAI(
   options: MoonshotAIProviderSettings = {},
