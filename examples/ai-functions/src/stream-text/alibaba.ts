@@ -8,8 +8,6 @@ run(async () => {
     prompt: 'Write a one sentence description about AI.',
   });
 
-  console.log('Starting stream...');
-
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

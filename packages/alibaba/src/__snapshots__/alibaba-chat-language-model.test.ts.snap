@@ -1,0 +1,89 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > should extract text content 1`] = `
+[
+  {
+    "text": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. How can I help you today?",
+    "type": "text",
+  },
+]
+`;
+
+exports[`doStream > should stream reasoning deltas from reasoning_content 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "test-id",
+    "modelId": "qwen3-max",
+    "timestamp": 2009-02-13T23:31:30.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "Ta2vtMjxgDdMnELb",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "Let me",
+    "id": "Ta2vtMjxgDdMnELb",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " think.",
+    "id": "Ta2vtMjxgDdMnELb",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "Ta2vtMjxgDdMnELb",
+    "type": "reasoning-end",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The answer",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is 42.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "stop",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 10,
+        "total": 10,
+      },
+      "outputTokens": {
+        "reasoning": 5,
+        "text": 10,
+        "total": 15,
+      },
+      "raw": {
+        "completion_tokens": 15,
+        "completion_tokens_details": {
+          "reasoning_tokens": 5,
+        },
+        "prompt_tokens": 10,
+        "total_tokens": 25,
+      },
+    },
+  },
+]
+`;

@@ -72,11 +72,11 @@ run(async () => {
 
   if (firstCreated > 0) {
     console.log(
-      `SUCCESS: First request created cache (${firstCreated} tokens at 125% cost)`,
+      `SUCCESS: First request created cache (${firstCreated} tokens)`,
     );
   } else if (firstHit > 0) {
     console.log(
-      `SUCCESS: First request hit existing cache (${firstHit} tokens at 10% cost)`,
+      `SUCCESS: First request hit existing cache (${firstHit} tokens)`,
     );
     console.log('(Cache from previous run still valid - within 5 minute TTL)');
   } else {
@@ -84,9 +84,7 @@ run(async () => {
   }
 
   if (secondHit > 0) {
-    console.log(
-      `SUCCESS: Second request hit cache (${secondHit} tokens at 10% cost)`,
-    );
+    console.log(`SUCCESS: Second request hit cache (${secondHit} tokens)`);
   } else {
     console.log('FAILED: Second request - no cache hit');
   }

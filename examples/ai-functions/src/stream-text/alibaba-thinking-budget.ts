@@ -36,6 +36,9 @@ run(async () => {
 
   const usage = await result.usage;
   console.log('\n\nUsage:', usage);
-  console.log('Was budget respected?', usage.reasoningTokens <= 50);
+  console.log(
+    'Was budget respected?',
+    (usage.outputTokenDetails.reasoningTokens ?? 0) <= 50,
+  );
   console.log('Finish reason:', await result.finishReason);
 });
