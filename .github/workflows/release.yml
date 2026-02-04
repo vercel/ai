@@ -6,13 +6,18 @@ on:
       - main
       - release-v*
     paths:
-      - '.changeset/**'
-      - '.github/workflows/release.yml'
+      - ".changeset/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
 
 concurrency:
-  group: 'release'
+  group: "release"
   cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -68,7 +73,6 @@ jobs:
           setupGitUser: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
 
       - name: Find release PR number
         if: steps.changesets.outputs.published == 'true'
