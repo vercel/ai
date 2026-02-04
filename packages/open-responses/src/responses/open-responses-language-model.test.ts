@@ -186,7 +186,7 @@ describe('OpenResponsesLanguageModel', () => {
       it('should return tool-calls finish reason', async () => {
         expect(result.finishReason).toStrictEqual({
           unified: 'tool-calls',
-          raw: 'completed',
+          raw: undefined,
         });
       });
 

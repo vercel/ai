@@ -2,6 +2,7 @@ import {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
+  LanguageModelV3FinishReason,
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
@@ -219,10 +220,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       content,
       finishReason: {
         unified: mapOpenResponsesFinishReason({
-          finishReason: response.status,
+          finishReason: response.incomplete_details?.reason,
           hasToolCalls,
         }),
-        raw: response.status,
+        raw: response.incomplete_details?.reason ?? undefined,
       },
       usage: {
         inputTokens: {
@@ -287,7 +288,40 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       },
     };
 
+    const updateUsage = (
+      responseUsage?: OpenResponsesResponseBody['usage'],
+    ) => {
+      if (!responseUsage) {
+        return;
+      }
+
+      const inputTokens = responseUsage.input_tokens;
+      const cachedInputTokens =
+        responseUsage.input_tokens_details?.cached_tokens;
+      const outputTokens = responseUsage.output_tokens;
+      const reasoningTokens =
+        responseUsage.output_tokens_details?.reasoning_tokens;
+
+      usage.inputTokens = {
+        total: inputTokens,
+        noCache: (inputTokens ?? 0) - (cachedInputTokens ?? 0),
+        cacheRead: cachedInputTokens,
+        cacheWrite: undefined,
+      };
+      usage.outputTokens = {
+        total: outputTokens,
+        text: (outputTokens ?? 0) - (reasoningTokens ?? 0),
+        reasoning: reasoningTokens,
+      };
+      usage.raw = responseUsage;
+    };
+
     let isActiveReasoning = false;
+    let hasToolCalls = false;
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
     const toolCallsByItemId: Record<
       string,
       { toolName?: string; toolCallId?: string; arguments?: string }
@@ -368,6 +402,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
                 toolName,
                 input,
               });
+              hasToolCalls = true;
 
               delete toolCallsByItemId[chunk.item.id];
             }
@@ -420,6 +455,25 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
               chunk.item.type === 'message'
             ) {
               controller.enqueue({ type: 'text-end', id: chunk.item.id });
+            } else if (
+              chunk.type === 'response.completed' ||
+              chunk.type === 'response.incomplete'
+            ) {
+              const reason = chunk.response.incomplete_details?.reason;
+              finishReason = {
+                unified: mapOpenResponsesFinishReason({
+                  finishReason: reason,
+                  hasToolCalls,
+                }),
+                raw: reason ?? undefined,
+              };
+              updateUsage(chunk.response.usage);
+            } else if (chunk.type === 'response.failed') {
+              finishReason = {
+                unified: 'error',
+                raw: chunk.response.error?.code ?? chunk.response.status,
+              };
+              updateUsage(chunk.response.usage);
             }
           },
 
@@ -430,10 +484,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
             controller.enqueue({
               type: 'finish',
-              finishReason: {
-                unified: 'stop',
-                raw: undefined,
-              },
+              finishReason,
               usage,
               providerMetadata: undefined,
             });

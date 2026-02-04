@@ -1908,15 +1908,26 @@ exports[`OpenResponsesLanguageModel > doStream > basic generation > should strea
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 30,
         "cacheWrite": undefined,
-        "noCache": undefined,
-        "total": undefined,
+        "noCache": 1,
+        "total": 31,
       },
       "outputTokens": {
-        "reasoning": undefined,
-        "text": undefined,
-        "total": undefined,
+        "reasoning": 0,
+        "text": 282,
+        "total": 282,
+      },
+      "raw": {
+        "input_tokens": 31,
+        "input_tokens_details": {
+          "cached_tokens": 30,
+        },
+        "output_tokens": 282,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 313,
       },
     },
   },
@@ -2254,21 +2265,32 @@ exports[`OpenResponsesLanguageModel > doStream > reasoning with tool call > shou
   {
     "finishReason": {
       "raw": undefined,
-      "unified": "stop",
+      "unified": "tool-calls",
     },
     "providerMetadata": undefined,
     "type": "finish",
     "usage": {
       "inputTokens": {
-        "cacheRead": undefined,
+        "cacheRead": 52,
         "cacheWrite": undefined,
-        "noCache": undefined,
-        "total": undefined,
+        "noCache": 130,
+        "total": 182,
       },
       "outputTokens": {
-        "reasoning": undefined,
-        "text": undefined,
-        "total": undefined,
+        "reasoning": 47,
+        "text": 13,
+        "total": 60,
+      },
+      "raw": {
+        "input_tokens": 182,
+        "input_tokens_details": {
+          "cached_tokens": 52,
+        },
+        "output_tokens": 60,
+        "output_tokens_details": {
+          "reasoning_tokens": 47,
+        },
+        "total_tokens": 242,
       },
     },
   },
