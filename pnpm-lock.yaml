@@ -139,6 +139,9 @@ importers:
       '@ai-sdk/mistral':
         specifier: workspace:*
         version: link:../../packages/mistral
+      '@ai-sdk/moonshotai':
+        specifier: workspace:*
+        version: link:../../packages/moonshotai
       '@ai-sdk/openai':
         specifier: 3.0.25
         version: link:../../packages/openai
