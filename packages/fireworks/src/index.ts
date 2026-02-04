@@ -1,3 +1,4 @@
+export type { FireworksProviderOptions } from './fireworks-chat-options';
 export type {
   FireworksEmbeddingModelId,
   FireworksEmbeddingProviderOptions,
