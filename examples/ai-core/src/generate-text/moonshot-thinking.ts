@@ -1,4 +1,4 @@
-import { moonshotai } from '@ai-sdk/moonshotai';
+import { moonshotai, MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
@@ -13,7 +13,7 @@ run(async () => {
           budgetTokens: 2048,
         },
         reasoningHistory: 'interleaved',
-      },
+      } satisfies MoonshotAIProviderOptions,
     },
   });
 

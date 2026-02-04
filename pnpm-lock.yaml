@@ -29462,15 +29462,7 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
-<<<<<<< HEAD
-  copy-webpack-plugin@13.0.1(webpack@5.101.2):
-=======
-  copy-anything@4.0.5:
-    dependencies:
-      is-what: 5.5.0
-
   copy-webpack-plugin@13.0.1(webpack@5.101.2(esbuild@0.25.9)):
->>>>>>> 36268ffc4 (feat(provider): add Moonshot AI provider (#12245))
     dependencies:
       glob-parent: 6.0.2
       normalize-path: 3.0.0

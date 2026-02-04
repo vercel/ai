@@ -45,14 +45,16 @@ import { moonshotai } from '@ai-sdk/moonshotai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: moonshotai('kimi-k2-thinking'),
-  prompt: 'Solve this problem step by step: What is 15% of 240?',
-  moonshotai: {
-    thinking: {
-      type: 'enabled',
-      budgetTokens: 2048,
-    },
-    reasoningHistory: 'interleaved',
+  model: moonshotai('kimi-k2.5'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  providerOptions: {
+    moonshotai: {
+      thinking: {
+        type: 'enabled',
+        budgetTokens: 2048,
+      },
+      reasoningHistory: 'interleaved',
+    } as MoonshotAIProviderOptions,
   },
 });
 ```
