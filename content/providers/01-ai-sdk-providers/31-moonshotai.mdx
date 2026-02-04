@@ -96,27 +96,22 @@ Moonshot AI language models can be used in the `streamText` function
 Moonshot AI offers thinking models like `kimi-k2-thinking` that generate intermediate reasoning tokens before their final response. The reasoning output is streamed through the standard AI SDK reasoning parts.
 
 ```ts
-import { moonshotai } from '@ai-sdk/moonshotai';
-import { streamText } from 'ai';
+import { moonshotai, type MoonshotAIProviderOptions } from '@ai-sdk/moonshotai';
+import { generateText } from 'ai';
 
-const result = streamText({
+const { text, reasoningText } = await generateText({
   model: moonshotai('kimi-k2-thinking'),
   providerOptions: {
     moonshotai: {
       thinking: { type: 'enabled', budgetTokens: 2048 },
       reasoningHistory: 'interleaved',
-    },
+    } satisfies MoonshotAIProviderOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
 
-for await (const part of result.fullStream) {
-  if (part.type === 'reasoning') {
-    console.log('Reasoning:', part.text);
-  } else if (part.type === 'text-delta') {
-    process.stdout.write(part.textDelta);
-  }
-}
+console.log(reasoningText);
+console.log(text);
 ```
 
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details on how to integrate reasoning into your chatbot.
