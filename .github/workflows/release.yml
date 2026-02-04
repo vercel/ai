@@ -58,23 +58,6 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
-      - name: Validate NPM Token
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo "Error: NPM_TOKEN_ELEVATED is not set"
-            exit 1
-          fi
-          # Test the token by checking npm authentication
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
-          if ! npm whoami; then
-            echo "Error: NPM_TOKEN_ELEVATED is invalid or expired"
-            exit 1
-          fi
-          echo "NPM token is valid"
-          rm .npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
-
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
