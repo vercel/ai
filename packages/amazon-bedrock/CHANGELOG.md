@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.74
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 3ffa24e: feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api
+- Updated dependencies [8479fe8]
+- Updated dependencies [008ce2f]
+  - @ai-sdk/anthropic@2.0.58
+
 ## 3.0.73
 
 ### Patch Changes
