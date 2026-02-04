@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.32
+
+### Patch Changes
+
+- beba89c: feat (provider/gateway): add parallel search tool
+
 ## 2.0.31
 
 ### Patch Changes
