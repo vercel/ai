@@ -927,14 +927,14 @@ The `vertexRagStore` tool accepts the following configuration options:
 
 ### Image Outputs
 
-Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
+Gemini models with image generation capabilities (e.g. `gemini-2.5-flash-image`) support generating images as part of a multimodal response. Images are exposed as files in the response.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image-preview'),
+  model: google('gemini-2.5-flash-image'),
   prompt:
     'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });
@@ -945,6 +945,12 @@ for (const file of result.files) {
   }
 }
 ```
+
+<Note>
+  If you primarily want to generate images without text output, you can also use
+  Gemini image models with the `generateImage()` function. See [Gemini Image
+  Models](#gemini-image-models) for details.
+</Note>
 
 ### Safety Ratings
 
@@ -1144,8 +1150,17 @@ The following optional provider options are available for Google Generative AI e
 
 ## Image Models
 
-You can create [Imagen](https://ai.google.dev/gemini-api/docs/imagen) models that call the Google Generative AI API using the `.image()` factory method.
+You can create image models that call the Google Generative AI API using the `.image()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+The Google provider supports two types of image models:
+
+- **Imagen models**: Dedicated image generation models using the `:predict` API
+- **Gemini image models**: Multimodal language models with image output capabilities using the `:generateContent` API
+
+### Imagen Models
+
+[Imagen](https://ai.google.dev/gemini-api/docs/imagen) models are dedicated image generation models.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -1176,7 +1191,7 @@ const { image } = await generateImage({
 });
 ```
 
-The following provider options are available:
+The following provider options are available for Imagen models:
 
 - **personGeneration** `allow_adult` | `allow_all` | `dont_allow`
   Whether to allow person generation. Defaults to `allow_adult`.
@@ -1186,10 +1201,84 @@ The following provider options are available:
   parameter instead.
 </Note>
 
-#### Model Capabilities
+#### Imagen Model Capabilities
 
 | Model                           | Aspect Ratios             |
 | ------------------------------- | ------------------------- |
 | `imagen-4.0-generate-001`       | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-4.0-ultra-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-4.0-fast-generate-001`  | 1:1, 3:4, 4:3, 9:16, 16:9 |
+
+### Gemini Image Models
+
+[Gemini image models](https://ai.google.dev/gemini-api/docs/image-generation) (e.g. `gemini-2.5-flash-image`) are technically multimodal output language models, but they can be used with the `generateImage()` function for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: 'A photorealistic image of a cat wearing a wizard hat',
+  aspectRatio: '1:1',
+});
+```
+
+Gemini image models also support image editing by providing input images:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+import fs from 'node:fs';
+
+const sourceImage = fs.readFileSync('./cat.png');
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: [sourceImage],
+  },
+});
+```
+
+You can also use URLs for input images:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: google.image('gemini-2.5-flash-image'),
+  prompt: {
+    text: 'Add a small wizard hat to this cat',
+    images: ['https://example.com/cat.png'],
+  },
+});
+```
+
+<Note>
+  Gemini image models do not support the `size` or `n` parameters. Use
+  `aspectRatio` instead of `size`. Mask-based inpainting is also not supported.
+</Note>
+
+<Note>
+  For more advanced use cases where you need both text and image outputs, or
+  want more control over the generation process, you can use Gemini image models
+  directly with `generateText()`. See [Image Outputs](#image-outputs) for
+  details.
+</Note>
+
+#### Gemini Image Model Capabilities
+
+| Model                        | Image Generation    | Image Editing       | Aspect Ratios                                       |
+| ---------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-2.5-flash-image`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| `gemini-3-pro-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+
+<Note>
+  `gemini-3-pro-image-preview` supports additional features including up to 14
+  reference images for editing (6 objects, 5 humans), resolution options (1K,
+  2K, 4K via `providerOptions.google.imageConfig.imageSize`), and Google Search
+  grounding.
+</Note>
