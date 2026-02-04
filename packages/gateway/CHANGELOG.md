@@ -1,5 +1,32 @@
 # @ai-sdk/gateway
 
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.30
+
+### Patch Changes
+
+- 1a74972: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.29
 
 ### Patch Changes

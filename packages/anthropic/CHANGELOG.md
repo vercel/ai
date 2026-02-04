@@ -1,5 +1,26 @@
 # @ai-sdk/anthropic
 
+## 3.0.36
+
+### Patch Changes
+
+- 1652320: feat(anthropic): support custom tool-reference content for deferred tool loading
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
 ## 3.0.33
 
 ### Patch Changes
