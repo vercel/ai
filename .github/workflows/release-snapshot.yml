@@ -32,6 +32,10 @@ name: Release Snapshot
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   release-snapshot:
     name: Release Snapshot
@@ -52,11 +56,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Add npm auth token to pnpm
-        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
-        env:
-          NPM_TOKEN_ELEVATED: ${{secrets.NPM_TOKEN_ELEVATED}}
-
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
 
@@ -67,7 +66,6 @@ jobs:
         run: pnpm changeset version --snapshot ${SHORT_SHA}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
 
       - name: Clean Examples
         run: pnpm clean-examples
@@ -79,4 +77,3 @@ jobs:
         run: pnpm changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}

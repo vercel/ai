@@ -9,9 +9,14 @@ on:
       - '.github/workflows/release.yml'
   workflow_dispatch:
 
-concurrency: 
+concurrency:
   group: 'release'
   cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -67,4 +72,3 @@ jobs:
           setupGitUser: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_ELEVATED }}
