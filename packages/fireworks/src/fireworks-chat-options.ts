@@ -1,5 +1,7 @@
 import { z } from 'zod/v4';
 
+// https://docs.fireworks.ai/docs/serverless-models#chat-models
+// Below is just a subset of the available models.
 export type FireworksChatModelId =
   | 'accounts/fireworks/models/deepseek-v3'
   | 'accounts/fireworks/models/llama-v3p3-70b-instruct'
