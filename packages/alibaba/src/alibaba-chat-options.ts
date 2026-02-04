@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 
 // https://www.alibabacloud.com/help/en/model-studio/models
-export type AlibabaLanguageModelId =
+export type AlibabaChatModelId =
   // commercial edition - hybrid-thinking mode (disabled by default)
   // qwen-max series
   | 'qwen3-max'
@@ -46,7 +46,7 @@ export type AlibabaLanguageModelId =
   | 'qwen-vl-plus'
   | (string & {});
 
-export const alibabaLanguageModelOptions = z.object({
+export const alibabaProviderOptions = z.object({
   /**
    * Enable thinking/reasoning mode for supported models.
    * When enabled, the model generates reasoning content before the response.
@@ -69,6 +69,4 @@ export const alibabaLanguageModelOptions = z.object({
   parallelToolCalls: z.boolean().optional(),
 });
 
-export type AlibabaLanguageModelOptions = z.infer<
-  typeof alibabaLanguageModelOptions
->;
+export type AlibabaProviderOptions = z.infer<typeof alibabaProviderOptions>;

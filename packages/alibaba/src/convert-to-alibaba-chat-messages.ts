@@ -54,46 +54,46 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        // Check if content is simple text or multi-part
-        const hasNonTextParts = content.some(part => part.type !== 'text');
-
-        if (hasNonTextParts) {
-          // Multi-part content (text + images)
+        // Single text part -> use string content
+        if (content.length === 1 && content[0].type === 'text') {
           messages.push({
             role: 'user',
-            content: content.map(part => {
-              switch (part.type) {
-                case 'text': {
-                  return { type: 'text', text: part.text };
-                }
+            content: content[0].text,
+          });
+          break;
+        }
 
-                case 'file': {
-                  if (part.mediaType.startsWith('image/')) {
-                    const mediaType =
-                      part.mediaType === 'image/*'
-                        ? 'image/jpeg'
-                        : part.mediaType;
+        // Multi-part content
+        messages.push({
+          role: 'user',
+          content: content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'text', text: part.text };
+              }
 
-                    return {
-                      type: 'image_url',
-                      image_url: {
-                        url: formatImageUrl({ data: part.data, mediaType }),
-                      },
-                    };
-                  } else {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'Only image file parts are supported',
-                    });
-                  }
+              case 'file': {
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
+
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url: formatImageUrl({ data: part.data, mediaType }),
+                    },
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'Only image file parts are supported',
+                  });
                 }
               }
-            }),
-          });
-        } else {
-          // Simple text-only content
-          const text = content.map(part => part.text).join('');
-          messages.push({ role: 'user', content: text });
-        }
+            }
+          }),
+        });
         break;
       }
 
@@ -127,12 +127,6 @@ export function convertToAlibabaChatMessages({
               // but may appear in assistant messages during multi-turn conversations
               text += part.text;
               break;
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(
-                `Unsupported content type in assistant message: ${(_exhaustiveCheck as any).type}`,
-              );
             }
           }
         }

@@ -10,21 +10,21 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
-import { AlibabaLanguageModelId } from './alibaba-language-settings';
+import { AlibabaChatModelId } from './alibaba-chat-options';
 import { VERSION } from './version';
 
 export interface AlibabaProvider extends ProviderV3 {
-  (modelId: AlibabaLanguageModelId): LanguageModelV3;
+  (modelId: AlibabaChatModelId): LanguageModelV3;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AlibabaLanguageModelId): LanguageModelV3;
+  languageModel(modelId: AlibabaChatModelId): LanguageModelV3;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: AlibabaLanguageModelId): LanguageModelV3;
+  chat(modelId: AlibabaChatModelId): LanguageModelV3;
 }
 
 export interface AlibabaProviderSettings {
@@ -83,7 +83,7 @@ export function createAlibaba(
       `ai-sdk/alibaba/${VERSION}`,
     );
 
-  const createLanguageModel = (modelId: AlibabaLanguageModelId) =>
+  const createLanguageModel = (modelId: AlibabaChatModelId) =>
     new AlibabaLanguageModel(modelId, {
       provider: 'alibaba.chat',
       baseURL,
@@ -92,7 +92,7 @@ export function createAlibaba(
       includeUsage: options.includeUsage ?? true,
     });
 
-  const provider = function (modelId: AlibabaLanguageModelId) {
+  const provider = function (modelId: AlibabaChatModelId) {
     if (new.target) {
       throw new Error(
         'The Alibaba model function cannot be called with the new keyword.',

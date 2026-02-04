@@ -28,9 +28,9 @@ import {
 } from '@ai-sdk/openai-compatible/internal';
 import { AlibabaConfig } from './alibaba-config';
 import {
-  AlibabaLanguageModelId,
-  alibabaLanguageModelOptions,
-} from './alibaba-language-settings';
+  AlibabaChatModelId,
+  alibabaProviderOptions,
+} from './alibaba-chat-options';
 import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
@@ -47,11 +47,11 @@ import { CacheControlValidator } from './get-cache-control';
  */
 export class AlibabaLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
-  readonly modelId: AlibabaLanguageModelId;
+  readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
 
-  constructor(modelId: AlibabaLanguageModelId, config: AlibabaConfig) {
+  constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {
     this.modelId = modelId;
     this.config = config;
   }
@@ -91,7 +91,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
-      schema: alibabaLanguageModelOptions,
+      schema: alibabaProviderOptions,
     });
 
     // Warn about unsupported features
