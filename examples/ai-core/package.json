@@ -27,7 +27,12 @@
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
+<<<<<<< HEAD:examples/ai-core/package.json
     "@ai-sdk/openai": "workspace:*",
+=======
+    "@ai-sdk/moonshotai": "workspace:*",
+    "@ai-sdk/openai": "3.0.25",
+>>>>>>> 36268ffc4 (feat(provider): add Moonshot AI provider (#12245)):examples/ai-functions/package.json
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/prodia": "workspace:*",
