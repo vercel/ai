@@ -6,30 +6,32 @@ tags: ['node', 'structured data']
 
 # Generate Object
 
-Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can provide a schema that describes the structure of your desired object to the `generateObject` function.
+Earlier functions like `generateText` and `streamText` gave us the ability to generate unstructured text. However, if you want to generate structured data like JSON, you can use the `generateText` function with the `output` property to specify a schema that describes the structure of your desired object.
 
 The function requires you to provide a schema using [zod](https://zod.dev), a library for defining schemas for JavaScript objects. By using zod, you can also use it to validate the generated object and ensure that it conforms to the specified structure.
 
 ```ts file='index.ts'
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
-  model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(
-        z.object({
-          name: z.string(),
-          amount: z.string(),
-        }),
-      ),
-      steps: z.array(z.string()),
+const { output } = await generateText({
+  model: 'openai/gpt-4o',
+  prompt: 'Generate a lasagna recipe.',
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({
+            name: z.string(),
+            amount: z.string(),
+          }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
-  prompt: 'Generate a lasagna recipe.',
 });
 
-console.log(JSON.stringify(result.object.recipe, null, 2));
+console.log(JSON.stringify(output.recipe, null, 2));
 ```
