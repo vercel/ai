@@ -69,13 +69,13 @@ describe('convertMoonshotAIChatUsage', () => {
     const result = convertMoonshotAIChatUsage({
       prompt_tokens: 100,
       completion_tokens: 50,
-      cached_tokens: 30, // Moonshot-specific top-level field
+      cached_tokens: 30,
     });
 
     expect(result).toEqual({
       inputTokens: {
         total: 100,
-        noCache: 70, // 100 - 30
+        noCache: 70,
         cacheRead: 30,
         cacheWrite: undefined,
       },
@@ -104,7 +104,7 @@ describe('convertMoonshotAIChatUsage', () => {
     expect(result).toEqual({
       inputTokens: {
         total: 100,
-        noCache: 75, // 100 - 25
+        noCache: 75,
         cacheRead: 25,
         cacheWrite: undefined,
       },
@@ -127,16 +127,16 @@ describe('convertMoonshotAIChatUsage', () => {
     const result = convertMoonshotAIChatUsage({
       prompt_tokens: 100,
       completion_tokens: 50,
-      cached_tokens: 40, // Top-level (Moonshot)
+      cached_tokens: 40,
       prompt_tokens_details: {
-        cached_tokens: 25, // Nested (OpenAI)
+        cached_tokens: 25,
       },
     });
 
     expect(result).toEqual({
       inputTokens: {
         total: 100,
-        noCache: 60, // 100 - 40 (uses top-level)
+        noCache: 60,
         cacheRead: 40,
         cacheWrite: undefined,
       },
@@ -174,7 +174,7 @@ describe('convertMoonshotAIChatUsage', () => {
       },
       outputTokens: {
         total: 80,
-        text: 50, // 80 - 30
+        text: 50,
         reasoning: 30,
       },
       raw: {
@@ -200,13 +200,13 @@ describe('convertMoonshotAIChatUsage', () => {
     expect(result).toEqual({
       inputTokens: {
         total: 100,
-        noCache: 65, // 100 - 35
+        noCache: 65,
         cacheRead: 35,
         cacheWrite: undefined,
       },
       outputTokens: {
         total: 80,
-        text: 50, // 80 - 30
+        text: 50,
         reasoning: 30,
       },
       raw: {
