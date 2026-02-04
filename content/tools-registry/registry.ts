@@ -483,4 +483,42 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'inconvo',
+    name: 'Inconvo',
+    description:
+      'Inconvo is an open-source platform for building data agents. Query and analyze data from Postgres, MySQL, BigQuery, and other data sources through natural language. Add data analysis and visualization capabilities to your AI applications in just a few lines of code.',
+    packageName: '@inconvoai/vercel-ai-sdk',
+    tags: ['database', 'analytics', 'reporting', 'data-agent'],
+    apiKeyEnvName: 'INCONVO_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @inconvoai/vercel-ai-sdk',
+      npm: 'npm install @inconvoai/vercel-ai-sdk',
+      yarn: 'yarn add @inconvoai/vercel-ai-sdk',
+      bun: 'bun add @inconvoai/vercel-ai-sdk',
+    },
+    codeExample: `import { inconvoDataAgent } from '@inconvoai/vercel-ai-sdk';
+import { generateText, stepCountIs } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'From the connected data generate and answer one data-backed question.',
+  tools: {
+    ...inconvoDataAgent({
+      agentId: process.env.INCONVO_AGENT_ID,
+      userIdentifier: 'user_123',
+      userContext: {
+        organisationId: 1,
+      },
+    }),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/inconvoai/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.inconvo.ai/manage/apikeys',
+    websiteUrl: 'https://inconvo.com/docs',
+    npmUrl: 'https://www.npmjs.com/package/@inconvoai/vercel-ai-sdk',
+  },
 ];
