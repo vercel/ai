@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.21
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.20
 
 ### Patch Changes

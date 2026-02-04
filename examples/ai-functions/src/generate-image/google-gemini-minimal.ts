@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const { files } = await generateText({
-    model: google('gemini-2.5-flash-image-preview'),
+    model: google('gemini-2.5-flash-image'),
     prompt: 'A nano banana in a fancy restaurant',
   });
 
