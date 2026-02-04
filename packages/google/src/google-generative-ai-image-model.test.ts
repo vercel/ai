@@ -578,6 +578,26 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       });
     });
 
+    it('should support Gemini-only aspect ratios like 21:9', async () => {
+      prepareGeminiJsonResponse();
+
+      await geminiModel.doGenerate({
+        prompt: 'A cinematic landscape',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '21:9',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await geminiServer.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig.imageConfig).toStrictEqual({
+        aspectRatio: '21:9',
+      });
+    });
+
     it('should pass seed in generationConfig', async () => {
       prepareGeminiJsonResponse();
 
