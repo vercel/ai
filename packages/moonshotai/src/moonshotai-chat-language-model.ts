@@ -1,7 +1,5 @@
-import {
-  OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleChatConfig,
-} from '@ai-sdk/openai-compatible';
+import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
+import { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import {
   LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
