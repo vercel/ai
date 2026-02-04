@@ -1,5 +1,5 @@
 import { alibaba } from '@ai-sdk/alibaba';
-import { generateText, tool } from 'ai';
+import { generateText, stepCountIs, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = await generateText({
     model: alibaba('qwen-plus'),
     prompt: 'What is the weather in Paris?',
-    maxSteps: 3,
+    stopWhen: stepCountIs(5),
     tools: {
       getWeather: tool({
         description: 'Get the weather for a location',
@@ -29,16 +29,42 @@ run(async () => {
   });
 
   console.log('Text:', result.text);
-  console.log('\nTool calls:', result.toolCalls.length);
-  result.toolCalls.forEach((call, i) => {
-    console.log(`  ${i + 1}. ${call.toolName}:`, call.args);
-  });
-  console.log('\nTool results:', result.toolResults.length);
-  result.toolResults.forEach((res, i) => {
-    console.log(`  ${i + 1}. Result:`, res.result);
+
+  // Show all tool calls across all steps
+  let totalToolCalls = 0;
+  let totalToolResults = 0;
+
+  console.log('\nSteps:');
+  result.steps.forEach((step, i) => {
+    console.log(`\nStep ${i + 1}:`);
+
+    if (step.toolCalls && step.toolCalls.length > 0) {
+      console.log(`  Tool calls: ${step.toolCalls.length}`);
+      step.toolCalls.forEach(call => {
+        totalToolCalls++;
+        if (!call.dynamic) {
+          console.log(`    - ${call.toolName}:`, call.input);
+        }
+      });
+    }
+
+    if (step.toolResults && step.toolResults.length > 0) {
+      console.log(`  Tool results: ${step.toolResults.length}`);
+      step.toolResults.forEach(result => {
+        totalToolResults++;
+        if (!result.dynamic) {
+          console.log(`    - Result:`, result.output);
+        }
+      });
+    }
+
+    if (step.text) {
+      console.log(`  Text: ${step.text}`);
+    }
   });
 
+  console.log(`\nTotal tool calls: ${totalToolCalls}`);
+  console.log(`Total tool results: ${totalToolResults}`);
   console.log('\nUsage:', result.usage);
-  console.log('Steps:', result.steps.length);
   console.log('Finish reason:', result.finishReason);
 });
