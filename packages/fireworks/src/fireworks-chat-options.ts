@@ -1,5 +1,5 @@
-// https://docs.fireworks.ai/docs/serverless-models#chat-models
-// Below is just a subset of the available models.
+import { z } from 'zod/v4';
+
 export type FireworksChatModelId =
   | 'accounts/fireworks/models/deepseek-v3'
   | 'accounts/fireworks/models/llama-v3p3-70b-instruct'
@@ -17,4 +17,20 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/qwq-32b'
   | 'accounts/fireworks/models/yi-large'
   | 'accounts/fireworks/models/kimi-k2-instruct'
+  | 'accounts/fireworks/models/kimi-k2-thinking'
+  | 'accounts/fireworks/models/kimi-k2p5'
+  | 'accounts/fireworks/models/minimax-m2'
   | (string & {});
+
+export const fireworksProviderOptions = z.object({
+  thinking: z
+    .object({
+      type: z.enum(['enabled', 'disabled']).optional(),
+      budgetTokens: z.number().int().min(1024).optional(),
+    })
+    .optional(),
+
+  reasoningHistory: z.enum(['disabled', 'interleaved', 'preserved']).optional(),
+});
+
+export type FireworksProviderOptions = z.infer<typeof fireworksProviderOptions>;
