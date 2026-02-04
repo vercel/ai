@@ -39,6 +39,11 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for text generation.
    */
+  chat(modelId: GatewayModelId): LanguageModelV3;
+
+  /**
+   * Creates a model for text generation.
+   */
   languageModel(modelId: GatewayModelId): LanguageModelV3;
 
   /**
@@ -54,6 +59,11 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating text embeddings.
    */
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for generating text embeddings.
+   */
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -64,7 +74,17 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for generating images.
    */
+  image(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for generating images.
+   */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
 
   /**
    * Creates a model for generating videos.
@@ -271,9 +291,11 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  provider.chat = provider.languageModel;
+  provider.embedding = provider.embeddingModel;
+  provider.image = provider.imageModel;
   provider.video = provider.videoModel;
   provider.tools = gatewayTools;
-
   return provider;
 }
 
