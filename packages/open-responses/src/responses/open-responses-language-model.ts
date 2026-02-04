@@ -43,7 +43,9 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     this.config = config;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {};
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
 
   get provider(): string {
     return this.config.provider;

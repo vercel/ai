@@ -1,4 +1,5 @@
 import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
   FunctionCallItemParam,
   FunctionCallOutputItemParam,
@@ -39,6 +40,28 @@ export async function convertToOpenResponsesInput({
           switch (part.type) {
             case 'text': {
               userContent.push({ type: 'input_text', text: part.text });
+              break;
+            }
+            case 'file': {
+              if (!part.mediaType.startsWith('image/')) {
+                warnings.push({
+                  type: 'other',
+                  message: `unsupported file content type: ${part.mediaType}`,
+                });
+                break;
+              }
+
+              const mediaType =
+                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
+              userContent.push({
+                type: 'input_image',
+                ...(part.data instanceof URL
+                  ? { image_url: part.data.toString() }
+                  : {
+                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                    }),
+              });
               break;
             }
           }

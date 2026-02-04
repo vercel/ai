@@ -122,6 +122,109 @@ describe('convertToOpenResponsesInput', () => {
         ]
       `);
     });
+
+    it('should convert image file parts with base64 data to input_image', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'ZmFrZS1kYXRh',
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "image_url": "data:image/png;base64,ZmFrZS1kYXRh",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+    });
+
+    it('should convert image file parts with URL data to input_image', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: new URL('https://example.com/image.png'),
+                mediaType: 'image/png',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "image_url": "https://example.com/image.png",
+                "type": "input_image",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+    });
+
+    it('should warn when non-image file parts are provided', async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Here is an image id.' },
+              {
+                type: 'file',
+                data: 'UERGREFUQQ==',
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Here is an image id.",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([
+        {
+          message: 'unsupported file content type: application/pdf',
+          type: 'other',
+        },
+      ]);
+    });
   });
 
   describe('assistant messages', () => {
