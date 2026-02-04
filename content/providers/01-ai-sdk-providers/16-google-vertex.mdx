@@ -287,6 +287,11 @@ await generateText({
 
 The following optional provider options are available for Google Vertex models:
 
+- **cachedContent** _string_
+
+  Optional. The name of the cached content used as context to serve the prediction.
+  Format: projects/\{project\}/locations/\{location\}/cachedContents/\{cachedContent\}
+
 - **structuredOutputs** _boolean_
 
   Optional. Enable structured output. Default is true.
@@ -546,6 +551,109 @@ const { text } = await generateText({
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
+### Cached Content
+
+Google Vertex AI supports both explicit and implicit caching to help reduce costs on repetitive content.
+
+#### Implicit Caching
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+// Structure prompts with consistent content at the beginning
+const baseContext =
+  'You are a cooking assistant with expertise in Italian cuisine. Here are 1000 lasagna recipes for reference...';
+
+const { text: veggieLasagna } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a vegetarian lasagna recipe for 4 people.`,
+});
+
+// Second request with same prefix - eligible for cache hit
+const { text: meatLasagna, providerMetadata } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: `${baseContext}\n\nWrite a meat lasagna recipe for 12 people.`,
+});
+
+// Check cached token count in usage metadata
+console.log('Cached tokens:', providerMetadata.google);
+// e.g.
+// {
+//   groundingMetadata: null,
+//   safetyRatings: null,
+//   usageMetadata: {
+//     cachedContentTokenCount: 2027,
+//     thoughtsTokenCount: 702,
+//     promptTokenCount: 2152,
+//     candidatesTokenCount: 710,
+//     totalTokenCount: 3564
+//   }
+// }
+```
+
+#### Explicit Caching
+
+You can use explicit caching with Gemini models. See the [Vertex AI context caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview) to check if caching is supported for your model.
+
+First, create a cache using the Google GenAI SDK with Vertex mode enabled:
+
+```ts
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_VERTEX_PROJECT,
+  location: process.env.GOOGLE_VERTEX_LOCATION,
+});
+
+const model = 'gemini-2.5-pro';
+
+// Create a cache with the content you want to reuse
+const cache = await ai.caches.create({
+  model,
+  config: {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: '1000 Lasagna Recipes...' }],
+      },
+    ],
+    ttl: '300s', // Cache expires after 5 minutes
+  },
+});
+
+console.log('Cache created:', cache.name);
+// e.g. projects/my-project/locations/us-central1/cachedContents/abc123
+```
+
+Then use the cache with the AI SDK:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { text: veggieLasagnaRecipe } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      cachedContent: cache.name,
+    },
+  },
+});
+
+const { text: meatLasagnaRecipe } = await generateText({
+  model: vertex('gemini-2.5-pro'),
+  prompt: 'Write a meat lasagna recipe for 12 people.',
+  providerOptions: {
+    google: {
+      cachedContent: cache.name,
+    },
+  },
+});
+```
+
 ### Safety Ratings
 
 The safety ratings provide insight into the safety of the model's response.
@@ -639,8 +747,10 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3-pro-preview` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-2.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
@@ -1234,24 +1344,29 @@ const result = await generateText({
 
 For more on prompt caching with Anthropic, see [Google Vertex AI's Claude prompt caching documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude-prompt-caching) and [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
-### Computer Use
+### Tools
 
-Anthropic provides three built-in tools that can be used to interact with external systems:
+Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The following tools are available via the `tools` property of the provider instance:
 
 1. **Bash Tool**: Allows running bash commands.
 2. **Text Editor Tool**: Provides functionality for viewing and editing text files.
 3. **Computer Tool**: Enables control of keyboard and mouse actions on a computer.
+4. **Web Search Tool**: Provides access to real-time web content.
 
-They are available via the `tools` property of the provider instance.
+<Note>
+  Only a subset of Anthropic tools are supported on Google Vertex. Tools like
+  Code Execution, Memory, and Web Fetch are not available. Use the regular
+  `@ai-sdk/anthropic` provider if you need access to all Anthropic tools.
+</Note>
 
-For more background see [Anthropic's Computer Use documentation](https://docs.anthropic.com/en/docs/build-with-claude/computer-use).
+For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).
 
 #### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
 
 ```ts
-const bashTool = vertexAnthropic.tools.bash_20241022({
+const bashTool = vertexAnthropic.tools.bash_20250124({
   execute: async ({ command, restart }) => {
     // Implement your bash command execution logic here
     // Return the result of the command execution
@@ -1269,13 +1384,14 @@ Parameters:
 The Text Editor Tool provides functionality for viewing and editing text files:
 
 ```ts
-const textEditorTool = vertexAnthropic.tools.textEditor_20241022({
+const textEditorTool = vertexAnthropic.tools.textEditor_20250124({
   execute: async ({
     command,
     path,
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range,
   }) => {
@@ -1287,13 +1403,15 @@ const textEditorTool = vertexAnthropic.tools.textEditor_20241022({
 
 Parameters:
 
-- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run.
+- `command` ('view' | 'create' | 'str_replace' | 'insert' | 'undo_edit'): The command to run. Note: `undo_edit` is not supported in `textEditor_20250429` and `textEditor_20250728`.
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
+- `max_characters` (number, optional): Optional maximum number of characters to view in the file (only available in `textEditor_20250728`).
 
 #### Computer Tool
 
@@ -1344,7 +1462,39 @@ Parameters:
 - `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
 - `text` (string, optional): Required for `type` and `key` actions.
 
-These tools can be used in conjunction with the `claude-3-5-sonnet-v2@20241022` model to enable more complex interactions and tasks.
+#### Web Search Tool
+
+The Web Search Tool provides Claude with direct access to real-time web content:
+
+```ts
+const webSearchTool = vertexAnthropic.tools.webSearch_20250305({
+  maxUses: 5, // Optional: Maximum number of web searches Claude can perform
+  allowedDomains: ['example.com'], // Optional: Only search these domains
+  blockedDomains: ['spam.com'], // Optional: Never search these domains
+  userLocation: {
+    // Optional: Provide location for geographically relevant results
+    type: 'approximate',
+    city: 'San Francisco',
+    region: 'CA',
+    country: 'US',
+    timezone: 'America/Los_Angeles',
+  },
+});
+```
+
+Parameters:
+
+- `maxUses` (number, optional): Maximum number of web searches Claude can perform during the conversation.
+- `allowedDomains` (string[], optional): Optional list of domains that Claude is allowed to search.
+- `blockedDomains` (string[], optional): Optional list of domains that Claude should avoid when searching.
+- `userLocation` (object, optional): Optional user location information to provide geographically relevant search results.
+  - `type` ('approximate'): The type of location (must be approximate).
+  - `city` (string, optional): The city name.
+  - `region` (string, optional): The region or state.
+  - `country` (string, optional): The country.
+  - `timezone` (string, optional): The IANA timezone ID.
+
+These tools can be used in conjunction with supported Claude models to enable more complex interactions and tasks.
 
 ### Model Capabilities
 

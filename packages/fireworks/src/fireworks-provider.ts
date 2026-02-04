@@ -37,49 +37,49 @@ const fireworksErrorStructure: ProviderErrorStructure<FireworksErrorData> = {
 
 export interface FireworksProviderSettings {
   /**
-Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
-environment variable.
-*/
+   * Fireworks API key. Default value is taken from the `FIREWORKS_API_KEY`
+   * environment variable.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
 export interface FireworksProvider extends ProviderV3 {
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   (modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   chatModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
-Creates a completion model for text generation.
-*/
+   * Creates a completion model for text generation.
+   */
   completionModel(modelId: FireworksCompletionModelId): LanguageModelV3;
 
   /**
-Creates a chat model for text generation.
-*/
+   * Creates a chat model for text generation.
+   */
   languageModel(modelId: FireworksChatModelId): LanguageModelV3;
 
   /**
-Creates a text embedding model for text generation.
-*/
+   * Creates a text embedding model for text generation.
+   */
   embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -88,13 +88,13 @@ Creates a text embedding model for text generation.
   textEmbeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * Creates a model for image generation.
+   */
   image(modelId: FireworksImageModelId): ImageModelV3;
 
   /**
-Creates a model for image generation.
-*/
+   * Creates a model for image generation.
+   */
   imageModel(modelId: FireworksImageModelId): ImageModelV3;
 }
 
@@ -135,6 +135,29 @@ export function createFireworks(
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       errorStructure: fireworksErrorStructure,
+      transformRequestBody: args => {
+        const thinking = args.thinking as
+          | { type?: string; budgetTokens?: number }
+          | undefined;
+        const reasoningHistory = args.reasoningHistory as string | undefined;
+
+        const { thinking: _, reasoningHistory: __, ...rest } = args;
+
+        return {
+          ...rest,
+          ...(thinking && {
+            thinking: {
+              type: thinking.type,
+              ...(thinking.budgetTokens !== undefined && {
+                budget_tokens: thinking.budgetTokens,
+              }),
+            },
+          }),
+          ...(reasoningHistory && {
+            reasoning_history: reasoningHistory,
+          }),
+        };
+      },
     });
   };
 

@@ -18,6 +18,7 @@ import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
@@ -33,23 +34,23 @@ export interface GatewayProvider extends ProviderV3 {
   (modelId: GatewayModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
   languageModel(modelId: GatewayModelId): LanguageModelV3;
 
   /**
-Returns available providers and models for use with the remote provider.
- */
+   * Returns available providers and models for use with the remote provider.
+   */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
 
   /**
-Returns credit information for the authenticated user.
- */
+   * Returns credit information for the authenticated user.
+   */
   getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
-Creates a model for generating text embeddings.
-*/
+   * Creates a model for generating text embeddings.
+   */
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -58,35 +59,40 @@ Creates a model for generating text embeddings.
   textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for generating images.
-*/
+   * Creates a model for generating images.
+   */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Gateway-specific tools executed server-side.
+   */
+  tools: typeof gatewayTools;
 }
 
 export interface GatewayProviderSettings {
   /**
-The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
+   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
    */
   baseURL?: string;
 
   /**
-API key that is being sent using the `Authorization` header.
+   * API key that is being sent using the `Authorization` header.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-How frequently to refresh the metadata cache in milliseconds.
+   * How frequently to refresh the metadata cache in milliseconds.
    */
   metadataCacheRefreshMillis?: number;
 
@@ -101,7 +107,7 @@ How frequently to refresh the metadata cache in milliseconds.
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 /**
-Create a remote provider instance.
+ * Create a remote provider instance.
  */
 export function createGatewayProvider(
   options: GatewayProviderSettings = {},
@@ -117,8 +123,8 @@ export function createGatewayProvider(
     'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
-    const auth = await getGatewayAuthToken(options);
-    if (auth) {
+    try {
+      const auth = await getGatewayAuthToken(options);
       return withUserAgentSuffix(
         {
           Authorization: `Bearer ${auth.token}`,
@@ -128,13 +134,14 @@ export function createGatewayProvider(
         },
         `ai-sdk/gateway/${VERSION}`,
       );
+    } catch (error) {
+      throw GatewayAuthenticationError.createContextualError({
+        apiKeyProvided: false,
+        oidcTokenProvided: false,
+        statusCode: 401,
+        cause: error,
+      });
     }
-
-    throw GatewayAuthenticationError.createContextualError({
-      apiKeyProvided: false,
-      oidcTokenProvided: false,
-      statusCode: 401,
-    });
   };
 
   const createO11yHeaders = () => {
@@ -247,6 +254,7 @@ export function createGatewayProvider(
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.tools = gatewayTools;
 
   return provider;
 }
@@ -255,10 +263,7 @@ export const gateway = createGatewayProvider();
 
 export async function getGatewayAuthToken(
   options: GatewayProviderSettings,
-): Promise<{
-  token: string;
-  authMethod: 'api-key' | 'oidc';
-} | null> {
+): Promise<{ token: string; authMethod: 'api-key' | 'oidc' }> {
   const apiKey = loadOptionalSetting({
     settingValue: options.apiKey,
     environmentVariableName: 'AI_GATEWAY_API_KEY',
@@ -271,13 +276,9 @@ export async function getGatewayAuthToken(
     };
   }
 
-  try {
-    const oidcToken = await getVercelOidcToken();
-    return {
-      token: oidcToken,
-      authMethod: 'oidc',
-    };
-  } catch {
-    return null;
-  }
+  const oidcToken = await getVercelOidcToken();
+  return {
+    token: oidcToken,
+    authMethod: 'oidc',
+  };
 }

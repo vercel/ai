@@ -109,12 +109,57 @@ const { text } = await generateText({
 Fireworks language models can also be used in the `streamText` function
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-### Completion Models
+### Provider Options
 
-You can create models that call the Fireworks completions API using the `.completion()` factory method:
+Fireworks chat models support additional provider options that are not part of
+the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
+import { fireworks } from '@ai-sdk/fireworks';
+import { generateText } from 'ai';
+
+const { text, reasoningText } = await generateText({
+  model: fireworks('accounts/fireworks/models/kimi-k2p5'),
+  providerOptions: {
+    fireworks: {
+      thinking: { type: 'enabled', budgetTokens: 4096 },
+      reasoningHistory: 'interleaved',
+    },
+  },
+  prompt: 'How many "r"s are in the word "strawberry"?',
+});
+```
+
+The following optional provider options are available for Fireworks chat models:
+
+- **thinking** _object_
+
+  Configuration for thinking/reasoning models like Kimi K2.5.
+
+  - **type** _'enabled' | 'disabled'_
+
+    Whether to enable thinking mode.
+
+  - **budgetTokens** _number_
+
+    Maximum number of tokens for thinking (minimum 1024).
+
+- **reasoningHistory** _'disabled' | 'interleaved' | 'preserved'_
+
+  Controls how reasoning history is handled in multi-turn conversations:
+
+  - `'disabled'`: Remove reasoning from history
+  - `'interleaved'`: Include reasoning between tool calls within a single turn
+  - `'preserved'`: Keep all reasoning in history
+
+### Completion Models
+
+You can create models that call the Fireworks completions API using the `.completionModel()` factory method:
+
+```ts
+const model = fireworks.completionModel(
+  'accounts/fireworks/models/firefunction-v1',
+);
 ```
 
 ### Model Capabilities
@@ -139,6 +184,9 @@ const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 | `accounts/fireworks/models/qwq-32b`                        | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `accounts/fireworks/models/yi-large`                       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `accounts/fireworks/models/kimi-k2-instruct`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/kimi-k2-thinking`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/kimi-k2p5`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `accounts/fireworks/models/minimax-m2`                     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Fireworks models
@@ -147,10 +195,10 @@ const model = fireworks.completion('accounts/fireworks/models/firefunction-v1');
 
 ## Embedding Models
 
-You can create models that call the Fireworks embeddings API using the `.embedding()` factory method:
+You can create models that call the Fireworks embeddings API using the `.embeddingModel()` factory method:
 
 ```ts
-const model = fireworks.embedding('nomic-ai/nomic-embed-text-v1.5');
+const model = fireworks.embeddingModel('nomic-ai/nomic-embed-text-v1.5');
 ```
 
 You can use Fireworks embedding models to generate embeddings with the `embed` function:
@@ -160,7 +208,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { embed } from 'ai';
 
 const { embedding } = await embed({
-  model: fireworks.embedding('nomic-ai/nomic-embed-text-v1.5'),
+  model: fireworks.embeddingModel('nomic-ai/nomic-embed-text-v1.5'),
   value: 'sunny day at the beach',
 });
 ```

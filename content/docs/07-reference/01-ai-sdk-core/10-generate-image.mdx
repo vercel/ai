@@ -5,8 +5,6 @@ description: API Reference for generateImage.
 
 # `generateImage()`
 
-<Note type="warning">`generateImage` is an experimental feature.</Note>
-
 Generates images based on a given prompt using an image model.
 
 It is ideal for use cases where you need to generate images programmatically,
@@ -104,6 +102,13 @@ console.log(images);
       description: 'Additional provider-specific options.',
     },
     {
+      name: 'maxImagesPerCall',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of images to generate per API call. When n exceeds this value, multiple API calls will be made.',
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -187,6 +192,23 @@ console.log(images);
       type: 'Warning[]',
       description:
         'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'usage',
+      type: 'ImageModelUsage',
+      description: 'The usage statistics for the image generation.',
+      properties: [
+        {
+          type: 'ImageModelUsage',
+          parameters: [
+            {
+              name: 'imagesGenerated',
+              type: 'number',
+              description: 'The total number of images generated.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'providerMetadata',

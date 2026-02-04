@@ -197,6 +197,7 @@ const textEditorTool = anthropic.tools.textEditor_20250124({
     file_text,
     insert_line,
     new_str,
+    insert_text,
     old_str,
     view_range
   }) => {
@@ -208,6 +209,7 @@ const textEditorTool = anthropic.tools.textEditor_20250124({
         fileText: file_text,
         insertLine: insert_line,
         newStr: new_str,
+        insertText: insert_text,
         oldStr: old_str,
         viewRange: view_range
       });

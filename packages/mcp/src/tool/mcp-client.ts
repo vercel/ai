@@ -1,10 +1,15 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
+  asSchema,
   dynamicTool,
+  FlexibleSchema,
   jsonSchema,
+  safeParseJSON,
+  safeValidateTypes,
   Tool,
   tool,
   ToolExecutionOptions,
+  ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -55,6 +60,38 @@ import {
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+
+function mcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  const result = output as CallToolResult;
+
+  if (!('content' in result) || !Array.isArray(result.content)) {
+    return { type: 'json', value: result as JSONValue };
+  }
+
+  const convertedContent = result.content.map(
+    (part: { type: string; [key: string]: unknown }) => {
+      if (part.type === 'text' && 'text' in part) {
+        return { type: 'text' as const, text: part.text as string };
+      }
+      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'image-data' as const,
+          data: part.data as string,
+          mediaType: part.mimeType as string,
+        };
+      }
+      return { type: 'text' as const, text: JSON.stringify(part) };
+    },
+  );
+
+  return { type: 'content', value: convertedContent };
+}
 
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
@@ -499,43 +536,55 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
       for (const {
         name,
+        title,
         description,
         inputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
-        const title = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
 
         const self = this;
+        const outputSchema =
+          schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
 
         const execute = async (
           args: any,
           options: ToolExecutionOptions,
-        ): Promise<CallToolResult> => {
+        ): Promise<unknown> => {
           options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
+          const result = await self.callTool({ name, args, options });
+
+          if (outputSchema != null) {
+            return self.extractStructuredContent(result, outputSchema, name);
+          }
+
+          return result;
         };
 
         const toolWithExecute =
           schemas === 'automatic'
             ? dynamicTool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
                   additionalProperties: false,
                 } as JSONSchema7),
                 execute,
+                toModelOutput: mcpToModelOutput,
               })
             : tool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: schemas[name].inputSchema,
+                ...(outputSchema != null ? { outputSchema } : {}),
                 execute,
+                toModelOutput: mcpToModelOutput,
               });
 
         tools[name] = { ...toolWithExecute, _meta };
@@ -545,6 +594,55 @@ class DefaultMCPClient implements MCPClient {
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Extracts and validates structuredContent from a tool result.
+   */
+  private async extractStructuredContent(
+    result: CallToolResult,
+    outputSchema: FlexibleSchema<unknown>,
+    toolName: string,
+  ): Promise<unknown> {
+    if ('structuredContent' in result && result.structuredContent != null) {
+      const validationResult = await safeValidateTypes({
+        value: result.structuredContent,
+        schema: asSchema(outputSchema),
+      });
+
+      if (!validationResult.success) {
+        throw new MCPClientError({
+          message: `Tool "${toolName}" returned structuredContent that does not match the expected outputSchema`,
+          cause: validationResult.error,
+        });
+      }
+
+      return validationResult.value;
+    }
+
+    // Fallback
+    if ('content' in result && Array.isArray(result.content)) {
+      const textContent = result.content.find(c => c.type === 'text');
+      if (textContent && 'text' in textContent) {
+        const parseResult = await safeParseJSON({
+          text: textContent.text,
+          schema: outputSchema,
+        });
+
+        if (!parseResult.success) {
+          throw new MCPClientError({
+            message: `Tool "${toolName}" returned content that does not match the expected outputSchema`,
+            cause: parseResult.error,
+          });
+        }
+
+        return parseResult.value;
+      }
+    }
+
+    throw new MCPClientError({
+      message: `Tool "${toolName}" did not return structuredContent or parseable text content`,
+    });
   }
 
   listResources({

@@ -11,6 +11,14 @@ The Deepgram provider is available in the `@ai-sdk/deepgram` module. You can ins
 npm i @ai-sdk/deepgram
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `deepgram` from `@ai-sdk/deepgram`:
@@ -30,7 +38,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 const { text } = await transcribe({
   model: deepgram.transcription('nova-3'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
   ),
 });
 ```
@@ -44,7 +52,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 const { text, language } = await transcribe({
   model: deepgram.transcription('nova-3'),
   audio: new URL(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-functions/data/galileo.mp3',
   ),
   providerOptions: {
     deepgram: {
