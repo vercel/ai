@@ -4,7 +4,7 @@ export type GoogleGenerativeAIImageModelId =
   | 'imagen-4.0-ultra-generate-001'
   | 'imagen-4.0-fast-generate-001'
   // Gemini image models (technically multimodal output language models, use :generateContent API)
-  | 'gemini-2.5-flash-image-preview'
+  | 'gemini-2.5-flash-image'
   | 'gemini-3-pro-image-preview'
   | (string & {});
 
