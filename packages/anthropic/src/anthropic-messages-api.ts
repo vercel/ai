@@ -164,6 +164,11 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+export interface AnthropicToolReferenceContent {
+  type: 'tool_reference';
+  tool_name: string;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -173,6 +178,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;

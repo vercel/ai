@@ -374,7 +374,7 @@ const result = streamText({
 
 #### Provider Options for File Search
 
-- **include** _Array<'file_search_call.results'>_
+- **include** _Array&lt;'file_search_call.results'&gt;_
 
   Include file search results in the response. When set to `['file_search_call.results']`, the response will contain the actual search results with file content and scores.
 
@@ -443,7 +443,7 @@ The following provider options are available:
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
 
-- **include** _Array<'file_search_call.results'>_
+- **include** _Array&lt;'file_search_call.results'&gt;_
 
   Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
 
@@ -805,6 +805,6 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
-| Model          | Sizes              | Notes                                                                                                                                                                                                              |
-| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `grok-2-image` | 1024x768 (default) | xAI&apos;s text-to-image generation model, designed to create high-quality images from text prompts. It&apos;s trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
+| Model          | Sizes              | Notes                                                                                                                                                                                                    |
+| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grok-2-image` | 1024x768 (default) | xAI's text-to-image generation model, designed to create high-quality images from text prompts. It's trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
