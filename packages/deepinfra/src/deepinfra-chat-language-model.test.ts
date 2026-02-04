@@ -54,11 +54,11 @@ describe('DeepInfraChatLanguageModel', () => {
       });
 
       // The usage should be corrected:
-      // - completion_tokens should be set to reasoning_tokens (1081) since it was incorrectly smaller
-      // - text tokens should be 0 (since all tokens are reasoning tokens)
+      // - completion_tokens should be text + reasoning: 84 + 1081 = 1165
+      // - text tokens should be 84 (the original completion_tokens value)
       // - reasoning tokens should be 1081
-      expect(result.usage.outputTokens.total).toBe(1081);
-      expect(result.usage.outputTokens.text).toBe(0);
+      expect(result.usage.outputTokens.total).toBe(1165); // 84 + 1081
+      expect(result.usage.outputTokens.text).toBe(84);
       expect(result.usage.outputTokens.reasoning).toBe(1081);
     });
 

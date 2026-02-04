@@ -21,21 +21,22 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
   /**
    * Fixes incorrect token usage for Gemini/Gemma models from DeepInfra.
    *
-   * DeepInfra's API returns completion_tokens that are smaller than reasoning_tokens
+   * DeepInfra's API returns completion_tokens that don't include reasoning_tokens
    * for Gemini/Gemma models, which violates the OpenAI-compatible spec.
    * According to the spec, completion_tokens should include reasoning_tokens.
    *
    * Example of incorrect data from DeepInfra:
    * {
-   *   "completion_tokens": 84,
+   *   "completion_tokens": 84,    // text-only tokens
    *   "completion_tokens_details": {
-   *     "reasoning_tokens": 1081
+   *     "reasoning_tokens": 1081  // reasoning tokens not included above
    *   }
    * }
    *
    * This would result in negative text tokens: 84 - 1081 = -997
    *
-   * The fix: If reasoning_tokens > completion_tokens, set completion_tokens = reasoning_tokens
+   * The fix: If reasoning_tokens > completion_tokens, add reasoning_tokens
+   * to completion_tokens: 84 + 1081 = 1165
    */
   private fixUsageForGeminiModels(usage: any): typeof usage {
     if (!usage || !usage.completion_tokens_details?.reasoning_tokens) {
@@ -46,15 +47,18 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
     const reasoningTokens = usage.completion_tokens_details.reasoning_tokens;
 
     // If reasoning tokens exceed completion tokens, the API data is incorrect
+    // DeepInfra is returning only text tokens in completion_tokens, not including reasoning
     if (reasoningTokens > completionTokens) {
+      const correctedCompletionTokens = completionTokens + reasoningTokens;
+
       return {
         ...usage,
-        // Set completion_tokens to reasoning_tokens since all tokens are reasoning tokens
-        completion_tokens: reasoningTokens,
+        // Add reasoning_tokens to completion_tokens to get the correct total
+        completion_tokens: correctedCompletionTokens,
         // Update total_tokens if present
         total_tokens:
           usage.total_tokens != null
-            ? usage.total_tokens + (reasoningTokens - completionTokens)
+            ? usage.total_tokens + reasoningTokens
             : undefined,
       };
     }
