@@ -35,3 +35,5 @@ export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';
 export { MessageConversionError } from '../prompt/message-conversion-error';
 export { DownloadError } from '@ai-sdk/provider-utils';
 export { RetryError } from '../util/retry-error';
+export { MemoryOperationError } from '../agent/memory/memory-operation-error';
+
