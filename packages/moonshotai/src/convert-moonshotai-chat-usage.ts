@@ -1,17 +1,11 @@
 import { LanguageModelV3Usage } from '@ai-sdk/provider';
 
-/**
- * Converts Moonshot AI usage to AI SDK usage format.
- *
- * Moonshot API returns cached tokens at the top level of the usage object,
- * not in prompt_tokens_details.cached_tokens like the OpenAI API.
- */
 export function convertMoonshotAIChatUsage(
   usage:
     | {
         prompt_tokens?: number | null;
         completion_tokens?: number | null;
-        cached_tokens?: number | null; // Moonshot-specific: top-level cached_tokens
+        cached_tokens?: number | null;
         prompt_tokens_details?: {
           cached_tokens?: number | null;
         } | null;
@@ -42,7 +36,6 @@ export function convertMoonshotAIChatUsage(
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
 
-  // Moonshot returns cached_tokens at the top level, but fall back to nested location
   const cacheReadTokens =
     usage.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? 0;
 
