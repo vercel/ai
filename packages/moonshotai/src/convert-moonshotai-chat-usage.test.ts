@@ -6,18 +6,9 @@ describe('convertMoonshotAIChatUsage', () => {
     const result = convertMoonshotAIChatUsage(null);
 
     expect(result).toEqual({
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
     });
   });
 
@@ -25,18 +16,9 @@ describe('convertMoonshotAIChatUsage', () => {
     const result = convertMoonshotAIChatUsage(undefined);
 
     expect(result).toEqual({
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
     });
   });
 
@@ -47,21 +29,27 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 100,
-        cacheRead: 0,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 50,
-        text: 50,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-      },
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
+    });
+  });
+
+  it('should convert usage with total_tokens', () => {
+    const result = convertMoonshotAIChatUsage({
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      total_tokens: 150,
+    });
+
+    expect(result).toEqual({
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: 150,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     });
   });
 
@@ -73,22 +61,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 70,
-        cacheRead: 30,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 50,
-        text: 50,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        cached_tokens: 30,
-      },
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: 30,
     });
   });
 
@@ -102,24 +79,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 75,
-        cacheRead: 25,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 50,
-        text: 50,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        prompt_tokens_details: {
-          cached_tokens: 25,
-        },
-      },
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: 25,
     });
   });
 
@@ -134,25 +98,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 60,
-        cacheRead: 40,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 50,
-        text: 50,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        cached_tokens: 40,
-        prompt_tokens_details: {
-          cached_tokens: 25,
-        },
-      },
+      inputTokens: 100,
+      outputTokens: 50,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: 40,
     });
   });
 
@@ -166,24 +116,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 100,
-        cacheRead: 0,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 80,
-        text: 50,
-        reasoning: 30,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 80,
-        completion_tokens_details: {
-          reasoning_tokens: 30,
-        },
-      },
+      inputTokens: 100,
+      outputTokens: 80,
+      totalTokens: undefined,
+      reasoningTokens: 30,
+      cachedInputTokens: undefined,
     });
   });
 
@@ -198,25 +135,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 65,
-        cacheRead: 35,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 80,
-        text: 50,
-        reasoning: 30,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 80,
-        cached_tokens: 35,
-        completion_tokens_details: {
-          reasoning_tokens: 30,
-        },
-      },
+      inputTokens: 100,
+      outputTokens: 80,
+      totalTokens: undefined,
+      reasoningTokens: 30,
+      cachedInputTokens: 35,
     });
   });
 
@@ -228,22 +151,11 @@ describe('convertMoonshotAIChatUsage', () => {
     });
 
     expect(result).toEqual({
-      inputTokens: {
-        total: 0,
-        noCache: 0,
-        cacheRead: 0,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 0,
-        text: 0,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: null,
-        completion_tokens: null,
-        cached_tokens: null,
-      },
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     });
   });
 });

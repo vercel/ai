@@ -1,8 +1,8 @@
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV3,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -50,21 +50,21 @@ export interface MoonshotAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MoonshotAIProvider extends ProviderV3 {
+export interface MoonshotAIProvider extends ProviderV2 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: MoonshotAIChatModelId): LanguageModelV3;
+  (modelId: MoonshotAIChatModelId): LanguageModelV2;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV2;
 
   /**
    * Creates a language model for text generation.
    */
-  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV3;
+  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV2;
 }
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
@@ -104,40 +104,17 @@ export function createMoonshotAI(
     return new MoonshotAIChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       errorStructure: moonshotaiErrorStructure,
-      transformRequestBody: (args: Record<string, any>) => {
-        const thinking = args.thinking as
-          | { type?: string; budgetTokens?: number }
-          | undefined;
-        const reasoningHistory = args.reasoningHistory as string | undefined;
-
-        const { thinking: _, reasoningHistory: __, ...rest } = args;
-
-        return {
-          ...rest,
-          ...(thinking && {
-            thinking: {
-              type: thinking.type,
-              ...(thinking.budgetTokens !== undefined && {
-                budget_tokens: thinking.budgetTokens,
-              }),
-            },
-          }),
-          ...(reasoningHistory && {
-            reasoning_history: reasoningHistory,
-          }),
-        };
-      },
     });
   };
 
   const provider = (modelId: MoonshotAIChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  provider.textEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
 
   provider.imageModel = (modelId: string) => {
