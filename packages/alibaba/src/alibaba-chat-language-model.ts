@@ -31,7 +31,7 @@ import {
   AlibabaChatModelId,
   alibabaProviderOptions,
 } from './alibaba-chat-options';
-import { alibabaFailedResponseHandler } from './alibaba-error';
+import { alibabaFailedResponseHandler } from './alibaba-provider';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { CacheControlValidator } from './get-cache-control';

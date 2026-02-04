@@ -4,14 +4,31 @@ import {
   ProviderV3,
 } from '@ai-sdk/provider';
 import {
+  createJsonErrorResponseHandler,
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
 import { AlibabaLanguageModel } from './alibaba-chat-language-model';
 import { AlibabaChatModelId } from './alibaba-chat-options';
 import { VERSION } from './version';
+
+export type AlibabaErrorData = z.infer<typeof alibabaErrorDataSchema>;
+
+const alibabaErrorDataSchema = z.object({
+  error: z.object({
+    message: z.string(),
+    code: z.string().nullish(),
+    type: z.string().nullish(),
+  }),
+});
+
+export const alibabaFailedResponseHandler = createJsonErrorResponseHandler({
+  errorSchema: alibabaErrorDataSchema,
+  errorToMessage: data => data.error.message,
+});
 
 export interface AlibabaProvider extends ProviderV3 {
   (modelId: AlibabaChatModelId): LanguageModelV3;
@@ -22,9 +39,9 @@ export interface AlibabaProvider extends ProviderV3 {
   languageModel(modelId: AlibabaChatModelId): LanguageModelV3;
 
   /**
-   * Creates a model for text generation.
+   * Creates a chat model for text generation.
    */
-  chat(modelId: AlibabaChatModelId): LanguageModelV3;
+  chatModel(modelId: AlibabaChatModelId): LanguageModelV3;
 }
 
 export interface AlibabaProviderSettings {
@@ -36,7 +53,7 @@ export interface AlibabaProviderSettings {
 
   /**
    * API key that is being sent using the `Authorization` header.
-   * It defaults to the `DASHSCOPE_API_KEY` environment variable.
+   * It defaults to the `ALIBABA_API_KEY` environment variable.
    */
   apiKey?: string;
 
@@ -104,7 +121,7 @@ export function createAlibaba(
 
   provider.specificationVersion = 'v3' as const;
   provider.languageModel = createLanguageModel;
-  provider.chat = createLanguageModel;
+  provider.chatModel = createLanguageModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
@@ -117,7 +134,4 @@ export function createAlibaba(
   return provider;
 }
 
-/**
- * Default Alibaba provider instance.
- */
 export const alibaba = createAlibaba();

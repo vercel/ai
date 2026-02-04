@@ -104,7 +104,7 @@ describe('AlibabaProvider', () => {
       const provider = createAlibaba();
       const modelId = 'qwen-turbo';
 
-      const model = provider.chat(modelId);
+      const model = provider.chatModel(modelId);
 
       expect(model).toBeInstanceOf(AlibabaLanguageModel);
     });

@@ -1,5 +1,5 @@
 import { alibaba } from '@ai-sdk/alibaba';
-import { generateText, ModelMessage, tool } from 'ai';
+import { generateText, ModelMessage, stepCountIs, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../lib/run';
@@ -21,7 +21,7 @@ run(async () => {
       model: alibaba('qwen-plus'),
       system: 'You are a helpful, respectful and honest assistant.',
       messages,
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       tools: {
         getWeather: tool({
           description: 'Get the weather in a location',

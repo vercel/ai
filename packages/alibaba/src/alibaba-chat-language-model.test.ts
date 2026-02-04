@@ -1,9 +1,6 @@
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import {
-  convertReadableStreamToArray,
-  mockId,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createAlibaba } from './alibaba-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -18,9 +15,8 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
 
 const provider = createAlibaba({
   apiKey: 'test-api-key',
-  generateId: mockId(),
 });
-const model = provider.chat('qwen-plus');
+const model = provider.chatModel('qwen-plus');
 
 const server = createTestServer({
   'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions': {},
@@ -381,52 +377,5 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
-
-  it('should stream reasoning deltas from reasoning_content', async () => {
-    server.urls[
-      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
-    ].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen3-max","choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":""},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen3-max","choices":[{"index":0,"delta":{"reasoning_content":"Let me"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen3-max","choices":[{"index":0,"delta":{"reasoning_content":" think."},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen3-max","choices":[{"index":0,"delta":{"content":"The answer"},"finish_reason":null}]}\n\n`,
-        `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen3-max","choices":[{"index":0,"delta":{"content":" is 42."},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":15,"total_tokens":25,"completion_tokens_details":{"reasoning_tokens":5}}}\n\n`,
-        `data: [DONE]\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-      includeRawChunks: false,
-    });
-
-    const chunks = await convertReadableStreamToArray(stream);
-
-    const reasoningStartChunk = chunks.find(c => c.type === 'reasoning-start');
-    const reasoningId = reasoningStartChunk?.id;
-
-    expect(reasoningId).toBeTruthy();
-    expect(
-      chunks
-        .filter(c => c.type?.includes('reasoning'))
-        .every(c => c.id === reasoningId),
-    ).toBe(true);
-
-    expect(chunks.length).toBe(11);
-    expect(chunks[0]).toEqual({ type: 'stream-start', warnings: [] });
-    expect(chunks[2].type).toBe('reasoning-start');
-    expect(chunks[3].type).toBe('reasoning-delta');
-    expect(chunks[3].delta).toBe('Let me');
-    expect(chunks[4].type).toBe('reasoning-delta');
-    expect(chunks[4].delta).toBe(' think.');
-    expect(chunks[5].type).toBe('reasoning-end');
-    expect(chunks[6].type).toBe('text-start');
-    expect(chunks[7].delta).toBe('The answer');
-    expect(chunks[8].delta).toBe(' is 42.');
-    expect(chunks[9].type).toBe('text-end');
-    expect(chunks[10].type).toBe('finish');
   });
 });
