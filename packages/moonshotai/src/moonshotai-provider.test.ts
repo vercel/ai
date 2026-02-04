@@ -3,7 +3,6 @@ import { createMoonshotAI } from './moonshotai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
 
-// Add type assertion for the mocked class
 const MoonshotAIChatLanguageModelMock =
   MoonshotAIChatLanguageModel as unknown as Mock;
 
