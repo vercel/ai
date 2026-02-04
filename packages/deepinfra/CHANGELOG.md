@@ -1,5 +1,11 @@
 # @ai-sdk/deepinfra
 
+## 2.0.30
+
+### Patch Changes
+
+- e152eef: fix: correct token usage calculation for Gemini/Gemma models
+
 ## 2.0.29
 
 ### Patch Changes
