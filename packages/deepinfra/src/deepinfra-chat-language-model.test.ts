@@ -3,7 +3,7 @@ import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 
 describe('DeepInfraChatLanguageModel', () => {
   describe('usage calculation', () => {
-    it('should fix incorrect completion_tokens for gemini/gemma models when reasoning_tokens > completion_tokens', async () => {
+    it('should fix incorrect completion_tokens when reasoning_tokens > completion_tokens', async () => {
       const responseBody = {
         id: 'test-id',
         object: 'chat.completion',
@@ -19,7 +19,6 @@ describe('DeepInfraChatLanguageModel', () => {
             finish_reason: 'stop',
           },
         ],
-        // This is the problematic usage data from DeepInfra for gemini/gemma models
         usage: {
           prompt_tokens: 19,
           completion_tokens: 84,
@@ -53,16 +52,12 @@ describe('DeepInfraChatLanguageModel', () => {
         ],
       });
 
-      // The usage should be corrected:
-      // - completion_tokens should be text + reasoning: 84 + 1081 = 1165
-      // - text tokens should be 84 (the original completion_tokens value)
-      // - reasoning tokens should be 1081
-      expect(result.usage.outputTokens.total).toBe(1165); // 84 + 1081
-      expect(result.usage.outputTokens.text).toBe(84);
-      expect(result.usage.outputTokens.reasoning).toBe(1081);
+      expect(result.usage.outputTokens).toBe(1165);
+      expect(result.usage.reasoningTokens).toBe(1081);
+      expect(result.usage.totalTokens).toBe(2265);
     });
 
-    it('should not modify usage for non-gemini models with correct data', async () => {
+    it('should not modify usage when completion_tokens includes reasoning_tokens', async () => {
       const responseBody = {
         id: 'test-id',
         object: 'chat.completion',
@@ -111,9 +106,8 @@ describe('DeepInfraChatLanguageModel', () => {
         ],
       });
 
-      expect(result.usage.outputTokens.total).toBe(475);
-      expect(result.usage.outputTokens.text).toBe(475);
-      expect(result.usage.outputTokens.reasoning).toBe(0);
+      expect(result.usage.outputTokens).toBe(475);
+      expect(result.usage.totalTokens).toBe(493);
     });
   });
 });
