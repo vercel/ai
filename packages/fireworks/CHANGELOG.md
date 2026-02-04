@@ -1,5 +1,17 @@
 # @ai-sdk/fireworks
 
+## 2.0.30
+
+### Patch Changes
+
+- e152eef: feat(provider/fireworks): add thinking and reasoning options for kimi k2.5
+
+## 2.0.29
+
+### Patch Changes
+
+- 4e3d75f: feat(provider/fireworks): add thinking and reasoning options for kimi k2.5
+
 ## 2.0.28
 
 ### Patch Changes

@@ -221,7 +221,7 @@ describe('createAgentUIStreamResponse', () => {
     it('should return the UI message stream response', () => {
       expect(decodedChunks).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start"}
+          "data: {"type":"start","messageId":"msg-2"}
 
         ",
           "data: {"type":"start-step"}
@@ -253,6 +253,107 @@ describe('createAgentUIStreamResponse', () => {
         ",
         ]
       `);
+    });
+  });
+
+  describe('when using onFinish without originalMessages', () => {
+    it('should call onFinish callback and complete stream without errors', async () => {
+      let onFinishCalled = false;
+      let finishMessages: unknown[] | undefined;
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Done!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 5,
+                      noCache: 5,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 5,
+                      text: 5,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: undefined,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            description: 'Test tool',
+            inputSchema: z.object({ value: z.string() }),
+            outputSchema: z.object({ result: z.string() }),
+          }),
+        },
+      });
+
+      const response = await createAgentUIStreamResponse({
+        agent,
+        uiMessages: [
+          {
+            role: 'user',
+            id: 'msg-1',
+            parts: [{ type: 'text' as const, text: 'Run test tool' }],
+          },
+          {
+            role: 'assistant',
+            id: 'msg-2',
+            parts: [
+              {
+                type: 'tool-testTool' as const,
+                toolCallId: 'call-1',
+                state: 'output-available',
+                input: { value: 'test' },
+                output: { result: 'success' },
+              },
+            ],
+          },
+        ],
+        // Note: originalMessages is NOT provided, relying on auto-population
+        onFinish: ({ messages }) => {
+          onFinishCalled = true;
+          finishMessages = messages;
+        },
+      });
+
+      // Consume the response to trigger onFinish
+      const decoder = new TextDecoder();
+      const encodedStream = response.body!;
+      const chunks = await convertReadableStreamToArray(encodedStream);
+      const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
+
+      // Verify stream completed successfully
+      expect(
+        decodedChunks.some(chunk => chunk.includes('"type":"finish"')),
+      ).toBe(true);
+
+      // Verify onFinish was called with messages
+      expect(onFinishCalled).toBe(true);
+      expect(finishMessages).toBeDefined();
+      expect(finishMessages!.length).toBe(2);
     });
   });
 });
