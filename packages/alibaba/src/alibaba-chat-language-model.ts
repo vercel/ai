@@ -29,6 +29,7 @@ import {
 import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
+import { CacheControlValidator } from './get-cache-control';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
 import { prepareTools } from './alibaba-prepare-tools';
@@ -83,6 +84,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
+    const cacheControlValidator = new CacheControlValidator();
+
     // Parse Alibaba-specific provider options
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
@@ -132,8 +135,11 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
         ? { thinking_budget: alibabaOptions.thinkingBudget }
         : {}),
 
-      // Convert messages
-      messages: convertToAlibabaChatMessages(prompt),
+      // Convert messages with cache control support
+      messages: convertToAlibabaChatMessages({
+        prompt,
+        cacheControlValidator,
+      }),
     };
 
     // Prepare tools
@@ -142,6 +148,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       toolChoice: alibabaToolChoice,
       toolWarnings,
     } = prepareTools({ tools, toolChoice });
+
+    warnings.push(...cacheControlValidator.getWarnings());
 
     return {
       args: {
@@ -529,6 +537,7 @@ const alibabaUsageSchema = z.object({
   prompt_tokens_details: z
     .object({
       cached_tokens: z.number().nullish(),
+      cache_creation_input_tokens: z.number().nullish(),
     })
     .nullish(),
   completion_tokens_details: z

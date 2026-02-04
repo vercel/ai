@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import { AlibabaChatPrompt } from './alibaba-chat-prompt';
+import { CacheControlValidator } from './get-cache-control';
 
 function formatImageUrl({
   data,
@@ -18,15 +19,37 @@ function formatImageUrl({
     : `data:${mediaType};base64,${convertToBase64(data as Uint8Array)}`;
 }
 
-export function convertToAlibabaChatMessages(
-  prompt: LanguageModelV3Prompt,
-): AlibabaChatPrompt {
+export function convertToAlibabaChatMessages({
+  prompt,
+  cacheControlValidator,
+}: {
+  prompt: LanguageModelV3Prompt;
+  cacheControlValidator?: CacheControlValidator;
+}): AlibabaChatPrompt {
   const messages: AlibabaChatPrompt = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, ...message } of prompt) {
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        const cacheControl = cacheControlValidator?.getCacheControl(
+          message.providerOptions,
+        );
+
+        // If cache_control is present, convert to array format
+        if (cacheControl) {
+          messages.push({
+            role: 'system',
+            content: [
+              {
+                type: 'text',
+                text: content,
+                cache_control: cacheControl,
+              },
+            ],
+          });
+        } else {
+          messages.push({ role: 'system', content });
+        }
         break;
       }
 
