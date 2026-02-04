@@ -824,7 +824,7 @@ importers:
         specifier: 2.0.17
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.28
+        specifier: 2.0.29
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 3.0.20
