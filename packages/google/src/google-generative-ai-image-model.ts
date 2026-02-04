@@ -44,7 +44,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       return this.settings.maxImagesPerCall;
     }
     // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
-    if (isGeminiImageModel(this.modelId)) {
+    if (isGeminiModel(this.modelId)) {
       return 10;
     }
     // https://ai.google.dev/gemini-api/docs/imagen#imagen-model
@@ -65,7 +65,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     options: Parameters<ImageModelV3['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
     // Gemini image models use the language model API internally
-    if (isGeminiImageModel(this.modelId)) {
+    if (isGeminiModel(this.modelId)) {
       return this.doGenerateGemini(options);
     }
     return this.doGenerateImagen(options);
@@ -88,7 +88,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
     } = options;
     const warnings: Array<SharedV3Warning> = [];
 
-    // Imagen does not support image editing via Google Generative AI
+    // Imagen API endpoints do not support image editing
     if (files != null && files.length > 0) {
       throw new Error(
         'Google Generative AI does not support image editing with Imagen models. ' +
@@ -166,7 +166,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
       warnings,
       providerMetadata: {
         google: {
-          images: response.predictions.map(() => ({})),
+          images: response.predictions.map(() => ({
+            // Add any prediction-specific metadata here
+          })),
         },
       },
       response: {
@@ -314,8 +316,8 @@ export class GoogleGenerativeAIImageModel implements ImageModelV3 {
   }
 }
 
-function isGeminiImageModel(modelId: string): boolean {
-  return modelId.startsWith('gemini-') && modelId.includes('image');
+function isGeminiModel(modelId: string): boolean {
+  return modelId.startsWith('gemini-');
 }
 
 // minimal version of the schema
