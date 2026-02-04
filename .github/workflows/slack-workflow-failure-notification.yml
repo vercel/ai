@@ -6,6 +6,7 @@ on:
       - 'Auto-merge Release PRs'
       - 'Backport'
       - 'Release'
+      - 'Validate NPM Token'
     types:
       - completed
 
