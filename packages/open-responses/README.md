@@ -1,4 +1,4 @@
-# AI SDK - Open Responses provider
+# AI SDK - Open Responses Provider
 
 The **[Open Responses provider](https://ai-sdk.dev/providers/ai-sdk-providers/open-responses)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for [Open Responses](https://www.openresponses.org/) compatible APIs.
@@ -11,6 +11,14 @@ The Open Responses provider is available in the `@ai-sdk/open-responses` module.
 npm i @ai-sdk/open-responses
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 Create an Open Responses provider instance using `createOpenResponses`:
@@ -18,8 +26,9 @@ Create an Open Responses provider instance using `createOpenResponses`:
 ```ts
 import { createOpenResponses } from '@ai-sdk/open-responses';
 
-const lmStudio = createOpenResponses({
-  baseUrl: 'http://localhost:1234',
+const openResponses = createOpenResponses({
+  name: 'lmstudio',
+  url: 'http://localhost:1234/v1/responses',
 });
 ```
 
@@ -31,13 +40,15 @@ You can use this instance to access models served by any Open Responses compatib
 import { createOpenResponses } from '@ai-sdk/open-responses';
 import { generateText } from 'ai';
 
-const lmStudio = createOpenResponses({
-  baseUrl: 'http://localhost:1234',
+const openResponses = createOpenResponses({
+  name: 'lmstudio',
+  url: 'http://localhost:1234/v1/responses',
 });
 
-const result = await generateText({
-  model: lmStudio('google/gemma-3-4b')
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+const { text } = await generateText({
+  model: openResponses('mistralai/ministral-3-14b-reasoning'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  maxOutputTokens: 100,
 });
 ```
 
