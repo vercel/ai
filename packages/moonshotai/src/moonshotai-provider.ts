@@ -18,12 +18,15 @@ import { VERSION } from './version';
 export type MoonshotAIErrorData = z.infer<typeof moonshotaiErrorSchema>;
 
 const moonshotaiErrorSchema = z.object({
-  error: z.string(),
+  error: z.object({
+    message: z.string(),
+    type: z.string().nullish(),
+  }),
 });
 
 const moonshotaiErrorStructure: ProviderErrorStructure<MoonshotAIErrorData> = {
   errorSchema: moonshotaiErrorSchema,
-  errorToMessage: data => data.error,
+  errorToMessage: data => data.error.message,
 };
 
 export interface MoonshotAIProviderSettings {
