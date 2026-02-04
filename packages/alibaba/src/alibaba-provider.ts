@@ -9,7 +9,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { AlibabaLanguageModel } from './alibaba-language-model';
+import { AlibabaLanguageModel } from './alibaba-chat-language-model';
 import { AlibabaLanguageModelId } from './alibaba-language-settings';
 import { VERSION } from './version';
 
@@ -75,8 +75,8 @@ export function createAlibaba(
       {
         Authorization: `Bearer ${loadApiKey({
           apiKey: options.apiKey,
-          environmentVariableName: 'DASHSCOPE_API_KEY',
-          description: 'Alibaba DashScope',
+          environmentVariableName: 'ALIBABA_API_KEY',
+          description: 'Alibaba Cloud (DashScope)',
         })}`,
         ...options.headers,
       },
