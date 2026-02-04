@@ -143,7 +143,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/moonshotai
       '@ai-sdk/openai':
-        specifier: 3.0.25
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
