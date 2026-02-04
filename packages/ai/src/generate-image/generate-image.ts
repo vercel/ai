@@ -17,6 +17,12 @@ import {
 } from '../generate-text/generated-file';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveImageModel } from '../model/resolve-model';
+import { assembleOperationName } from '../telemetry/assemble-operation-name';
+import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import { getTracer } from '../telemetry/get-tracer';
+import { recordSpan } from '../telemetry/record-span';
+import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import type { ImageModel } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { addImageModelUsage, ImageModelUsage } from '../types/usage';
@@ -69,6 +75,7 @@ export async function generateImage({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  experimental_telemetry: telemetry,
 }: {
   /**
    * The image model to use.
@@ -138,6 +145,11 @@ export async function generateImage({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration (experimental).
+   */
+  experimental_telemetry?: TelemetrySettings;
 }): Promise<GenerateImageResult> {
   const model = resolveImageModel(modelArg);
 
@@ -167,103 +179,157 @@ export async function generateImage({
     return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
 
-  const results = await Promise.all(
-    callImageCounts.map(async callImageCount =>
-      retry(() => {
-        const { prompt, files, mask } = normalizePrompt(promptArg);
+  // Extract just the text prompt for telemetry without processing images
+  // (avoids unnecessary base64 decoding when only the text is needed)
+  const promptText = typeof promptArg === 'string' ? promptArg : promptArg.text;
 
-        return model.doGenerate({
-          prompt,
-          files,
-          mask,
-          n: callImageCount,
-          abortSignal,
-          headers: headersWithUserAgent,
-          size,
-          aspectRatio,
-          seed,
-          providerOptions: providerOptions ?? {},
-        });
-      }),
-    ),
-  );
+  const baseTelemetryAttributes = getBaseTelemetryAttributes({
+    model,
+    telemetry,
+    headers: headersWithUserAgent,
+    settings: { maxRetries: maxRetriesArg },
+  });
 
-  // collect result images, warnings, and response metadata
-  const images: Array<DefaultGeneratedFile> = [];
-  const warnings: Array<Warning> = [];
-  const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: ImageModelV3ProviderMetadata = {};
-  let totalUsage: ImageModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
-  };
-  for (const result of results) {
-    images.push(
-      ...result.images.map(
-        image =>
-          new DefaultGeneratedFile({
-            data: image,
-            mediaType:
-              detectMediaType({
-                data: image,
-                signatures: imageMediaTypeSignatures,
-              }) ?? 'image/png',
+  const tracer = getTracer(telemetry);
+
+  return recordSpan({
+    name: 'ai.generateImage',
+    attributes: selectTelemetryAttributes({
+      telemetry,
+      attributes: {
+        ...assembleOperationName({
+          operationId: 'ai.generateImage',
+          telemetry,
+        }),
+        ...baseTelemetryAttributes,
+        // model:
+        'ai.model.provider': model.provider,
+        'ai.model.id': model.modelId,
+        // settings:
+        'ai.image.size': size,
+        'ai.image.aspectRatio': aspectRatio,
+        'ai.image.seed': seed,
+        'ai.image.n': n,
+        // prompt:
+        'ai.prompt': {
+          input: () => promptText ?? '',
+        },
+      },
+    }),
+    tracer,
+    fn: async span => {
+      const results = await Promise.all(
+        callImageCounts.map(async callImageCount =>
+          retry(() => {
+            const { prompt, files, mask } = normalizePrompt(promptArg);
+
+            return model.doGenerate({
+              prompt,
+              files,
+              mask,
+              n: callImageCount,
+              abortSignal,
+              headers: headersWithUserAgent,
+              size,
+              aspectRatio,
+              seed,
+              providerOptions: providerOptions ?? {},
+            });
           }),
-      ),
-    );
-    warnings.push(...result.warnings);
+        ),
+      );
 
-    if (result.usage != null) {
-      totalUsage = addImageModelUsage(totalUsage, result.usage);
-    }
+      // collect result images, warnings, and response metadata
+      const images: Array<DefaultGeneratedFile> = [];
+      const warnings: Array<Warning> = [];
+      const responses: Array<ImageModelResponseMetadata> = [];
+      const providerMetadata: ImageModelV3ProviderMetadata = {};
+      let totalUsage: ImageModelUsage = {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      };
+      for (const result of results) {
+        images.push(
+          ...result.images.map(
+            image =>
+              new DefaultGeneratedFile({
+                data: image,
+                mediaType:
+                  detectMediaType({
+                    data: image,
+                    signatures: imageMediaTypeSignatures,
+                  }) ?? 'image/png',
+              }),
+          ),
+        );
+        warnings.push(...result.warnings);
 
-    if (result.providerMetadata) {
-      for (const [providerName, metadata] of Object.entries<{
-        images: unknown;
-      }>(result.providerMetadata)) {
-        if (providerName === 'gateway') {
-          const currentEntry = providerMetadata[providerName];
-          if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV3ProviderMetadata[string];
-          } else {
-            providerMetadata[providerName] =
-              metadata as ImageModelV3ProviderMetadata[string];
-          }
-          const imagesValue = (
-            providerMetadata[providerName] as { images?: unknown }
-          ).images;
-          if (Array.isArray(imagesValue) && imagesValue.length === 0) {
-            delete (providerMetadata[providerName] as { images?: unknown })
-              .images;
-          }
-        } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
-            ...result.providerMetadata[providerName].images,
-          );
+        if (result.usage != null) {
+          totalUsage = addImageModelUsage(totalUsage, result.usage);
         }
+
+        if (result.providerMetadata) {
+          for (const [providerName, metadata] of Object.entries<{
+            images: unknown;
+          }>(result.providerMetadata)) {
+            if (providerName === 'gateway') {
+              const currentEntry = providerMetadata[providerName];
+              if (currentEntry != null && typeof currentEntry === 'object') {
+                providerMetadata[providerName] = {
+                  ...(currentEntry as object),
+                  ...metadata,
+                } as ImageModelV3ProviderMetadata[string];
+              } else {
+                providerMetadata[providerName] =
+                  metadata as ImageModelV3ProviderMetadata[string];
+              }
+              const imagesValue = (
+                providerMetadata[providerName] as { images?: unknown }
+              ).images;
+              if (Array.isArray(imagesValue) && imagesValue.length === 0) {
+                delete (providerMetadata[providerName] as { images?: unknown })
+                  .images;
+              }
+            } else {
+              providerMetadata[providerName] ??= { images: [] };
+              providerMetadata[providerName].images.push(
+                ...result.providerMetadata[providerName].images,
+              );
+            }
+          }
+        }
+
+        responses.push(result.response);
       }
-    }
 
-    responses.push(result.response);
-  }
+      logWarnings({ warnings, provider: model.provider, model: model.modelId });
 
-  logWarnings({ warnings, provider: model.provider, model: model.modelId });
+      if (!images.length) {
+        throw new NoImageGeneratedError({ responses });
+      }
 
-  if (!images.length) {
-    throw new NoImageGeneratedError({ responses });
-  }
+      // Add response information to the span:
+      span.setAttributes(
+        await selectTelemetryAttributes({
+          telemetry,
+          attributes: {
+            'ai.response.imagesGenerated': images.length,
+            'ai.usage.inputTokens': totalUsage.inputTokens,
+            'ai.usage.outputTokens': totalUsage.outputTokens,
+            'ai.usage.totalTokens': totalUsage.totalTokens,
+          },
+        }),
+      );
 
-  return new DefaultGenerateImageResult({
-    images,
-    warnings,
-    responses,
-    providerMetadata,
-    usage: totalUsage,
+      return new DefaultGenerateImageResult({
+        images,
+        warnings,
+        responses,
+        providerMetadata,
+        usage: totalUsage,
+      });
+    },
   });
 }
 
