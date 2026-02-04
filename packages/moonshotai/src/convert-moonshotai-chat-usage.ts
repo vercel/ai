@@ -26,7 +26,9 @@ export function convertMoonshotAIChatUsage(
   }
 
   const cachedInputTokens =
-    usage.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? undefined;
+    usage.cached_tokens ??
+    usage.prompt_tokens_details?.cached_tokens ??
+    undefined;
 
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? undefined;
