@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.27
+
+### Patch Changes
+
+- 9e490ad: Change usage schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
 ## 2.0.26
 
 ### Patch Changes
