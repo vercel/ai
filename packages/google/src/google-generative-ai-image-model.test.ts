@@ -381,7 +381,7 @@ describe('GoogleGenerativeAIImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(
-        'Google Generative AI does not support image editing. ' +
+        'Google Generative AI does not support image editing with Imagen models. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     });

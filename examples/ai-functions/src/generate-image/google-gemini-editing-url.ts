@@ -1,42 +1,27 @@
 import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { generateImage } from 'ai';
 import fs from 'node:fs';
 import { run } from '../lib/run';
 
 run(async () => {
-  const editResult = await generateText({
-    model: google('gemini-2.5-flash-image-preview'),
-    prompt: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Add a small wizard hat to this cat. Keep everything else the same.',
-          },
-          {
-            type: 'image',
-            image: new URL(
-              'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
-            ),
-            mediaType: 'image/jpeg',
-          },
-        ],
-      },
-    ],
+  const editResult = await generateImage({
+    model: google.image('gemini-2.5-flash-image'),
+    prompt: {
+      text: 'Add a small wizard hat to this cat. Keep everything else the same.',
+      images: [
+        'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
+      ],
+    },
   });
 
-  // Save the edited image
   const timestamp = Date.now();
   fs.mkdirSync('output', { recursive: true });
 
-  for (const file of editResult.files) {
-    if (file.mediaType.startsWith('image/')) {
-      await fs.promises.writeFile(
-        `output/edited-${timestamp}.png`,
-        file.uint8Array,
-      );
-      console.log(`Saved edited image: output/edited-${timestamp}.png`);
-    }
+  for (const image of editResult.images) {
+    await fs.promises.writeFile(
+      `output/edited-${timestamp}.png`,
+      image.uint8Array,
+    );
+    console.log(`Saved edited image: output/edited-${timestamp}.png`);
   }
 });

@@ -1,12 +1,12 @@
 import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { generateImage } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
-  const { files } = await generateText({
-    model: google('gemini-2.5-flash-image-preview'),
+  const { images } = await generateImage({
+    model: google.image('gemini-2.5-flash-image'),
     prompt: 'A nano banana in a fancy restaurant',
   });
 
-  console.log(`Generated ${files.length} image files`);
+  console.log(`Generated ${images.length} image(s)`);
 });
