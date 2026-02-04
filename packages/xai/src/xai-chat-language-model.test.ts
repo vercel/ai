@@ -313,6 +313,55 @@ describe('XaiChatLanguageModel', () => {
       });
     });
 
+    it('should report "tool-calls" finish reason when tool-calls are present and raw finish-reason is "stop"', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test-tool-call-with-stop-reason',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_test456',
+                    type: 'function',
+                    function: {
+                      name: 'anotherTool',
+                      arguments: '{"param": "value"}',
+                    },
+                  },
+                ],
+              },
+              // Simulate xAI sending "stop" even with tool calls
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 100,
+            total_tokens: 120,
+            completion_tokens: 20,
+          },
+        },
+      };
+
+      const { finishReason } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "stop",
+          "unified": "tool-calls",
+        }
+      `);
+    });
+
     it('should pass parallel_function_calling provider option', async () => {
       prepareJsonResponse({ content: '' });
 
