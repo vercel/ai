@@ -126,6 +126,72 @@ describe('FireworksProvider', () => {
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
+
+    it('should pass transformRequestBody that converts thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budgetTokens: 2048 },
+        reasoningHistory: 'interleaved',
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled', budget_tokens: 2048 },
+        reasoning_history: 'interleaved',
+      });
+    });
+
+    it('should handle thinking without budgetTokens', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+        thinking: { type: 'enabled' },
+      });
+    });
+
+    it('should handle request without thinking options', () => {
+      const provider = createFireworks();
+      provider.chatModel('test-model');
+
+      const constructorCall =
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0];
+      const config = constructorCall[1];
+      const transformRequestBody = config.transformRequestBody;
+
+      const result = transformRequestBody({
+        model: 'test-model',
+        messages: [],
+      });
+
+      expect(result).toEqual({
+        model: 'test-model',
+        messages: [],
+      });
+    });
   });
 
   describe('completionModel', () => {
