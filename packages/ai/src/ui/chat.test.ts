@@ -2639,6 +2639,152 @@ describe('Chat', () => {
     });
   });
 
+  describe('resetToolApproval', () => {
+    it('should reset approval-responded state back to approval-requested', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.resetToolApproval({ id: 'approval-1' });
+
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "parts": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "approval": {
+                  "id": "approval-1",
+                },
+                "input": {
+                  "city": "Tokyo",
+                },
+                "state": "approval-requested",
+                "toolCallId": "call-1",
+                "type": "tool-weather",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should not reset parts in other states (e.g., output-denied)', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'output-denied',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: false },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.resetToolApproval({ id: 'approval-1' });
+
+      expect(chat.messages[1].parts[1]).toMatchObject({
+        state: 'output-denied',
+        approval: { id: 'approval-1', approved: false },
+      });
+    });
+
+    it('should not reset parts with non-matching approval id', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId({ prefix: 'newid' }),
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ text: 'What is the weather in Tokyo?', type: 'text' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+      });
+
+      await chat.resetToolApproval({ id: 'other-id' });
+
+      expect(chat.messages[1].parts[1]).toMatchObject({
+        state: 'approval-responded',
+        approval: { id: 'approval-1', approved: true },
+      });
+    });
+  });
+
   describe('addToolResult', () => {
     it('should send message when a tool result is submitted', async () => {
       server.urls['http://localhost:3000/api/chat'].response = [
