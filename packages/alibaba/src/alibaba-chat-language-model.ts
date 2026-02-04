@@ -21,6 +21,11 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  getResponseMetadata,
+  mapOpenAICompatibleFinishReason,
+  prepareTools,
+} from '@ai-sdk/openai-compatible/internal';
 import { AlibabaConfig } from './alibaba-config';
 import {
   AlibabaLanguageModelId,
@@ -30,9 +35,6 @@ import { alibabaFailedResponseHandler } from './alibaba-error';
 import { convertToAlibabaChatMessages } from './convert-to-alibaba-chat-messages';
 import { convertAlibabaUsage } from './convert-alibaba-usage';
 import { CacheControlValidator } from './get-cache-control';
-import { getResponseMetadata } from './get-response-metadata';
-import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
-import { prepareTools } from './alibaba-prepare-tools';
 
 /**
  * Alibaba language model implementation.
@@ -86,7 +88,6 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 
     const cacheControlValidator = new CacheControlValidator();
 
-    // Parse Alibaba-specific provider options
     const alibabaOptions = await parseProviderOptions({
       provider: 'alibaba',
       providerOptions,
@@ -100,10 +101,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 
     // Build base request arguments
     const baseArgs = {
-      // Model ID
       model: this.modelId,
-
-      // Standard parameters
       max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
@@ -111,8 +109,6 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       presence_penalty: presencePenalty,
       stop: stopSequences,
       seed,
-
-      // Response format
       response_format:
         responseFormat?.type === 'json'
           ? responseFormat.schema != null
@@ -219,7 +215,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapAlibabaFinishReason(choice.finish_reason),
+        unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertAlibabaUsage(response.usage),
@@ -493,7 +489,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
             // Track finish reason
             if (choice.finish_reason != null) {
               finishReason = {
-                unified: mapAlibabaFinishReason(choice.finish_reason),
+                unified: mapOpenAICompatibleFinishReason(choice.finish_reason),
                 raw: choice.finish_reason,
               };
             }

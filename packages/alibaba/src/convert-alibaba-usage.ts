@@ -1,4 +1,5 @@
 import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { convertOpenAICompatibleChatUsage } from '@ai-sdk/openai-compatible/internal';
 
 export type AlibabaUsage = {
   prompt_tokens?: number | null;
@@ -12,46 +13,26 @@ export type AlibabaUsage = {
   } | null;
 };
 
+/**
+ * Converts Alibaba usage to AI SDK usage format.
+ * Extends the base OpenAI-compatible converter to handle Alibaba's
+ * `cache_creation_input_tokens` field.
+ */
 export function convertAlibabaUsage(
   usage: AlibabaUsage | undefined | null,
 ): LanguageModelV3Usage {
-  if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
-  }
+  // Use base converter for standard fields
+  const baseUsage = convertOpenAICompatibleChatUsage(usage);
 
-  const promptTokens = usage.prompt_tokens ?? 0;
-  const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+  // Add Alibaba-specific cache_creation_input_tokens to cacheWrite
   const cacheWriteTokens =
-    usage.prompt_tokens_details?.cache_creation_input_tokens ?? 0;
-  const reasoningTokens =
-    usage.completion_tokens_details?.reasoning_tokens ?? 0;
+    usage?.prompt_tokens_details?.cache_creation_input_tokens ?? 0;
 
   return {
+    ...baseUsage,
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cacheReadTokens,
-      cacheRead: cacheReadTokens,
+      ...baseUsage.inputTokens,
       cacheWrite: cacheWriteTokens,
     },
-    outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
-      reasoning: reasoningTokens,
-    },
-    raw: usage,
   };
 }
