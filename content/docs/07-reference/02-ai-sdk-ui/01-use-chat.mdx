@@ -473,6 +473,12 @@ Allows you to easily create a conversational user interface for your chatbot app
         'Function to respond to a tool approval request. The id should match the approval id from the tool call. If sendAutomaticallyWhen is configured, it may trigger an automatic submission.',
     },
     {
+      name: 'resetToolApproval',
+      type: '(options: { id: string }) => void | PromiseLike<void>',
+      description:
+        'Function to reset a tool approval response back to the requested state. The id should match the approval id from the tool call. This allows users to change their response to a tool approval request.',
+    },
+    {
       name: 'addToolResult',
       type: '(options: { tool: string; toolCallId: string; output: unknown } | { tool: string; toolCallId: string; state: "output-error", errorText: string }) => void',
       description: 'Deprecated. Use addToolOutput instead.',
