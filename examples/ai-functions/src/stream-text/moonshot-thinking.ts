@@ -7,12 +7,14 @@ run(async () => {
     model: moonshotai('kimi-k2-thinking'),
     prompt:
       'Solve this problem step by step: If a train travels 120 miles in 2 hours, how far will it travel in 5 hours at the same speed?',
-    moonshotai: {
-      thinking: {
-        type: 'enabled',
-        budgetTokens: 2048,
+    providerOptions: {
+      moonshotai: {
+        thinking: {
+          type: 'enabled',
+          budgetTokens: 2048,
+        },
+        reasoningHistory: 'interleaved',
       },
-      reasoningHistory: 'interleaved',
     },
   });
 
