@@ -717,7 +717,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 }
 
 const openaiCompatibleTokenUsageSchema = z
-  .object({
+  .looseObject({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
