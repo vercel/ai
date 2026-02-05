@@ -452,7 +452,7 @@ The following provider options are available:
   Notes:
 
   - There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
-  - The AI SDK prioritizes segments over words when populating the `segments` property. To read both segments and words, use the full responses property.
+  - The AI SDK prioritizes the Groq API's segments over words when populating the SDK's [`segments`](https://ai-sdk.dev/docs/ai-sdk-core/transcription) property. To read both segments and words, use the full responses property.
 
 - **language** _string_
   The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
