@@ -177,9 +177,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
+    const thinkingType = bedrockOptions.reasoningConfig?.type;
     const isThinkingRequested =
-      bedrockOptions.reasoningConfig?.type === 'enabled';
-    const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
+      thinkingType === 'enabled' || thinkingType === 'adaptive';
+    const thinkingBudget =
+      thinkingType === 'enabled'
+        ? bedrockOptions.reasoningConfig?.budgetTokens
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
@@ -190,28 +194,45 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       ...(stopSequences != null && { stopSequences }),
     };
 
-    if (isAnthropicThinkingEnabled && thinkingBudget != null) {
-      if (inferenceConfig.maxTokens != null) {
-        inferenceConfig.maxTokens += thinkingBudget;
-      } else {
-        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+    if (isAnthropicThinkingEnabled) {
+      if (thinkingBudget != null) {
+        if (inferenceConfig.maxTokens != null) {
+          inferenceConfig.maxTokens += thinkingBudget;
+        } else {
+          inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+        }
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          thinking: {
+            type: 'enabled',
+            budget_tokens: thinkingBudget,
+          },
+        };
+      } else if (thinkingType === 'adaptive') {
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          thinking: {
+            type: 'adaptive',
+          },
+        };
       }
-      // Add them to additional model request fields
-      // Add thinking config to additionalModelRequestFields
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        thinking: {
-          type: bedrockOptions.reasoningConfig?.type,
-          budget_tokens: thinkingBudget,
-        },
-      };
-    } else if (!isAnthropicModel && thinkingBudget != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'budgetTokens',
-        details:
-          'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
-      });
+    } else if (!isAnthropicModel) {
+      if (bedrockOptions.reasoningConfig?.budgetTokens != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'budgetTokens',
+          details:
+            'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
+        });
+      }
+      if (thinkingType === 'adaptive') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'adaptive thinking',
+          details:
+            'adaptive thinking type applies only to Anthropic models on Bedrock.',
+        });
+      }
     }
 
     const maxReasoningEffort =
@@ -230,9 +251,9 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
           reasoningConfig: {
-            ...(bedrockOptions.reasoningConfig?.type != null && {
-              type: bedrockOptions.reasoningConfig.type,
-            }),
+            ...(thinkingType != null &&
+              thinkingType !== 'adaptive' && { type: thinkingType }),
+            ...(thinkingBudget != null && { budgetTokens: thinkingBudget }),
             maxReasoningEffort,
           },
         };
