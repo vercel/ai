@@ -21,9 +21,9 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
+    "lint": "eslint \"src/**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\""
+    "prettier-check": "prettier --check \"src/**/*.ts*\""
   },
   "exports": {
     "./package.json": "./package.json",
