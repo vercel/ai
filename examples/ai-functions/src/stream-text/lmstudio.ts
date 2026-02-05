@@ -1,19 +1,24 @@
-import { createOpenResponses } from '@ai-sdk/open-responses';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
-import { printFullStream } from '../lib/print-full-stream';
 import { run } from '../lib/run';
 
-const lmstudio = createOpenResponses({
+const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  url: 'http://localhost:1234/v1/responses',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 run(async () => {
   const result = streamText({
-    model: lmstudio('gemma-7b-it'),
+    model: lmstudio('bartowski/gemma-2-9b-it-GGUF'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 1,
   });
 
-  printFullStream({ result });
+  for await (const textPart of result.textStream) {
+    process.stdout.write(textPart);
+  }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
+  console.log('Finish reason:', await result.finishReason);
 });
