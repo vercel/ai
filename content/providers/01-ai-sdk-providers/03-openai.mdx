@@ -2029,8 +2029,8 @@ const result = await transcribe({
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: {
     openai: {
-      //timestampGranularities: ['word'],
-      timestampGranularities: ['segment'],
+      timestampGranularities: ['word'],
+      //timestampGranularities: ['segment'],
     },
   },
 });
@@ -2060,16 +2060,27 @@ The following provider options are available:
   Defaults to 0.
   Optional.
 
-- **include** _string[]_
   Additional information to include in the transcription response.
+
+- **chunkingStrategy** _'auto' | { type: 'server_vad', prefixPaddingMs?: number, silenceDurationMs?: number, threshold?: number }_
+  Controls how the audio is cut into chunks.
+  Required for `gpt-4o-transcribe-diarize` if the audio is longer than 30 seconds.
+
+  - **'auto'**: Automatically set chunking parameters based on the audio. The server first normalizes loudness and then uses voice activity detection (VAD) to choose boundaries.
+  - **object**: Manual chunking configuration using server-side VAD.
+    - **type** _'server_vad'_: Must be set to `'server_vad'`.
+    - **prefixPaddingMs** _number_: Amount of audio to include before the VAD detected speech (in milliseconds). Defaults to `300`.
+    - **silenceDurationMs** _number_: Duration of silence to detect speech stop (in milliseconds). Defaults to `200`.
+    - **threshold** _number_: Sensitivity threshold (0.0 to 1.0) for voice activity detection. Defaults to `0.5`.
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| Model                       | Transcription       | Duration            | Segments            | Language            |
+| --------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper-1`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini-transcribe`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4o-transcribe`         | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4o-transcribe-diarize` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 ## Speech Models
 
