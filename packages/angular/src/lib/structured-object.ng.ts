@@ -1,21 +1,24 @@
 import {
   generateId,
   isAbortError,
+  normalizeHeaders,
   safeValidateTypes,
   type FetchFunction,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { signal } from '@angular/core';
 import {
-  FlexibleSchema,
   asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
+  type Schema,
 } from 'ai';
+import type * as z3 from 'zod/v3';
+import type * as z4 from 'zod/v4';
 
 export type StructuredObjectOptions<
-  SCHEMA extends FlexibleSchema,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
 > = {
   /**
@@ -24,7 +27,7 @@ export type StructuredObjectOptions<
   api: string;
 
   /**
-   * A schema that defines the shape of the complete object.
+   * A Zod schema that defines the shape of the complete object.
    */
   schema: SCHEMA;
 
@@ -81,7 +84,7 @@ export type StructuredObjectOptions<
 };
 
 export class StructuredObject<
-  SCHEMA extends FlexibleSchema,
+  SCHEMA extends z3.Schema | z4.ZodType | Schema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = unknown,
 > {
@@ -138,9 +141,9 @@ export class StructuredObject<
    */
   submit = async (input: INPUT) => {
     try {
-      this.#clearObject();
-
+      this.#object.set(undefined); // reset the data
       this.#loading.set(true);
+      this.#error.set(undefined);
 
       const abortController = new AbortController();
       this.#abortController = abortController;
@@ -150,7 +153,7 @@ export class StructuredObject<
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...this.options.headers,
+          ...normalizeHeaders(this.options.headers),
         },
         credentials: this.options.credentials,
         signal: abortController.signal,
@@ -227,16 +230,5 @@ export class StructuredObject<
       this.#loading.set(false);
       this.#error.set(coalescedError);
     }
-  };
-
-  clear = () => {
-    this.stop();
-    this.#clearObject();
-  };
-
-  #clearObject = () => {
-    this.#object.set(undefined);
-    this.#error.set(undefined);
-    this.#loading.set(false);
   };
 }
