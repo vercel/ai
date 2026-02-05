@@ -239,8 +239,18 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
     const isOpenAIModel = this.modelId.startsWith('openai.');
 
-    if (maxReasoningEffort != null && !isAnthropicModel) {
-      if (isOpenAIModel) {
+    if (maxReasoningEffort != null) {
+      if (isAnthropicModel) {
+        // Anthropic models use output_config.effort with beta header
+        const existingBetas =
+          bedrockOptions.additionalModelRequestFields?.anthropic_beta ?? [];
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          output_config: {
+            effort: maxReasoningEffort,
+          },
+        };
+      } else if (isOpenAIModel) {
         // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
@@ -258,13 +268,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           },
         };
       }
-    } else if (maxReasoningEffort != null && isAnthropicModel) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'maxReasoningEffort',
-        details:
-          'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
-      });
     }
 
     if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
