@@ -100,9 +100,15 @@ export const bedrockProviderOptions = z.object({
   additionalModelRequestFields: z.record(z.string(), z.any()).optional(),
   reasoningConfig: z
     .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
+      type: z
+        .union([
+          z.literal('enabled'),
+          z.literal('disabled'),
+          z.literal('adaptive'),
+        ])
+        .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
+      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
     })
     .optional(),
   /**

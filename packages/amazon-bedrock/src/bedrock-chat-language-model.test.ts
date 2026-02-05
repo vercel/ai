@@ -3278,10 +3278,49 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
+<<<<<<< HEAD
   it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+=======
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoning_effort: 'medium',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
+>>>>>>> 632ab101a (feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max (#12305))
     prepareJsonResponse({});
 
-    const result = await model.doGenerate({
+    await model.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -3297,12 +3336,17 @@ describe('doGenerate', () => {
     expect(
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
+<<<<<<< HEAD
 
     expect(result.warnings).toContainEqual({
       type: 'unsupported-setting',
       setting: 'providerOptions',
       details:
         'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+=======
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+>>>>>>> 632ab101a (feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max (#12305))
     });
   });
 
