@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.50
+
+### Patch Changes
+
+- 632ab10: feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max
+
 ## 4.0.49
 
 ### Patch Changes
