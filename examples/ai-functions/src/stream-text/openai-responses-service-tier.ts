@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenaiResponsesProviderMetadata } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
@@ -14,13 +14,15 @@ run(async () => {
   });
 
   await result.consumeStream();
-  const providerMetadata = await result.providerMetadata;
+  const providerMetadata = await (result.providerMetadata as Promise<
+    OpenaiResponsesProviderMetadata | undefined
+  >);
 
-  console.log('Provider metadata:', providerMetadata);
-  // Provider metadata: {
-  //   openai: {
-  //     responseId: '...',
-  //     serviceTier: 'flex'
-  //   }
-  // }
+  if (!providerMetadata) return;
+  const {
+    openai: { responseId, serviceTier },
+  } = providerMetadata;
+
+  responseId && console.log(`responseId: ${responseId}`);
+  serviceTier && console.log(`serviceTier: ${serviceTier}`);
 });

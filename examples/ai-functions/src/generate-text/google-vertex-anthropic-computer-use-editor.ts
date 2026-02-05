@@ -1,6 +1,6 @@
+import { run } from '../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText, stepCountIs } from 'ai';
-import { run } from '../lib/run';
 
 run(async () => {
   let editorContent = `
@@ -12,8 +12,8 @@ This is a test file.
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
     tools: {
       str_replace_editor: vertexAnthropic.tools.textEditor_20241022({
-        async execute({ command, path, old_str, new_str }) {
-          console.log({ command, path, old_str, new_str });
+        async execute({ command, path, old_str, new_str, insert_text }) {
+          console.log({ command, path, old_str, new_str, insert_text });
           switch (command) {
             case 'view': {
               return editorContent;
@@ -27,7 +27,7 @@ This is a test file.
               return editorContent;
             }
             case 'insert': {
-              editorContent = new_str!;
+              editorContent = insert_text!;
               return editorContent;
             }
           }

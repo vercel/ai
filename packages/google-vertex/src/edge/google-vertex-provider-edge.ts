@@ -45,6 +45,6 @@ export function createVertex(
 }
 
 /**
-Default Google Vertex AI provider instance.
+ * Default Google Vertex AI provider instance.
  */
 export const vertex = createVertex();

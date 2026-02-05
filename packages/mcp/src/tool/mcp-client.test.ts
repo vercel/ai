@@ -90,6 +90,351 @@ describe('MCPClient', () => {
     `);
   });
 
+  it('should convert MCP image content to AI SDK format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-image',
+              description: 'Returns an image',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-image': {
+              content: [
+                {
+                  type: 'image',
+                  data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+                  mimeType: 'image/png',
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-image'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "mimeType": "image/png",
+            "type": "image",
+          },
+        ],
+        "isError": false,
+      }
+    `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            {
+              type: 'image',
+              data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+              mimeType: 'image/png',
+            },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+            "mediaType": "image/png",
+            "type": "image-data",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should convert MCP text content to AI SDK format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-text',
+              description: 'Returns text',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-text': {
+              content: [
+                {
+                  type: 'text',
+                  text: 'Hello world',
+                },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-text'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+      {
+        "content": [
+          {
+            "text": "Hello world",
+            "type": "text",
+          },
+        ],
+        "isError": false,
+      }
+    `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [{ type: 'text', text: 'Hello world' }],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "text": "Hello world",
+            "type": "text",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should convert mixed MCP content to AI SDK format via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-mixed',
+              description: 'Returns mixed content',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-mixed': {
+              content: [
+                { type: 'text', text: 'Here is an image:' },
+                { type: 'image', data: 'base64data', mimeType: 'image/png' },
+              ],
+              isError: false,
+            },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-mixed'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "text": "Here is an image:",
+              "type": "text",
+            },
+            {
+              "data": "base64data",
+              "mimeType": "image/png",
+              "type": "image",
+            },
+          ],
+          "isError": false,
+          "toolResult": undefined,
+        }
+      `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      tool.toModelOutput!({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [
+            { type: 'text', text: 'Here is an image:' },
+            { type: 'image', data: 'base64data', mimeType: 'image/png' },
+          ],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "text": "Here is an image:",
+            "type": "text",
+          },
+          {
+            "data": "base64data",
+            "mediaType": "image/png",
+            "type": "image-data",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should fallback to JSON for unknown content types via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-unknown',
+              description: 'Returns unknown content',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-unknown': {
+              content: [{ type: 'custom', data: { foo: 'bar' } }],
+              isError: false,
+            } as unknown as CallToolResult,
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-unknown'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+        {
+          "content": [
+            {
+              "data": {
+                "foo": "bar",
+              },
+              "type": "custom",
+            },
+          ],
+          "isError": false,
+          "toolResult": undefined,
+        }
+      `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      (tool.toModelOutput as Function)({
+        toolCallId: '1',
+        input: {},
+        output: {
+          content: [{ type: 'custom', data: { foo: 'bar' } }],
+          isError: false,
+        },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "content",
+        "value": [
+          {
+            "text": "{"type":"custom","data":{"foo":"bar"}}",
+            "type": "text",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should fallback to JSON when result has no content array via toModelOutput', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          overrideTools: [
+            {
+              name: 'get-raw',
+              description: 'Returns raw result',
+              inputSchema: { type: 'object' },
+            },
+          ],
+          toolCallResults: {
+            'get-raw': {
+              value: 42,
+              isError: false,
+            } as unknown as CallToolResult,
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    const tools = await client.tools();
+    const tool = tools['get-raw'];
+
+    expect(await tool.execute!({}, { messages: [], toolCallId: '1' }))
+      .toMatchInlineSnapshot(`
+        {
+          "isError": false,
+          "toolResult": undefined,
+          "value": 42,
+        }
+      `);
+
+    expect(tool.toModelOutput).toBeDefined();
+    expect(
+      (tool.toModelOutput as Function)({
+        toolCallId: '1',
+        input: {},
+        output: { value: 42, isError: false },
+      }),
+    ).toMatchInlineSnapshot(`
+      {
+        "type": "json",
+        "value": {
+          "isError": false,
+          "value": 42,
+        },
+      }
+    `);
+  });
+
   it('should expose _meta field from MCP tool definition', async () => {
     createMockTransport.mockImplementation(
       () =>
@@ -1112,6 +1457,138 @@ describe('MCPClient', () => {
           page: 1,
         },
       });
+    });
+  });
+
+  describe('tool title support', () => {
+    it('should use top-level title when provided (MCP spec-compliant)', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'titled-tool',
+            title: 'My Tool Title',
+            description: 'A tool with a title',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['titled-tool'].title).toBe('My Tool Title');
+    });
+
+    it('should fallback to annotations.title for backward compatibility', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'annotated-tool',
+            description: 'A tool with title in annotations',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotation Title',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['annotated-tool'].title).toBe('Annotation Title');
+    });
+
+    it('should prefer top-level title over annotations.title when both present', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'dual-title-tool',
+            title: 'Top Level Title',
+            description: 'A tool with both titles',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+            annotations: {
+              title: 'Annotation Title',
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['dual-title-tool'].title).toBe('Top Level Title');
+    });
+
+    it('should have undefined title when neither top-level nor annotations.title provided', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'no-title-tool',
+            description: 'A tool without any title',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools();
+      expect(tools['no-title-tool'].title).toBeUndefined();
+    });
+
+    it('should pass title through to typed tools with schemas', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'typed-titled-tool',
+            title: 'Typed Tool Title',
+            description: 'A typed tool with a title',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                input: { type: 'string' },
+              },
+            },
+          },
+        ],
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'typed-titled-tool': {
+            inputSchema: z.object({
+              input: z.string(),
+            }),
+          },
+        },
+      });
+
+      expect(tools['typed-titled-tool'].title).toBe('Typed Tool Title');
     });
   });
 });

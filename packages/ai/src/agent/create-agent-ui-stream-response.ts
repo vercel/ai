@@ -7,12 +7,22 @@ import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-str
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { Agent } from './agent';
 import { createAgentUIStream } from './create-agent-ui-stream';
+import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
 
 /**
  * Runs the agent and returns a response object with a UI message stream.
  *
  * @param agent - The agent to run.
  * @param uiMessages - The input UI messages.
+ * @param abortSignal - Abort signal. Optional.
+ * @param timeout - Timeout in milliseconds. Optional.
+ * @param options - The options for the agent. Optional.
+ * @param experimental_transform - Stream transformations. Optional.
+ * @param onStepFinish - Callback that is called when each step is finished. Optional.
+ * @param headers - Additional headers for the response. Optional.
+ * @param status - The status code for the response. Optional.
+ * @param statusText - The status text for the response. Optional.
+ * @param consumeSseStream - Whether to consume the SSE stream. Optional.
  *
  * @returns The response object.
  */
@@ -36,6 +46,7 @@ export async function createAgentUIStreamResponse<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
+  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>

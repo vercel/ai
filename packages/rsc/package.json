@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "2.0.40",
+  "version": "2.0.72",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",
@@ -35,6 +35,12 @@
   },
   "files": [
     "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],

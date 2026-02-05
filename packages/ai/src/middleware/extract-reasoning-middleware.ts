@@ -6,7 +6,7 @@ import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
- * Extract an XML-tagged reasoning section from the generated text and exposes it
+ * Extracts an XML-tagged reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
  * @param tagName - The name of the XML tag to extract reasoning from.
@@ -212,8 +212,19 @@ export function extractReasoningMiddleware({
                     startIndex + nextTag.length,
                   );
 
-                  // reasoning part finished:
                   if (activeExtraction.isReasoning) {
+                    // Emit reasoning-start for empty reasoning blocks (no delta was published).
+                    // This handles both cases:
+                    // - startWithReasoning=false: <think></think> (afterSwitch=true)
+                    // - startWithReasoning=true: immediate </think> (afterSwitch=false)
+                    if (activeExtraction.isFirstReasoning) {
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: `reasoning-${activeExtraction.idCounter}`,
+                      });
+                    }
+
+                    // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `reasoning-${activeExtraction.idCounter++}`,

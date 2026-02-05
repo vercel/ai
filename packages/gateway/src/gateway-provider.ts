@@ -16,8 +16,10 @@ import {
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
+import { GatewayVideoModel } from './gateway-video-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
@@ -25,6 +27,7 @@ import type {
   LanguageModelV3,
   EmbeddingModelV3,
   ImageModelV3,
+  Experimental_VideoModelV3,
   ProviderV3,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
@@ -34,23 +37,33 @@ export interface GatewayProvider extends ProviderV3 {
   (modelId: GatewayModelId): LanguageModelV3;
 
   /**
-Creates a model for text generation.
-*/
+   * Creates a model for text generation.
+   */
+  chat(modelId: GatewayModelId): LanguageModelV3;
+
+  /**
+   * Creates a model for text generation.
+   */
   languageModel(modelId: GatewayModelId): LanguageModelV3;
 
   /**
-Returns available providers and models for use with the remote provider.
- */
+   * Returns available providers and models for use with the remote provider.
+   */
   getAvailableModels(): Promise<GatewayFetchMetadataResponse>;
 
   /**
-Returns credit information for the authenticated user.
- */
+   * Returns credit information for the authenticated user.
+   */
   getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
-Creates a model for generating text embeddings.
-*/
+   * Creates a model for generating text embeddings.
+   */
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+
+  /**
+   * Creates a model for generating text embeddings.
+   */
   embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
@@ -59,40 +72,55 @@ Creates a model for generating text embeddings.
   textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
 
   /**
-Creates a model for generating images.
-*/
+   * Creates a model for generating images.
+   */
+  image(modelId: GatewayImageModelId): ImageModelV3;
+
+  /**
+   * Creates a model for generating images.
+   */
   imageModel(modelId: GatewayImageModelId): ImageModelV3;
 
   /**
-Gateway-specific tools executed server-side.
-*/
+   * Creates a model for generating videos.
+   */
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Gateway-specific tools executed server-side.
+   */
   tools: typeof gatewayTools;
 }
 
 export interface GatewayProviderSettings {
   /**
-The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
+   * The base URL prefix for API calls. Defaults to `https://ai-gateway.vercel.sh/v1/ai`.
    */
   baseURL?: string;
 
   /**
-API key that is being sent using the `Authorization` header.
+   * API key that is being sent using the `Authorization` header.
    */
   apiKey?: string;
 
   /**
-Custom headers to include in the requests.
-     */
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
 
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-    */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
-How frequently to refresh the metadata cache in milliseconds.
+   * How frequently to refresh the metadata cache in milliseconds.
    */
   metadataCacheRefreshMillis?: number;
 
@@ -107,7 +135,7 @@ How frequently to refresh the metadata cache in milliseconds.
 const AI_GATEWAY_PROTOCOL_VERSION = '0.0.1';
 
 /**
-Create a remote provider instance.
+ * Create a remote provider instance.
  */
 export function createGatewayProvider(
   options: GatewayProviderSettings = {},
@@ -254,8 +282,20 @@ export function createGatewayProvider(
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.videoModel = (modelId: GatewayVideoModelId) => {
+    return new GatewayVideoModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.chat = provider.languageModel;
+  provider.embedding = provider.embeddingModel;
+  provider.image = provider.imageModel;
+  provider.video = provider.videoModel;
   provider.tools = gatewayTools;
-
   return provider;
 }
 

@@ -1,5 +1,232 @@
 # ai
 
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
+## 6.0.71
+
+### Patch Changes
+
+- Updated dependencies [4867635]
+  - @ai-sdk/gateway@3.0.34
+
+## 6.0.70
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/gateway@3.0.33
+
+## 6.0.69
+
+### Patch Changes
+
+- d659305: fix(ai): auto-populate `originalMessages` in `createAgentUIStream`
+
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
+## 6.0.67
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/gateway@3.0.32
+  - @ai-sdk/provider-utils@4.0.13
+
+## 6.0.66
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/gateway@3.0.31
+
+## 6.0.65
+
+### Patch Changes
+
+- Updated dependencies [1a74972]
+  - @ai-sdk/gateway@3.0.30
+
+## 6.0.64
+
+### Patch Changes
+
+- ce9daa3: Fixed 'reasoning part reasoning-0 not found' error by ensuring 'reasoning-start' event is emitted for empty thinking blocks (eg. <think></think>)
+
+## 6.0.63
+
+### Patch Changes
+
+- be95579: fix(ui): respect `Promise<false>` when returned by `sendAutomaticallyWhen`
+
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
+## 6.0.59
+
+### Patch Changes
+
+- Updated dependencies [0acff64]
+  - @ai-sdk/gateway@3.0.27
+
+## 6.0.58
+
+### Patch Changes
+
+- Updated dependencies [a8be296]
+  - @ai-sdk/gateway@3.0.26
+
+## 6.0.57
+
+### Patch Changes
+
+- 65865d8: Fix handling of error results in deferrable tools
+
+## 6.0.56
+
+### Patch Changes
+
+- Updated dependencies [15a78c7]
+  - @ai-sdk/gateway@3.0.25
+
+## 6.0.55
+
+### Patch Changes
+
+- 43a74df: chore(ai): add skill to README
+
+## 6.0.54
+
+### Patch Changes
+
+- 2f8ac87: docs(ai): fix incorrect and outdated jsdoc
+
+## 6.0.53
+
+### Patch Changes
+
+- 7ee3f10: chore: updated docs
+
+## 6.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/gateway@3.0.24
+
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
+## 6.0.50
+
+### Patch Changes
+
+- Updated dependencies [cbf1704]
+  - @ai-sdk/gateway@3.0.23
+
+## 6.0.49
+
+### Patch Changes
+
+- ded661b: feat(ai): add onStepFinish to agent.generate and agent.stream
+
+## 6.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/gateway@3.0.22
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 6.0.47
+
+### Patch Changes
+
+- Updated dependencies [2b8369d]
+  - @ai-sdk/gateway@3.0.21
+
+## 6.0.46
+
+### Patch Changes
+
+- Updated dependencies [8dc54db]
+  - @ai-sdk/gateway@3.0.20
+
+## 6.0.45
+
+### Patch Changes
+
+- Updated dependencies [c60fdd8]
+  - @ai-sdk/gateway@3.0.19
+
+## 6.0.44
+
+### Patch Changes
+
+- Updated dependencies [7af4eb4]
+  - @ai-sdk/gateway@3.0.18
+
+## 6.0.43
+
+### Patch Changes
+
+- 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
+
+  - Skip validation for tool calls with `providerExecuted: true` (deferred results)
+  - Map approvalId to toolCallId for proper tool-approval-response handling
+  - Filter out empty tool messages after content filtering
+  - Fixes MissingToolResultError for async and approval-based tool flows
+
+## 6.0.42
+
+### Patch Changes
+
+- Updated dependencies [66d78d5]
+  - @ai-sdk/gateway@3.0.17
+
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
 ## 6.0.40
 
 ### Patch Changes

@@ -42,6 +42,7 @@ import { prepareTools } from './bedrock-prepare-tools';
 import { BedrockUsage, convertBedrockUsage } from './convert-bedrock-usage';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
+import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 
 function createCitationSource(
   citation: z.infer<typeof BedrockCitationSchema>,
@@ -354,8 +355,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       }
     }
 
-    const { system, messages } =
-      await convertToBedrockChatMessages(filteredPrompt);
+    const isMistral = isMistralModel(this.modelId);
+    const { system, messages } = await convertToBedrockChatMessages(
+      filteredPrompt,
+      isMistral,
+    );
 
     // Filter out reasoningConfig from providerOptions.bedrock to prevent sending it to Bedrock API
     const {
@@ -554,9 +558,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
             text: JSON.stringify(part.toolUse.input),
           });
         } else {
+          const isMistral = isMistralModel(this.modelId);
+          const rawToolCallId =
+            part.toolUse?.toolUseId ?? this.config.generateId();
           content.push({
             type: 'tool-call' as const,
-            toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
+            toolCallId: normalizeToolCallId(rawToolCallId, isMistral),
             toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
             input: JSON.stringify(part.toolUse?.input ?? {}),
           });
@@ -613,6 +620,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       warnings,
       usesJsonResponseTool,
     } = await this.getArgs(options);
+    const isMistral = isMistralModel(this.modelId);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     // Extract citation documents for response processing
@@ -908,9 +916,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               const isJsonResponseTool =
                 usesJsonResponseTool && toolUse.name === 'json';
 
+              const normalizedToolCallId = normalizeToolCallId(
+                toolUse.toolUseId!,
+                isMistral,
+              );
               contentBlocks[blockIndex] = {
                 type: 'tool-call',
-                toolCallId: toolUse.toolUseId!,
+                toolCallId: normalizedToolCallId,
                 toolName: toolUse.name!,
                 jsonText: '',
                 isJsonResponseTool,
@@ -920,7 +932,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
               if (!isJsonResponseTool) {
                 controller.enqueue({
                   type: 'tool-input-start',
-                  id: toolUse.toolUseId!,
+                  id: normalizedToolCallId,
                   toolName: toolUse.name!,
                 });
               }

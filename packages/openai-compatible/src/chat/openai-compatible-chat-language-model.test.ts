@@ -434,6 +434,25 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
+        openaiCompatible: {
+          user: 'test-user-id',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      user: 'test-user-id',
+    });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-beta').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
         'openai-compatible': {
           user: 'test-user-id',
         },
@@ -444,6 +463,11 @@ describe('doGenerate', () => {
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
@@ -1305,6 +1329,54 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should preserve extra usage fields from provider-specific responses', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 18,
+            completion_tokens: 439,
+            total_tokens: 457,
+            // Provider-specific extra fields (e.g., from Groq)
+            queue_time: 0.061348671,
+            prompt_time: 0.000211569,
+            completion_time: 0.798181818,
+            total_time: 0.798393387,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_time": 0.798181818,
+          "completion_tokens": 439,
+          "prompt_time": 0.000211569,
+          "prompt_tokens": 18,
+          "queue_time": 0.061348671,
+          "total_time": 0.798393387,
+          "total_tokens": 457,
+        }
+      `);
+    });
   });
 });
 
@@ -1434,8 +1506,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -1878,8 +1954,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2170,8 +2250,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2413,8 +2497,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2505,8 +2593,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },

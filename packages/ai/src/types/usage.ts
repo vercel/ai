@@ -3,8 +3,6 @@ import {
   JSONObject,
   LanguageModelV3Usage,
 } from '@ai-sdk/provider';
-import { z } from 'zod/v4';
-import { jsonValueSchema } from './json-value';
 
 /**
  * Represents the number of tokens used in a prompt and completion.
@@ -61,12 +59,12 @@ export type LanguageModelUsage = {
   totalTokens: number | undefined;
 
   /**
-   * @deprecated Use outputTokenDetails.reasoning instead.
+   * @deprecated Use outputTokenDetails.reasoningTokens instead.
    */
   reasoningTokens?: number | undefined;
 
   /**
-   * @deprecated Use inputTokenDetails.cacheRead instead.
+   * @deprecated Use inputTokenDetails.cacheReadTokens instead.
    */
   cachedInputTokens?: number | undefined;
 
@@ -79,35 +77,13 @@ export type LanguageModelUsage = {
   raw?: JSONObject;
 };
 
-// Helper for required properties that can be undefined (key: Type | undefined)
-const numberOrUndefined = z.union([z.number(), z.undefined()]);
-
-export const languageModelUsageSchema: z.ZodType<LanguageModelUsage> =
-  z.strictObject({
-    inputTokens: numberOrUndefined,
-    inputTokenDetails: z.strictObject({
-      noCacheTokens: numberOrUndefined,
-      cacheReadTokens: numberOrUndefined,
-      cacheWriteTokens: numberOrUndefined,
-    }),
-    outputTokens: numberOrUndefined,
-    outputTokenDetails: z.strictObject({
-      textTokens: numberOrUndefined,
-      reasoningTokens: numberOrUndefined,
-    }),
-    totalTokens: numberOrUndefined,
-    reasoningTokens: z.number().optional(),
-    cachedInputTokens: z.number().optional(),
-    raw: z.record(z.string(), jsonValueSchema.optional()).optional(),
-  });
-
 /**
-Represents the number of tokens used in an embedding.
+ * Represents the number of tokens used in an embedding.
  */
 // TODO replace with EmbeddingModelV3Usage
 export type EmbeddingModelUsage = {
   /**
-The number of tokens used in the embedding.
+   * The number of tokens used in the embedding.
    */
   tokens: number;
 };
@@ -208,7 +184,7 @@ function addTokenCounts(
 }
 
 /**
-Usage information for an image model call.
+ * Usage information for an image model call.
  */
 export type ImageModelUsage = ImageModelV3Usage;
 

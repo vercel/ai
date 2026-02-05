@@ -164,6 +164,11 @@ type AnthropicNestedDocumentContent = Omit<
   cache_control?: never;
 };
 
+export interface AnthropicToolReferenceContent {
+  type: 'tool_reference';
+  tool_name: string;
+}
+
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
@@ -173,6 +178,7 @@ export interface AnthropicToolResultContent {
         | AnthropicNestedTextContent
         | AnthropicNestedImageContent
         | AnthropicNestedDocumentContent
+        | AnthropicToolReferenceContent
       >;
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
@@ -358,6 +364,15 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      name: string;
+      type: 'computer_20251124';
+      display_width_px: number;
+      display_height_px: number;
+      display_number: number;
+      enable_zoom?: boolean;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -1133,30 +1148,31 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                 .nullish(),
             })
             .nullish(),
-          context_management: z
-            .object({
-              applied_edits: z.array(
-                z.union([
-                  z.object({
-                    type: z.literal('clear_tool_uses_20250919'),
-                    cleared_tool_uses: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                  z.object({
-                    type: z.literal('clear_thinking_20251015'),
-                    cleared_thinking_turns: z.number(),
-                    cleared_input_tokens: z.number(),
-                  }),
-                ]),
-              ),
-            })
-            .nullish(),
         }),
         usage: z.looseObject({
           input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
         }),
+        context_management: z
+          .object({
+            applied_edits: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+              ]),
+            ),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('message_stop'),

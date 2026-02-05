@@ -1,4 +1,4 @@
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { JSONSchema7, JSONValue } from '@ai-sdk/provider';
 import {
   asSchema,
   dynamicTool,
@@ -9,6 +9,7 @@ import {
   Tool,
   tool,
   ToolExecutionOptions,
+  ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
@@ -59,6 +60,38 @@ import {
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
+
+function mcpToModelOutput({
+  output,
+}: {
+  toolCallId: string;
+  input: unknown;
+  output: unknown;
+}): ToolResultOutput {
+  const result = output as CallToolResult;
+
+  if (!('content' in result) || !Array.isArray(result.content)) {
+    return { type: 'json', value: result as JSONValue };
+  }
+
+  const convertedContent = result.content.map(
+    (part: { type: string; [key: string]: unknown }) => {
+      if (part.type === 'text' && 'text' in part) {
+        return { type: 'text' as const, text: part.text as string };
+      }
+      if (part.type === 'image' && 'data' in part && 'mimeType' in part) {
+        return {
+          type: 'image-data' as const,
+          data: part.data as string,
+          mediaType: part.mimeType as string,
+        };
+      }
+      return { type: 'text' as const, text: JSON.stringify(part) };
+    },
+  );
+
+  return { type: 'content', value: convertedContent };
+}
 
 export interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
@@ -503,12 +536,13 @@ class DefaultMCPClient implements MCPClient {
       const listToolsResult = await this.listTools();
       for (const {
         name,
+        title,
         description,
         inputSchema,
         annotations,
         _meta,
       } of listToolsResult.tools) {
-        const title = annotations?.title;
+        const resolvedTitle = title ?? annotations?.title;
         if (schemas !== 'automatic' && !(name in schemas)) {
           continue;
         }
@@ -535,20 +569,22 @@ class DefaultMCPClient implements MCPClient {
           schemas === 'automatic'
             ? dynamicTool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: jsonSchema({
                   ...inputSchema,
                   properties: inputSchema.properties ?? {},
                   additionalProperties: false,
                 } as JSONSchema7),
                 execute,
+                toModelOutput: mcpToModelOutput,
               })
             : tool({
                 description,
-                title,
+                title: resolvedTitle,
                 inputSchema: schemas[name].inputSchema,
                 ...(outputSchema != null ? { outputSchema } : {}),
                 execute,
+                toModelOutput: mcpToModelOutput,
               });
 
         tools[name] = { ...toolWithExecute, _meta };

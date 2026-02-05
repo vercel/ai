@@ -1,5 +1,98 @@
 # @ai-sdk/openai-compatible
 
+## 2.0.27
+
+### Patch Changes
+
+- 9e490ad: Change usage schemas from z.object to z.looseObject to improve compatibility with non-standard OpenAI-compatible APIs.
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 2.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 2.0.22
+
+### Patch Changes
+
+- 9d056e6: chore(openai-compatible): add docs to package
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 2.0.20
+
+### Patch Changes
+
+- a1a0175: fix(openai-compatible): include reasoning_content in assistant messages for multi-turn tool calls
+
+## 2.0.19
+
+### Patch Changes
+
+- 6900916: fix(openai-compat): add metadata extractor to provider settings
+
+## 2.0.18
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 2.0.17
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 2.0.16
+
+### Patch Changes
+
+- 78555ad: fix(openai-compatible): Accept non-OpenAI provider options
+
+## 2.0.15
+
+### Patch Changes
+
+- 7116ef3: Use consistent camelCase `openaiCompatible` key for providerOptions. The kebab-case `openai-compatible` key is now deprecated but still supported with a console warning.
+
+## 2.0.14
+
+### Patch Changes
+
+- 1612a57: feat(openai-compat): support passing multiple file types
+
 ## 2.0.13
 
 ### Patch Changes

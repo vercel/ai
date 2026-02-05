@@ -111,6 +111,27 @@ describe('doEmbed', () => {
     });
   });
 
+  it('should pass the output_dimension setting', async () => {
+    prepareJsonResponse();
+
+    await provider.embeddingModel('embed-v4.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          outputDimension: 256,
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'embed-v4.0',
+      embedding_types: ['float'],
+      texts: testValues,
+      input_type: 'search_query',
+      output_dimension: 256,
+    });
+  });
+
   it('should pass headers', async () => {
     prepareJsonResponse();
 

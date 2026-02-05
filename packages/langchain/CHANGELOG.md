@@ -1,5 +1,215 @@
 # @ai-sdk/langchain
 
+## 2.0.77
+
+### Patch Changes
+
+- ai@6.0.72
+
+## 2.0.76
+
+### Patch Changes
+
+- ai@6.0.71
+
+## 2.0.75
+
+### Patch Changes
+
+- ai@6.0.70
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [d659305]
+  - ai@6.0.69
+
+## 2.0.73
+
+### Patch Changes
+
+- Updated dependencies [8bf2660]
+  - ai@6.0.68
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - ai@6.0.67
+
+## 2.0.71
+
+### Patch Changes
+
+- ai@6.0.66
+
+## 2.0.70
+
+### Patch Changes
+
+- ai@6.0.65
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [ce9daa3]
+  - ai@6.0.64
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [be95579]
+  - ai@6.0.63
+
+## 2.0.67
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - ai@6.0.62
+
+## 2.0.66
+
+### Patch Changes
+
+- ai@6.0.61
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [5fc42fa]
+  - ai@6.0.60
+
+## 2.0.64
+
+### Patch Changes
+
+- ai@6.0.59
+
+## 2.0.63
+
+### Patch Changes
+
+- ai@6.0.58
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [65865d8]
+  - ai@6.0.57
+
+## 2.0.61
+
+### Patch Changes
+
+- ai@6.0.56
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [43a74df]
+  - ai@6.0.55
+
+## 2.0.59
+
+### Patch Changes
+
+- Updated dependencies [2f8ac87]
+  - ai@6.0.54
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [7ee3f10]
+  - ai@6.0.53
+
+## 2.0.57
+
+### Patch Changes
+
+- ai@6.0.52
+
+## 2.0.56
+
+### Patch Changes
+
+- Updated dependencies [ea0feb5]
+  - ai@6.0.51
+
+## 2.0.55
+
+### Patch Changes
+
+- ai@6.0.50
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [ded661b]
+  - ai@6.0.49
+
+## 2.0.53
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - ai@6.0.48
+
+## 2.0.52
+
+### Patch Changes
+
+- ai@6.0.47
+
+## 2.0.51
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+  - ai@6.0.46
+
+## 2.0.50
+
+### Patch Changes
+
+- ai@6.0.45
+
+## 2.0.49
+
+### Patch Changes
+
+- ai@6.0.44
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [2dc9bfa]
+  - ai@6.0.43
+
+## 2.0.47
+
+### Patch Changes
+
+- ai@6.0.42
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [84b6e6d]
+  - ai@6.0.41
+
 ## 2.0.45
 
 ### Patch Changes

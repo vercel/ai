@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/baseten",
-  "version": "1.0.14",
+  "version": "1.0.30",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,13 +8,24 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "docs/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
     "CHANGELOG.md",
     "README.md"
   ],
+  "directories": {
+    "doc": "./docs"
+  },
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "clean": "rm -rf dist docs *.tsbuildinfo",
+    "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/170-baseten.mdx ./docs/",
+    "postpack": "del-cli docs",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",

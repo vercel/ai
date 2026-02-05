@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -24,6 +25,9 @@ vi.mock('./google-generative-ai-embedding-model', () => ({
 }));
 vi.mock('./google-generative-ai-image-model', () => ({
   GoogleGenerativeAIImageModel: vi.fn(),
+}));
+vi.mock('./google-generative-ai-video-model', () => ({
+  GoogleGenerativeAIVideoModel: vi.fn(),
 }));
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -301,6 +305,61 @@ describe('google provider - custom provider name', () => {
       'gemini-pro',
       expect.objectContaining({
         provider: 'google.generative-ai',
+      }),
+    );
+  });
+});
+
+describe('google provider - video', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should create a video model with default settings', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider.video('veo-3.1-generate-preview');
+
+    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+      'veo-3.1-generate-preview',
+      expect.objectContaining({
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: expect.any(Function),
+        generateId: expect.any(Function),
+      }),
+    );
+  });
+
+  it('should use custom baseURL for video model when provided', () => {
+    const customBaseURL = 'https://custom-endpoint.example.com';
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      baseURL: customBaseURL,
+    });
+    provider.video('veo-3.1-generate');
+
+    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+      'veo-3.1-generate',
+      expect.objectContaining({
+        baseURL: customBaseURL,
+      }),
+    );
+  });
+
+  it('should pass custom generateId to video model', () => {
+    const customGenerateId = () => 'custom-video-id';
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+      generateId: customGenerateId,
+    });
+    provider.video('veo-3.1-generate-preview');
+
+    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+      'veo-3.1-generate-preview',
+      expect.objectContaining({
+        generateId: customGenerateId,
       }),
     );
   });

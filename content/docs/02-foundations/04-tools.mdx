@@ -39,6 +39,95 @@ The output of the tool calls are returned using tool result objects.
 You can automatically pass tool results back to the LLM
 using [multi-step calls](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) with `streamText` and `generateText`.
 
+## Types of Tools
+
+The AI SDK supports three types of tools, each with different trade-offs:
+
+### Custom Tools
+
+Custom tools are tools you define entirely yourself, including the description, input schema, and execute function. They are provider-agnostic and give you full control.
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weatherTool = tool({
+  description: 'Get the weather in a location',
+  inputSchema: z.object({
+    location: z.string().describe('The location to get the weather for'),
+  }),
+  execute: async ({ location }) => {
+    // Your implementation
+    return { temperature: 72, conditions: 'sunny' };
+  },
+});
+```
+
+**When to use**: When you need full control, want provider portability, or are implementing application-specific functionality.
+
+### Provider-Defined Tools
+
+Provider-defined tools are tools where the provider specifies the tool's `inputSchema` and `description`, but you provide the `execute` function. These are sometimes called "client tools" because execution happens on your side.
+
+Examples include Anthropic's `bash` and `text_editor` tools. The model has been specifically trained to use these tools effectively, which can result in better performance for supported tasks.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-opus-4-5'),
+  tools: {
+    bash: anthropic.tools.bash_20250124({
+      execute: async ({ command }) => {
+        // Your implementation to run the command
+        return runCommand(command);
+      },
+    }),
+  },
+  prompt: 'List files in the current directory',
+});
+```
+
+**When to use**: When the provider offers a tool the model is trained to use well, and you want better performance for that specific task.
+
+### Provider-Executed Tools
+
+Provider-executed tools are tools that run entirely on the provider's servers. You configure them, but the provider handles execution. These are sometimes called "server-side tools".
+
+Examples include OpenAI's web search and Anthropic's code execution. These provide out-of-the-box functionality without requiring you to set up infrastructure.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-5.2'),
+  tools: {
+    web_search: openai.tools.webSearch(),
+  },
+  prompt: 'What happened in the news today?',
+});
+```
+
+**When to use**: When you want powerful functionality (like web search or sandboxed code execution) without managing the infrastructure yourself.
+
+### Comparison
+
+| Aspect             | Custom Tools             | Provider-Defined Tools | Provider-Executed Tools |
+| ------------------ | ------------------------ | ---------------------- | ----------------------- |
+| **Execution**      | Your code                | Your code              | Provider's servers      |
+| **Schema**         | You define               | Provider defines       | Provider defines        |
+| **Portability**    | Works with any provider  | Provider-specific      | Provider-specific       |
+| **Model Training** | General tool use         | Optimized for the tool | Optimized for the tool  |
+| **Setup**          | You implement everything | You implement execute  | Configuration only      |
+
+<Note>
+  Provider-defined and provider-executed tools are documented in each provider's
+  page. See [Anthropic Provider](/providers/ai-sdk-providers/anthropic) and
+  [OpenAI Provider](/providers/ai-sdk-providers/openai) for examples.
+</Note>
+
 ## Schemas
 
 Schemas are used to define and validate the [tool input](/docs/ai-sdk-core/tools-and-tool-calling), tools outputs, and structured output generation.
@@ -157,4 +246,4 @@ These tutorials and guides help you build your own tools that integrate with spe
 ## Learn more
 
 The AI SDK Core [Tool Calling](/docs/ai-sdk-core/tools-and-tool-calling)
-and [Agents](/docs/foundations/agents) documentation has more information about tools and tool calling.
+and [Agents](/docs/agents) documentation has more information about tools and tool calling.

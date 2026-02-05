@@ -51,8 +51,9 @@ export async function recordSpan<T>({
 }
 
 /**
- * Record an error on a span. If the error is an instance of Error, an exception event will be recorded on the span, otherwise
- * the span will be set to an error status.
+ * Record an error on a span. Sets the span status to error. If the error is
+ * an instance of Error, an exception event with name, message, and stack
+ * will also be recorded.
  *
  * @param span - The span to record the error on.
  * @param error - The error to record on the span.

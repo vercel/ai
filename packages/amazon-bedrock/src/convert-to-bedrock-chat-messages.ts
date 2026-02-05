@@ -7,7 +7,6 @@ import {
 } from '@ai-sdk/provider';
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
-  BEDROCK_CACHE_POINT,
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
   BedrockAssistantMessage,
@@ -22,11 +21,20 @@ import {
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
+import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
   providerMetadata: SharedV3ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
-  return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
+  const cachePointConfig = providerMetadata?.bedrock?.cachePoint as
+    | BedrockCachePoint['cachePoint']
+    | undefined;
+
+  if (!cachePointConfig) {
+    return undefined;
+  }
+
+  return { cachePoint: cachePointConfig };
 }
 
 async function shouldEnableCitations(
@@ -43,6 +51,7 @@ async function shouldEnableCitations(
 
 export async function convertToBedrockChatMessages(
   prompt: LanguageModelV3Prompt,
+  isMistral: boolean = false,
 ): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
@@ -71,8 +80,9 @@ export async function convertToBedrockChatMessages(
 
         for (const message of block.messages) {
           system.push({ text: message.content });
-          if (getCachePoint(message.providerOptions)) {
-            system.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(message.providerOptions);
+          if (cachePoint) {
+            system.push(cachePoint);
           }
         }
         break;
@@ -204,7 +214,7 @@ export async function convertToBedrockChatMessages(
 
                 bedrockContent.push({
                   toolResult: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     content: toolResultContent,
                   },
                 });
@@ -218,8 +228,9 @@ export async function convertToBedrockChatMessages(
             }
           }
 
-          if (getCachePoint(providerOptions)) {
-            bedrockContent.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(providerOptions);
+          if (cachePoint) {
+            bedrockContent.push(cachePoint);
           }
         }
 
@@ -305,7 +316,7 @@ export async function convertToBedrockChatMessages(
               case 'tool-call': {
                 bedrockContent.push({
                   toolUse: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: part.toolName,
                     input: part.input as JSONObject,
                   },
@@ -314,8 +325,9 @@ export async function convertToBedrockChatMessages(
               }
             }
           }
-          if (getCachePoint(message.providerOptions)) {
-            bedrockContent.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(message.providerOptions);
+          if (cachePoint) {
+            bedrockContent.push(cachePoint);
           }
         }
 
