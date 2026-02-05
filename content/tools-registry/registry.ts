@@ -516,9 +516,9 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://github.com/inconvoai/vercel-ai-sdk',
+    docsUrl: 'https://inconvo.com/docs/guides/vercel-ai-sdk',
     apiKeyUrl: 'https://app.inconvo.ai/manage/apikeys',
-    websiteUrl: 'https://inconvo.com/docs',
+    websiteUrl: 'https://inconvo.com',
     npmUrl: 'https://www.npmjs.com/package/@inconvoai/vercel-ai-sdk',
   },
 ];
