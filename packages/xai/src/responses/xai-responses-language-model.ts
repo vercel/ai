@@ -874,7 +874,19 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               }
             }
 
-            controller.enqueue({ type: 'finish', finishReason, usage: usage! });
+            controller.enqueue({
+              type: 'finish',
+              finishReason,
+              usage: usage ?? {
+                inputTokens: {
+                  total: 0,
+                  noCache: 0,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                },
+                outputTokens: { total: 0, text: 0, reasoning: 0 },
+              },
+            });
           },
         }),
       ),
