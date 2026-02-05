@@ -274,7 +274,7 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should handle empty words array gracefully', async () => {
+  it('should handle empty words array', async () => {
     server.urls[
       'https://api.groq.com/openai/v1/audio/transcriptions'
     ].response = {
@@ -292,5 +292,27 @@ describe('doGenerate', () => {
     });
 
     expect(result.segments).toEqual([]);
+    expect(result.text).toBe('Hello world');
+  });
+
+  it('should handle empty segments array', async () => {
+    server.urls[
+      'https://api.groq.com/openai/v1/audio/transcriptions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello world',
+        segments: [],
+        x_groq: { id: 'req_123' },
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.segments).toEqual([]);
+    expect(result.text).toBe('Hello world');
   });
 });
