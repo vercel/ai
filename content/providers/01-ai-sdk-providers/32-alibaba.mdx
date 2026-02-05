@@ -85,10 +85,10 @@ const { text } = await generateText({
 });
 ```
 
-You can also use the `.chat()` or `.languageModel()` factory methods:
+You can also use the `.chatModel()` or `.languageModel()` factory methods:
 
 ```ts
-const model = alibaba.chat('qwen-plus');
+const model = alibaba.chatModel('qwen-plus');
 // or
 const model = alibaba.languageModel('qwen-plus');
 ```
@@ -192,59 +192,10 @@ const { text, usage } = await generateText({
     },
   ],
 });
-
-console.log('Usage:', usage);
 ```
 
 ## Model Capabilities
 
-### Commercial Models
-
-| Model                                 | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      | Thinking Mode       |
-| ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen3-max`, `qwen3-max-2026-01-23`   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-plus`, `qwen-plus-latest`       | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `qwen-flash`, `qwen-flash-2025-07-28` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `qwen-turbo`, `qwen-turbo-latest`     | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `qwq-plus`, `qwq-plus-latest`         | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> |
-
-### Open-Source Models
-
-| Model                                  | Text Generation     | Object Generation   | Image Input         | Tool Usage          | Tool Streaming      | Thinking Mode       |
-| -------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen3-235b-a22b`                      | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-32b`, `qwen3-14b`, `qwen3-8b`   | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-4b`, `qwen3-1.7b`, `qwen3-0.6b` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-### Thinking-Only Models
-
-| Model                           | Text Generation     | Object Generation   | Thinking Mode       |
-| ------------------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen3-next-80b-a3b-thinking`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-235b-a22b-thinking-2507` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-30b-a3b-thinking-2507`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwq-32b`                       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-### Code Models
-
-| Model               | Text Generation     | Object Generation   | Tool Usage          | Tool Streaming      |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen-coder`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-coder-plus`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-coder-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-### Vision Models
-
-| Model            | Text Generation     | Object Generation   | Image Input         | Tool Usage          |
-| ---------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `qwen3-vl-plus`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen3-vl-flash` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-vl-max`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `qwen-vl-plus`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-
-<Note>
-  Please see the [Alibaba Cloud Model Studio
-  docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
-  list of available models. You can also pass any available provider model ID as
-  a string if needed.
-</Note>
+Please see the [Alibaba Cloud Model Studio docs](https://www.alibabacloud.com/help/en/model-studio/models) for a full
+list of available models. You can also pass any available provider model ID as
+a string if needed.

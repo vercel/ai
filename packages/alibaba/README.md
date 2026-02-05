@@ -114,9 +114,6 @@ const { text, usage } = await generateText({
     },
   ],
 });
-
-console.log('Cache write tokens:', usage.inputTokenDetails.cacheWriteTokens);
-console.log('Cache read tokens:', usage.inputTokenDetails.cacheReadTokens);
 ```
 
 ## Documentation

@@ -13,18 +13,11 @@ export type AlibabaUsage = {
   } | null;
 };
 
-/**
- * Converts Alibaba usage to AI SDK usage format.
- * Extends the base OpenAI-compatible converter to handle Alibaba's
- * `cache_creation_input_tokens` field.
- */
 export function convertAlibabaUsage(
   usage: AlibabaUsage | undefined | null,
 ): LanguageModelV3Usage {
-  // Use base converter for standard fields
   const baseUsage = convertOpenAICompatibleChatUsage(usage);
 
-  // Add Alibaba-specific cache_creation_input_tokens to cacheWrite
   const cacheWriteTokens =
     usage?.prompt_tokens_details?.cache_creation_input_tokens ?? 0;
 

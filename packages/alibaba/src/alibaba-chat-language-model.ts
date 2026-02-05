@@ -60,9 +60,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     return this.config.provider;
   }
 
-  // TODO: Add supportedUrls for vision models
   readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/], // Vision models support image URLs
+    'image/*': [/^https?:\/\/.*$/],
   };
 
   /**
@@ -522,9 +521,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
 }
 
 /**
- * Usage schema for Alibaba API responses.
- * Includes Alibaba-specific extensions for caching and reasoning tokens.
- * Reference: https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
+ * Reference for schemas below:
+ * https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
  */
 const alibabaUsageSchema = z.object({
   prompt_tokens: z.number(),
@@ -543,11 +541,6 @@ const alibabaUsageSchema = z.object({
     .nullish(),
 });
 
-/**
- * Response schema for Alibaba chat completions API.
- * Based on OpenAI-compatible format with Alibaba-specific extensions.
- * Reference: https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
- */
 const alibabaChatResponseSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),
@@ -578,11 +571,6 @@ const alibabaChatResponseSchema = z.object({
   usage: alibabaUsageSchema.nullish(),
 });
 
-/**
- * Chunk schema for Alibaba streaming responses.
- * Uses 'delta' for incremental updates instead of complete 'message'.
- * Reference: https://www.alibabacloud.com/help/en/model-studio/qwen-api-via-openai-chat-completions
- */
 const alibabaChatChunkSchema = z.object({
   id: z.string().nullish(),
   created: z.number().nullish(),

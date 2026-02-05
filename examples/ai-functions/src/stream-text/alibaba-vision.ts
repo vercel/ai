@@ -3,7 +3,6 @@ import { streamText } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
-  // Using a 10x10 red square from a placeholder service for testing
   const result = streamText({
     model: alibaba('qwen-vl-max'),
     messages: [
