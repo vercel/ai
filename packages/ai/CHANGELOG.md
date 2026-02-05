@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [db2e810]
+  - @ai-sdk/gateway@2.0.33
+
 ## 5.0.126
 
 ### Patch Changes

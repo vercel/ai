@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.33
+
+### Patch Changes
+
+- db2e810: feat(anthropic): add support for Opus 4.6
+
 ## 2.0.32
 
 ### Patch Changes
