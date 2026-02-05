@@ -15,7 +15,7 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 
 ## Setup
 
-The AI SDK supports tracing via OpenTelemetry. With the `LangfuseExporter` you can collect these traces in Langfuse.
+The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
 While telemetry is experimental ([docs](/docs/ai-sdk-core/telemetry#enabling-telemetry)), you can enable it by setting `experimental_telemetry` on each request that you want to trace.
 
 ```ts highlight="4"
@@ -26,9 +26,9 @@ const result = await generateText({
 });
 ```
 
-To collect the traces in Langfuse, you need to add the `LangfuseExporter` to your application.
+To collect the traces in Langfuse, you need to add the `LangfuseSpanProcessor` to your application.
 
-You can set the Langfuse credentials via environment variables or directly to the `LangfuseExporter` constructor.
+You can set the Langfuse credentials via environment variables or directly to the `LangfuseSpanProcessor` constructor.
 
 To get your Langfuse API keys, you can [self-host Langfuse](https://langfuse.com/docs/deployment/self-host) or sign up for Langfuse Cloud [here](https://cloud.langfuse.com). Create a project in the Langfuse dashboard to get your `secretKey` and `publicKey.`
 
@@ -47,9 +47,9 @@ LANGFUSE_BASEURL="https://cloud.langfuse.com" # 🇪🇺 EU region, use "https:/
 <Tab>
 
 ```ts
-import { LangfuseExporter } from 'langfuse-vercel';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
 
-new LangfuseExporter({
+new LangfuseSpanProcessor({
   secretKey: 'sk-lf-...',
   publicKey: 'pk-lf-...',
   baseUrl: 'https://cloud.langfuse.com', // 🇪🇺 EU region
@@ -60,7 +60,7 @@ new LangfuseExporter({
 </Tab>
 </Tabs>
 
-Now you need to register this exporter via the OpenTelemetry SDK.
+Now you need to register this span processor via the OpenTelemetry SDK.
 
 <Tabs items={["Next.js","Node.js"]}>
 <Tab>
@@ -70,36 +70,50 @@ Next.js has support for OpenTelemetry instrumentation on the framework level. Le
 Install dependencies:
 
 ```bash
-npm install @vercel/otel langfuse-vercel @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
+npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node
 ```
 
-Add `LangfuseExporter` to your instrumentation:
+Add `LangfuseSpanProcessor` to your instrumentation using a manual OpenTelemetry setup via `NodeTracerProvider`:
 
-```ts filename="instrumentation.ts" highlight="7"
-import { registerOTel } from '@vercel/otel';
-import { LangfuseExporter } from 'langfuse-vercel';
+```ts filename="instrumentation.ts"
+import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-export function register() {
-  registerOTel({
-    serviceName: 'langfuse-vercel-ai-nextjs-example',
-    traceExporter: new LangfuseExporter(),
-  });
-}
+// Optional: filter out Next.js infra spans
+const shouldExportSpan: ShouldExportSpan = span => {
+  return span.otelSpan.instrumentationScope.name !== 'next.js';
+};
+
+export const langfuseSpanProcessor = new LangfuseSpanProcessor({
+  shouldExportSpan,
+});
+
+const tracerProvider = new NodeTracerProvider({
+  spanProcessors: [langfuseSpanProcessor],
+});
+
+tracerProvider.register();
 ```
 
 </Tab>
 <Tab>
 
-```ts highlight="5, 8, 31"
+Install dependencies:
+
+```bash
+npm install ai @ai-sdk/openai @langfuse/otel @opentelemetry/sdk-node
+```
+
+Add `LangfuseSpanProcessor` to your OpenTelemetry setup:
+
+```ts highlight="3-4, 6-8"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { LangfuseExporter } from 'langfuse-vercel';
 
 const sdk = new NodeSDK({
-  traceExporter: new LangfuseExporter(),
-  instrumentations: [getNodeAutoInstrumentations()],
+  spanProcessors: [new LangfuseSpanProcessor()],
 });
 
 sdk.start();
@@ -231,14 +245,6 @@ const result = await generateText({
     },
   },
 });
-```
-
-## Debugging
-
-Enable the `debug` option to see the logs of the exporter.
-
-```ts
-new LangfuseExporter({ debug: true });
 ```
 
 ## Troubleshooting
