@@ -1,5 +1,18 @@
 # @ai-sdk/fireworks
 
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 2.0.30
+
+### Patch Changes
+
+- e152eef: feat(provider/fireworks): add thinking and reasoning options for kimi k2.5
+
 ## 2.0.29
 
 ### Patch Changes
