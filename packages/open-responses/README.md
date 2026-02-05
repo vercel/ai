@@ -27,7 +27,7 @@ Create an Open Responses provider instance using `createOpenResponses`:
 import { createOpenResponses } from '@ai-sdk/open-responses';
 
 const openResponses = createOpenResponses({
-  name: 'lmstudio',
+  name: 'aProvider',
   url: 'http://localhost:1234/v1/responses',
 });
 ```
@@ -41,7 +41,7 @@ import { createOpenResponses } from '@ai-sdk/open-responses';
 import { generateText } from 'ai';
 
 const openResponses = createOpenResponses({
-  name: 'lmstudio',
+  name: 'aProvider',
   url: 'http://localhost:1234/v1/responses',
 });
 
