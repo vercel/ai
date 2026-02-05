@@ -245,8 +245,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         cacheControlValidator,
       });
 
-    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    const thinkingType = anthropicOptions?.thinking?.type;
+    const isThinking =
+      thinkingType === 'enabled' || thinkingType === 'adaptive';
+    let thinkingBudget =
+      thinkingType === 'enabled'
+        ? anthropicOptions?.thinking?.budgetTokens
+        : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -263,7 +268,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
       // provider specific settings:
       ...(isThinking && {
-        thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+        thinking: {
+          type: thinkingType,
+          ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+        },
       }),
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
@@ -297,7 +305,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     };
 
     if (isThinking) {
-      if (thinkingBudget == null) {
+      if (thinkingType === 'enabled' && thinkingBudget == null) {
         throw new UnsupportedFunctionalityError({
           functionality: 'thinking requires a budget',
         });
@@ -331,7 +339,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
@@ -1479,7 +1487,13 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-6')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-5') ||
     modelId.includes('claude-opus-4-5')
   ) {
