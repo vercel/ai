@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
 ## 3.0.33
 
 ### Patch Changes
