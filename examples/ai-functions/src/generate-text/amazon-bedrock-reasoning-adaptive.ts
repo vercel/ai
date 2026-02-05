@@ -4,7 +4,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('us.anthropic.claude-opus-4-6-v1'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       bedrock: {
