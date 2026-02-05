@@ -3,6 +3,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { createAlibaba } from './alibaba-provider';
+import { AlibabaUsage } from './convert-alibaba-usage';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
@@ -13,14 +14,12 @@ const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createAlibaba({
-  apiKey: 'test-api-key',
-});
-const model = provider.chatModel('qwen-plus');
+const CHAT_COMPLETIONS_URL =
+  'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 
-const server = createTestServer({
-  'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions': {},
-});
+const provider = createAlibaba({ apiKey: 'test-api-key' });
+const model = provider.chatModel('qwen-plus');
+const server = createTestServer({ [CHAT_COMPLETIONS_URL]: {} });
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
@@ -32,22 +31,9 @@ describe('doGenerate', () => {
     },
   }: {
     content?: string;
-    usage?: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-      prompt_tokens_details?: {
-        cached_tokens?: number;
-        cache_creation_input_tokens?: number;
-      };
-      completion_tokens_details?: {
-        reasoning_tokens?: number;
-      };
-    };
+    usage?: AlibabaUsage;
   }) {
-    server.urls[
-      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
-    ].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       body: {
         id: 'test-id',
@@ -70,9 +56,7 @@ describe('doGenerate', () => {
   }
 
   function prepareJsonFixtureResponse(filename: string) {
-    server.urls[
-      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
-    ].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',
       body: JSON.parse(
         fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
@@ -135,7 +119,7 @@ describe('doGenerate', () => {
         "inputTokens": {
           "cacheRead": 80,
           "cacheWrite": 20,
-          "noCache": 20,
+          "noCache": 0,
           "total": 100,
         },
         "outputTokens": {
@@ -203,9 +187,7 @@ describe('doGenerate', () => {
 
 describe('doStream', () => {
   function prepareStreamResponse({ content }: { content: string[] }) {
-    server.urls[
-      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
-    ].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
@@ -294,9 +276,7 @@ describe('doStream', () => {
   });
 
   it('should stream tool deltas', async () => {
-    server.urls[
-      'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
-    ].response = {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'stream-chunks',
       chunks: [
         `data: {"id":"test-id","object":"chat.completion.chunk","created":1234567890,"model":"qwen-plus","choices":[{"index":0,"delta":{"role":"assistant","content":"","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"get_weather","arguments":""}}]},"finish_reason":null}]}\n\n`,
