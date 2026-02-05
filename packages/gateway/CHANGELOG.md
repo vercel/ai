@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.32
 
 ### Patch Changes
