@@ -789,6 +789,48 @@ describe('XaiChatLanguageModel', () => {
         },
       });
     });
+
+    it('should handle missing usage in response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'no-usage-test',
+          object: 'chat.completion',
+          created: 1699472111,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello',
+                tool_calls: null,
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          // usage field is omitted
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 0,
+          noCache: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+        },
+        outputTokens: {
+          total: 0,
+          text: 0,
+          reasoning: 0,
+        },
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -1169,6 +1211,47 @@ describe('XaiChatLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should handle missing usage in streaming response', async () => {
+      server.urls['https://api.x.ai/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"no-usage-test","object":"chat.completion.chunk","created":1750537778,"model":"grok-beta","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+          `data: [DONE]\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finishChunk = chunks.find(chunk => chunk.type === 'finish');
+
+      expect(finishChunk).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'stop',
+          raw: 'stop',
+        },
+        usage: {
+          inputTokens: {
+            total: 0,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          outputTokens: {
+            total: 0,
+            text: 0,
+            reasoning: 0,
+          },
+        },
+      });
     });
 
     it('should stream citations as sources', async () => {
