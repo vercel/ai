@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.59
+
+### Patch Changes
+
+- ca1f53a: feat(anthropic): add support for Opus 4.6
+
 ## 2.0.58
 
 ### Patch Changes
