@@ -1,5 +1,60 @@
 # @ai-sdk/google-vertex
 
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/google@3.0.21
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [1652320]
+  - @ai-sdk/anthropic@3.0.36
+
+## 4.0.41
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/google@3.0.20
+  - @ai-sdk/anthropic@3.0.35
+  - @ai-sdk/provider-utils@4.0.13
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/anthropic@3.0.34
+  - @ai-sdk/google@3.0.19
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [445cbe3]
+  - @ai-sdk/anthropic@3.0.33
+
+## 4.0.38
+
+### Patch Changes
+
+- Updated dependencies [c33343b]
+  - @ai-sdk/anthropic@3.0.32
+
 ## 4.0.37
 
 ### Patch Changes

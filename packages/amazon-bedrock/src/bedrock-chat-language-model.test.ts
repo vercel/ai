@@ -3643,10 +3643,10 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-  it('should warn when Anthropic model receives maxReasoningEffort (generate)', async () => {
+  it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonResponse({});
 
-    const result = await model.doGenerate({
+    await model.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -3662,12 +3662,8 @@ describe('doGenerate', () => {
     expect(
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
-
-    expect(result.warnings).toContainEqual({
-      type: 'unsupported',
-      feature: 'maxReasoningEffort',
-      details:
-        'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
     });
   });
 

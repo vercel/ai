@@ -1,5 +1,44 @@
 # @ai-sdk/anthropic
 
+## 3.0.37
+
+### Patch Changes
+
+- e288302: feat(anthropic): add support for Opus 4.6
+
+## 3.0.36
+
+### Patch Changes
+
+- 1652320: feat(anthropic): support custom tool-reference content for deferred tool loading
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.33
+
+### Patch Changes
+
+- 445cbe3: fix streaming context_management field location - was incorrectly expected inside delta object but API returns it at message_delta root level
+
+## 3.0.32
+
+### Patch Changes
+
+- c33343b: fix(anthropic): add missing param in tool schema
+
 ## 3.0.31
 
 ### Patch Changes

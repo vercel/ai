@@ -499,7 +499,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 const tools = {
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
-    async execute({ command, path, old_str, new_str }) {
+    async execute({ command, path, old_str, new_str, insert_text }) {
       // ...
     },
   }),
@@ -523,7 +523,8 @@ Parameters:
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
@@ -743,6 +744,57 @@ const result = await generateText({
 ```
 
 Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
+
+#### Custom Tool Search
+
+You can implement your own tool search logic (e.g., using embeddings or semantic search) by returning `tool-reference` content blocks via `toModelOutput`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // Custom search tool
+    searchTools: tool({
+      description: 'Search for tools by keyword',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        // Your custom search logic (embeddings, fuzzy match, etc.)
+        const allTools = ['get_weather', 'get_forecast', 'get_temperature'];
+        return allTools.filter(name => name.includes(query.toLowerCase()));
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: (output as string[]).map(toolName => ({
+          type: 'custom' as const,
+          providerOptions: {
+            anthropic: {
+              type: 'tool-reference',
+              toolName,
+            },
+          },
+        })),
+      }),
+    }),
+
+    // Deferred tools
+    get_weather: tool({
+      description: 'Get the current weather',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 72 }),
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
 
 ### MCP Connectors
 
@@ -1124,6 +1176,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

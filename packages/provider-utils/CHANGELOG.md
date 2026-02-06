@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 4.0.12
+
+### Patch Changes
+
+- 96936e5: fix(provider-utils): export only types from standard-schema package
+
 ## 4.0.11
 
 ### Patch Changes

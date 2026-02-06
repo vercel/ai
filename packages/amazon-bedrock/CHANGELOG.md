@@ -1,5 +1,68 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.50
+
+### Patch Changes
+
+- 632ab10: feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [1652320]
+  - @ai-sdk/anthropic@3.0.36
+
+## 4.0.47
+
+### Patch Changes
+
+- 46bc2b3: fix(amazon-bedrock): proper decoding for base64 data
+
+## 4.0.46
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/anthropic@3.0.35
+  - @ai-sdk/provider-utils@4.0.13
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/anthropic@3.0.34
+
+## 4.0.44
+
+### Patch Changes
+
+- b128d9b: add TTL support for prompt caching
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [445cbe3]
+  - @ai-sdk/anthropic@3.0.33
+
+## 4.0.42
+
+### Patch Changes
+
+- Updated dependencies [c33343b]
+  - @ai-sdk/anthropic@3.0.32
+
 ## 4.0.41
 
 ### Patch Changes
