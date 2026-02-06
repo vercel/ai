@@ -347,19 +347,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
         },
       }),
-      ...(anthropicOptions?.effort && {
-        output_config: { effort: anthropicOptions.effort },
-      }),
-
-      // structured output:
-      ...(useStructuredOutput &&
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null && {
-          output_format: {
+      // output_config (effort + structured output format):
+      ...(() => {
+        const outputConfig: Record<string, unknown> = {};
+        if (anthropicOptions?.effort) {
+          outputConfig.effort = anthropicOptions.effort;
+        }
+        if (
+          useStructuredOutput &&
+          responseFormat?.type === 'json' &&
+          responseFormat.schema != null
+        ) {
+          outputConfig.format = {
             type: 'json_schema',
             schema: responseFormat.schema,
-          },
-        }),
+          };
+        }
+        return Object.keys(outputConfig).length > 0
+          ? { output_config: outputConfig }
+          : {};
+      })(),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&
@@ -560,7 +567,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // structured output:
-    // Only pass beta when actually using native output_format
+    // Only pass beta when actually using native output_config.format
     const usingNativeOutputFormat =
       useStructuredOutput &&
       responseFormat?.type === 'json' &&
