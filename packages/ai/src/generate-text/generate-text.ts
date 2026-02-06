@@ -50,6 +50,7 @@ import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
+import { extractReasoningContent } from './extract-reasoning-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -611,6 +612,7 @@ export async function generateText<
                     timestamp: responseData.timestamp.toISOString(),
                     finishReason: result.finishReason.unified,
                     text: extractTextContent(result.content),
+                    reasoning: extractReasoningContent(result.content),
                     toolCalls: asToolCalls(result.content),
                     providerMetadata: result.providerMetadata,
                   },
@@ -853,6 +855,7 @@ export async function generateText<
           response: {
             finishReason: currentModelResponse.finishReason.unified,
             text: extractTextContent(currentModelResponse.content),
+            reasoning: extractReasoningContent(currentModelResponse.content),
             toolCalls: asToolCalls(currentModelResponse.content),
             providerMetadata: currentModelResponse.providerMetadata,
           },

@@ -128,6 +128,9 @@ function flattenToOtelAttributes(
     if (data.response.text != null) {
       attrs['ai.response.text'] = data.response.text;
     }
+    if (data.response.reasoning != null) {
+      attrs['ai.response.reasoning'] = data.response.reasoning;
+    }
     if (data.response.toolCalls != null) {
       attrs['ai.response.toolCalls'] = JSON.stringify(data.response.toolCalls);
     }

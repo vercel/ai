@@ -90,6 +90,7 @@ export interface TelemetryEventData {
     timestamp?: string;
     finishReason?: string;
     text?: string;
+    reasoning?: string;
     toolCalls?: unknown;
     providerMetadata?: unknown;
   };
