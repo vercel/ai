@@ -562,21 +562,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -647,21 +649,23 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-unknown",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "name": {
-                    "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
                   },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "name",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
           }
         `);
@@ -5105,41 +5109,43 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
-            "output_format": {
-              "schema": {
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "additionalProperties": false,
-                "properties": {
-                  "characters": {
-                    "items": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "class": {
-                          "type": "string",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "characters": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "class": {
+                            "type": "string",
+                          },
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
                         },
-                        "description": {
-                          "type": "string",
-                        },
-                        "name": {
-                          "type": "string",
-                        },
+                        "required": [
+                          "name",
+                          "class",
+                          "description",
+                        ],
+                        "type": "object",
                       },
-                      "required": [
-                        "name",
-                        "class",
-                        "description",
-                      ],
-                      "type": "object",
+                      "type": "array",
                     },
-                    "type": "array",
                   },
+                  "required": [
+                    "characters",
+                  ],
+                  "type": "object",
                 },
-                "required": [
-                  "characters",
-                ],
-                "type": "object",
+                "type": "json_schema",
               },
-              "type": "json_schema",
             },
             "stream": true,
           }
