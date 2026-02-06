@@ -1,9 +1,9 @@
-import type { LanguageModelV2FunctionTool } from '@ai-sdk/provider';
+import type { LanguageModelV3FunctionTool } from '@ai-sdk/provider';
 import { asSchema, type ToolSet } from 'ai';
 
 export function toolsToModelTools(
   tools: ToolSet,
-): LanguageModelV2FunctionTool[] {
+): LanguageModelV3FunctionTool[] {
   return Object.entries(tools).map(([name, tool]) => {
     const schema = asSchema(tool.inputSchema);
     return {
