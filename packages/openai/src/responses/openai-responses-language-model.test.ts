@@ -5071,6 +5071,63 @@ describe('OpenAIResponsesLanguageModel', () => {
             ]
           `);
       });
+
+      it('should set finishReason to error when response.failed is received (regression #6534)', async () => {
+        prepareChunksFixtureResponse('openai-response-failed-only.1');
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Verify finishReason is 'error', not 'other'
+        const finishPart = parts.find(
+          (p: LanguageModelV3StreamPart) => p.type === 'finish',
+        );
+        expect(finishPart).toBeDefined();
+        expect(finishPart!.finishReason.unified).toBe('error');
+        expect(finishPart!.finishReason.raw).toBe('rate_limit_exceeded');
+
+        // Verify error message is surfaced
+        const errorParts = parts.filter(
+          (p: LanguageModelV3StreamPart) => p.type === 'error',
+        );
+        expect(errorParts.length).toBeGreaterThanOrEqual(1);
+
+        const failedError = errorParts.find(
+          (p: LanguageModelV3StreamPart) =>
+            p.error instanceof Error &&
+            p.error.message.includes('Request too large'),
+        );
+        expect(failedError).toBeDefined();
+      });
+
+      it('should set finishReason to error for error event chunks (regression #6534)', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"response.created","sequence_number":0,"response":{"id":"resp_test_err_only","object":"response","created_at":1763474589,"status":"in_progress","background":false,"error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"max_tool_calls":null,"model":"gpt-4o-mini","output":[],"parallel_tool_calls":true,"previous_response_id":null,"prompt_cache_key":null,"prompt_cache_retention":null,"reasoning":{"effort":"medium","summary":null},"safety_identifier":null,"service_tier":"auto","store":true,"temperature":1,"text":{"format":{"type":"text"},"verbosity":"medium"},"tool_choice":"auto","tools":[],"top_logprobs":0,"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+            `data: {"type":"error","sequence_number":1,"error":{"type":"server_error","code":"server_error","message":"Internal server error"}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const finishPart = parts.find(
+          (p: LanguageModelV3StreamPart) => p.type === 'finish',
+        );
+        expect(finishPart).toBeDefined();
+        expect(finishPart!.finishReason.unified).toBe('error');
+        expect(finishPart!.finishReason.raw).toBe('server_error');
+      });
     });
 
     describe('reasoning', () => {
