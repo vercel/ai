@@ -1780,7 +1780,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   },
                 });
               }
+            } else if (isResponseFailedChunk(value)) {
+              finishReason = {
+                unified: 'error',
+                raw: value.response.error?.code ?? 'error',
+              };
+              controller.enqueue({
+                type: 'error',
+                error: new Error(
+                  value.response.error?.message ?? 'Response failed',
+                ),
+              });
+              if (value.response.usage != null) {
+                usage = value.response.usage;
+              }
             } else if (isErrorChunk(value)) {
+              finishReason = {
+                unified: 'error',
+                raw: (value as any).error?.code ?? 'error',
+              };
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -1829,6 +1847,12 @@ function isResponseFinishedChunk(
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(
