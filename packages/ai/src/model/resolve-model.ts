@@ -127,10 +127,14 @@ export function resolveVideoModel(
   model: VideoModel,
 ): Experimental_VideoModelV3 {
   if (typeof model === 'string') {
-    throw new Error(
-      'Video models cannot be resolved from strings. ' +
-        'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
-    );
+    const provider = getGlobalProvider();
+    if (!provider.videoModel) {
+      throw new Error(
+        'The default provider does not support video models. ' +
+          'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+      );
+    }
+    return provider.videoModel(model);
   }
 
   if (model.specificationVersion !== 'v3') {
