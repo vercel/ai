@@ -1,7 +1,14 @@
-import { Attributes, AttributeValue } from '@opentelemetry/api';
+import type { TelemetryAttributes, TelemetryAttributeValue } from './types';
 import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
-import { TelemetrySettings } from './telemetry-settings';
 
+/**
+ * Builds the base telemetry attributes common to all operations:
+ * model info, call settings, request headers, and (optionally) metadata.
+ *
+ * For migrated functions, metadata injection is handled by the
+ * TelemetryEmitter. The optional `telemetry` param is kept for
+ * backward compatibility with un-migrated call sites.
+ */
 export function getBaseTelemetryAttributes({
   model,
   settings,
@@ -10,9 +17,9 @@ export function getBaseTelemetryAttributes({
 }: {
   model: { modelId: string; provider: string };
   settings: Omit<CallSettings, 'abortSignal' | 'headers' | 'temperature'>;
-  telemetry: TelemetrySettings | undefined;
+  telemetry?: { metadata?: Record<string, unknown> };
   headers: Record<string, string | undefined> | undefined;
-}): Attributes {
+}): TelemetryAttributes {
   return {
     'ai.model.provider': model.provider,
     'ai.model.id': model.modelId,
@@ -28,18 +35,19 @@ export function getBaseTelemetryAttributes({
           attributes[`ai.settings.${key}`] = totalTimeoutMs;
         }
       } else {
-        attributes[`ai.settings.${key}`] = value as AttributeValue;
+        attributes[`ai.settings.${key}`] = value as TelemetryAttributeValue;
       }
       return attributes;
-    }, {} as Attributes),
+    }, {} as TelemetryAttributes),
 
-    // add metadata as attributes:
+    // metadata (for un-migrated call sites; migrated ones use TelemetryEmitter):
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
+        attributes[`ai.telemetry.metadata.${key}`] =
+          value as TelemetryAttributeValue;
         return attributes;
       },
-      {} as Attributes,
+      {} as TelemetryAttributes,
     ),
 
     // request headers
@@ -48,6 +56,6 @@ export function getBaseTelemetryAttributes({
         attributes[`ai.request.headers.${key}`] = value;
       }
       return attributes;
-    }, {} as Attributes),
+    }, {} as TelemetryAttributes),
   };
 }

@@ -30,6 +30,7 @@ import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
 import { MockTracer } from '../test/mock-tracer';
+import { otel } from '../telemetry/handlers/otel-handler';
 import { generateText, GenerateTextOnFinishCallback } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -2644,7 +2645,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'prompt',
-        experimental_telemetry: { tracer },
+        // No telemetry config → disabled
       });
 
       expect(tracer.jsonSpans).toMatchSnapshot();
@@ -2679,14 +2680,13 @@ describe('generateText', () => {
           header1: 'value1',
           header2: 'value2',
         },
-        experimental_telemetry: {
-          isEnabled: true,
+        telemetry: {
+          ...otel({ tracer }),
           functionId: 'test-function-id',
           metadata: {
             test1: 'value1',
             test2: false,
           },
-          tracer,
         },
       });
 
@@ -2716,10 +2716,7 @@ describe('generateText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          tracer,
-        },
+        telemetry: otel({ tracer }),
         _internal: {
           generateId: () => 'test-id',
         },
@@ -2818,10 +2815,7 @@ describe('generateText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          tracer,
-        },
+        telemetry: otel({ tracer }),
         _internal: {
           generateId: () => 'test-id',
         },
@@ -2877,11 +2871,10 @@ describe('generateText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
+        telemetry: {
+          ...otel({ tracer }),
           recordInputs: false,
           recordOutputs: false,
-          tracer,
         },
         _internal: {
           generateId: () => 'test-id',

@@ -41,15 +41,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     attributes: selectTelemetryAttributes({
       telemetry,
       attributes: {
-        ...assembleOperationName({
-          operationId: 'ai.toolCall',
-          telemetry,
-        }),
+        ...assembleOperationName({ operationId: 'ai.toolCall', telemetry }),
         'ai.toolCall.name': toolName,
         'ai.toolCall.id': toolCallId,
-        'ai.toolCall.args': {
-          output: () => JSON.stringify(input),
-        },
+        'ai.toolCall.args': { input: () => JSON.stringify(input) },
       },
     }),
     tracer,
@@ -100,9 +95,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
           await selectTelemetryAttributes({
             telemetry,
             attributes: {
-              'ai.toolCall.result': {
-                output: () => JSON.stringify(output),
-              },
+              'ai.toolCall.result': { output: () => JSON.stringify(output) },
             },
           }),
         );

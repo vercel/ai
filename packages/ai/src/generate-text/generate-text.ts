@@ -5,13 +5,13 @@ import {
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  executeTool,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { Tracer } from '@opentelemetry/api';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -29,12 +29,8 @@ import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { TelemetryEmitter } from '../telemetry/telemetry-emitter';
+import type { TelemetryConfig } from '../telemetry/types';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   LanguageModel,
@@ -53,7 +49,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { executeToolCall } from './execute-tool-call';
 import { extractTextContent } from './extract-text-content';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
@@ -184,7 +179,8 @@ export async function generateText<
   stopWhen = stepCountIs(1),
   experimental_output,
   output = experimental_output,
-  experimental_telemetry: telemetry,
+  telemetry: telemetryConfig,
+  experimental_telemetry: _legacyTelemetry,
   providerOptions,
   experimental_activeTools,
   activeTools = experimental_activeTools,
@@ -226,7 +222,14 @@ export async function generateText<
       | Array<StopCondition<NoInfer<TOOLS>>>;
 
     /**
+     * Telemetry configuration.
+     */
+    telemetry?: TelemetryConfig;
+
+    /**
      * Optional telemetry configuration (experimental).
+     *
+     * @deprecated Use `telemetry` instead.
      */
     experimental_telemetry?: TelemetrySettings;
 
@@ -355,12 +358,8 @@ export async function generateText<
     `ai/${VERSION}`,
   );
 
-  const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
-    telemetry,
-    headers: headersWithUserAgent,
-    settings: { ...callSettings, maxRetries },
-  });
+  // Resolve telemetry: new TelemetryConfig takes precedence over legacy TelemetrySettings
+  const emitter = new TelemetryEmitter(telemetryConfig);
 
   const initialPrompt = await standardizePrompt({
     system,
@@ -368,600 +367,577 @@ export async function generateText<
     messages,
   } as Prompt);
 
-  const tracer = getTracer(telemetry);
+  const rootOperationId = `generateText-${crypto.randomUUID()}`;
 
   try {
-    return await recordSpan({
-      name: 'ai.generateText',
-      attributes: selectTelemetryAttributes({
-        telemetry,
-        attributes: {
-          ...assembleOperationName({
-            operationId: 'ai.generateText',
-            telemetry,
-          }),
-          ...baseTelemetryAttributes,
-          // model:
-          'ai.model.provider': model.provider,
-          'ai.model.id': model.modelId,
-          // specific settings that only make sense on the outer level:
-          'ai.prompt': {
-            input: () => JSON.stringify({ system, prompt, messages }),
-          },
+    emitter.startOperation({
+      operationId: rootOperationId,
+      operationName: 'ai.generateText',
+      data: {
+        model: { provider: model.provider, id: model.modelId },
+        settings: {
+          maxRetries,
+          maxOutputTokens: callSettings.maxOutputTokens,
+          temperature: settings.temperature ?? undefined,
+          topP: callSettings.topP,
+          topK: callSettings.topK,
+          frequencyPenalty: callSettings.frequencyPenalty,
+          presencePenalty: callSettings.presencePenalty,
+          stopSequences: callSettings.stopSequences,
+          seed: callSettings.seed,
         },
-      }),
-      tracer,
-      fn: async span => {
-        const initialMessages = initialPrompt.messages;
-        const responseMessages: Array<ResponseMessage> = [];
+        headers: headersWithUserAgent,
+        prompt: {
+          raw: { system, prompt, messages },
+        },
+      },
+    });
 
-        const { approvedToolApprovals, deniedToolApprovals } =
-          collectToolApprovals<TOOLS>({ messages: initialMessages });
+    {
+      const initialMessages = initialPrompt.messages;
+      const responseMessages: Array<ResponseMessage> = [];
 
-        const localApprovedToolApprovals = approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
+      const { approvedToolApprovals, deniedToolApprovals } =
+        collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-        if (
-          deniedToolApprovals.length > 0 ||
-          localApprovedToolApprovals.length > 0
-        ) {
-          const toolOutputs = await executeTools({
-            toolCalls: localApprovedToolApprovals.map(
-              toolApproval => toolApproval.toolCall,
-            ),
-            tools: tools as TOOLS,
-            tracer,
-            telemetry,
-            messages: initialMessages,
-            abortSignal: mergedAbortSignal,
-            experimental_context,
-          });
+      const localApprovedToolApprovals = approvedToolApprovals.filter(
+        toolApproval => !toolApproval.toolCall.providerExecuted,
+      );
 
-          const toolContent: Array<any> = [];
-
-          // add regular tool results for approved tool calls:
-          for (const output of toolOutputs) {
-            const modelOutput = await createToolModelOutput({
-              toolCallId: output.toolCallId,
-              input: output.input,
-              tool: tools?.[output.toolName],
-              output:
-                output.type === 'tool-result' ? output.output : output.error,
-              errorMode: output.type === 'tool-error' ? 'json' : 'none',
-            });
-
-            toolContent.push({
-              type: 'tool-result' as const,
-              toolCallId: output.toolCallId,
-              toolName: output.toolName,
-              output: modelOutput,
-            });
-          }
-
-          // add execution denied tool results for all denied tool approvals:
-          for (const toolApproval of deniedToolApprovals) {
-            toolContent.push({
-              type: 'tool-result' as const,
-              toolCallId: toolApproval.toolCall.toolCallId,
-              toolName: toolApproval.toolCall.toolName,
-              output: {
-                type: 'execution-denied' as const,
-                reason: toolApproval.approvalResponse.reason,
-                // For provider-executed tools, include approvalId so provider can correlate
-                ...(toolApproval.toolCall.providerExecuted && {
-                  providerOptions: {
-                    openai: {
-                      approvalId: toolApproval.approvalResponse.approvalId,
-                    },
-                  },
-                }),
-              },
-            });
-          }
-
-          responseMessages.push({
-            role: 'tool',
-            content: toolContent,
-          });
-        }
-
-        // Forward provider-executed approval responses to the provider
-        const providerExecutedToolApprovals = [
-          ...approvedToolApprovals,
-          ...deniedToolApprovals,
-        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
-        if (providerExecutedToolApprovals.length > 0) {
-          responseMessages.push({
-            role: 'tool',
-            content: providerExecutedToolApprovals.map(
-              toolApproval =>
-                ({
-                  type: 'tool-approval-response',
-                  approvalId: toolApproval.approvalResponse.approvalId,
-                  approved: toolApproval.approvalResponse.approved,
-                  reason: toolApproval.approvalResponse.reason,
-                  providerExecuted: true,
-                }) satisfies ToolApprovalResponse,
-            ),
-          });
-        }
-
-        const callSettings = prepareCallSettings(settings);
-
-        let currentModelResponse: Awaited<
-          ReturnType<LanguageModelV3['doGenerate']>
-        > & { response: { id: string; timestamp: Date; modelId: string } };
-        let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
-        let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
-        const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-
-        // Track provider-executed tool calls that support deferred results
-        // (e.g., code_execution in programmatic tool calling scenarios).
-        // These tools may not return their results in the same turn as their call.
-        const pendingDeferredToolCalls = new Map<
-          string,
-          { toolName: string }
-        >();
-
-        do {
-          // Set up step timeout if configured
-          const stepTimeoutId =
-            stepTimeoutMs != null
-              ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
-              : undefined;
-
-          try {
-            const stepInputMessages = [...initialMessages, ...responseMessages];
-
-            const prepareStepResult = await prepareStep?.({
-              model,
-              steps,
-              stepNumber: steps.length,
-              messages: stepInputMessages,
-              experimental_context,
-            });
-
-            const stepModel = resolveLanguageModel(
-              prepareStepResult?.model ?? model,
-            );
-
-            const promptMessages = await convertToLanguageModelPrompt({
-              prompt: {
-                system: prepareStepResult?.system ?? initialPrompt.system,
-                messages: prepareStepResult?.messages ?? stepInputMessages,
-              },
-              supportedUrls: await stepModel.supportedUrls,
-              download,
-            });
-
-            experimental_context =
-              prepareStepResult?.experimental_context ?? experimental_context;
-
-            const { toolChoice: stepToolChoice, tools: stepTools } =
-              await prepareToolsAndToolChoice({
-                tools,
-                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                activeTools: prepareStepResult?.activeTools ?? activeTools,
-              });
-
-            currentModelResponse = await retry(() =>
-              recordSpan({
-                name: 'ai.generateText.doGenerate',
-                attributes: selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    ...assembleOperationName({
-                      operationId: 'ai.generateText.doGenerate',
-                      telemetry,
-                    }),
-                    ...baseTelemetryAttributes,
-                    // model:
-                    'ai.model.provider': stepModel.provider,
-                    'ai.model.id': stepModel.modelId,
-                    // prompt:
-                    'ai.prompt.messages': {
-                      input: () => stringifyForTelemetry(promptMessages),
-                    },
-                    'ai.prompt.tools': {
-                      // convert the language model level tools:
-                      input: () => stepTools?.map(tool => JSON.stringify(tool)),
-                    },
-                    'ai.prompt.toolChoice': {
-                      input: () =>
-                        stepToolChoice != null
-                          ? JSON.stringify(stepToolChoice)
-                          : undefined,
-                    },
-
-                    // standardized gen-ai llm span attributes:
-                    'gen_ai.system': stepModel.provider,
-                    'gen_ai.request.model': stepModel.modelId,
-                    'gen_ai.request.frequency_penalty':
-                      settings.frequencyPenalty,
-                    'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                    'gen_ai.request.presence_penalty': settings.presencePenalty,
-                    'gen_ai.request.stop_sequences': settings.stopSequences,
-                    'gen_ai.request.temperature':
-                      settings.temperature ?? undefined,
-                    'gen_ai.request.top_k': settings.topK,
-                    'gen_ai.request.top_p': settings.topP,
-                  },
-                }),
-                tracer,
-                fn: async span => {
-                  const stepProviderOptions = mergeObjects(
-                    providerOptions,
-                    prepareStepResult?.providerOptions,
-                  );
-
-                  const result = await stepModel.doGenerate({
-                    ...callSettings,
-                    tools: stepTools,
-                    toolChoice: stepToolChoice,
-                    responseFormat: await output?.responseFormat,
-                    prompt: promptMessages,
-                    providerOptions: stepProviderOptions,
-                    abortSignal: mergedAbortSignal,
-                    headers: headersWithUserAgent,
-                  });
-
-                  // Fill in default values:
-                  const responseData = {
-                    id: result.response?.id ?? generateId(),
-                    timestamp: result.response?.timestamp ?? new Date(),
-                    modelId: result.response?.modelId ?? stepModel.modelId,
-                    headers: result.response?.headers,
-                    body: result.response?.body,
-                  };
-
-                  // Add response information to the span:
-                  span.setAttributes(
-                    await selectTelemetryAttributes({
-                      telemetry,
-                      attributes: {
-                        'ai.response.finishReason': result.finishReason.unified,
-                        'ai.response.text': {
-                          output: () => extractTextContent(result.content),
-                        },
-                        'ai.response.toolCalls': {
-                          output: () => {
-                            const toolCalls = asToolCalls(result.content);
-                            return toolCalls == null
-                              ? undefined
-                              : JSON.stringify(toolCalls);
-                          },
-                        },
-                        'ai.response.id': responseData.id,
-                        'ai.response.model': responseData.modelId,
-                        'ai.response.timestamp':
-                          responseData.timestamp.toISOString(),
-                        'ai.response.providerMetadata': JSON.stringify(
-                          result.providerMetadata,
-                        ),
-
-                        // TODO rename telemetry attributes to inputTokens and outputTokens
-                        'ai.usage.promptTokens': result.usage.inputTokens.total,
-                        'ai.usage.completionTokens':
-                          result.usage.outputTokens.total,
-
-                        // standardized gen-ai llm span attributes:
-                        'gen_ai.response.finish_reasons': [
-                          result.finishReason.unified,
-                        ],
-                        'gen_ai.response.id': responseData.id,
-                        'gen_ai.response.model': responseData.modelId,
-                        'gen_ai.usage.input_tokens':
-                          result.usage.inputTokens.total,
-                        'gen_ai.usage.output_tokens':
-                          result.usage.outputTokens.total,
-                      },
-                    }),
-                  );
-
-                  return { ...result, response: responseData };
-                },
-              }),
-            );
-
-            // parse tool calls:
-            const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
-              currentModelResponse.content
-                .filter(
-                  (part): part is LanguageModelV3ToolCall =>
-                    part.type === 'tool-call',
-                )
-                .map(toolCall =>
-                  parseToolCall({
-                    toolCall,
-                    tools,
-                    repairToolCall,
-                    system,
-                    messages: stepInputMessages,
-                  }),
-                ),
-            );
-            const toolApprovalRequests: Record<
-              string,
-              ToolApprovalRequestOutput<TOOLS>
-            > = {};
-
-            // notify the tools that the tool calls are available:
-            for (const toolCall of stepToolCalls) {
-              if (toolCall.invalid) {
-                continue; // ignore invalid tool calls
-              }
-
-              const tool = tools?.[toolCall.toolName];
-
-              if (tool == null) {
-                // ignore tool calls for tools that are not available,
-                // e.g. provider-executed dynamic tools
-                continue;
-              }
-
-              if (tool?.onInputAvailable != null) {
-                await tool.onInputAvailable({
-                  input: toolCall.input,
-                  toolCallId: toolCall.toolCallId,
-                  messages: stepInputMessages,
-                  abortSignal: mergedAbortSignal,
-                  experimental_context,
-                });
-              }
-
-              if (
-                await isApprovalNeeded({
-                  tool,
-                  toolCall,
-                  messages: stepInputMessages,
-                  experimental_context,
-                })
-              ) {
-                toolApprovalRequests[toolCall.toolCallId] = {
-                  type: 'tool-approval-request',
-                  approvalId: generateId(),
-                  toolCall,
-                };
-              }
-            }
-
-            // insert error tool outputs for invalid tool calls:
-            // TODO AI SDK 6: invalid inputs should not require output parts
-            const invalidToolCalls = stepToolCalls.filter(
-              toolCall => toolCall.invalid && toolCall.dynamic,
-            );
-
-            clientToolOutputs = [];
-
-            for (const toolCall of invalidToolCalls) {
-              clientToolOutputs.push({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-              });
-            }
-
-            // execute client tool calls:
-            clientToolCalls = stepToolCalls.filter(
-              toolCall => !toolCall.providerExecuted,
-            );
-
-            if (tools != null) {
-              clientToolOutputs.push(
-                ...(await executeTools({
-                  toolCalls: clientToolCalls.filter(
-                    toolCall =>
-                      !toolCall.invalid &&
-                      toolApprovalRequests[toolCall.toolCallId] == null,
-                  ),
-                  tools,
-                  tracer,
-                  telemetry,
-                  messages: stepInputMessages,
-                  abortSignal: mergedAbortSignal,
-                  experimental_context,
-                })),
-              );
-            }
-
-            // Track provider-executed tool calls that support deferred results.
-            // In programmatic tool calling, a server tool (e.g., code_execution) may
-            // trigger a client tool, and the server tool's result is deferred until
-            // the client tool's result is sent back.
-            for (const toolCall of stepToolCalls) {
-              if (!toolCall.providerExecuted) continue;
-              const tool = tools?.[toolCall.toolName];
-              if (tool?.type === 'provider' && tool.supportsDeferredResults) {
-                // Check if this tool call already has a result in the current response
-                const hasResultInResponse = currentModelResponse.content.some(
-                  part =>
-                    part.type === 'tool-result' &&
-                    part.toolCallId === toolCall.toolCallId,
-                );
-                if (!hasResultInResponse) {
-                  pendingDeferredToolCalls.set(toolCall.toolCallId, {
-                    toolName: toolCall.toolName,
-                  });
-                }
-              }
-            }
-
-            // Mark deferred tool calls as resolved when we receive their results
-            for (const part of currentModelResponse.content) {
-              if (part.type === 'tool-result') {
-                pendingDeferredToolCalls.delete(part.toolCallId);
-              }
-            }
-
-            // content:
-            const stepContent = asContent({
-              content: currentModelResponse.content,
-              toolCalls: stepToolCalls,
-              toolOutputs: clientToolOutputs,
-              toolApprovalRequests: Object.values(toolApprovalRequests),
-              tools,
-            });
-
-            // append to messages for potential next step:
-            responseMessages.push(
-              ...(await toResponseMessages({
-                content: stepContent,
-                tools,
-              })),
-            );
-
-            // Add step information (after response messages are updated):
-            // Conditionally include request.body and response.body based on include settings.
-            // Large payloads (e.g., base64-encoded images) can cause memory issues.
-            const stepRequest: LanguageModelRequestMetadata =
-              (include?.requestBody ?? true)
-                ? (currentModelResponse.request ?? {})
-                : { ...currentModelResponse.request, body: undefined };
-
-            const stepResponse = {
-              ...currentModelResponse.response,
-              // deep clone msgs to avoid mutating past messages in multi-step:
-              messages: structuredClone(responseMessages),
-              // Conditionally include response body:
-              body:
-                (include?.responseBody ?? true)
-                  ? currentModelResponse.response?.body
-                  : undefined,
-            };
-
-            const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
-              content: stepContent,
-              finishReason: currentModelResponse.finishReason.unified,
-              rawFinishReason: currentModelResponse.finishReason.raw,
-              usage: asLanguageModelUsage(currentModelResponse.usage),
-              warnings: currentModelResponse.warnings,
-              providerMetadata: currentModelResponse.providerMetadata,
-              request: stepRequest,
-              response: stepResponse,
-            });
-
-            logWarnings({
-              warnings: currentModelResponse.warnings ?? [],
-              provider: stepModel.provider,
-              model: stepModel.modelId,
-            });
-
-            steps.push(currentStepResult);
-            await onStepFinish?.(currentStepResult);
-          } finally {
-            if (stepTimeoutId != null) {
-              clearTimeout(stepTimeoutId);
-            }
-          }
-        } while (
-          // Continue if:
-          // 1. There are client tool calls that have all been executed, OR
-          // 2. There are pending deferred results from provider-executed tools
-          ((clientToolCalls.length > 0 &&
-            clientToolOutputs.length === clientToolCalls.length) ||
-            pendingDeferredToolCalls.size > 0) &&
-          // continue until a stop condition is met:
-          !(await isStopConditionMet({ stopConditions, steps }))
-        );
-
-        // Add response information to the span:
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.response.finishReason':
-                currentModelResponse.finishReason.unified,
-              'ai.response.text': {
-                output: () => extractTextContent(currentModelResponse.content),
-              },
-              'ai.response.toolCalls': {
-                output: () => {
-                  const toolCalls = asToolCalls(currentModelResponse.content);
-                  return toolCalls == null
-                    ? undefined
-                    : JSON.stringify(toolCalls);
-                },
-              },
-              'ai.response.providerMetadata': JSON.stringify(
-                currentModelResponse.providerMetadata,
-              ),
-
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens':
-                currentModelResponse.usage.inputTokens.total,
-              'ai.usage.completionTokens':
-                currentModelResponse.usage.outputTokens.total,
-            },
-          }),
-        );
-
-        const lastStep = steps[steps.length - 1];
-
-        const totalUsage = steps.reduce(
-          (totalUsage, step) => {
-            return addLanguageModelUsage(totalUsage, step.usage);
-          },
-          {
-            inputTokens: undefined,
-            outputTokens: undefined,
-            totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
-          } as LanguageModelUsage,
-        );
-
-        await onFinish?.({
-          finishReason: lastStep.finishReason,
-          rawFinishReason: lastStep.rawFinishReason,
-          usage: lastStep.usage,
-          content: lastStep.content,
-          text: lastStep.text,
-          reasoningText: lastStep.reasoningText,
-          reasoning: lastStep.reasoning,
-          files: lastStep.files,
-          sources: lastStep.sources,
-          toolCalls: lastStep.toolCalls,
-          staticToolCalls: lastStep.staticToolCalls,
-          dynamicToolCalls: lastStep.dynamicToolCalls,
-          toolResults: lastStep.toolResults,
-          staticToolResults: lastStep.staticToolResults,
-          dynamicToolResults: lastStep.dynamicToolResults,
-          request: lastStep.request,
-          response: lastStep.response,
-          warnings: lastStep.warnings,
-          providerMetadata: lastStep.providerMetadata,
-          steps,
-          totalUsage,
+      if (
+        deniedToolApprovals.length > 0 ||
+        localApprovedToolApprovals.length > 0
+      ) {
+        const toolOutputs = await executeTools({
+          toolCalls: localApprovedToolApprovals.map(
+            toolApproval => toolApproval.toolCall,
+          ),
+          tools: tools as TOOLS,
+          emitter,
+          parentOperationId: rootOperationId,
+          messages: initialMessages,
+          abortSignal: mergedAbortSignal,
           experimental_context,
         });
 
-        // parse output only if the last step was finished with "stop":
-        let resolvedOutput;
-        if (lastStep.finishReason === 'stop') {
-          const outputSpecification = output ?? text();
-          resolvedOutput = await outputSpecification.parseCompleteOutput(
-            { text: lastStep.text },
-            {
-              response: lastStep.response,
-              usage: lastStep.usage,
-              finishReason: lastStep.finishReason,
-            },
-          );
+        const toolContent: Array<any> = [];
+
+        // add regular tool results for approved tool calls:
+        for (const output of toolOutputs) {
+          const modelOutput = await createToolModelOutput({
+            toolCallId: output.toolCallId,
+            input: output.input,
+            tool: tools?.[output.toolName],
+            output:
+              output.type === 'tool-result' ? output.output : output.error,
+            errorMode: output.type === 'tool-error' ? 'json' : 'none',
+          });
+
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: output.toolCallId,
+            toolName: output.toolName,
+            output: modelOutput,
+          });
         }
 
-        return new DefaultGenerateTextResult({
-          steps,
-          totalUsage,
-          output: resolvedOutput,
+        // add execution denied tool results for all denied tool approvals:
+        for (const toolApproval of deniedToolApprovals) {
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: toolApproval.toolCall.toolCallId,
+            toolName: toolApproval.toolCall.toolName,
+            output: {
+              type: 'execution-denied' as const,
+              reason: toolApproval.approvalResponse.reason,
+              // For provider-executed tools, include approvalId so provider can correlate
+              ...(toolApproval.toolCall.providerExecuted && {
+                providerOptions: {
+                  openai: {
+                    approvalId: toolApproval.approvalResponse.approvalId,
+                  },
+                },
+              }),
+            },
+          });
+        }
+
+        responseMessages.push({
+          role: 'tool',
+          content: toolContent,
         });
-      },
-    });
+      }
+
+      // Forward provider-executed approval responses to the provider
+      const providerExecutedToolApprovals = [
+        ...approvedToolApprovals,
+        ...deniedToolApprovals,
+      ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
+
+      if (providerExecutedToolApprovals.length > 0) {
+        responseMessages.push({
+          role: 'tool',
+          content: providerExecutedToolApprovals.map(
+            toolApproval =>
+              ({
+                type: 'tool-approval-response',
+                approvalId: toolApproval.approvalResponse.approvalId,
+                approved: toolApproval.approvalResponse.approved,
+                reason: toolApproval.approvalResponse.reason,
+                providerExecuted: true,
+              }) satisfies ToolApprovalResponse,
+          ),
+        });
+      }
+
+      const callSettings = prepareCallSettings(settings);
+
+      let currentModelResponse: Awaited<
+        ReturnType<LanguageModelV3['doGenerate']>
+      > & { response: { id: string; timestamp: Date; modelId: string } };
+      let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
+      let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+      const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
+
+      // Track provider-executed tool calls that support deferred results
+      // (e.g., code_execution in programmatic tool calling scenarios).
+      // These tools may not return their results in the same turn as their call.
+      const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
+      do {
+        // Set up step timeout if configured
+        const stepTimeoutId =
+          stepTimeoutMs != null
+            ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+            : undefined;
+
+        try {
+          const stepInputMessages = [...initialMessages, ...responseMessages];
+
+          const prepareStepResult = await prepareStep?.({
+            model,
+            steps,
+            stepNumber: steps.length,
+            messages: stepInputMessages,
+            experimental_context,
+          });
+
+          const stepModel = resolveLanguageModel(
+            prepareStepResult?.model ?? model,
+          );
+
+          const promptMessages = await convertToLanguageModelPrompt({
+            prompt: {
+              system: prepareStepResult?.system ?? initialPrompt.system,
+              messages: prepareStepResult?.messages ?? stepInputMessages,
+            },
+            supportedUrls: await stepModel.supportedUrls,
+            download,
+          });
+
+          experimental_context =
+            prepareStepResult?.experimental_context ?? experimental_context;
+
+          const { toolChoice: stepToolChoice, tools: stepTools } =
+            await prepareToolsAndToolChoice({
+              tools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              activeTools: prepareStepResult?.activeTools ?? activeTools,
+            });
+
+          currentModelResponse = await retry(async () => {
+            const doGenerateOpId = `doGenerate-${crypto.randomUUID()}`;
+            const doGenerateOpName = 'ai.generateText.doGenerate';
+
+            emitter.startOperation({
+              operationId: doGenerateOpId,
+              operationName: doGenerateOpName,
+              parentOperationId: rootOperationId,
+              data: {
+                model: { provider: stepModel.provider, id: stepModel.modelId },
+                settings: {
+                  maxRetries,
+                  maxOutputTokens: callSettings.maxOutputTokens,
+                  temperature: settings.temperature ?? undefined,
+                  topP: callSettings.topP,
+                  topK: callSettings.topK,
+                  frequencyPenalty: callSettings.frequencyPenalty,
+                  presencePenalty: callSettings.presencePenalty,
+                  stopSequences: callSettings.stopSequences,
+                  seed: callSettings.seed,
+                },
+                headers: headersWithUserAgent,
+                prompt: {
+                  messages: promptMessages,
+                  tools: stepTools,
+                  toolChoice: stepToolChoice,
+                },
+              },
+            });
+
+            try {
+              const stepProviderOptions = mergeObjects(
+                providerOptions,
+                prepareStepResult?.providerOptions,
+              );
+
+              const result = await stepModel.doGenerate({
+                ...callSettings,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
+                responseFormat: await output?.responseFormat,
+                prompt: promptMessages,
+                providerOptions: stepProviderOptions,
+                abortSignal: mergedAbortSignal,
+                headers: headersWithUserAgent,
+              });
+
+              // Fill in default values:
+              const responseData = {
+                id: result.response?.id ?? generateId(),
+                timestamp: result.response?.timestamp ?? new Date(),
+                modelId: result.response?.modelId ?? stepModel.modelId,
+                headers: result.response?.headers,
+                body: result.response?.body,
+              };
+
+              emitter.updateOperation({
+                operationId: doGenerateOpId,
+                operationName: doGenerateOpName,
+                data: {
+                  response: {
+                    id: responseData.id,
+                    model: responseData.modelId,
+                    timestamp: responseData.timestamp.toISOString(),
+                    finishReason: result.finishReason.unified,
+                    text: extractTextContent(result.content),
+                    toolCalls: asToolCalls(result.content),
+                    providerMetadata: result.providerMetadata,
+                  },
+                  usage: {
+                    inputTokens: result.usage.inputTokens.total,
+                    outputTokens: result.usage.outputTokens.total,
+                  },
+                },
+              });
+
+              emitter.endOperation({
+                operationId: doGenerateOpId,
+                operationName: doGenerateOpName,
+              });
+
+              return { ...result, response: responseData };
+            } catch (error) {
+              emitter.errorOperation({
+                operationId: doGenerateOpId,
+                operationName: doGenerateOpName,
+                error,
+              });
+              emitter.endOperation({
+                operationId: doGenerateOpId,
+                operationName: doGenerateOpName,
+              });
+              throw error;
+            }
+          });
+
+          // parse tool calls:
+          const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
+            currentModelResponse.content
+              .filter(
+                (part): part is LanguageModelV3ToolCall =>
+                  part.type === 'tool-call',
+              )
+              .map(toolCall =>
+                parseToolCall({
+                  toolCall,
+                  tools,
+                  repairToolCall,
+                  system,
+                  messages: stepInputMessages,
+                }),
+              ),
+          );
+          const toolApprovalRequests: Record<
+            string,
+            ToolApprovalRequestOutput<TOOLS>
+          > = {};
+
+          // notify the tools that the tool calls are available:
+          for (const toolCall of stepToolCalls) {
+            if (toolCall.invalid) {
+              continue; // ignore invalid tool calls
+            }
+
+            const tool = tools?.[toolCall.toolName];
+
+            if (tool == null) {
+              // ignore tool calls for tools that are not available,
+              // e.g. provider-executed dynamic tools
+              continue;
+            }
+
+            if (tool?.onInputAvailable != null) {
+              await tool.onInputAvailable({
+                input: toolCall.input,
+                toolCallId: toolCall.toolCallId,
+                messages: stepInputMessages,
+                abortSignal: mergedAbortSignal,
+                experimental_context,
+              });
+            }
+
+            if (
+              await isApprovalNeeded({
+                tool,
+                toolCall,
+                messages: stepInputMessages,
+                experimental_context,
+              })
+            ) {
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              };
+            }
+          }
+
+          // insert error tool outputs for invalid tool calls:
+          // TODO AI SDK 6: invalid inputs should not require output parts
+          const invalidToolCalls = stepToolCalls.filter(
+            toolCall => toolCall.invalid && toolCall.dynamic,
+          );
+
+          clientToolOutputs = [];
+
+          for (const toolCall of invalidToolCalls) {
+            clientToolOutputs.push({
+              type: 'tool-error',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              input: toolCall.input,
+              error: getErrorMessage(toolCall.error!),
+              dynamic: true,
+            });
+          }
+
+          // execute client tool calls:
+          clientToolCalls = stepToolCalls.filter(
+            toolCall => !toolCall.providerExecuted,
+          );
+
+          if (tools != null) {
+            clientToolOutputs.push(
+              ...(await executeTools({
+                toolCalls: clientToolCalls.filter(
+                  toolCall =>
+                    !toolCall.invalid &&
+                    toolApprovalRequests[toolCall.toolCallId] == null,
+                ),
+                tools,
+                emitter,
+                parentOperationId: rootOperationId,
+                messages: stepInputMessages,
+                abortSignal: mergedAbortSignal,
+                experimental_context,
+              })),
+            );
+          }
+
+          // Track provider-executed tool calls that support deferred results.
+          // In programmatic tool calling, a server tool (e.g., code_execution) may
+          // trigger a client tool, and the server tool's result is deferred until
+          // the client tool's result is sent back.
+          for (const toolCall of stepToolCalls) {
+            if (!toolCall.providerExecuted) continue;
+            const tool = tools?.[toolCall.toolName];
+            if (tool?.type === 'provider' && tool.supportsDeferredResults) {
+              // Check if this tool call already has a result in the current response
+              const hasResultInResponse = currentModelResponse.content.some(
+                part =>
+                  part.type === 'tool-result' &&
+                  part.toolCallId === toolCall.toolCallId,
+              );
+              if (!hasResultInResponse) {
+                pendingDeferredToolCalls.set(toolCall.toolCallId, {
+                  toolName: toolCall.toolName,
+                });
+              }
+            }
+          }
+
+          // Mark deferred tool calls as resolved when we receive their results
+          for (const part of currentModelResponse.content) {
+            if (part.type === 'tool-result') {
+              pendingDeferredToolCalls.delete(part.toolCallId);
+            }
+          }
+
+          // content:
+          const stepContent = asContent({
+            content: currentModelResponse.content,
+            toolCalls: stepToolCalls,
+            toolOutputs: clientToolOutputs,
+            toolApprovalRequests: Object.values(toolApprovalRequests),
+            tools,
+          });
+
+          // append to messages for potential next step:
+          responseMessages.push(
+            ...(await toResponseMessages({
+              content: stepContent,
+              tools,
+            })),
+          );
+
+          // Add step information (after response messages are updated):
+          // Conditionally include request.body and response.body based on include settings.
+          // Large payloads (e.g., base64-encoded images) can cause memory issues.
+          const stepRequest: LanguageModelRequestMetadata =
+            (include?.requestBody ?? true)
+              ? (currentModelResponse.request ?? {})
+              : { ...currentModelResponse.request, body: undefined };
+
+          const stepResponse = {
+            ...currentModelResponse.response,
+            // deep clone msgs to avoid mutating past messages in multi-step:
+            messages: structuredClone(responseMessages),
+            // Conditionally include response body:
+            body:
+              (include?.responseBody ?? true)
+                ? currentModelResponse.response?.body
+                : undefined,
+          };
+
+          const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
+            content: stepContent,
+            finishReason: currentModelResponse.finishReason.unified,
+            rawFinishReason: currentModelResponse.finishReason.raw,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
+            warnings: currentModelResponse.warnings,
+            providerMetadata: currentModelResponse.providerMetadata,
+            request: stepRequest,
+            response: stepResponse,
+          });
+
+          logWarnings({
+            warnings: currentModelResponse.warnings ?? [],
+            provider: stepModel.provider,
+            model: stepModel.modelId,
+          });
+
+          steps.push(currentStepResult);
+          await onStepFinish?.(currentStepResult);
+        } finally {
+          if (stepTimeoutId != null) {
+            clearTimeout(stepTimeoutId);
+          }
+        }
+      } while (
+        // Continue if:
+        // 1. There are client tool calls that have all been executed, OR
+        // 2. There are pending deferred results from provider-executed tools
+        ((clientToolCalls.length > 0 &&
+          clientToolOutputs.length === clientToolCalls.length) ||
+          pendingDeferredToolCalls.size > 0) &&
+        // continue until a stop condition is met:
+        !(await isStopConditionMet({ stopConditions, steps }))
+      );
+
+      // Update root operation with final response data:
+      emitter.updateOperation({
+        operationId: rootOperationId,
+        operationName: 'ai.generateText',
+        data: {
+          response: {
+            finishReason: currentModelResponse.finishReason.unified,
+            text: extractTextContent(currentModelResponse.content),
+            toolCalls: asToolCalls(currentModelResponse.content),
+            providerMetadata: currentModelResponse.providerMetadata,
+          },
+          usage: {
+            inputTokens: currentModelResponse.usage.inputTokens.total,
+            outputTokens: currentModelResponse.usage.outputTokens.total,
+          },
+        },
+      });
+
+      const lastStep = steps[steps.length - 1];
+
+      const totalUsage = steps.reduce(
+        (totalUsage, step) => {
+          return addLanguageModelUsage(totalUsage, step.usage);
+        },
+        {
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+          reasoningTokens: undefined,
+          cachedInputTokens: undefined,
+        } as LanguageModelUsage,
+      );
+
+      await onFinish?.({
+        finishReason: lastStep.finishReason,
+        rawFinishReason: lastStep.rawFinishReason,
+        usage: lastStep.usage,
+        content: lastStep.content,
+        text: lastStep.text,
+        reasoningText: lastStep.reasoningText,
+        reasoning: lastStep.reasoning,
+        files: lastStep.files,
+        sources: lastStep.sources,
+        toolCalls: lastStep.toolCalls,
+        staticToolCalls: lastStep.staticToolCalls,
+        dynamicToolCalls: lastStep.dynamicToolCalls,
+        toolResults: lastStep.toolResults,
+        staticToolResults: lastStep.staticToolResults,
+        dynamicToolResults: lastStep.dynamicToolResults,
+        request: lastStep.request,
+        response: lastStep.response,
+        warnings: lastStep.warnings,
+        providerMetadata: lastStep.providerMetadata,
+        steps,
+        totalUsage,
+        experimental_context,
+      });
+
+      // parse output only if the last step was finished with "stop":
+      let resolvedOutput;
+      if (lastStep.finishReason === 'stop') {
+        const outputSpecification = output ?? text();
+        resolvedOutput = await outputSpecification.parseCompleteOutput(
+          { text: lastStep.text },
+          {
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
+          },
+        );
+      }
+
+      emitter.endOperation({
+        operationId: rootOperationId,
+        operationName: 'ai.generateText',
+      });
+
+      return new DefaultGenerateTextResult({
+        steps,
+        totalUsage,
+        output: resolvedOutput,
+      });
+    }
   } catch (error) {
+    emitter.errorOperation({
+      operationId: rootOperationId,
+      operationName: 'ai.generateText',
+      error,
+    });
+    emitter.endOperation({
+      operationId: rootOperationId,
+      operationName: 'ai.generateText',
+    });
     throw wrapGatewayError(error);
   }
 }
@@ -969,32 +945,114 @@ export async function generateText<
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
-  tracer,
-  telemetry,
+  emitter,
+  parentOperationId,
   messages,
   abortSignal,
   experimental_context,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  tracer: Tracer;
-  telemetry: TelemetrySettings | undefined;
+  emitter: TelemetryEmitter;
+  parentOperationId?: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
-    toolCalls.map(async toolCall =>
-      executeToolCall({
-        toolCall,
-        tools,
-        tracer,
-        telemetry,
-        messages,
-        abortSignal,
-        experimental_context,
-      }),
-    ),
+    toolCalls.map(async toolCall => {
+      const { toolName, toolCallId, input } = toolCall;
+      const tool = tools?.[toolName];
+
+      if (tool?.execute == null) {
+        return undefined;
+      }
+
+      const operationId = `toolcall-${toolCallId}`;
+      const operationName = 'ai.toolCall';
+
+      emitter.startOperation({
+        operationId,
+        operationName,
+        parentOperationId,
+        data: {
+          toolCall: {
+            name: toolName,
+            id: toolCallId,
+            args: input,
+          },
+        },
+      });
+
+      let output: unknown;
+
+      try {
+        const stream = executeTool({
+          execute: tool.execute!.bind(tool),
+          input,
+          options: {
+            toolCallId,
+            messages,
+            abortSignal,
+            experimental_context,
+          },
+        });
+
+        for await (const part of stream) {
+          if (part.type === 'final') {
+            output = part.output;
+          }
+        }
+      } catch (error) {
+        emitter.errorOperation({ operationId, operationName, error });
+        emitter.endOperation({ operationId, operationName });
+
+        return {
+          type: 'tool-error',
+          toolCallId,
+          toolName,
+          input,
+          error,
+          dynamic: tool.type === 'dynamic',
+          ...(toolCall.providerMetadata != null
+            ? { providerMetadata: toolCall.providerMetadata }
+            : {}),
+        } as TypedToolError<TOOLS>;
+      }
+
+      try {
+        emitter.updateOperation({
+          operationId,
+          operationName,
+          data: {
+            toolCall: {
+              name: toolName,
+              id: toolCallId,
+              result: output,
+            },
+          },
+        });
+      } catch (ignored) {
+        // JSON stringify might fail if the result is not serializable,
+        // in which case we just ignore it. In the future we might want to
+        // add an optional serialize method to the tool interface and warn
+        // if the result is not serializable.
+      }
+
+      emitter.endOperation({ operationId, operationName });
+
+      return {
+        type: 'tool-result',
+        toolCallId,
+        toolName,
+        input,
+        output,
+        dynamic: tool.type === 'dynamic',
+        ...(toolCall.providerMetadata != null
+          ? { providerMetadata: toolCall.providerMetadata }
+          : {}),
+      } as TypedToolResult<TOOLS>;
+    }),
   );
 
   return toolOutputs.filter(
