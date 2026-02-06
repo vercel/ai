@@ -5,6 +5,8 @@ export type { GoogleGenerativeAIImageProviderOptions } from './google-generative
 export type { GoogleGenerativeAIEmbeddingProviderOptions } from './google-generative-ai-embedding-options';
 export type { GoogleGenerativeAIVideoProviderOptions } from './google-generative-ai-video-model';
 export type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+export type { GoogleGenerativeAISpeechProviderOptions } from './google-generative-ai-speech-model';
+export type { GoogleGenerativeAISpeechModelId } from './google-generative-ai-speech-settings';
 export { createGoogleGenerativeAI, google } from './google-provider';
 export type {
   GoogleGenerativeAIProvider,
