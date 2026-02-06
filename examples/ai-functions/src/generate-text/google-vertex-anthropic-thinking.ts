@@ -1,7 +1,5 @@
-import {
-  vertexAnthropic,
-  AnthropicProviderOptions,
-} from '@ai-sdk/google-vertex/anthropic';
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 
