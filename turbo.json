@@ -7,6 +7,7 @@
       "env": [
         "AI_GATEWAY_API_KEY",
         "AI_SDK_DEVTOOLS_PORT",
+        "ALIBABA_API_KEY",
         "ANTHROPIC_API_KEY",
         "ANTHROPIC_BASE_URL",
         "ANTHROPIC_MICROSOFT_RESOURCE_NAME",

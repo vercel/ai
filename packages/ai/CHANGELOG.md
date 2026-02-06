@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
 ## 6.0.73
 
 ### Patch Changes
