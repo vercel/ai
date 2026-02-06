@@ -130,12 +130,12 @@ export function resolveVideoModel(
     const provider = getGlobalProvider();
     // TODO AI SDK v7
     // @ts-expect-error - videoModel support is experimental
-    const videoModel = provider.videoModel
+    const videoModel = provider.videoModel;
 
     if (!videoModel) {
       throw new Error(
         'The default provider does not support video models. ' +
-          'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
+          'Please use a Experimental_VideoModelV3 object from a provider (e.g., vertex.video("model-id")).',
       );
     }
 
