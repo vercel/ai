@@ -215,16 +215,16 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     } else if (!isAnthropicModel) {
       if (bedrockOptions.reasoningConfig?.budgetTokens != null) {
         warnings.push({
-          type: 'unsupported',
-          feature: 'budgetTokens',
+          type: 'unsupported-setting',
+          setting: 'budgetTokens',
           details:
             'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
         });
       }
       if (thinkingType === 'adaptive') {
         warnings.push({
-          type: 'unsupported',
-          feature: 'adaptive thinking',
+          type: 'unsupported-setting',
+          setting: 'adaptive thinking',
           details:
             'adaptive thinking type applies only to Anthropic models on Bedrock.',
         });
