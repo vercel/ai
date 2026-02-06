@@ -1,5 +1,35 @@
 # ai
 
+## 6.0.75
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/gateway@3.0.37
+  - @ai-sdk/provider-utils@4.0.14
+
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
+## 6.0.73
+
+### Patch Changes
+
+- Updated dependencies [9892c58]
+  - @ai-sdk/gateway@3.0.36
+
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
 ## 6.0.71
 
 ### Patch Changes

@@ -19,6 +19,7 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-20250514'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-sonnet-4-5'
+  | 'claude-opus-4-6'
   | (string & {});
 
 /**
@@ -81,10 +82,20 @@ export const anthropicProviderOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
+    .discriminatedUnion('type', [
+      z.object({
+        /** for Opus 4.6 and newer models */
+        type: z.literal('adaptive'),
+      }),
+      z.object({
+        /** for models before Opus 4.6 */
+        type: z.literal('enabled'),
+        budgetTokens: z.number().optional(),
+      }),
+      z.object({
+        type: z.literal('disabled'),
+      }),
+    ])
     .optional(),
 
   /**
@@ -157,7 +168,7 @@ export const anthropicProviderOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
 
   contextManagement: z
     .object({

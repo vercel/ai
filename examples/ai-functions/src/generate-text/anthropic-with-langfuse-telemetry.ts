@@ -1,8 +1,13 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import {
+  AnthropicProviderOptions,
+  anthropic,
+  createAnthropic,
+} from '@ai-sdk/anthropic';
+import { generateText, stepCountIs } from 'ai';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../lib/run';
+import { z } from 'zod';
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -16,8 +21,28 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: myCustomProvider('claude-sonnet-4-5'),
-    prompt: 'Say hello in 5 words',
+    model: anthropic('claude-3-7-sonnet-20250219'),
+    prompt: 'How many "r"s are in the word "strawberry?',
+    tools: {
+      getWeather: {
+        description: 'Get the weather for a given city',
+        inputSchema: z.object({
+          city: z.string(),
+        }),
+        execute: async ({ city }) => {
+          return {
+            temperature: 50,
+            condition: 'sunny',
+          };
+        },
+      },
+    },
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'enabled', budgetTokens: 12000 },
+      } satisfies AnthropicProviderOptions,
+    },
+    stopWhen: stepCountIs(5),
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'anthropic-custom-provider-demo',
@@ -29,6 +54,10 @@ run(async () => {
     },
   });
 
+  console.log('Reasoning:');
+  console.log(result.reasoning);
+  console.log();
+  console.log('Text:');
   console.log(result.text);
 
   await sdk.shutdown();

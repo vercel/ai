@@ -319,8 +319,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
-    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
-    let thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
+    const thinkingType = anthropicOptions?.thinking?.type;
+    const isThinking =
+      thinkingType === 'enabled' || thinkingType === 'adaptive';
+    let thinkingBudget =
+      thinkingType === 'enabled'
+        ? anthropicOptions?.thinking?.budgetTokens
+        : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -337,7 +342,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
       // provider specific settings:
       ...(isThinking && {
-        thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+        thinking: {
+          type: thinkingType,
+          ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+        },
       }),
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
@@ -436,7 +444,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     };
 
     if (isThinking) {
-      if (thinkingBudget == null) {
+      if (thinkingType === 'enabled' && thinkingBudget == null) {
         warnings.push({
           type: 'compatibility',
           feature: 'extended thinking',
@@ -2092,7 +2100,13 @@ function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-6')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-5') ||
     modelId.includes('claude-opus-4-5') ||
     modelId.includes('claude-haiku-4-5')

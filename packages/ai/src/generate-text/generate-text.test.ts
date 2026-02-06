@@ -2890,6 +2890,32 @@ describe('generateText', () => {
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should record reasoning in telemetry when present', async () => {
+      await generateText({
+        model: modelWithReasoning,
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          tracer,
+        },
+      });
+
+      // Check that reasoning is recorded in both spans
+      const rootSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText',
+      );
+      const doGenerateSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.generateText.doGenerate',
+      );
+
+      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+        'I will open the conversation with witty banter.\n',
+      );
+      expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
+        'I will open the conversation with witty banter.\n',
+      );
+    });
   });
 
   describe('tool callbacks', () => {

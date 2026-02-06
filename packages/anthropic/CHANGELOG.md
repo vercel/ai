@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.37
+
+### Patch Changes
+
+- e288302: feat(anthropic): add support for Opus 4.6
+
 ## 3.0.36
 
 ### Patch Changes
