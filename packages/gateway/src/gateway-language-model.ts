@@ -81,8 +81,24 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         fetch: this.config.fetch,
       });
 
+      // The gateway might return 'output' instead of 'result' for tool results.
+      // We map it here to ensure compatibility with the AI SDK.
+      const mappedContent = Array.isArray(responseBody.content)
+        ? responseBody.content.map((part: any) => {
+            if (
+              part.type === 'tool-result' &&
+              part.output !== undefined &&
+              part.result === undefined
+            ) {
+              return { ...part, result: part.output };
+            }
+            return part;
+          })
+        : responseBody.content;
+
       return {
         ...responseBody,
+        ...(mappedContent && { content: mappedContent }),
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
         warnings,
@@ -132,7 +148,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
             },
             transform(chunk, controller) {
               if (chunk.success) {
-                const streamPart = chunk.value;
+                let streamPart = chunk.value;
 
                 // Handle raw chunks: if this is a raw chunk from the gateway API,
                 // only emit it if includeRawChunks is true
@@ -146,6 +162,19 @@ export class GatewayLanguageModel implements LanguageModelV3 {
                   typeof streamPart.timestamp === 'string'
                 ) {
                   streamPart.timestamp = new Date(streamPart.timestamp);
+                }
+
+                // The gateway might return 'output' instead of 'result' for tool results.
+                // We map it here to ensure compatibility with the AI SDK.
+                if (
+                  streamPart.type === 'tool-result' &&
+                  (streamPart as any).output !== undefined &&
+                  (streamPart as any).result === undefined
+                ) {
+                  streamPart = {
+                    ...streamPart,
+                    result: (streamPart as any).output,
+                  } as any;
                 }
 
                 controller.enqueue(streamPart);
