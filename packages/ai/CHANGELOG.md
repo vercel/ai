@@ -1,5 +1,45 @@
 # ai
 
+## 6.0.73
+
+### Patch Changes
+
+- Updated dependencies [9892c58]
+  - @ai-sdk/gateway@3.0.36
+
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
+## 6.0.71
+
+### Patch Changes
+
+- Updated dependencies [4867635]
+  - @ai-sdk/gateway@3.0.34
+
+## 6.0.70
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/gateway@3.0.33
+
+## 6.0.69
+
+### Patch Changes
+
+- d659305: fix(ai): auto-populate `originalMessages` in `createAgentUIStream`
+
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
 ## 6.0.67
 
 ### Patch Changes

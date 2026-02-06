@@ -745,6 +745,57 @@ const result = await generateText({
 
 Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
 
+#### Custom Tool Search
+
+You can implement your own tool search logic (e.g., using embeddings or semantic search) by returning `tool-reference` content blocks via `toModelOutput`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // Custom search tool
+    searchTools: tool({
+      description: 'Search for tools by keyword',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        // Your custom search logic (embeddings, fuzzy match, etc.)
+        const allTools = ['get_weather', 'get_forecast', 'get_temperature'];
+        return allTools.filter(name => name.includes(query.toLowerCase()));
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: (output as string[]).map(toolName => ({
+          type: 'custom' as const,
+          providerOptions: {
+            anthropic: {
+              type: 'tool-reference',
+              toolName,
+            },
+          },
+        })),
+      }),
+    }),
+
+    // Deferred tools
+    get_weather: tool({
+      description: 'Get the current weather',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 72 }),
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
+
 ### MCP Connectors
 
 Anthropic supports connecting to [MCP servers](https://docs.claude.com/en/docs/agents-and-tools/mcp-connector) as part of their execution.
@@ -1125,6 +1176,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

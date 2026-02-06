@@ -1,5 +1,31 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.50
+
+### Patch Changes
+
+- 632ab10: feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [1652320]
+  - @ai-sdk/anthropic@3.0.36
+
+## 4.0.47
+
+### Patch Changes
+
+- 46bc2b3: fix(amazon-bedrock): proper decoding for base64 data
+
 ## 4.0.46
 
 ### Patch Changes
