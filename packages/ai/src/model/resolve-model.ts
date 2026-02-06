@@ -128,12 +128,16 @@ export function resolveVideoModel(
 ): Experimental_VideoModelV3 {
   if (typeof model === 'string') {
     const provider = getGlobalProvider();
+    // TODO AI SDK v7
+    // @ts-expect-error - videoModel support is experimental
     if (!provider.videoModel) {
       throw new Error(
         'The default provider does not support video models. ' +
           'Please use a Experimental_VideoModelV3 object from a provider (e.g., fal.video("model-id")).',
       );
     }
+    // TODO AI SDK v7
+    // @ts-expect-error - videoModel support is experimental
     return provider.videoModel(model);
   }
 
