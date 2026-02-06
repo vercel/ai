@@ -1,7 +1,7 @@
 import {
   type Experimental_VideoModelV3 as VideoModelV3,
-  NoSuchModelError,
   type ProviderV3,
+  NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -104,8 +104,6 @@ export function createKlingAI(
     videoModel: createVideoModel,
     languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     embeddingModel: (modelId: string) => noSuchModel(modelId, 'embeddingModel'),
-    textEmbeddingModel: (modelId: string) =>
-      noSuchModel(modelId, 'embeddingModel'),
     imageModel: (modelId: string) => noSuchModel(modelId, 'imageModel'),
   };
 
