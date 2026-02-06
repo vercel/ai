@@ -221,9 +221,7 @@ export default function Chat() {
                   case 'output-error':
                     return <div key={callId}>Error: {part.errorText}</div>;
                   case 'output-denied':
-                    return (
-                      <div key={callId}>Tool execution was denied.</div>
-                    );
+                    return <div key={callId}>Tool execution was denied.</div>;
                 }
                 break;
               }
@@ -477,15 +475,11 @@ export default function Chat() {
                   );
                 case 'output-error':
                   return (
-                    <div key={part.toolCallId}>
-                      Error: {part.errorText}
-                    </div>
+                    <div key={part.toolCallId}>Error: {part.errorText}</div>
                   );
                 case 'output-denied':
                   return (
-                    <div key={part.toolCallId}>
-                      Weather request denied.
-                    </div>
+                    <div key={part.toolCallId}>Weather request denied.</div>
                   );
               }
             }
