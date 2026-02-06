@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/black-forest-labs": "workspace:*",
+    "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/assemblyai": "workspace:*",
