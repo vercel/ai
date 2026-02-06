@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateKlingAIAuthToken } from './klingai-auth';
 
 describe('generateKlingAIAuthToken', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     vi.stubEnv('KLINGAI_ACCESS_KEY', undefined as unknown as string);
     vi.stubEnv('KLINGAI_SECRET_KEY', undefined as unknown as string);

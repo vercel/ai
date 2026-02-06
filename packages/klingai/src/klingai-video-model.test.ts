@@ -113,10 +113,18 @@ describe('KlingAIVideoModel', () => {
       expect(model.maxVideosPerCall).toBe(1);
     });
 
-    it('should support custom model IDs', () => {
+    it('should accept custom model IDs in constructor', () => {
       const model = createBasicModel({ modelId: 'kling-v2.6-text2video' });
 
       expect(model.modelId).toBe('kling-v2.6-text2video');
+    });
+
+    it('should throw NoSuchModelError for unknown model IDs on generate', async () => {
+      const model = createBasicModel({ modelId: 'unknown-model' });
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'No such videoModel: unknown-model',
+      );
     });
   });
 
@@ -324,6 +332,53 @@ describe('KlingAIVideoModel', () => {
         }),
       );
     });
+
+    it('should warn about unsupported duration', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        duration: 10,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'duration',
+        }),
+      );
+    });
+
+    it('should warn when n > 1', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        n: 3,
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'n',
+        }),
+      );
+    });
+
+    it('should not warn when n is 1', async () => {
+      const model = createBasicModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        n: 1,
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          feature: 'n',
+        }),
+      );
+    });
   });
 
   describe('response metadata', () => {
@@ -391,7 +446,7 @@ describe('KlingAIVideoModel', () => {
           ...defaultOptions,
           providerOptions: {},
         }),
-      ).rejects.toThrow('videoUrl');
+      ).rejects.toThrow('providerOptions.klingai');
     });
 
     it('should throw when task status is failed', async () => {

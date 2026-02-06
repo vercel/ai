@@ -1,6 +1,7 @@
 import {
   AISDKError,
   type Experimental_VideoModelV3,
+  NoSuchModelError,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
@@ -20,6 +21,24 @@ import {
 import { z } from 'zod/v4';
 import { klingaiFailedResponseHandler } from './klingai-error';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
+
+/**
+ * Maps known model IDs to their API endpoint paths.
+ */
+const modelEndpointMap: Record<string, string> = {
+  'kling-v2.6-motion-control': '/v1/videos/motion-control',
+};
+
+function getEndpointPath(modelId: string): string {
+  const endpoint = modelEndpointMap[modelId];
+  if (!endpoint) {
+    throw new NoSuchModelError({
+      modelId,
+      modelType: 'videoModel',
+    });
+  }
+  return endpoint;
+}
 
 export type KlingAIVideoProviderOptions = {
   /**
@@ -126,30 +145,11 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       schema: klingaiVideoProviderOptionsSchema,
     })) as KlingAIVideoProviderOptions | undefined;
 
-    if (!klingaiOptions?.videoUrl) {
+    if (!klingaiOptions) {
       throw new AISDKError({
-        name: 'KLINGAI_VIDEO_MISSING_VIDEO_URL',
+        name: 'KLINGAI_VIDEO_MISSING_OPTIONS',
         message:
-          'KlingAI Motion Control requires a videoUrl in providerOptions.klingai. ' +
-          'This is the reference video whose motion will be transferred.',
-      });
-    }
-
-    if (!klingaiOptions?.characterOrientation) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_MISSING_CHARACTER_ORIENTATION',
-        message:
-          'KlingAI Motion Control requires characterOrientation in providerOptions.klingai. ' +
-          "Use 'image' or 'video'.",
-      });
-    }
-
-    if (!klingaiOptions?.mode) {
-      throw new AISDKError({
-        name: 'KLINGAI_VIDEO_MISSING_MODE',
-        message:
-          'KlingAI Motion Control requires mode in providerOptions.klingai. ' +
-          "Use 'std' or 'pro'.",
+          'KlingAI requires providerOptions.klingai with videoUrl, characterOrientation, and mode.',
       });
     }
 
@@ -241,6 +241,16 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    if (options.duration) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'duration',
+        details:
+          'KlingAI Motion Control does not support custom duration. ' +
+          'The output duration matches the reference video duration.',
+      });
+    }
+
     if (options.fps) {
       warnings.push({
         type: 'unsupported',
@@ -249,10 +259,23 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
       });
     }
 
+    if (options.n != null && options.n > 1) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'n',
+        details:
+          'KlingAI Motion Control does not support generating multiple videos per call. ' +
+          'Only 1 video will be generated.',
+      });
+    }
+
+    // Resolve the API endpoint path for this model
+    const endpointPath = getEndpointPath(this.modelId);
+
     // Step 1: Create the task
     const { value: createResponse, responseHeaders: createHeaders } =
       await postJsonToApi({
-        url: `${this.config.baseURL}/v1/videos/motion-control`,
+        url: `${this.config.baseURL}${endpointPath}`,
         headers: combineHeaders(
           await resolve(this.config.headers),
           options.headers,
@@ -275,21 +298,14 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
     }
 
     // Step 2: Poll for task completion
-    const pollIntervalMs = klingaiOptions?.pollIntervalMs ?? 5000; // 5 seconds
-    const pollTimeoutMs = klingaiOptions?.pollTimeoutMs ?? 600000; // 10 minutes
+    const pollIntervalMs = klingaiOptions.pollIntervalMs ?? 5000; // 5 seconds
+    const pollTimeoutMs = klingaiOptions.pollTimeoutMs ?? 600000; // 10 minutes
     const startTime = Date.now();
     let finalResponse: KlingAITaskResponse | undefined;
     let responseHeaders: Record<string, string> | undefined = createHeaders;
 
     while (true) {
-      await delay(pollIntervalMs);
-
-      if (options.abortSignal?.aborted) {
-        throw new AISDKError({
-          name: 'KLINGAI_VIDEO_GENERATION_ABORTED',
-          message: 'Video generation request was aborted',
-        });
-      }
+      await delay(pollIntervalMs, { abortSignal: options.abortSignal });
 
       if (Date.now() - startTime > pollTimeoutMs) {
         throw new AISDKError({
@@ -300,7 +316,7 @@ export class KlingAIVideoModel implements Experimental_VideoModelV3 {
 
       const { value: statusResponse, responseHeaders: pollHeaders } =
         await getFromApi({
-          url: `${this.config.baseURL}/v1/videos/motion-control/${taskId}`,
+          url: `${this.config.baseURL}${endpointPath}/${taskId}`,
           headers: combineHeaders(
             await resolve(this.config.headers),
             options.headers,
