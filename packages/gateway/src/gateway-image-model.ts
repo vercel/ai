@@ -129,16 +129,26 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
+const gatewayImageWarningSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('unsupported'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('compatibility'),
+    feature: z.string(),
+    details: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('other'),
+    message: z.string(),
+  }),
+]);
+
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
-  warnings: z
-    .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
-    )
-    .optional(),
+  warnings: z.array(gatewayImageWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
