@@ -209,6 +209,9 @@ export default function Chat() {
                         </div>
                       </div>
                     );
+                  case 'approval-requested':
+                  case 'approval-responded':
+                    return null;
                   case 'output-available':
                     return (
                       <div key={callId}>
@@ -217,6 +220,10 @@ export default function Chat() {
                     );
                   case 'output-error':
                     return <div key={callId}>Error: {part.errorText}</div>;
+                  case 'output-denied':
+                    return (
+                      <div key={callId}>Tool execution was denied.</div>
+                    );
                 }
                 break;
               }
@@ -231,6 +238,9 @@ export default function Chat() {
                     );
                   case 'input-available':
                     return <div key={callId}>Getting location...</div>;
+                  case 'approval-requested':
+                  case 'approval-responded':
+                    return null;
                   case 'output-available':
                     return <div key={callId}>Location: {part.output}</div>;
                   case 'output-error':
@@ -239,6 +249,8 @@ export default function Chat() {
                         Error getting location: {part.errorText}
                       </div>
                     );
+                  case 'output-denied':
+                    return <div key={callId}>Location access denied.</div>;
                 }
                 break;
               }
@@ -258,6 +270,9 @@ export default function Chat() {
                         Getting weather information for {part.input.city}...
                       </div>
                     );
+                  case 'approval-requested':
+                  case 'approval-responded':
+                    return null;
                   case 'output-available':
                     return (
                       <div key={callId}>
@@ -269,6 +284,12 @@ export default function Chat() {
                       <div key={callId}>
                         Error getting weather for {part.input.city}:{' '}
                         {part.errorText}
+                      </div>
+                    );
+                  case 'output-denied':
+                    return (
+                      <div key={callId}>
+                        Weather request for {part.input.city} was denied.
                       </div>
                     );
                 }
@@ -440,10 +461,30 @@ export default function Chat() {
                       </button>
                     </div>
                   );
+                case 'approval-responded':
+                  return (
+                    <div key={part.toolCallId}>
+                      {part.approval.approved
+                        ? 'Approved, executing...'
+                        : 'Denied'}
+                    </div>
+                  );
                 case 'output-available':
                   return (
                     <div key={part.toolCallId}>
                       Weather in {part.input.city}: {part.output}
+                    </div>
+                  );
+                case 'output-error':
+                  return (
+                    <div key={part.toolCallId}>
+                      Error: {part.errorText}
+                    </div>
+                  );
+                case 'output-denied':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request denied.
                     </div>
                   );
               }
@@ -502,6 +543,9 @@ When using dynamic tools (tools with unknown types at compile time), the UI part
             {part.state === 'output-error' && (
               <div>Error: {part.errorText}</div>
             )}
+            {part.state === 'output-denied' && (
+              <div>Tool execution was denied.</div>
+            )}
           </div>
         );
     }
@@ -556,10 +600,15 @@ export default function Chat() {
                     return <pre>{JSON.stringify(part.input, null, 2)}</pre>;
                   case 'input-available':
                     return <pre>{JSON.stringify(part.input, null, 2)}</pre>;
+                  case 'approval-requested':
+                  case 'approval-responded':
+                    return <div>Awaiting approval...</div>;
                   case 'output-available':
                     return <pre>{JSON.stringify(part.output, null, 2)}</pre>;
                   case 'output-error':
                     return <div>Error: {part.errorText}</div>;
+                  case 'output-denied':
+                    return <div>Tool execution was denied.</div>;
                 }
             }
           })}
