@@ -153,8 +153,11 @@ export function customProvider<
         return videoModels[modelId];
       }
 
-      if (fallbackProvider?.videoModel) {
-        return fallbackProvider.videoModel(modelId);
+      // TODO AI SDK v7
+      // @ts-expect-error - videoModel support is experimental
+      const videoModel = fallbackProvider?.videoModel;
+      if (videoModel) {
+        return videoModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });

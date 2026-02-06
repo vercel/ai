@@ -91,14 +91,4 @@ export interface ProviderV3 {
    * @throws {NoSuchModelError} If no such model exists.
    */
   rerankingModel?(modelId: string): RerankingModelV3;
-
-  /**
-   * Returns the video model with the given id.
-   * The model id is then passed to the provider function to get the model.
-   *
-   * @param {string} modelId - The id of the model to return.
-   *
-   * @returns {VideoModel} The video model associated with the id
-   */
-  videoModel?(modelId: string): VideoModelV3;
 }
