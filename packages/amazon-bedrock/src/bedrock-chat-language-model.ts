@@ -229,30 +229,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             'adaptive thinking type applies only to Anthropic models on Bedrock.',
         });
       }
-<<<<<<< HEAD
-      // Add them to additional model request fields
-      // Add thinking config to additionalModelRequestFields
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        thinking: {
-          type: bedrockOptions.reasoningConfig?.type,
-          budget_tokens: thinkingBudget,
-        },
-      };
-    } else if (!isAnthropicModel && thinkingBudget != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'providerOptions',
-        details:
-          'budgetTokens applies only to Anthropic models on Bedrock and will be ignored for this model.',
-      });
-=======
->>>>>>> 632ab101a (feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max (#12305))
     }
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-<<<<<<< HEAD
     if (maxReasoningEffort != null && !isAnthropicModel) {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
@@ -264,45 +244,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         },
       };
     } else if (maxReasoningEffort != null && isAnthropicModel) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'providerOptions',
-        details:
-          'maxReasoningEffort applies only to Amazon Nova models on Bedrock and will be ignored for this model.',
-      });
-=======
-    const isOpenAIModel = this.modelId.startsWith('openai.');
-
-    if (maxReasoningEffort != null) {
-      if (isAnthropicModel) {
-        // Anthropic models use output_config.effort with beta header
-        const existingBetas =
-          bedrockOptions.additionalModelRequestFields?.anthropic_beta ?? [];
-        bedrockOptions.additionalModelRequestFields = {
-          ...bedrockOptions.additionalModelRequestFields,
-          output_config: {
-            effort: maxReasoningEffort,
-          },
-        };
-      } else if (isOpenAIModel) {
-        // OpenAI models on Bedrock expect `reasoning_effort` as a flat value
-        bedrockOptions.additionalModelRequestFields = {
-          ...bedrockOptions.additionalModelRequestFields,
-          reasoning_effort: maxReasoningEffort,
-        };
-      } else {
-        // other models (such as Nova 2) use reasoningConfig format
-        bedrockOptions.additionalModelRequestFields = {
-          ...bedrockOptions.additionalModelRequestFields,
-          reasoningConfig: {
-            ...(thinkingType != null &&
-              thinkingType !== 'adaptive' && { type: thinkingType }),
-            ...(thinkingBudget != null && { budgetTokens: thinkingBudget }),
-            maxReasoningEffort,
-          },
-        };
-      }
->>>>>>> 632ab101a (feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max (#12305))
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        output_config: {
+          effort: maxReasoningEffort,
+        },
+      };
     }
 
     if (isAnthropicThinkingEnabled && inferenceConfig.temperature != null) {
