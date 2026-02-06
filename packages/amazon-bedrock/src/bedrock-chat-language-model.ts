@@ -241,9 +241,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
-        // Anthropic models use output_config.effort with beta header
-        const existingBetas =
-          bedrockOptions.additionalModelRequestFields?.anthropic_beta ?? [];
         bedrockOptions.additionalModelRequestFields = {
           ...bedrockOptions.additionalModelRequestFields,
           output_config: {
