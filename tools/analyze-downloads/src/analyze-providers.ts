@@ -24,6 +24,7 @@ async function main() {
     '@ai-sdk/groq',
     '@ai-sdk/huggingface',
     '@ai-sdk/hume',
+    '@ai-sdk/klingai',
     '@ai-sdk/lmnt',
     '@ai-sdk/luma',
     '@ai-sdk/mistral',
