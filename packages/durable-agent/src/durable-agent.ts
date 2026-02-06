@@ -1,10 +1,10 @@
 import type {
-  LanguageModelV2CallOptions,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
-  LanguageModelV2ToolCall,
-  LanguageModelV2ToolResultPart,
-  SharedV2ProviderOptions,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Prompt,
+  LanguageModelV3StreamPart,
+  LanguageModelV3ToolCallPart,
+  LanguageModelV3ToolResultPart,
+  SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   asSchema,
@@ -41,7 +41,7 @@ export { Output };
  */
 export interface OutputSpecification<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
-  responseFormat: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: LanguageModelV3CallOptions['responseFormat'];
   parsePartial(options: {
     text: string;
   }): Promise<{ partial: PARTIAL } | undefined>;
@@ -56,9 +56,9 @@ export interface OutputSpecification<OUTPUT, PARTIAL> {
 }
 
 /**
- * Provider-specific options type. This is equivalent to SharedV2ProviderOptions from @ai-sdk/provider.
+ * Provider-specific options type. This is equivalent to SharedV3ProviderOptions from @ai-sdk/provider.
  */
-export type ProviderOptions = SharedV2ProviderOptions;
+export type ProviderOptions = SharedV3ProviderOptions;
 
 /**
  * Telemetry settings for observability.
@@ -99,17 +99,20 @@ export interface TelemetrySettings {
 export type StreamTextTransform<TTools extends ToolSet> = (options: {
   tools: TTools;
   stopStream: () => void;
-}) => TransformStream<LanguageModelV2StreamPart, LanguageModelV2StreamPart>;
+}) => TransformStream<LanguageModelV3StreamPart, LanguageModelV3StreamPart>;
 
 /**
  * Function to repair a tool call that failed to parse.
  */
 export type ToolCallRepairFunction<TTools extends ToolSet> = (options: {
-  toolCall: LanguageModelV2ToolCall;
+  toolCall: LanguageModelV3ToolCallPart;
   tools: TTools;
   error: unknown;
-  messages: LanguageModelV2Prompt;
-}) => Promise<LanguageModelV2ToolCall | null> | LanguageModelV2ToolCall | null;
+  messages: LanguageModelV3Prompt;
+}) =>
+  | Promise<LanguageModelV3ToolCallPart | null>
+  | LanguageModelV3ToolCallPart
+  | null;
 
 /**
  * Custom download function for URLs.
@@ -127,7 +130,7 @@ export type DownloadFunction = (
 
 /**
  * Generation settings that can be passed to the model.
- * These map directly to LanguageModelV2CallOptions.
+ * These map directly to LanguageModelV3CallOptions.
  */
 export interface GenerationSettings {
   /**
@@ -231,9 +234,9 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
 
   /**
    * The messages that will be sent to the model.
-   * This is the LanguageModelV2Prompt format used internally.
+   * This is the LanguageModelV3Prompt format used internally.
    */
-  messages: LanguageModelV2Prompt;
+  messages: LanguageModelV3Prompt;
 
   /**
    * The context passed via the experimental_context setting (experimental).
@@ -261,7 +264,7 @@ export interface PrepareStepResult extends Partial<GenerationSettings> {
    * Override the messages for this step.
    * Use this for context management or message injection.
    */
-  messages?: LanguageModelV2Prompt;
+  messages?: LanguageModelV3Prompt;
 
   /**
    * Override the tool choice for this step.
@@ -737,7 +740,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       model: this.model,
       tools: effectiveTools as ToolSet,
       writable: options.writable,
-      prompt: modelPrompt as LanguageModelV2Prompt,
+      prompt: modelPrompt as LanguageModelV3Prompt,
       stopConditions: options.stopWhen,
       maxSteps: options.maxSteps,
       sendStart: options.sendStart ?? true,
@@ -757,7 +760,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     });
 
     // Track the final conversation messages from the iterator
-    let finalMessages: LanguageModelV2Prompt | undefined;
+    let finalMessages: LanguageModelV3Prompt | undefined;
     let encounteredError: unknown;
     let wasAborted = false;
 
@@ -803,7 +806,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           // Execute client tools
           const clientToolResults = await Promise.all(
             clientToolCalls.map(
-              (toolCall): Promise<LanguageModelV2ToolResultPart> =>
+              (toolCall): Promise<LanguageModelV3ToolResultPart> =>
                 executeTool(
                   toolCall,
                   effectiveTools as ToolSet,
@@ -815,7 +818,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           );
 
           // For provider-executed tools, use the results from the stream
-          const providerToolResults: LanguageModelV2ToolResultPart[] =
+          const providerToolResults: LanguageModelV3ToolResultPart[] =
             providerToolCalls.map(toolCall => {
               const streamResult = providerExecutedToolResults?.get(
                 toolCall.toolCallId,
@@ -838,7 +841,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                       ? {
                           type: 'error-json' as const,
                           value:
-                            result as LanguageModelV2ToolResultPart['output'] extends {
+                            result as LanguageModelV3ToolResultPart['output'] extends {
                               type: 'json';
                               value: infer V;
                             }
@@ -848,7 +851,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                       : {
                           type: 'json' as const,
                           value:
-                            result as LanguageModelV2ToolResultPart['output'] extends {
+                            result as LanguageModelV3ToolResultPart['output'] extends {
                               type: 'json';
                               value: infer V;
                             }
@@ -1084,12 +1087,12 @@ async function convertChunksToUIMessages(
 }
 
 async function executeTool(
-  toolCall: LanguageModelV2ToolCall,
+  toolCall: { toolCallId: string; toolName: string; input: string },
   tools: ToolSet,
-  messages: LanguageModelV2Prompt,
+  messages: LanguageModelV3Prompt,
   experimentalContext?: unknown,
   repairToolCall?: ToolCallRepairFunction<ToolSet>,
-): Promise<LanguageModelV2ToolResultPart> {
+): Promise<LanguageModelV3ToolResultPart> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
   if (typeof tool.execute !== 'function')
@@ -1104,16 +1107,27 @@ async function executeTool(
     if (!input?.success) {
       // Try to repair the tool call if a repair function is provided
       if (repairToolCall) {
+        // Convert to LanguageModelV3ToolCallPart format for repair function
+        const toolCallPart: LanguageModelV3ToolCallPart = {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: JSON.parse(toolCall.input || '{}'),
+        };
         const repairedToolCall = await repairToolCall({
-          toolCall,
+          toolCall: toolCallPart,
           tools,
           error: input?.error,
           messages,
         });
         if (repairedToolCall) {
-          // Retry with repaired tool call
+          // Convert back to { toolCallId, toolName, input: string } format
           return executeTool(
-            repairedToolCall,
+            {
+              toolCallId: repairedToolCall.toolCallId,
+              toolName: repairedToolCall.toolName,
+              input: JSON.stringify(repairedToolCall.input),
+            },
             tools,
             messages,
             experimentalContext,
@@ -1129,16 +1143,39 @@ async function executeTool(
   } catch (parseError) {
     // Try to repair the tool call if a repair function is provided
     if (repairToolCall) {
+      // Convert to LanguageModelV3ToolCallPart format for repair function
+      // If input is invalid JSON, pass the raw string as the input
+      let parsedInputForRepair: unknown;
+      try {
+        parsedInputForRepair = JSON.parse(toolCall.input || '{}');
+      } catch {
+        parsedInputForRepair = toolCall.input;
+      }
+
+      const toolCallPart: LanguageModelV3ToolCallPart = {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: parsedInputForRepair,
+      };
       const repairedToolCall = await repairToolCall({
-        toolCall,
+        toolCall: toolCallPart,
         tools,
         error: parseError,
         messages,
       });
       if (repairedToolCall) {
-        // Retry with repaired tool call
+        // Convert back to { toolCallId, toolName, input: string } format
+        const inputString =
+          typeof repairedToolCall.input === 'string'
+            ? repairedToolCall.input
+            : JSON.stringify(repairedToolCall.input);
         return executeTool(
-          repairedToolCall,
+          {
+            toolCallId: repairedToolCall.toolCallId,
+            toolName: repairedToolCall.toolName,
+            input: inputString,
+          },
           tools,
           messages,
           experimentalContext,
