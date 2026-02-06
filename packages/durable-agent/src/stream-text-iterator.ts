@@ -1,8 +1,9 @@
 import type {
-  LanguageModelV2CallOptions,
-  LanguageModelV2Prompt,
-  LanguageModelV2ToolCall,
-  LanguageModelV2ToolResultPart,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolCall,
+  LanguageModelV3ToolCallPart,
+  LanguageModelV3ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
   FinishReason,
@@ -35,10 +36,10 @@ export type { ProviderExecutedToolResult } from './do-stream-step.js';
  * Contains both the tool calls and the current conversation messages.
  */
 export interface StreamTextIteratorYieldValue {
-  /** The tool calls requested by the model */
-  toolCalls: LanguageModelV2ToolCall[];
+  /** The tool calls requested by the model (with stringified JSON input) */
+  toolCalls: LanguageModelV3ToolCall[];
   /** The conversation messages up to (and including) the tool call request */
-  messages: LanguageModelV2Prompt;
+  messages: LanguageModelV3Prompt;
   /** The step result from the current step */
   step?: StepResult<ToolSet>;
   /** The current experimental context */
@@ -70,7 +71,7 @@ export async function* streamTextIterator({
   responseFormat,
   collectUIChunks = false,
 }: {
-  prompt: LanguageModelV2Prompt;
+  prompt: LanguageModelV3Prompt;
   tools: ToolSet;
   writable: WritableStream<UIMessageChunk>;
   model: string | (() => Promise<CompatibleLanguageModel>);
@@ -88,13 +89,13 @@ export async function* streamTextIterator({
   experimental_transform?:
     | StreamTextTransform<ToolSet>
     | Array<StreamTextTransform<ToolSet>>;
-  responseFormat?: LanguageModelV2CallOptions['responseFormat'];
+  responseFormat?: LanguageModelV3CallOptions['responseFormat'];
   /** If true, collects UIMessageChunks for later conversion to UIMessage[] */
   collectUIChunks?: boolean;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
-  LanguageModelV2Prompt,
-  LanguageModelV2ToolResultPart[]
+  LanguageModelV3Prompt,
+  LanguageModelV3ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
   let currentModel: string | (() => Promise<CompatibleLanguageModel>) = model;
@@ -423,7 +424,7 @@ export async function* streamTextIterator({
 
 async function writeToolOutputToUI(
   writable: WritableStream<UIMessageChunk>,
-  toolResults: LanguageModelV2ToolResultPart[],
+  toolResults: LanguageModelV3ToolResultPart[],
   collectUIChunks?: boolean,
 ): Promise<UIMessageChunk[]> {
   'use step';
@@ -431,10 +432,21 @@ async function writeToolOutputToUI(
   const chunks: UIMessageChunk[] = [];
   try {
     for (const result of toolResults) {
+      // Extract the output value from V3 tool result format
+      let outputValue: unknown;
+      const output = result.output;
+      if ('value' in output) {
+        outputValue = output.value;
+      } else if (output.type === 'execution-denied') {
+        outputValue = { type: 'execution-denied', reason: output.reason };
+      } else {
+        outputValue = output;
+      }
+
       const chunk: UIMessageChunk = {
         type: 'tool-output-available' as const,
         toolCallId: result.toolCallId,
-        output: result.output.value,
+        output: outputValue,
       };
       if (collectUIChunks) {
         chunks.push(chunk);
