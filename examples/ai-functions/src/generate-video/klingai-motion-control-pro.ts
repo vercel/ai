@@ -1,5 +1,5 @@
 import { type KlingAIVideoProviderOptions, klingai } from '@ai-sdk/klingai';
-import { experimental_generateVideo } from 'ai';
+import { experimental_generateVideo as generateVideo } from 'ai';
 import { presentVideos } from '../lib/present-video';
 import { run } from '../lib/run';
 import { withSpinner } from '../lib/spinner';
@@ -8,7 +8,7 @@ run(async () => {
   const { videos, providerMetadata } = await withSpinner(
     'Generating KlingAI motion control video (pro mode)...',
     () =>
-      experimental_generateVideo({
+      generateVideo({
         model: klingai.video('kling-v2.6-motion-control'),
         prompt: {
           image:
