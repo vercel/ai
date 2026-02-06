@@ -2888,10 +2888,7 @@ describe('generateText', () => {
       await generateText({
         model: modelWithReasoning,
         prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          tracer,
-        },
+        telemetry: otel({ tracer }),
       });
 
       // Check that reasoning is recorded in both spans
