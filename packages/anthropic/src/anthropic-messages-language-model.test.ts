@@ -4236,6 +4236,96 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
     });
+
+    describe('fast mode (speed)', () => {
+      it('should send speed and fast-mode beta header when speed is fast', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello!' }],
+          usage: {
+            input_tokens: 4,
+            output_tokens: 10,
+            speed: 'fast',
+          },
+        });
+
+        await provider('claude-opus-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              speed: 'fast',
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'claude-opus-4-6',
+          speed: 'fast',
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchObject({
+          'anthropic-beta': expect.stringContaining('fast-mode-2026-02-01'),
+        });
+      });
+
+      it('should not send speed or fast-mode beta header when speed is standard', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello!' }],
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              speed: 'standard',
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('speed');
+
+        const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
+        expect(betaHeader ?? '').not.toContain('fast-mode-2026-02-01');
+      });
+
+      it('should not send speed field when speed is not set', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello!' }],
+        });
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('speed');
+      });
+
+      it('should surface speed in providerMetadata when response contains speed', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello!' }],
+          usage: {
+            input_tokens: 4,
+            output_tokens: 10,
+            speed: 'fast',
+          },
+        });
+
+        const result = await provider('claude-opus-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              speed: 'fast',
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const anthropicMeta = result.providerMetadata?.anthropic as {
+          usage: { speed?: string };
+        };
+        expect(anthropicMeta.usage.speed).toBe('fast');
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -7798,6 +7888,81 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           tool_choice: { type: 'auto', disable_parallel_tool_use: true },
         });
+      });
+    });
+
+    describe('fast mode (speed)', () => {
+      it('should send speed and fast-mode beta header when streaming with speed fast', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_fast","type":"message","role":"assistant","content":[],"model":"claude-opus-4-6","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":4,"output_tokens":1,"speed":"fast"}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":5,"speed":"fast"}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        const { stream } = await provider('claude-opus-4-6').doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              speed: 'fast',
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const result = await convertReadableStreamToArray(stream);
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: 'claude-opus-4-6',
+          speed: 'fast',
+          stream: true,
+        });
+
+        expect(server.calls[0].requestHeaders).toMatchObject({
+          'anthropic-beta': expect.stringContaining('fast-mode-2026-02-01'),
+        });
+
+        const finishPart = result.find(part => part.type === 'finish');
+        expect(finishPart).toBeDefined();
+        if (finishPart?.type === 'finish') {
+          const anthropicMeta = finishPart.providerMetadata?.anthropic as {
+            usage: { speed?: string };
+          };
+          expect(anthropicMeta.usage.speed).toBe('fast');
+        }
+      });
+
+      it('should not send speed in stream request when speed is standard', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_std","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":4,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":2}}\n\n`,
+            `data: {"type":"message_stop"}\n\n`,
+          ],
+        };
+
+        await model.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              speed: 'standard',
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).not.toHaveProperty('speed');
+
+        const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
+        expect(betaHeader ?? '').not.toContain('fast-mode-2026-02-01');
       });
     });
   });
