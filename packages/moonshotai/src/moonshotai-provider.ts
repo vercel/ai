@@ -103,6 +103,7 @@ export function createMoonshotAI(
   const createChatModel = (modelId: MoonshotAIChatModelId) => {
     return new MoonshotAIChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
+      includeUsage: true,
       errorStructure: moonshotaiErrorStructure,
       transformRequestBody: (args: Record<string, any>) => {
         const thinking = args.thinking as
