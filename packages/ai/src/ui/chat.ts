@@ -590,8 +590,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isDisconnect = false;
     let isError = false;
 
+    // Capture activeResponse locally to ensure it's available in finally block.
+    // Using `this.activeResponse` in finally could be undefined if error thrown
+    // before assignment, or overwritten by concurrent makeRequest calls.
+    let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
+
     try {
-      const activeResponse = {
+      activeResponse = {
         state: createStreamingUIMessageState({
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
@@ -706,17 +711,23 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       this.setStatus({ status: 'error', error: err as Error });
     } finally {
-      try {
-        this.onFinish?.({
-          message: this.activeResponse!.state.message,
-          messages: this.state.messages,
-          isAbort,
-          isDisconnect,
-          isError,
-          finishReason: this.activeResponse?.state.finishReason,
-        });
-      } catch (err) {
-        console.error(err);
+      // Use local activeResponse instead of this.activeResponse to avoid
+      // TypeError when activeResponse is undefined (error before assignment)
+      // or overwritten (concurrent makeRequest calls).
+      // See: https://github.com/vercel/ai/issues/8477
+      if (activeResponse) {
+        try {
+          this.onFinish?.({
+            message: activeResponse.state.message,
+            messages: this.state.messages,
+            isAbort,
+            isDisconnect,
+            isError,
+            finishReason: activeResponse.state.finishReason,
+          });
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       this.activeResponse = undefined;
