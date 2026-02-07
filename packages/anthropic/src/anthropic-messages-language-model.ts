@@ -350,7 +350,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
       }),
-      ...(anthropicOptions?.speed && { speed: anthropicOptions.speed }),
+      ...(anthropicOptions?.speed === 'fast' && {
+        speed: anthropicOptions.speed,
+      }),
 
       // structured output:
       ...(useStructuredOutput &&
