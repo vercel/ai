@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 2.0.3
+
+### Patch Changes
+
+- d999bdf: fix (provider/moonshotai): include usage when streaming
+
 ## 2.0.2
 
 ### Patch Changes
