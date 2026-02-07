@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.38
+
+### Patch Changes
+
+- 70028ab: feat: report image generation usage info in Gateway
+
 ## 3.0.37
 
 ### Patch Changes
