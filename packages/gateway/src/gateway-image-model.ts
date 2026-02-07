@@ -42,9 +42,7 @@ export class GatewayImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
-  > {
+  }: Parameters<ImageModelV2['doGenerate']>[0]) {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
       const {
@@ -119,23 +117,6 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
-const gatewayImageWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
-
 const gatewayImageUsageSchema = z.object({
   inputTokens: z.number().nullish(),
   outputTokens: z.number().nullish(),
@@ -144,7 +125,14 @@ const gatewayImageUsageSchema = z.object({
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
-  warnings: z.array(gatewayImageWarningSchema).optional(),
+  warnings: z
+    .array(
+      z.object({
+        type: z.literal('other'),
+        message: z.string(),
+      }),
+    )
+    .optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),

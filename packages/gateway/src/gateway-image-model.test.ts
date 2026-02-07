@@ -70,11 +70,7 @@ describe('GatewayImageModel', () => {
       providerMetadata,
     }: {
       images?: string[];
-      warnings?: Array<
-        | { type: 'unsupported'; feature: string; details?: string }
-        | { type: 'compatibility'; feature: string; details?: string }
-        | { type: 'other'; message: string }
-      >;
+      warnings?: Array<{ type: 'other'; message: string }>;
       providerMetadata?: Record<string, unknown>;
     } = {}) {
       server.urls['https://api.test.com/image-model'].response = {
@@ -289,99 +285,6 @@ describe('GatewayImageModel', () => {
       expect(result.warnings).toEqual(mockWarnings);
     });
 
-    it('should return unsupported warnings correctly', async () => {
-      const mockWarnings = [
-        {
-          type: 'unsupported' as const,
-          feature: 'size',
-          details:
-            'This model does not support the `size` option. Use `aspectRatio` instead.',
-        },
-      ];
-
-      prepareJsonResponse({
-        images: ['base64-1'],
-        warnings: mockWarnings,
-      });
-
-      const result = await createTestModel().doGenerate({
-        prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      expect(result.warnings).toEqual(mockWarnings);
-    });
-
-    it('should return compatibility warnings correctly', async () => {
-      const mockWarnings = [
-        {
-          type: 'compatibility' as const,
-          feature: 'seed',
-          details: 'Seed support is approximate for this model.',
-        },
-      ];
-
-      prepareJsonResponse({
-        images: ['base64-1'],
-        warnings: mockWarnings,
-      });
-
-      const result = await createTestModel().doGenerate({
-        prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: 42,
-        providerOptions: {},
-      });
-
-      expect(result.warnings).toEqual(mockWarnings);
-    });
-
-    it('should handle mixed warning types', async () => {
-      const mockWarnings = [
-        {
-          type: 'unsupported' as const,
-          feature: 'size',
-        },
-        {
-          type: 'compatibility' as const,
-          feature: 'seed',
-          details: 'Approximate seed support.',
-        },
-        {
-          type: 'other' as const,
-          message: 'Rate limit approaching.',
-        },
-      ];
-
-      prepareJsonResponse({
-        images: ['base64-1'],
-        warnings: mockWarnings,
-      });
-
-      const result = await createTestModel().doGenerate({
-        prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: 42,
-        providerOptions: {},
-      });
-
-      expect(result.warnings).toEqual(mockWarnings);
-    });
-
     it('should return empty warnings array when not provided', async () => {
       prepareJsonResponse({
         images: ['base64-1'],
@@ -433,8 +336,6 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -462,8 +363,6 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
@@ -485,8 +384,6 @@ describe('GatewayImageModel', () => {
 
       const result = await createTestModel().doGenerate({
         prompt: 'Test prompt',
-        files: undefined,
-        mask: undefined,
         n: 1,
         size: undefined,
         aspectRatio: undefined,
