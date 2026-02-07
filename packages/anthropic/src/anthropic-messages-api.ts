@@ -763,6 +763,7 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        speed: z.enum(['fast', 'standard']).nullish(),
       }),
       container: z
         .object({
@@ -816,6 +817,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             input_tokens: z.number(),
             cache_creation_input_tokens: z.number().nullish(),
             cache_read_input_tokens: z.number().nullish(),
+            speed: z.enum(['fast', 'standard']).nullish(),
           }),
           // Programmatic tool calling: content may be pre-populated for deferred tool calls
           content: z
@@ -1154,6 +1156,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
+          speed: z.enum(['fast', 'standard']).nullish(),
         }),
         context_management: z
           .object({

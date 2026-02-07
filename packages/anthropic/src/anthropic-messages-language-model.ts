@@ -350,6 +350,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
       }),
+      ...(anthropicOptions?.speed && { speed: anthropicOptions.speed }),
 
       // structured output:
       ...(useStructuredOutput &&
@@ -552,6 +553,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 
     if (anthropicOptions?.effort) {
       betas.add('effort-2025-11-24');
+    }
+
+    if (anthropicOptions?.speed === 'fast') {
+      betas.add('fast-mode-2026-02-01');
     }
 
     // only when streaming: enable fine-grained tool streaming
