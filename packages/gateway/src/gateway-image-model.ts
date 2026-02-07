@@ -42,9 +42,7 @@ export class GatewayImageModel implements ImageModelV2 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV2['doGenerate']>>
-  > {
+  }: Parameters<ImageModelV2['doGenerate']>[0]) {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
       const {
@@ -88,6 +86,13 @@ export class GatewayImageModel implements ImageModelV2 {
           modelId: this.modelId,
           headers: responseHeaders,
         },
+        ...(responseBody.usage != null && {
+          usage: {
+            inputTokens: responseBody.usage.inputTokens ?? undefined,
+            outputTokens: responseBody.usage.outputTokens ?? undefined,
+            totalTokens: responseBody.usage.totalTokens ?? undefined,
+          },
+        }),
       };
     } catch (error) {
       throw asGatewayError(error, await parseAuthMethod(resolvedHeaders));
@@ -112,6 +117,12 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
+const gatewayImageUsageSchema = z.object({
+  inputTokens: z.number().nullish(),
+  outputTokens: z.number().nullish(),
+  totalTokens: z.number().nullish(),
+});
+
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
   warnings: z
@@ -125,4 +136,5 @@ const gatewayImageResponseSchema = z.object({
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
+  usage: gatewayImageUsageSchema.optional(),
 });
