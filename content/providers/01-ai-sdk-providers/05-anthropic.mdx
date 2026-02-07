@@ -192,6 +192,33 @@ console.log(text); // resulting text
 console.log(usage); // token usage
 ```
 
+### Fast Mode
+
+Anthropic offers a [fast mode](https://platform.claude.com/docs/en/build-with-claude/fast-mode) for `claude-opus-4-6` that delivers 2.5x faster output token speeds at 6x standard pricing.
+
+You can enable it using the `speed` provider option. The required beta header is added automatically.
+
+```ts highlight="7-9"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, usage, providerMetadata } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Explain quantum entanglement.',
+  providerOptions: {
+    anthropic: {
+      speed: 'fast',
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+// The response confirms whether fast mode was used
+const anthropicMetadata = providerMetadata?.anthropic;
+console.log(anthropicMetadata?.usage?.speed); // 'fast' or 'standard'
+```
+
+The API echoes `speed: 'fast'` in the response usage to confirm fast mode was activated.
+
 ### Reasoning
 
 Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
