@@ -77,6 +77,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { TextOnFinishEvent } from './text-on-finish-callback';
 import { ToolSet } from './tool-set';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 
@@ -100,26 +101,7 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
  * @param event - The event that is passed to the callback.
  */
 export type GenerateTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: StepResult<TOOLS> & {
-    /**
-     * Details for all steps.
-     */
-    readonly steps: StepResult<TOOLS>[];
-
-    /**
-     * Total usage for all steps. This is the sum of the usage of all steps.
-     */
-    readonly totalUsage: LanguageModelUsage;
-
-    /**
-     * Context that is passed into tool execution.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
-  },
+  event: TextOnFinishEvent<TOOLS>,
 ) => PromiseLike<void> | void;
 
 /**

@@ -56,3 +56,7 @@ export type {
   TypedToolResult,
 } from './tool-result';
 export type { ToolSet } from './tool-set';
+export type {
+  TextOnFinishCallback,
+  TextOnFinishEvent,
+} from './text-on-finish-callback';
