@@ -333,4 +333,197 @@ describe('prepareTools', () => {
       `);
     });
   });
+
+  describe('tool-level provider options', () => {
+    it('should merge tool metadata from providerOptions', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openaiCompatible: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "cacheControl": {
+                "type": "ephemeral",
+              },
+              "function": {
+                "description": "A test function",
+                "name": "testFunction",
+                "parameters": {
+                  "properties": {},
+                  "type": "object",
+                },
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should not include metadata when providerOptions is undefined', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools?.[0]).toEqual({
+        type: 'function',
+        function: {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: { type: 'object', properties: {} },
+        },
+      });
+    });
+
+    it('should preserve tool metadata with strict mode', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+            providerOptions: {
+              openaiCompatible: {
+                cacheControl: { type: 'ephemeral' },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools?.[0]).toEqual({
+        type: 'function',
+        function: {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: { type: 'object', properties: {} },
+          strict: true,
+        },
+        cacheControl: { type: 'ephemeral' },
+      });
+    });
+
+    it('should handle multiple tools with different metadata', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'tool1',
+            description: 'Tool 1',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openaiCompatible: {
+                option1: 'value1',
+              },
+            },
+          },
+          {
+            type: 'function',
+            name: 'tool2',
+            description: 'Tool 2',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openaiCompatible: {
+                option2: 'value2',
+              },
+            },
+          },
+          {
+            type: 'function',
+            name: 'tool3',
+            description: 'Tool 3',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools).toHaveLength(3);
+      expect(result.tools?.[0]).toEqual({
+        type: 'function',
+        function: {
+          name: 'tool1',
+          description: 'Tool 1',
+          parameters: { type: 'object', properties: {} },
+        },
+        option1: 'value1',
+      });
+      expect(result.tools?.[1]).toEqual({
+        type: 'function',
+        function: {
+          name: 'tool2',
+          description: 'Tool 2',
+          parameters: { type: 'object', properties: {} },
+        },
+        option2: 'value2',
+      });
+      expect(result.tools?.[2]).toEqual({
+        type: 'function',
+        function: {
+          name: 'tool3',
+          description: 'Tool 3',
+          parameters: { type: 'object', properties: {} },
+        },
+      });
+    });
+
+    it('should handle complex nested metadata in providerOptions', () => {
+      const result = prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: {
+              openaiCompatible: {
+                cacheControl: { type: 'ephemeral' },
+                customField: { nested: { key: 'value' } },
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result.tools?.[0]).toEqual({
+        type: 'function',
+        function: {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: { type: 'object', properties: {} },
+        },
+        cacheControl: { type: 'ephemeral' },
+        customField: { nested: { key: 'value' } },
+      });
+    });
+  });
 });
