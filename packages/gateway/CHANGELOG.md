@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.35
+
+### Patch Changes
+
+- a207442: feat: report image generation usage info in Gateway
+
 ## 2.0.34
 
 ### Patch Changes
