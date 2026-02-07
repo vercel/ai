@@ -440,6 +440,85 @@ describe('GatewayImageModel', () => {
       expect(result.response.headers).toBeDefined();
     });
 
+    it('should return usage when provided', async () => {
+      server.urls['https://api.test.com/image-model'].response = {
+        type: 'json-value',
+        body: {
+          images: ['base64-1'],
+          usage: {
+            inputTokens: 27,
+            outputTokens: 6240,
+            totalTokens: 6267,
+          },
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toEqual({
+        inputTokens: 27,
+        outputTokens: 6240,
+        totalTokens: 6267,
+      });
+    });
+
+    it('should return usage with partial token counts', async () => {
+      server.urls['https://api.test.com/image-model'].response = {
+        type: 'json-value',
+        body: {
+          images: ['base64-1'],
+          usage: {
+            inputTokens: 10,
+          },
+        },
+      };
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toEqual({
+        inputTokens: 10,
+        outputTokens: undefined,
+        totalTokens: undefined,
+      });
+    });
+
+    it('should not include usage when not provided', async () => {
+      prepareJsonResponse({
+        images: ['base64-1'],
+      });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.usage).toBeUndefined();
+    });
+
     it('should merge custom headers with config headers', async () => {
       prepareJsonResponse();
 
