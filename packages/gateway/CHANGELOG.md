@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.39
+
+### Patch Changes
+
+- eea5d30: fix: image generation via Gateway warning schema mismatch
+
 ## 3.0.38
 
 ### Patch Changes
