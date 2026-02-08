@@ -5,7 +5,7 @@ import { print } from '../lib/print';
 
 run(async () => {
   const result = await rerank({
-    model: cohere.reranking('rerank-v3.5'),
+    model: cohere.reranking('rerank-v4.0-pro'),
     documents: ['sunny day at the beach', 'rainy day in the city'],
     query: 'talk about rain',
     topN: 2,
