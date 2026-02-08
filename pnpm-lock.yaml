@@ -708,7 +708,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.45
+        specifier: 4.0.46
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.77
@@ -845,7 +845,7 @@ importers:
         specifier: 3.0.22
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.45
+        specifier: 4.0.46
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.22
