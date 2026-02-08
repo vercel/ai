@@ -50,7 +50,18 @@ export function convertToGoogleGenerativeAIMessages(
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
-              parts.push(
+              // Extract per-part mediaResolution from providerOptions.
+              // NOTE: Per-part media resolution is an EXPERIMENTAL feature
+              // exclusive to Gemini 3 models. It will only be added to the
+              // request if explicitly specified, ensuring backward compatibility
+              // with older models (Gemini 2.x, 1.5, etc.).
+              // See: https://ai.google.dev/gemini-api/docs/media-resolution#per-part-media-resolution
+              const googleOptions = part.providerOptions?.[
+                providerOptionsName
+              ] as { mediaResolution?: string } | undefined;
+              const perPartMediaResolution = googleOptions?.mediaResolution;
+
+              const filePart: GoogleGenerativeAIContentPart =
                 part.data instanceof URL
                   ? {
                       fileData: {
@@ -63,8 +74,19 @@ export function convertToGoogleGenerativeAIMessages(
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
-                    },
-              );
+                    };
+
+              // Add per-part mediaResolution if specified (Gemini 3 only).
+              if (perPartMediaResolution) {
+                parts.push({
+                  ...filePart,
+                  mediaResolution: {
+                    level: perPartMediaResolution,
+                  },
+                });
+              } else {
+                parts.push(filePart);
+              }
 
               break;
             }
