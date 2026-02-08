@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.39
+
+### Patch Changes
+
+- 0a0d29c: feat(anthropic): add support for Opus 4.6 fast mode
+
 ## 3.0.38
 
 ### Patch Changes
