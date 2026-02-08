@@ -1,0 +1,4 @@
+{"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"kimi-k2.5","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"kimi-k2.5","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"kimi-k2.5","choices":[{"index":0,"delta":{"content":", world!"},"finish_reason":null}],"usage":null}
+{"id":"chatcmpl-123","object":"chat.completion.chunk","created":1234567890,"model":"kimi-k2.5","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":10,"total_tokens":110,"cached_tokens":80}}
