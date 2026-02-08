@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.46
+
+### Patch Changes
+
+- 90a41e3: feat (provider/google-vertex): update model ids and add video generation docs
+
 ## 4.0.45
 
 ### Patch Changes
