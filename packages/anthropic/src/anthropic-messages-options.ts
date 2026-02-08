@@ -170,6 +170,11 @@ export const anthropicProviderOptions = z.object({
    */
   effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
 
+  /**
+   * Speed mode for supported models (e.g. claude-opus-4-6)
+   */
+  speed: z.enum(['fast', 'standard']).optional(),
+
   contextManagement: z
     .object({
       edits: z.array(
