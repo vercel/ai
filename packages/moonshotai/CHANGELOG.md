@@ -1,5 +1,11 @@
 # @ai-sdk/moonshotai
 
+## 0.0.3
+
+### Patch Changes
+
+- f46806c: fix (provider/moonshotai): report cached tokens when streaming correctly
+
 ## 0.0.2
 
 ### Patch Changes
