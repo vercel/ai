@@ -387,18 +387,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       betas.add('effort-2025-11-24');
     }
 
-<<<<<<< HEAD
-=======
     if (anthropicOptions?.speed) {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
-
->>>>>>> 0a0d29cb0 (feat(anthropic): add support for Opus 4.6 fast mode (#12353))
     // structured output:
     if (useStructuredOutput) {
       betas.add('structured-outputs-2025-11-13');

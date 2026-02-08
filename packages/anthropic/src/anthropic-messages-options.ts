@@ -134,65 +134,12 @@ export const anthropicProviderOptions = z.object({
    * @default 'high'
    */
   effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
-<<<<<<< HEAD
-=======
 
   /**
    * Enable fast mode for faster inference (2.5x faster output token speeds).
    * Only supported with claude-opus-4-6.
    */
   speed: z.literal('fast').optional(),
-
-  contextManagement: z
-    .object({
-      edits: z.array(
-        z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('clear_tool_uses_20250919'),
-            trigger: z
-              .discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('input_tokens'),
-                  value: z.number(),
-                }),
-                z.object({
-                  type: z.literal('tool_uses'),
-                  value: z.number(),
-                }),
-              ])
-              .optional(),
-            keep: z
-              .object({
-                type: z.literal('tool_uses'),
-                value: z.number(),
-              })
-              .optional(),
-            clearAtLeast: z
-              .object({
-                type: z.literal('input_tokens'),
-                value: z.number(),
-              })
-              .optional(),
-            clearToolInputs: z.boolean().optional(),
-            excludeTools: z.array(z.string()).optional(),
-          }),
-          z.object({
-            type: z.literal('clear_thinking_20251015'),
-            keep: z
-              .union([
-                z.literal('all'),
-                z.object({
-                  type: z.literal('thinking_turns'),
-                  value: z.number(),
-                }),
-              ])
-              .optional(),
-          }),
-        ]),
-      ),
-    })
-    .optional(),
->>>>>>> 0a0d29cb0 (feat(anthropic): add support for Opus 4.6 fast mode (#12353))
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
