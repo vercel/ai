@@ -2915,6 +2915,229 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(result.warnings).toStrictEqual([]);
     });
+<<<<<<< HEAD
+=======
+
+    it('should set speed and fast-mode beta header', async () => {
+      prepareJsonResponse({});
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            speed: 'fast',
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+          "speed": "fast",
+        }
+      `);
+      expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "anthropic-beta": "fast-mode-2026-02-01",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [{ type: 'clear_tool_uses_20250919' }],
+          },
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'clear_tool_uses_20250919',
+                  cleared_tool_uses: 5,
+                  cleared_input_tokens: 10000,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'clear_tool_uses_20250919',
+              clearedToolUses: 5,
+              clearedInputTokens: 10000,
+            },
+          ],
+        });
+      });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
+    });
+>>>>>>> 0a0d29cb0 (feat(anthropic): add support for Opus 4.6 fast mode (#12353))
   });
 
   describe('doStream', () => {
