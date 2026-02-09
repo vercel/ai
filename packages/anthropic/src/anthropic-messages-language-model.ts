@@ -1144,6 +1144,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+
+          iterations: response.usage.iterations
+            ? response.usage.iterations.map(iter => ({
+                type: iter.type,
+                inputTokens: iter.input_tokens,
+                outputTokens: iter.output_tokens,
+              }))
+            : null,
           container: response.container
             ? {
                 expiresAt: response.container.expires_at,
@@ -1219,6 +1227,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       output_tokens: 0,
       cache_creation_input_tokens: 0,
       cache_read_input_tokens: 0,
+      iterations: null,
     };
 
     const contentBlocks: Record<
@@ -2028,6 +2037,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 cacheCreationInputTokens =
                   value.usage.cache_creation_input_tokens;
               }
+              if (value.usage.iterations != null) {
+                usage.iterations = value.usage.iterations;
+              }
 
               finishReason = {
                 unified: mapAnthropicStopReason({
@@ -2071,6 +2083,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
                 usage: (rawUsage as JSONObject) ?? null,
                 cacheCreationInputTokens,
                 stopSequence,
+                iterations: usage.iterations
+                  ? usage.iterations.map(iter => ({
+                      type: iter.type,
+                      inputTokens: iter.input_tokens,
+                      outputTokens: iter.output_tokens,
+                    }))
+                  : null,
                 container,
                 contextManagement,
               } satisfies AnthropicMessageMetadata;

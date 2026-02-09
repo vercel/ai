@@ -787,6 +787,15 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
       container: z
         .object({
@@ -1189,6 +1198,15 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
           cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
         context_management: z
           .object({
