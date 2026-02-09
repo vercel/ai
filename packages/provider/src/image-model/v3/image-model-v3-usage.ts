@@ -8,6 +8,21 @@ export type ImageModelV3Usage = {
   inputTokens: number | undefined;
 
   /**
+   * Detailed breakdown of input tokens by type.
+   */
+  inputTokensDetails?: {
+    /**
+     * The number of image input tokens used.
+     */
+    imageTokens: number | undefined;
+
+    /**
+     * The number of text input tokens used.
+     */
+    textTokens: number | undefined;
+  };
+
+  /**
    * The number of output tokens used, if reported by the provider.
    */
   outputTokens: number | undefined;

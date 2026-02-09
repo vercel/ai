@@ -416,6 +416,10 @@ describe('doGenerate', () => {
 
     expect(result.usage).toStrictEqual({
       inputTokens: 12,
+      inputTokensDetails: {
+        imageTokens: 7,
+        textTokens: 5,
+      },
       outputTokens: 0,
       totalTokens: 12,
     });
@@ -715,6 +719,7 @@ describe('doGenerate - image editing', () => {
 
     expect(result.usage).toStrictEqual({
       inputTokens: 25,
+      inputTokensDetails: undefined,
       outputTokens: 0,
       totalTokens: 25,
     });

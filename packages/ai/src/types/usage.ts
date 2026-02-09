@@ -192,8 +192,23 @@ export function addImageModelUsage(
   usage1: ImageModelUsage,
   usage2: ImageModelUsage,
 ): ImageModelUsage {
+  const hasDetails =
+    usage1.inputTokensDetails != null || usage2.inputTokensDetails != null;
+
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
+    ...(hasDetails && {
+      inputTokensDetails: {
+        imageTokens: addTokenCounts(
+          usage1.inputTokensDetails?.imageTokens,
+          usage2.inputTokensDetails?.imageTokens,
+        ),
+        textTokens: addTokenCounts(
+          usage1.inputTokensDetails?.textTokens,
+          usage2.inputTokensDetails?.textTokens,
+        ),
+      },
+    }),
     outputTokens: addTokenCounts(usage1.outputTokens, usage2.outputTokens),
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
   };
