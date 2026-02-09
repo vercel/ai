@@ -589,6 +589,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               const part = event.item;
               if (part.type === 'reasoning') {
                 if (event.type === 'response.output_item.done') {
+                  // Emit reasoning-start if it was never emitted
+                  // (e.g. encrypted reasoning with no summary/text events)
+                  if (activeReasoning[part.id] == null) {
+                    controller.enqueue({
+                      type: 'reasoning-start',
+                      id: `reasoning-${part.id}`,
+                      providerMetadata: {
+                        xai: {
+                          itemId: part.id,
+                        },
+                      },
+                    });
+                  }
+
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: `reasoning-${part.id}`,

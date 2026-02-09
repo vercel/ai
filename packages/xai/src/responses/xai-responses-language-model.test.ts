@@ -1257,8 +1257,6 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
-<<<<<<< HEAD
-=======
       it('should emit reasoning-start before reasoning-end when reasoning_summary_part.added is not sent', async () => {
         // This test covers the case where xAI sends encrypted reasoning without
         // streaming the reasoning summary text (no reasoning_summary_part.added events)
@@ -1515,7 +1513,6 @@ describe('XaiResponsesLanguageModel', () => {
         expect(endIdx).toBeLessThan(textIdx);
       });
 
->>>>>>> 8b3e72dec (fix (provider/xai): handle new reasoning text chunk parts (#12362))
       it('should stream x_search tool call', async () => {
         prepareChunksFixtureResponse('xai-x-search-tool');
 

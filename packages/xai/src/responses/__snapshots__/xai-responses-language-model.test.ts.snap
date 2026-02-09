@@ -886,6 +886,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
         "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
       },
     },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "reasoning-rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_769f3302-64f9-4c72-2b48-860c87fd9b2a",
+      },
+    },
     "type": "reasoning-end",
   },
   {
@@ -4729,6 +4738,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
     "providerMetadata": {
       "xai": {
         "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "reasoning-rs_0b824fe9-3250-2588-0bbf-0810402fc822",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_0b824fe9-3250-2588-0bbf-0810402fc822",
         "reasoningEncryptedContent": "WjtnRFdCMihgUoZ7mSMscKCe3dmgPFa5M5kX7HQJj34tLsndn347jFS2T+DK3E4DLLPTW1w51ttWSKNi2Rn/7pJ6foFMHeAbX5Q7+5CaeXto/8EOgaUC1Hn/PLLXOzw6za/AjoSEmPkr0m1KIo90k0mggP0UFLVKAXD2Z4+3rO1MVap2oVjPqVa6KctTSHtTScev9QhDPGGGbuo+YJa87ECGA1/UgKqzoA02/smPm7Ooh4wgR+XZvp1N0jENAwb2CmTNCv+GjxQrlIQ02zL4WHEwLE2HeKJXDKJUEIrTAT2hu0LFsWpAI+DbIIDekViyoQsbwVaGgBfY867CohK+NWpkOtagGIoNcmJBvR1mlqrKoHURBngvjrFW46Ng0bYH1uH8yEhQ7ao9vAve8jfpXa9qhsraY+DXuzjiCRojxpqcLkx7/tMMwGemucyQlmiIyVtIffA401dkp6JiJ//5ow00zNIXYSmT9R8eb530Qaz5dIrsr7tdzhkBOT+bvfTlD/dp8lYUcTuiz5F+L+TatdD2AIRkGC5hnQJanhDF7SQa7yVS8zyT+712VskotdJ6h9sXGMvQwZI95dB1EpUegUszK40NkH/l/srbyO7Itqt4Vbl/r7saky2zq40BVLRfiH6aON/1J1EBFl8t734VhW0ToKrSMOBcSS3/XnztO9r4VZKWl8ezcDI4qb5rIFgR+rZKjVOKH8A+/MAzAUlvdhe8n1FX+Ux1DSvh7E+RRHbt8181DI/98fqzkJ4p2V10HiOiI0QpMkB8Ow5oHfI4AfR8GIQanSLGKJ1B6sR7iGO4j/3ak88jx13glVnRoaAvHytCtGN22ZGx4zKqfnzCPDN7Qp/Zs9DNfHG8i9Ybom7AEsuZcthgwYcnM/OYFi7ecNXlEbnUDET2KxyELqMIUQcPIX6YiLayL6GizvhH/iNXZ8iW0ovzwL6td+qq3pUfdIf2sN/+RTeCvyw7F552pkd92kgl3fpBnekknL/9G0LFEG2odqe8dep3sk6TMUZBLdRKgHb/As0Yl6adefHuLspQQ0cquSgBK0vpxKCVA356axHyYiEtHtK6Zs7411xvwIUiyk7C5+bV7LxZuPQJcy8Dnwees5wK5NgHC/O0jZ010yROx0+6mUogY7tH6DGJ1dz1/LkYAwvcUmkSjGCchqfr1dTFr3VFXKRRxtqI5ngyegEu42xKY/lUoS1coTnu2QTB3a+g4gBlTHNdA+3YW1pm813vnvhuZC2WX/zCluAgUJNoeRS86iKHb/3R2zDi625ODgd7KnSx81ZIg34y3nTjSSAvR0CGhOq99KEP3+e4ckRsbQ6TbxY6XBEEYMOWw0u4/vNaqNlMID6bstszrKgFzk2DPAdMyYh4uiitzWjGefHdbwciVjNXj+PKPQOzvVSHG7zARXv3bJ31jWHO1E2btxjdUutFU8sn5bDFt8qOU9oT8YjkCIel7gDBf4A3U58/DbsWkRGLg1A2CCyzn2oBzG4ogCVnN5q39NUbhf6MTbbMXR1feWK48tajCjEACtbVynBi7ARXvx2Hiurs9zbRMY92zJP9QphFrWQKaRDaNLEhqvKMEeraMOADSWhPWkRkwvO59NcKfjDzb3d2sW1AJOmrjqnyvLmoQI9qVSuFCkwkjnB0T0AU51Hw28c2g5dlVmE9BTEVbG1zrJ0234pag7Iv65RbcrOtfEgrtfQ5uLuP0aSa0/yrz+mjndXaAUM",
       },
     },
@@ -8353,6 +8371,15 @@ exports[`XaiResponsesLanguageModel > doStream > text streaming > should stream t
       },
     },
     "type": "reasoning-delta",
+  },
+  {
+    "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+    "providerMetadata": {
+      "xai": {
+        "itemId": "rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
+      },
+    },
+    "type": "reasoning-start",
   },
   {
     "id": "reasoning-rs_bf3b2b34-79d4-a45c-7be8-d1e5f96386c2",
