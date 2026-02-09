@@ -30,6 +30,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { TelemetryEmitter } from '../telemetry/telemetry-emitter';
+import { fromLegacyTelemetrySettings } from '../telemetry/from-legacy-telemetry-settings';
 import type { TelemetryConfig } from '../telemetry/types';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
@@ -360,7 +361,9 @@ export async function generateText<
   );
 
   // Resolve telemetry: new TelemetryConfig takes precedence over legacy TelemetrySettings
-  const emitter = new TelemetryEmitter(telemetryConfig);
+  const emitter = new TelemetryEmitter(
+    telemetryConfig ?? fromLegacyTelemetrySettings(_legacyTelemetry),
+  );
 
   const initialPrompt = await standardizePrompt({
     system,
