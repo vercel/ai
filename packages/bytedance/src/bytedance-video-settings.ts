@@ -8,5 +8,3 @@ export type ByteDanceVideoModelId =
   | 'ep-20260127025543-bssxc' // seedance-1.0-lite (text-to-video)
   | 'ep-20260127025617-rrkm8' // seedance-1.0-lite (image-to-video)
   | (string & {});
-
-export interface ByteDanceVideoSettings {}
