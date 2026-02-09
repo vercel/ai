@@ -1,19 +1,19 @@
 import {
   type Experimental_VideoModelV3,
   NoSuchModelError,
-  ProviderV3,
+  type ProviderV3,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
+  type FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { ByteDanceVideoModel } from './bytedance-video-model';
-import { ByteDanceVideoModelId } from './bytedance-video-settings';
+import type { ByteDanceVideoModelId } from './bytedance-video-settings';
 
 export interface ByteDanceProviderSettings {
   /**
-   * ByteDance/ARK API key. Default value is taken from the `BYTEDANCE_ARK_API_KEY`
+   * ByteDance Ark API key. Default value is taken from the `ARK_API_KEY`
    * environment variable.
    */
   apiKey?: string;
@@ -41,6 +41,11 @@ export interface ByteDanceProvider extends ProviderV3 {
    * Creates a model for video generation.
    */
   video(modelId: ByteDanceVideoModelId): Experimental_VideoModelV3;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV3;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';
@@ -56,8 +61,8 @@ export function createByteDance(
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'BYTEDANCE_ARK_API_KEY',
-      description: 'ByteDance ARK',
+      environmentVariableName: 'ARK_API_KEY',
+      description: 'ByteDance ModelArk',
     })}`,
     'Content-Type': 'application/json',
     ...options.headers,
@@ -73,16 +78,17 @@ export function createByteDance(
 
   return {
     specificationVersion: 'v3' as const,
-    video: createVideoModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
+    embeddingModel: (modelId: string) => {
+      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
     },
     imageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
     },
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+    languageModel: (modelId: string) => {
+      throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },
+    video: createVideoModel,
+    videoModel: createVideoModel,
   };
 }
 
