@@ -2353,6 +2353,85 @@ describe('XaiResponsesLanguageModel', () => {
         });
       });
     });
+
+    describe('missing usage handling', () => {
+      function prepareStreamChunksNoUsage(chunks: string[]) {
+        server.urls['https://api.x.ai/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [...chunks.map(c => `data: ${c}\n\n`), 'data: [DONE]\n\n'],
+        };
+      }
+
+      it('should handle missing usage in streaming response', async () => {
+        prepareStreamChunksNoUsage([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              created_at: 1700000000,
+              status: 'completed',
+              output: [
+                {
+                  type: 'message',
+                  id: 'msg_001',
+                  role: 'assistant',
+                  status: 'completed',
+                  content: [{ type: 'output_text', text: 'Hello' }],
+                },
+              ],
+              // usage field is omitted
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'completed',
+          },
+          usage: {
+            inputTokens: {
+              total: 0,
+              noCache: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            outputTokens: {
+              total: 0,
+              text: 0,
+              reasoning: 0,
+            },
+          },
+        });
+      });
+    });
   });
 
   describe('schema validation', () => {
