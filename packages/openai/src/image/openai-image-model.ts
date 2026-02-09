@@ -122,17 +122,6 @@ export class OpenAIImageModel implements ImageModelV3 {
           response.usage != null
             ? {
                 inputTokens: response.usage.input_tokens ?? undefined,
-                inputTokensDetails:
-                  response.usage.input_tokens_details != null
-                    ? {
-                        imageTokens:
-                          response.usage.input_tokens_details.image_tokens ??
-                          undefined,
-                        textTokens:
-                          response.usage.input_tokens_details.text_tokens ??
-                          undefined,
-                      }
-                    : undefined,
                 outputTokens: response.usage.output_tokens ?? undefined,
                 totalTokens: response.usage.total_tokens ?? undefined,
               }
@@ -154,6 +143,14 @@ export class OpenAIImageModel implements ImageModelV3 {
               background: response.background ?? undefined,
               outputFormat: response.output_format ?? undefined,
             })),
+            ...(response.usage?.input_tokens_details != null && {
+              inputTokensDetails: {
+                imageTokens:
+                  response.usage.input_tokens_details.image_tokens ?? undefined,
+                textTokens:
+                  response.usage.input_tokens_details.text_tokens ?? undefined,
+              },
+            }),
           },
         },
       };
@@ -190,17 +187,6 @@ export class OpenAIImageModel implements ImageModelV3 {
         response.usage != null
           ? {
               inputTokens: response.usage.input_tokens ?? undefined,
-              inputTokensDetails:
-                response.usage.input_tokens_details != null
-                  ? {
-                      imageTokens:
-                        response.usage.input_tokens_details.image_tokens ??
-                        undefined,
-                      textTokens:
-                        response.usage.input_tokens_details.text_tokens ??
-                        undefined,
-                    }
-                  : undefined,
               outputTokens: response.usage.output_tokens ?? undefined,
               totalTokens: response.usage.total_tokens ?? undefined,
             }
@@ -222,6 +208,14 @@ export class OpenAIImageModel implements ImageModelV3 {
             background: response.background ?? undefined,
             outputFormat: response.output_format ?? undefined,
           })),
+          ...(response.usage?.input_tokens_details != null && {
+            inputTokensDetails: {
+              imageTokens:
+                response.usage.input_tokens_details.image_tokens ?? undefined,
+              textTokens:
+                response.usage.input_tokens_details.text_tokens ?? undefined,
+            },
+          }),
         },
       },
     };
