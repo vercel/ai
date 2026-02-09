@@ -73,6 +73,25 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('max tokens', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-max-tokens');
+    });
+
+    it('should map MAX_TOKENS finish reason to length', async () => {
+      const { finishReason } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(finishReason).toMatchInlineSnapshot(`
+        {
+          "raw": "MAX_TOKENS",
+          "unified": "length",
+        }
+      `);
+    });
+  });
+
   describe('tool call', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('cohere-tool-call');
