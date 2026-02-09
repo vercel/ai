@@ -4280,6 +4280,199 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         });
       });
+
+      it('should map compact_20260112 to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map compact_20260112 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    pauseAfterCompaction: true,
+                    instructions: 'Summarize the conversation concisely.',
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+                pause_after_compaction: true,
+                instructions: 'Summarize the conversation concisely.',
+              },
+            ],
+          },
+        });
+      });
+
+      it('should add compact beta header when using compact edit', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'compact_20260112' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-01-12',
+        );
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse compaction response with iterations and compaction content', async () => {
+        prepareJsonFixtureResponse('anthropic-compaction.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: expect.stringContaining('## Summary of Conversation'),
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: expect.stringContaining(
+              'Based on our conversation history, you had asked me',
+            ),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.iterations).toEqual([
+          {
+            type: 'compaction',
+            inputTokens: 60385,
+            outputTokens: 592,
+          },
+          {
+            type: 'message',
+            inputTokens: 682,
+            outputTokens: 1320,
+          },
+        ]);
+
+        expect(result.usage).toMatchObject({
+          inputTokens: {
+            total: 60385 + 682,
+          },
+          outputTokens: {
+            total: 592 + 1320,
+          },
+        });
+      });
+
+      it('should parse context_management with compact_20260112 from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'compact_20260112',
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'compact_20260112',
+            },
+          ],
+        });
+      });
+
+      it('should return compaction stop reason as other', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'compaction', content: 'Compaction summary...' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'compaction',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toBe('other');
+      });
     });
   });
 
@@ -5337,6 +5530,85 @@ describe('AnthropicMessagesLanguageModel', () => {
             clearedInputTokens: 10000,
           },
         ],
+      });
+    });
+
+    it('should stream compaction content blocks with provider metadata', async () => {
+      prepareChunksFixtureResponse('anthropic-compaction.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const compactionTextStart = result.find(
+        part =>
+          part.type === 'text-start' &&
+          part.id === '0' &&
+          (part as { providerMetadata?: { anthropic?: { type?: string } } })
+            .providerMetadata?.anthropic?.type === 'compaction',
+      );
+      expect(compactionTextStart).toBeDefined();
+      expect(
+        (compactionTextStart as { providerMetadata?: unknown })
+          .providerMetadata,
+      ).toEqual({
+        anthropic: {
+          type: 'compaction',
+        },
+      });
+
+      const compactionDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      expect(compactionDeltas.length).toBeGreaterThan(0);
+
+      const allCompactionText = compactionDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(allCompactionText).toContain('## Summary of Conversation');
+      expect(allCompactionText).toContain('React vs Vue.js');
+
+      const regularTextStart = result.find(
+        part =>
+          part.type === 'text-start' &&
+          part.id === '1' &&
+          !(part as { providerMetadata?: unknown }).providerMetadata,
+      );
+      expect(regularTextStart).toBeDefined();
+    });
+
+    it('should parse iterations from streaming compaction response', async () => {
+      prepareChunksFixtureResponse('anthropic-compaction.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata?.anthropic?.iterations).toEqual([
+        {
+          type: 'compaction',
+          inputTokens: 60385,
+          outputTokens: 522,
+        },
+        {
+          type: 'message',
+          inputTokens: 612,
+          outputTokens: 2819,
+        },
+      ]);
+
+      expect(finishPart?.usage).toMatchObject({
+        inputTokens: {
+          total: 60385 + 612,
+        },
+        outputTokens: {
+          total: 522 + 2819,
+        },
       });
     });
 
