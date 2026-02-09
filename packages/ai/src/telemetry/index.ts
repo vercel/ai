@@ -11,6 +11,8 @@ export type {
   TelemetryHandler,
   TelemetryConfig,
 } from './types';
+export { createTrace } from './create-trace';
+export type { TelemetryTrace } from './create-trace';
 
 // Handler implementations
 export { otel } from './handlers/otel-handler';

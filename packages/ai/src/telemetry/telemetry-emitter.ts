@@ -5,6 +5,7 @@ import type {
   TelemetryAttributeValue,
 } from './types';
 import { noopHandler } from './handlers/noop-handler';
+import { getActiveTrace } from './create-trace';
 
 /**
  * Internal class used by AI SDK core functions to emit telemetry events.
@@ -25,17 +26,24 @@ export class TelemetryEmitter {
   private readonly metadata:
     | Record<string, TelemetryAttributeValue>
     | undefined;
+  private readonly parentOperationId: string | undefined;
 
   /** Whether telemetry is active (a config was provided). */
   readonly isActive: boolean;
 
   constructor(config: TelemetryConfig | undefined) {
+    // If no explicit config, check for an ambient trace via AsyncLocalStorage
+    if (config == null) {
+      config = getActiveTrace();
+    }
+
     if (config == null) {
       this.handler = noopHandler;
       this.recordInputs = true;
       this.recordOutputs = true;
       this.functionId = undefined;
       this.metadata = undefined;
+      this.parentOperationId = undefined;
       this.isActive = false;
       return;
     }
@@ -45,11 +53,17 @@ export class TelemetryEmitter {
     this.recordOutputs = config.recordOutputs !== false;
     this.functionId = config.functionId;
     this.metadata = config.metadata;
+    this.parentOperationId = config.parentOperationId;
     this.isActive = true;
   }
 
   /**
    * Emit an operation-started event.
+   *
+   * Parent resolution order:
+   * 1. Explicit `parentOperationId` (intra-call parent, e.g. root → step)
+   * 2. Config-level `parentOperationId` (from trace, for cross-call grouping)
+   * 3. `undefined` (root of trace)
    */
   startOperation({
     operationId,
@@ -70,7 +84,7 @@ export class TelemetryEmitter {
       type: 'operationStarted',
       operationId,
       operationName,
-      parentOperationId,
+      parentOperationId: parentOperationId ?? this.parentOperationId,
       startTime: Date.now(),
       data: processed,
     });

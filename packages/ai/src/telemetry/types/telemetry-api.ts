@@ -346,4 +346,15 @@ export interface TelemetryConfig {
    * @default true
    */
   recordOutputs?: boolean;
+
+  /**
+   * Parent operation ID for cross-call grouping.
+   *
+   * When set, the root operation of each SDK call becomes a child of
+   * this operation. Used by `createTrace` to group multiple SDK calls
+   * under a single trace.
+   *
+   * You typically don't set this directly — use `createTrace()` instead.
+   */
+  parentOperationId?: string;
 }
