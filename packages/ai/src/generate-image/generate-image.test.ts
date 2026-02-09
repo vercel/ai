@@ -804,6 +804,58 @@ describe('generateImage', () => {
       });
     });
 
+    it('should accumulate inputTokensDetails across multiple calls', async () => {
+      let callCount = 0;
+
+      const result = await generateImage({
+        model: new MockImageModelV3({
+          maxImagesPerCall: 1,
+          doGenerate: async () => {
+            switch (callCount++) {
+              case 0:
+                return createMockResponse({
+                  images: [pngBase64],
+                  providerMetaData: {
+                    openai: {
+                      images: [{ size: '1024x1024' }],
+                      inputTokensDetails: {
+                        imageTokens: 194,
+                        textTokens: 28,
+                      },
+                    },
+                  },
+                });
+              case 1:
+                return createMockResponse({
+                  images: [jpegBase64],
+                  providerMetaData: {
+                    openai: {
+                      images: [{ size: '1024x1024' }],
+                      inputTokensDetails: {
+                        imageTokens: 194,
+                        textTokens: 28,
+                      },
+                    },
+                  },
+                });
+              default:
+                throw new Error('Unexpected call');
+            }
+          },
+        }),
+        prompt,
+        n: 2,
+      });
+
+      expect(result.providerMetadata.openai).toStrictEqual({
+        images: [{ size: '1024x1024' }, { size: '1024x1024' }],
+        inputTokensDetails: {
+          imageTokens: 388,
+          textTokens: 56,
+        },
+      });
+    });
+
     it('should merge non-image provider metadata fields', async () => {
       let callCount = 0;
 
