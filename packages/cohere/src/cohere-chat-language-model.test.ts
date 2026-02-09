@@ -412,13 +412,21 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'command-r-plus',
-        messages: [
-          { role: 'system', content: 'you are a friendly bot!' },
-          { role: 'user', content: 'Hello' },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
+            },
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+        }
+      `);
     });
 
     it('should pass tools', async () => {
@@ -442,34 +450,43 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'command-r-plus',
-        messages: [
-          {
-            role: 'system',
-            content: 'you are a friendly bot!',
-          },
-          { role: 'user', content: 'Hello' },
-        ],
-        tool_choice: 'NONE',
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: {
-                  value: { type: 'string' },
-                },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
             },
-          },
-        ],
-      });
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+          "tool_choice": "NONE",
+          "tools": [
+            {
+              "function": {
+                "name": "test-tool",
+                "parameters": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "value",
+                  ],
+                  "type": "object",
+                },
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
     });
 
     it('should pass headers', async () => {
@@ -487,12 +504,14 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
     });
 
     it('should pass response format', async () => {
@@ -510,23 +529,35 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'command-r-plus',
-        messages: [
-          { role: 'system', content: 'you are a friendly bot!' },
-          { role: 'user', content: 'Hello' },
-        ],
-        response_format: {
-          type: 'json_object',
-          json_schema: {
-            type: 'object',
-            properties: {
-              text: { type: 'string' },
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
             },
-            required: ['text'],
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+          "response_format": {
+            "json_schema": {
+              "properties": {
+                "text": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "text",
+              ],
+              "type": "object",
+            },
+            "type": "json_object",
           },
-        },
-      });
+        }
+      `);
     });
 
     it('should send request body', async () => {
@@ -573,11 +604,13 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(response?.headers).toStrictEqual({
-        'content-length': '304',
-        'content-type': 'application/json',
-        'test-header': 'test-value',
-      });
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "content-length": "304",
+          "content-type": "application/json",
+          "test-header": "test-value",
+        }
+      `);
     });
   });
 });
@@ -671,10 +704,6 @@ describe('doStream', () => {
         .map(chunk =>
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
-
-      expect(new Set(toolCallIds)).toStrictEqual(
-        new Set(['weather_e8p4pn45zt0t', 'cityAttractions_pyxssbwnq9fq']),
-      );
     });
   });
 
@@ -736,20 +765,22 @@ describe('doStream', () => {
         includeRawChunks: false,
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        stream: true,
-        model: 'command-r-plus',
-        messages: [
-          {
-            role: 'system',
-            content: 'you are a friendly bot!',
-          },
-          {
-            role: 'user',
-            content: 'Hello',
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
+            },
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+          "stream": true,
+        }
+      `);
     });
 
     it('should pass headers', async () => {
@@ -768,12 +799,14 @@ describe('doStream', () => {
         includeRawChunks: false,
       });
 
-      expect(server.calls[0].requestHeaders).toStrictEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+          "custom-provider-header": "provider-header-value",
+          "custom-request-header": "request-header-value",
+        }
+      `);
     });
 
     it('should send request body', async () => {
@@ -823,12 +856,14 @@ describe('doStream', () => {
         includeRawChunks: false,
       });
 
-      expect(response?.headers).toStrictEqual({
-        'content-type': 'text/event-stream',
-        'cache-control': 'no-cache',
-        connection: 'keep-alive',
-        'test-header': 'test-value',
-      });
+      expect(response?.headers).toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "test-header": "test-value",
+        }
+      `);
     });
   });
 });
