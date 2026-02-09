@@ -1,82 +1,82 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   convertAnthropicMessagesUsage,
   AnthropicMessagesUsage,
 } from './convert-anthropic-messages-usage';
 
 describe('convertAnthropicMessagesUsage', () => {
-  describe('basic usage without iterations', () => {
-    it('should convert basic usage correctly', () => {
-      const usage: AnthropicMessagesUsage = {
-        input_tokens: 100,
-        output_tokens: 50,
-      };
+  it('should use usage as raw when rawUsage is not provided', () => {
+    const usage = {
+      input_tokens: 10,
+      output_tokens: 20,
+    };
 
-      const result = convertAnthropicMessagesUsage(usage);
+    const result = convertAnthropicMessagesUsage({ usage });
 
-      expect(result).toEqual({
-        inputTokens: {
-          total: 100,
-          noCache: 100,
-          cacheRead: 0,
-          cacheWrite: 0,
-        },
-        outputTokens: {
-          total: 50,
-          text: undefined,
-          reasoning: undefined,
-        },
-        raw: usage,
-      });
+    expect(result.raw).toBe(usage);
+  });
+
+  it('should use rawUsage as raw when provided', () => {
+    const usage = {
+      input_tokens: 10,
+      output_tokens: 20,
+    };
+    const rawUsage = {
+      input_tokens: 10,
+      output_tokens: 20,
+      service_tier: 'standard',
+      inference_geo: 'not_available',
+      cache_creation: {
+        ephemeral_5m_input_tokens: 0,
+        ephemeral_1h_input_tokens: 0,
+      },
+    };
+
+    const result = convertAnthropicMessagesUsage({ usage, rawUsage });
+
+    expect(result.raw).toBe(rawUsage);
+  });
+
+  it('should compute token totals correctly with cache tokens', () => {
+    const result = convertAnthropicMessagesUsage({
+      usage: {
+        input_tokens: 10,
+        output_tokens: 20,
+        cache_creation_input_tokens: 5,
+        cache_read_input_tokens: 3,
+      },
     });
 
-    it('should handle cache tokens correctly', () => {
-      const usage: AnthropicMessagesUsage = {
-        input_tokens: 100,
-        output_tokens: 50,
-        cache_creation_input_tokens: 25,
-        cache_read_input_tokens: 10,
-      };
-
-      const result = convertAnthropicMessagesUsage(usage);
-
-      expect(result).toEqual({
-        inputTokens: {
-          total: 135, // 100 + 25 + 10
-          noCache: 100,
-          cacheRead: 10,
-          cacheWrite: 25,
-        },
-        outputTokens: {
-          total: 50,
-          text: undefined,
-          reasoning: undefined,
-        },
-        raw: usage,
-      });
+    expect(result.inputTokens).toEqual({
+      total: 18,
+      noCache: 10,
+      cacheRead: 3,
+      cacheWrite: 5,
     });
-
-    it('should handle null cache tokens', () => {
-      const usage: AnthropicMessagesUsage = {
-        input_tokens: 100,
-        output_tokens: 50,
-        cache_creation_input_tokens: null,
-        cache_read_input_tokens: null,
-      };
-
-      const result = convertAnthropicMessagesUsage(usage);
-
-      expect(result.inputTokens.total).toBe(100);
-      expect(result.inputTokens.cacheRead).toBe(0);
-      expect(result.inputTokens.cacheWrite).toBe(0);
+    expect(result.outputTokens).toEqual({
+      total: 20,
+      text: undefined,
+      reasoning: undefined,
     });
+  });
+
+  it('should handle null cache tokens', () => {
+    const usage: AnthropicMessagesUsage = {
+      input_tokens: 100,
+      output_tokens: 50,
+      cache_creation_input_tokens: null,
+      cache_read_input_tokens: null,
+    };
+
+    const result = convertAnthropicMessagesUsage({ usage });
+
+    expect(result.inputTokens.total).toBe(100);
+    expect(result.inputTokens.cacheRead).toBe(0);
+    expect(result.inputTokens.cacheWrite).toBe(0);
   });
 
   describe('compaction usage with iterations', () => {
     it('should sum across all iterations when iterations array is present', () => {
-      // Based on compaction.md documentation:
-      // The top-level input_tokens (45000) and output_tokens (1234) do NOT include
-      // compaction iteration usage. Total billed = sum of all iterations.
       const usage: AnthropicMessagesUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
@@ -94,7 +94,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       // Total should be sum of iterations, not top-level values
       expect(result.inputTokens.total).toBe(203000); // 180000 + 23000
@@ -116,14 +116,13 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       expect(result.inputTokens.total).toBe(5000);
       expect(result.outputTokens.total).toBe(500);
     });
 
     it('should handle multiple compaction iterations (long-running task)', () => {
-      // When using server tools, compaction may occur multiple times
       const usage: AnthropicMessagesUsage = {
         input_tokens: 10000,
         output_tokens: 500,
@@ -151,7 +150,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       // Total = 200000 + 50000 + 180000 + 30000 = 460000 input
       // Total = 4000 + 2000 + 3500 + 1500 = 11000 output
@@ -179,7 +178,7 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       // Total input = sum of iterations + cache tokens
       // noCache = sum of iterations only
@@ -188,6 +187,35 @@ describe('convertAnthropicMessagesUsage', () => {
       expect(result.inputTokens.cacheRead).toBe(500);
       expect(result.inputTokens.total).toBe(204500); // 203000 + 1000 + 500
       expect(result.outputTokens.total).toBe(4500); // 3500 + 1000
+    });
+
+    it('should use rawUsage as raw even when iterations are present', () => {
+      const usage: AnthropicMessagesUsage = {
+        input_tokens: 45000,
+        output_tokens: 1234,
+        iterations: [
+          {
+            type: 'compaction',
+            input_tokens: 180000,
+            output_tokens: 3500,
+          },
+          {
+            type: 'message',
+            input_tokens: 23000,
+            output_tokens: 1000,
+          },
+        ],
+      };
+      const rawUsage = {
+        input_tokens: 45000,
+        output_tokens: 1234,
+        service_tier: 'standard',
+      };
+
+      const result = convertAnthropicMessagesUsage({ usage, rawUsage });
+
+      expect(result.raw).toBe(rawUsage);
+      expect(result.inputTokens.total).toBe(203000);
     });
   });
 
@@ -199,7 +227,7 @@ describe('convertAnthropicMessagesUsage', () => {
         iterations: null,
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
@@ -211,7 +239,7 @@ describe('convertAnthropicMessagesUsage', () => {
         output_tokens: 50,
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
@@ -224,7 +252,7 @@ describe('convertAnthropicMessagesUsage', () => {
         iterations: [],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       expect(result.inputTokens.total).toBe(100);
       expect(result.outputTokens.total).toBe(50);
@@ -248,41 +276,15 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       expect(result.inputTokens.total).toBe(0);
       expect(result.outputTokens.total).toBe(0);
-    });
-
-    it('should preserve raw usage object in result', () => {
-      const usage: AnthropicMessagesUsage = {
-        input_tokens: 45000,
-        output_tokens: 1234,
-        iterations: [
-          {
-            type: 'compaction',
-            input_tokens: 180000,
-            output_tokens: 3500,
-          },
-          {
-            type: 'message',
-            input_tokens: 23000,
-            output_tokens: 1000,
-          },
-        ],
-      };
-
-      const result = convertAnthropicMessagesUsage(usage);
-
-      // raw should contain the original usage object including iterations
-      expect(result.raw).toBe(usage);
-      expect((result.raw as AnthropicMessagesUsage).iterations).toHaveLength(2);
     });
   });
 
   describe('real-world scenarios from documentation', () => {
     it('should match documentation example exactly', () => {
-      // From compaction.md "Understanding usage" section
       const usage: AnthropicMessagesUsage = {
         input_tokens: 45000,
         output_tokens: 1234,
@@ -300,10 +302,8 @@ describe('convertAnthropicMessagesUsage', () => {
         ],
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
-      // Per documentation: "To calculate total tokens consumed and billed
-      // for a request, sum across all entries in the usage.iterations array"
       const expectedTotalInput = 180000 + 23000; // 203000
       const expectedTotalOutput = 3500 + 1000; // 4500
 
@@ -317,17 +317,13 @@ describe('convertAnthropicMessagesUsage', () => {
     });
 
     it('should handle re-applying previous compaction block (no new compaction)', () => {
-      // Per documentation: "Re-applying a previous compaction block incurs
-      // no additional compaction cost, and the top-level usage fields remain
-      // accurate in that case."
-      // In this case, iterations array would not be present
       const usage: AnthropicMessagesUsage = {
         input_tokens: 15000,
         output_tokens: 800,
         // No iterations - previous compaction block was re-applied
       };
 
-      const result = convertAnthropicMessagesUsage(usage);
+      const result = convertAnthropicMessagesUsage({ usage });
 
       // Top-level values are accurate when no new compaction triggered
       expect(result.inputTokens.total).toBe(15000);
