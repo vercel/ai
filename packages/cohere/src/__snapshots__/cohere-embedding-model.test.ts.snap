@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`doEmbed > should expose the raw response 1`] = `
+exports[`doEmbed > should expose the raw response 2`] = `
 {
   "body": {
     "embeddings": {
