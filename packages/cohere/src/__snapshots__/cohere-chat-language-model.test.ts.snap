@@ -4,7 +4,10 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
 {
   "content": [
     {
-      "text": "AI has many benefits including automation.",
+      "text": "The key benefits mentioned in this document are:
+1. Automation of tasks
+2. Better decision-making
+3. Cost reduction",
       "type": "text",
     },
     {
@@ -13,24 +16,76 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
       "providerMetadata": {
         "cohere": {
           "citationType": "TEXT_CONTENT",
-          "end": 41,
+          "end": 71,
           "sources": [
             {
               "document": {
                 "id": "doc:0",
-                "text": "AI provides automation and efficiency.",
-                "title": "ai-benefits.txt",
+                "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                "title": "benefits.txt",
               },
               "id": "doc:0",
               "type": "document",
             },
           ],
-          "start": 31,
-          "text": "automation",
+          "start": 52,
+          "text": "Automation of tasks",
         },
       },
       "sourceType": "document",
-      "title": "ai-benefits.txt",
+      "title": "benefits.txt",
+      "type": "source",
+    },
+    {
+      "id": "test-citation-id",
+      "mediaType": "text/plain",
+      "providerMetadata": {
+        "cohere": {
+          "citationType": "TEXT_CONTENT",
+          "end": 97,
+          "sources": [
+            {
+              "document": {
+                "id": "doc:0",
+                "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                "title": "benefits.txt",
+              },
+              "id": "doc:0",
+              "type": "document",
+            },
+          ],
+          "start": 75,
+          "text": "Better decision-making",
+        },
+      },
+      "sourceType": "document",
+      "title": "benefits.txt",
+      "type": "source",
+    },
+    {
+      "id": "test-citation-id",
+      "mediaType": "text/plain",
+      "providerMetadata": {
+        "cohere": {
+          "citationType": "TEXT_CONTENT",
+          "end": 115,
+          "sources": [
+            {
+              "document": {
+                "id": "doc:0",
+                "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                "title": "benefits.txt",
+              },
+              "id": "doc:0",
+              "type": "document",
+            },
+          ],
+          "start": 101,
+          "text": "Cost reduction",
+        },
+      },
+      "sourceType": "document",
+      "title": "benefits.txt",
       "type": "source",
     },
   ],
@@ -71,68 +126,105 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
   "response": {
     "body": {
       "finish_reason": "COMPLETE",
-      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "id": "68475c80-574b-4c65-98a4-e81cebab5dce",
       "message": {
         "citations": [
           {
-            "end": 41,
+            "end": 71,
             "sources": [
               {
                 "document": {
                   "id": "doc:0",
-                  "text": "AI provides automation and efficiency.",
-                  "title": "ai-benefits.txt",
+                  "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                  "title": "benefits.txt",
                 },
                 "id": "doc:0",
                 "type": "document",
               },
             ],
-            "start": 31,
-            "text": "automation",
+            "start": 52,
+            "text": "Automation of tasks",
+            "type": "TEXT_CONTENT",
+          },
+          {
+            "end": 97,
+            "sources": [
+              {
+                "document": {
+                  "id": "doc:0",
+                  "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                  "title": "benefits.txt",
+                },
+                "id": "doc:0",
+                "type": "document",
+              },
+            ],
+            "start": 75,
+            "text": "Better decision-making",
+            "type": "TEXT_CONTENT",
+          },
+          {
+            "end": 115,
+            "sources": [
+              {
+                "document": {
+                  "id": "doc:0",
+                  "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+                  "title": "benefits.txt",
+                },
+                "id": "doc:0",
+                "type": "document",
+              },
+            ],
+            "start": 101,
+            "text": "Cost reduction",
             "type": "TEXT_CONTENT",
           },
         ],
         "content": [
           {
-            "text": "AI has many benefits including automation.",
+            "text": "The key benefits mentioned in this document are:
+1. Automation of tasks
+2. Better decision-making
+3. Cost reduction",
             "type": "text",
           },
         ],
         "role": "assistant",
       },
-      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
       "usage": {
         "billed_units": {
-          "input_tokens": 9,
-          "output_tokens": 415,
+          "input_tokens": 39,
+          "output_tokens": 27,
         },
+        "cached_tokens": 992,
         "tokens": {
-          "input_tokens": 4,
-          "output_tokens": 30,
+          "input_tokens": 1683,
+          "output_tokens": 62,
         },
       },
     },
     "headers": {
-      "content-length": "581",
+      "content-length": "1175",
       "content-type": "application/json",
     },
-    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+    "id": undefined,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": undefined,
       "cacheWrite": undefined,
-      "noCache": 4,
-      "total": 4,
+      "noCache": 1683,
+      "total": 1683,
     },
     "outputTokens": {
       "reasoning": undefined,
-      "text": 30,
-      "total": 30,
+      "text": 62,
+      "total": 62,
     },
     "raw": {
-      "input_tokens": 4,
-      "output_tokens": 30,
+      "input_tokens": 1683,
+      "output_tokens": 62,
     },
   },
   "warnings": [],
@@ -143,7 +235,7 @@ exports[`doGenerate > null tool call arguments > should handle string "null" too
 [
   {
     "input": "{}",
-    "toolCallId": "test-id-1",
+    "toolCallId": "currentTime_tf4dywn8wgnk",
     "toolName": "currentTime",
     "type": "tool-call",
   },
@@ -154,12 +246,12 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
 {
   "content": [
     {
-      "text": "42",
-      "type": "text",
+      "text": "Okay, so I need to figure out what 2 + 2 is. Let me start by recalling what addition means.",
+      "type": "reasoning",
     },
     {
-      "text": "So I was thinking ...",
-      "type": "reasoning",
+      "text": "2 + 2 = 4",
+      "type": "text",
     },
   ],
   "finishReason": {
@@ -195,53 +287,53 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
   "response": {
     "body": {
       "finish_reason": "COMPLETE",
-      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "id": "53bcb235-5179-4a91-a578-cb372b5430bc",
       "message": {
         "content": [
           {
-            "text": "42",
-            "type": "text",
+            "thinking": "Okay, so I need to figure out what 2 + 2 is. Let me start by recalling what addition means.",
+            "type": "thinking",
           },
           {
-            "thinking": "So I was thinking ...",
-            "type": "thinking",
+            "text": "2 + 2 = 4",
+            "type": "text",
           },
         ],
         "role": "assistant",
       },
-      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
       "usage": {
         "billed_units": {
-          "input_tokens": 9,
-          "output_tokens": 415,
+          "input_tokens": 8,
+          "output_tokens": 578,
         },
+        "cached_tokens": 1344,
         "tokens": {
-          "input_tokens": 4,
-          "output_tokens": 30,
+          "input_tokens": 1394,
+          "output_tokens": 582,
         },
       },
     },
     "headers": {
-      "content-length": "373",
+      "content-length": "411",
       "content-type": "application/json",
     },
-    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+    "id": undefined,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": undefined,
       "cacheWrite": undefined,
-      "noCache": 4,
-      "total": 4,
+      "noCache": 1394,
+      "total": 1394,
     },
     "outputTokens": {
       "reasoning": undefined,
-      "text": 30,
-      "total": 30,
+      "text": 582,
+      "total": 582,
     },
     "raw": {
-      "input_tokens": 4,
-      "output_tokens": 30,
+      "input_tokens": 1394,
+      "output_tokens": 582,
     },
   },
   "warnings": [],
@@ -252,7 +344,7 @@ exports[`doGenerate > text > should extract text response 1`] = `
 {
   "content": [
     {
-      "text": "Hello, World!",
+      "text": "The capital of France is Paris.",
       "type": "text",
     },
   ],
@@ -289,49 +381,49 @@ exports[`doGenerate > text > should extract text response 1`] = `
   "response": {
     "body": {
       "finish_reason": "COMPLETE",
-      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "id": "e7592632-1e3d-424f-b129-bd5f9f980f7b",
       "message": {
         "content": [
           {
-            "text": "Hello, World!",
+            "text": "The capital of France is Paris.",
             "type": "text",
           },
         ],
         "role": "assistant",
       },
-      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
       "usage": {
         "billed_units": {
-          "input_tokens": 9,
-          "output_tokens": 415,
+          "input_tokens": 12,
+          "output_tokens": 7,
         },
+        "cached_tokens": 448,
         "tokens": {
-          "input_tokens": 4,
-          "output_tokens": 30,
+          "input_tokens": 507,
+          "output_tokens": 10,
         },
       },
     },
     "headers": {
-      "content-length": "329",
+      "content-length": "304",
       "content-type": "application/json",
     },
-    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+    "id": undefined,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": undefined,
       "cacheWrite": undefined,
-      "noCache": 4,
-      "total": 4,
+      "noCache": 507,
+      "total": 507,
     },
     "outputTokens": {
       "reasoning": undefined,
-      "text": 30,
-      "total": 30,
+      "text": 10,
+      "total": 10,
     },
     "raw": {
-      "input_tokens": 4,
-      "output_tokens": 30,
+      "input_tokens": 507,
+      "output_tokens": 10,
     },
   },
   "warnings": [],
@@ -342,19 +434,21 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
 {
   "content": [
     {
-      "text": "Hello, World!",
-      "type": "text",
+      "input": "{"location":"San Francisco"}",
+      "toolCallId": "weather_dqgshstja6p9",
+      "toolName": "weather",
+      "type": "tool-call",
     },
     {
-      "input": "{"value":"example value"}",
-      "toolCallId": "test-id-1",
-      "toolName": "test-tool",
+      "input": "{"city":"San Francisco"}",
+      "toolCallId": "cityAttractions_dcxfx4myvx68",
+      "toolName": "cityAttractions",
       "type": "tool-call",
     },
   ],
   "finishReason": {
-    "raw": "COMPLETE",
-    "unified": "stop",
+    "raw": "TOOL_CALL",
+    "unified": "tool-calls",
   },
   "request": {
     "body": {
@@ -405,60 +499,63 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
   },
   "response": {
     "body": {
-      "finish_reason": "COMPLETE",
-      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "finish_reason": "TOOL_CALL",
+      "id": "f201af17-e24a-4396-8f6a-98e8bf9c3432",
       "message": {
-        "content": [
-          {
-            "text": "Hello, World!",
-            "type": "text",
-          },
-        ],
         "role": "assistant",
         "tool_calls": [
           {
             "function": {
-              "arguments": "{"value":"example value"}",
-              "name": "test-tool",
+              "arguments": "{"location":"San Francisco"}",
+              "name": "weather",
             },
-            "id": "test-id-1",
+            "id": "weather_dqgshstja6p9",
+            "type": "function",
+          },
+          {
+            "function": {
+              "arguments": "{"city":"San Francisco"}",
+              "name": "cityAttractions",
+            },
+            "id": "cityAttractions_dcxfx4myvx68",
             "type": "function",
           },
         ],
+        "tool_plan": "I will use the weather tool to find out the weather in San Francisco. I will also use the cityAttractions tool to find out what attractions are in San Francisco.",
       },
-      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
       "usage": {
         "billed_units": {
-          "input_tokens": 9,
-          "output_tokens": 415,
+          "input_tokens": 119,
+          "output_tokens": 52,
         },
+        "cached_tokens": 992,
         "tokens": {
-          "input_tokens": 4,
-          "output_tokens": 30,
+          "input_tokens": 1549,
+          "output_tokens": 103,
         },
       },
     },
     "headers": {
-      "content-length": "457",
+      "content-length": "693",
       "content-type": "application/json",
     },
-    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+    "id": undefined,
   },
   "usage": {
     "inputTokens": {
       "cacheRead": undefined,
       "cacheWrite": undefined,
-      "noCache": 4,
-      "total": 4,
+      "noCache": 1549,
+      "total": 1549,
     },
     "outputTokens": {
       "reasoning": undefined,
-      "text": 30,
-      "total": 30,
+      "text": 103,
+      "total": 103,
     },
     "raw": {
-      "input_tokens": 4,
-      "output_tokens": 30,
+      "input_tokens": 1549,
+      "output_tokens": 103,
     },
   },
   "warnings": [],
@@ -472,45 +569,45 @@ exports[`doStream > empty tool call > should handle empty tool call arguments 1`
     "warnings": [],
   },
   {
-    "id": "test-id",
+    "id": "66dec7d7-45e6-427c-8fd9-7d6375d12046",
     "type": "response-metadata",
   },
   {
-    "id": "test-id-1",
-    "toolName": "test-tool",
+    "id": "currentTime_y46ar19t5gvw",
+    "toolName": "currentTime",
     "type": "tool-input-start",
   },
   {
-    "id": "test-id-1",
+    "id": "currentTime_y46ar19t5gvw",
     "type": "tool-input-end",
   },
   {
     "input": "{}",
-    "toolCallId": "test-id-1",
-    "toolName": "test-tool",
+    "toolCallId": "currentTime_y46ar19t5gvw",
+    "toolName": "currentTime",
     "type": "tool-call",
   },
   {
     "finishReason": {
-      "raw": "COMPLETE",
-      "unified": "stop",
+      "raw": "TOOL_CALL",
+      "unified": "tool-calls",
     },
     "type": "finish",
     "usage": {
       "inputTokens": {
         "cacheRead": undefined,
         "cacheWrite": undefined,
-        "noCache": 10,
-        "total": 10,
+        "noCache": 1445,
+        "total": 1445,
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 5,
-        "total": 5,
+        "text": 43,
+        "total": 43,
       },
       "raw": {
-        "input_tokens": 10,
-        "output_tokens": 5,
+        "input_tokens": 1445,
+        "output_tokens": 43,
       },
     },
   },
@@ -559,7 +656,7 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
     "warnings": [],
   },
   {
-    "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+    "id": "c9117d7f-a7e4-499f-b643-a2a1e139687b",
     "type": "response-metadata",
   },
   {
@@ -567,27 +664,182 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
     "type": "reasoning-start",
   },
   {
-    "delta": "So",
+    "delta": "The",
     "id": "0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "I ",
+    "delta": " user",
     "id": "0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "was ",
+    "delta": " is",
     "id": "0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "thinking ",
+    "delta": " asking",
     "id": "0",
     "type": "reasoning-delta",
   },
   {
-    "delta": "...",
+    "delta": " for",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " sum",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " of",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " and",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " Since",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " this",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " is",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " a",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " straightforward",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " arithmetic",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " problem",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ",",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " don",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "'t",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " need",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " to",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " use",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " any",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " tools",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " I",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " can",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " calculate",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " answer",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": " directly",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": ".",
     "id": "0",
     "type": "reasoning-delta",
   },
@@ -596,26 +848,56 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
     "type": "reasoning-end",
   },
   {
-    "id": "0",
+    "id": "1",
     "type": "text-start",
   },
   {
-    "delta": "Hello",
-    "id": "0",
+    "delta": "The",
+    "id": "1",
     "type": "text-delta",
   },
   {
-    "delta": ", ",
-    "id": "0",
+    "delta": " answer",
+    "id": "1",
     "type": "text-delta",
   },
   {
-    "delta": "World!",
-    "id": "0",
+    "delta": " to",
+    "id": "1",
     "type": "text-delta",
   },
   {
-    "id": "0",
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " +",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 4",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "id": "1",
     "type": "text-end",
   },
   {
@@ -628,17 +910,17 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
       "inputTokens": {
         "cacheRead": undefined,
         "cacheWrite": undefined,
-        "noCache": 34,
-        "total": 34,
+        "noCache": 1394,
+        "total": 1394,
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 12,
-        "total": 12,
+        "text": 54,
+        "total": 54,
       },
       "raw": {
-        "input_tokens": 34,
-        "output_tokens": 12,
+        "input_tokens": 1394,
+        "output_tokens": 54,
       },
     },
   },
@@ -658,7 +940,7 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
           "tool_plan": "",
         },
       },
-      "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+      "id": "321d178c-2c12-44d3-ae42-2f5510f6b1cc",
       "type": "message-start",
     },
     "type": "raw",
@@ -683,7 +965,7 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
       "delta": {
         "message": {
           "content": {
-            "text": "Hello",
+            "text": "The",
           },
         },
       },
@@ -697,7 +979,7 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
       "delta": {
         "message": {
           "content": {
-            "text": ", ",
+            "text": " capital",
           },
         },
       },
@@ -711,7 +993,63 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
       "delta": {
         "message": {
           "content": {
-            "text": "World!",
+            "text": " of",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": " France",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": " is",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": " Paris",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": ".",
           },
         },
       },
@@ -732,9 +1070,14 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
       "delta": {
         "finish_reason": "COMPLETE",
         "usage": {
+          "billed_units": {
+            "input_tokens": 12,
+            "output_tokens": 7,
+          },
+          "cached_tokens": 448,
           "tokens": {
-            "input_tokens": 34,
-            "output_tokens": 12,
+            "input_tokens": 507,
+            "output_tokens": 10,
           },
         },
       },
@@ -752,7 +1095,7 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "warnings": [],
   },
   {
-    "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+    "id": "321d178c-2c12-44d3-ae42-2f5510f6b1cc",
     "type": "response-metadata",
   },
   {
@@ -760,17 +1103,37 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "type": "text-start",
   },
   {
-    "delta": "Hello",
+    "delta": "The",
     "id": "0",
     "type": "text-delta",
   },
   {
-    "delta": ", ",
+    "delta": " capital",
     "id": "0",
     "type": "text-delta",
   },
   {
-    "delta": "World!",
+    "delta": " of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " France",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Paris",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
     "id": "0",
     "type": "text-delta",
   },
@@ -788,17 +1151,17 @@ exports[`doStream > text > should stream text deltas 1`] = `
       "inputTokens": {
         "cacheRead": undefined,
         "cacheWrite": undefined,
-        "noCache": 34,
-        "total": 34,
+        "noCache": 507,
+        "total": 507,
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 12,
-        "total": 12,
+        "text": 10,
+        "total": 10,
       },
       "raw": {
-        "input_tokens": 34,
-        "output_tokens": 12,
+        "input_tokens": 507,
+        "output_tokens": 10,
       },
     },
   },
@@ -812,97 +1175,130 @@ exports[`doStream > tool call > should stream tool deltas 1`] = `
     "warnings": [],
   },
   {
-    "id": "29f14a5a-11de-4cae-9800-25e4747408ea",
+    "id": "2941521a-b87a-45f6-9b0d-235fd66c3025",
     "type": "response-metadata",
   },
   {
-    "id": "test-id-1",
-    "toolName": "test-tool",
+    "id": "weather_e8p4pn45zt0t",
+    "toolName": "weather",
     "type": "tool-input-start",
   },
   {
-    "delta": "{
-    "",
-    "id": "test-id-1",
+    "delta": "{"",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
-    "delta": "ticker",
-    "id": "test-id-1",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "_",
-    "id": "test-id-1",
-    "type": "tool-input-delta",
-  },
-  {
-    "delta": "symbol",
-    "id": "test-id-1",
+    "delta": "location",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
     "delta": "":",
-    "id": "test-id-1",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
     "delta": " "",
-    "id": "test-id-1",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
-    "delta": "AAPL",
-    "id": "test-id-1",
+    "delta": "San",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
-    "delta": """,
-    "id": "test-id-1",
+    "delta": " Francisco",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
-    "delta": "
-",
-    "id": "test-id-1",
+    "delta": ""}",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-delta",
   },
   {
-    "delta": "}",
-    "id": "test-id-1",
-    "type": "tool-input-delta",
-  },
-  {
-    "id": "test-id-1",
+    "id": "weather_e8p4pn45zt0t",
     "type": "tool-input-end",
   },
   {
-    "input": "{"ticker_symbol":"AAPL"}",
-    "toolCallId": "test-id-1",
-    "toolName": "test-tool",
+    "input": "{"location":"San Francisco"}",
+    "toolCallId": "weather_e8p4pn45zt0t",
+    "toolName": "weather",
+    "type": "tool-call",
+  },
+  {
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "toolName": "cityAttractions",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "city",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " "",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "cityAttractions_pyxssbwnq9fq",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"city":"San Francisco"}",
+    "toolCallId": "cityAttractions_pyxssbwnq9fq",
+    "toolName": "cityAttractions",
     "type": "tool-call",
   },
   {
     "finishReason": {
-      "raw": "COMPLETE",
-      "unified": "stop",
+      "raw": "TOOL_CALL",
+      "unified": "tool-calls",
     },
     "type": "finish",
     "usage": {
       "inputTokens": {
         "cacheRead": undefined,
         "cacheWrite": undefined,
-        "noCache": 893,
-        "total": 893,
+        "noCache": 1549,
+        "total": 1549,
       },
       "outputTokens": {
         "reasoning": undefined,
-        "text": 62,
-        "total": 62,
+        "text": 95,
+        "total": 95,
       },
       "raw": {
-        "input_tokens": 893,
-        "output_tokens": 62,
+        "input_tokens": 1549,
+        "output_tokens": 95,
       },
     },
   },

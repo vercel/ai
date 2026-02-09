@@ -38,8 +38,8 @@ describe('doEmbed', () => {
     const { embeddings } = await model.doEmbed({ values: testValues });
 
     expect(embeddings).toStrictEqual([
-      [0.1, 0.2, 0.3, 0.4, 0.5],
-      [0.6, 0.7, 0.8, 0.9, 1.0],
+      [0.03302002, 0.020904541, -0.019744873, -0.0625, 0.04437256],
+      [-0.04660034, 0.00037765503, -0.061157227, -0.08239746, -0.010360718],
     ]);
   });
 
@@ -51,7 +51,7 @@ describe('doEmbed', () => {
     const { response } = await model.doEmbed({ values: testValues });
 
     expect(response?.headers).toStrictEqual({
-      'content-length': '185',
+      'content-length': '363',
       'content-type': 'application/json',
       'test-header': 'test-value',
     });
@@ -61,7 +61,7 @@ describe('doEmbed', () => {
   it('should extract usage', async () => {
     const { usage } = await model.doEmbed({ values: testValues });
 
-    expect(usage).toStrictEqual({ tokens: 8 });
+    expect(usage).toStrictEqual({ tokens: 10 });
   });
 
   it('should pass the model and the values', async () => {

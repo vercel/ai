@@ -1,28 +1,28 @@
 {
-  "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
-  "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  "id": "53bcb235-5179-4a91-a578-cb372b5430bc",
   "message": {
     "role": "assistant",
     "content": [
       {
-        "type": "text",
-        "text": "42"
+        "type": "thinking",
+        "thinking": "Okay, so I need to figure out what 2 + 2 is. Let me start by recalling what addition means."
       },
       {
-        "type": "thinking",
-        "thinking": "So I was thinking ..."
+        "type": "text",
+        "text": "2 + 2 = 4"
       }
     ]
   },
   "finish_reason": "COMPLETE",
   "usage": {
     "billed_units": {
-      "input_tokens": 9,
-      "output_tokens": 415
+      "input_tokens": 8,
+      "output_tokens": 578
     },
     "tokens": {
-      "input_tokens": 4,
-      "output_tokens": 30
-    }
+      "input_tokens": 1394,
+      "output_tokens": 582
+    },
+    "cached_tokens": 1344
   }
 }

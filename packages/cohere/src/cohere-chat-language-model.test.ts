@@ -42,14 +42,14 @@ function prepareChunksFixtureResponse(
   filename: string,
   headers?: Record<string, string>,
 ) {
-  const raw = fs.readFileSync(
-    `src/__fixtures__/${filename}.chunks.txt`,
-    'utf8',
-  );
-  const chunks = raw
-    .split('\n\n')
-    .filter(chunk => chunk.trim() !== '')
-    .map(chunk => `${chunk}\n\n`);
+  const chunks = fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim() !== '')
+    .map(line => {
+      const parsed = JSON.parse(line);
+      return `event: ${parsed.type}\ndata: ${line}\n\n`;
+    });
 
   server.urls['https://api.cohere.com/v2/chat'].response = {
     type: 'stream-chunks',
@@ -574,7 +574,7 @@ describe('doGenerate', () => {
       });
 
       expect(response?.headers).toStrictEqual({
-        'content-length': '329',
+        'content-length': '304',
         'content-type': 'application/json',
         'test-header': 'test-value',
       });
@@ -672,7 +672,9 @@ describe('doStream', () => {
           chunk.type === 'tool-call' ? chunk.toolCallId : chunk.id,
         );
 
-      expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
+      expect(new Set(toolCallIds)).toStrictEqual(
+        new Set(['weather_e8p4pn45zt0t', 'cityAttractions_pyxssbwnq9fq']),
+      );
     });
   });
 

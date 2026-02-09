@@ -1,43 +1,77 @@
 {
-  "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
-  "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  "id": "68475c80-574b-4c65-98a4-e81cebab5dce",
   "message": {
     "role": "assistant",
     "content": [
       {
         "type": "text",
-        "text": "AI has many benefits including automation."
+        "text": "The key benefits mentioned in this document are:\n1. Automation of tasks\n2. Better decision-making\n3. Cost reduction"
       }
     ],
     "citations": [
       {
-        "start": 31,
-        "end": 41,
-        "text": "automation",
-        "type": "TEXT_CONTENT",
+        "start": 52,
+        "end": 71,
+        "text": "Automation of tasks",
         "sources": [
           {
             "type": "document",
             "id": "doc:0",
             "document": {
               "id": "doc:0",
-              "text": "AI provides automation and efficiency.",
-              "title": "ai-benefits.txt"
+              "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+              "title": "benefits.txt"
             }
           }
-        ]
+        ],
+        "type": "TEXT_CONTENT"
+      },
+      {
+        "start": 75,
+        "end": 97,
+        "text": "Better decision-making",
+        "sources": [
+          {
+            "type": "document",
+            "id": "doc:0",
+            "document": {
+              "id": "doc:0",
+              "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+              "title": "benefits.txt"
+            }
+          }
+        ],
+        "type": "TEXT_CONTENT"
+      },
+      {
+        "start": 101,
+        "end": 115,
+        "text": "Cost reduction",
+        "sources": [
+          {
+            "type": "document",
+            "id": "doc:0",
+            "document": {
+              "id": "doc:0",
+              "text": "AI provides: 1. Automation of tasks 2. Better decision-making 3. Cost reduction",
+              "title": "benefits.txt"
+            }
+          }
+        ],
+        "type": "TEXT_CONTENT"
       }
     ]
   },
   "finish_reason": "COMPLETE",
   "usage": {
     "billed_units": {
-      "input_tokens": 9,
-      "output_tokens": 415
+      "input_tokens": 39,
+      "output_tokens": 27
     },
     "tokens": {
-      "input_tokens": 4,
-      "output_tokens": 30
-    }
+      "input_tokens": 1683,
+      "output_tokens": 62
+    },
+    "cached_tokens": 992
   }
 }
