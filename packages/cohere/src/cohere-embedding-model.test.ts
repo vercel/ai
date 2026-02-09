@@ -1,16 +1,12 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const dummyEmbeddings = [
-  [0.1, 0.2, 0.3, 0.4, 0.5],
-  [0.6, 0.7, 0.8, 0.9, 1.0],
-];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createCohere({ apiKey: 'test-api-key' });
@@ -20,67 +16,55 @@ const server = createTestServer({
   'https://api.cohere.com/v2/embed': {},
 });
 
-describe('doEmbed', () => {
-  function prepareJsonResponse({
-    embeddings = dummyEmbeddings,
-    meta = { billed_units: { input_tokens: 8 } },
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls['https://api.cohere.com/v2/embed'].response = {
+    type: 'json-value',
     headers,
-  }: {
-    embeddings?: EmbeddingModelV3Embedding[];
-    meta?: { billed_units: { input_tokens: number } };
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://api.cohere.com/v2/embed'].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        id: 'test-id',
-        texts: testValues,
-        embeddings: { float: embeddings },
-        meta,
-      },
-    };
-  }
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
+describe('doEmbed', () => {
+  beforeEach(() => {
+    prepareJsonFixtureResponse('cohere-embedding');
+  });
 
   it('should extract embedding', async () => {
-    prepareJsonResponse();
-
     const { embeddings } = await model.doEmbed({ values: testValues });
 
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
+    expect(embeddings).toStrictEqual([
+      [0.1, 0.2, 0.3, 0.4, 0.5],
+      [0.6, 0.7, 0.8, 0.9, 1.0],
+    ]);
   });
 
   it('should expose the raw response', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
+    prepareJsonFixtureResponse('cohere-embedding', {
+      'test-header': 'test-value',
     });
 
     const { response } = await model.doEmbed({ values: testValues });
 
     expect(response?.headers).toStrictEqual({
-      // default headers:
       'content-length': '185',
       'content-type': 'application/json',
-
-      // custom header
       'test-header': 'test-value',
     });
     expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      meta: { billed_units: { input_tokens: 20 } },
-    });
-
     const { usage } = await model.doEmbed({ values: testValues });
 
-    expect(usage).toStrictEqual({ tokens: 20 });
+    expect(usage).toStrictEqual({ tokens: 8 });
   });
 
   it('should pass the model and the values', async () => {
-    prepareJsonResponse();
-
     await model.doEmbed({ values: testValues });
 
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -92,8 +76,6 @@ describe('doEmbed', () => {
   });
 
   it('should pass the input_type setting', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       providerOptions: {
@@ -112,8 +94,6 @@ describe('doEmbed', () => {
   });
 
   it('should pass the output_dimension setting', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-v4.0').doEmbed({
       values: testValues,
       providerOptions: {
@@ -133,8 +113,6 @@ describe('doEmbed', () => {
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
-
     const provider = createCohere({
       apiKey: 'test-api-key',
       headers: {

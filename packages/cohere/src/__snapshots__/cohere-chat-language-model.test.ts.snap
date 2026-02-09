@@ -1,0 +1,910 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > citations > should extract citations from response 1`] = `
+{
+  "content": [
+    {
+      "text": "AI has many benefits including automation.",
+      "type": "text",
+    },
+    {
+      "id": "test-citation-id",
+      "mediaType": "text/plain",
+      "providerMetadata": {
+        "cohere": {
+          "citationType": "TEXT_CONTENT",
+          "end": 41,
+          "sources": [
+            {
+              "document": {
+                "id": "doc:0",
+                "text": "AI provides automation and efficiency.",
+                "title": "ai-benefits.txt",
+              },
+              "id": "doc:0",
+              "type": "document",
+            },
+          ],
+          "start": 31,
+          "text": "automation",
+        },
+      },
+      "sourceType": "document",
+      "title": "ai-benefits.txt",
+      "type": "source",
+    },
+  ],
+  "finishReason": {
+    "raw": "COMPLETE",
+    "unified": "stop",
+  },
+  "request": {
+    "body": {
+      "documents": [
+        {
+          "data": {
+            "text": "AI provides automation and efficiency.",
+            "title": "ai-benefits.txt",
+          },
+        },
+      ],
+      "frequency_penalty": undefined,
+      "k": undefined,
+      "max_tokens": undefined,
+      "messages": [
+        {
+          "content": "What are AI benefits?",
+          "role": "user",
+        },
+      ],
+      "model": "command-r-plus",
+      "p": undefined,
+      "presence_penalty": undefined,
+      "response_format": undefined,
+      "seed": undefined,
+      "stop_sequences": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "finish_reason": "COMPLETE",
+      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "message": {
+        "citations": [
+          {
+            "end": 41,
+            "sources": [
+              {
+                "document": {
+                  "id": "doc:0",
+                  "text": "AI provides automation and efficiency.",
+                  "title": "ai-benefits.txt",
+                },
+                "id": "doc:0",
+                "type": "document",
+              },
+            ],
+            "start": 31,
+            "text": "automation",
+            "type": "TEXT_CONTENT",
+          },
+        ],
+        "content": [
+          {
+            "text": "AI has many benefits including automation.",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+      "usage": {
+        "billed_units": {
+          "input_tokens": 9,
+          "output_tokens": 415,
+        },
+        "tokens": {
+          "input_tokens": 4,
+          "output_tokens": 30,
+        },
+      },
+    },
+    "headers": {
+      "content-length": "581",
+      "content-type": "application/json",
+    },
+    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": undefined,
+      "cacheWrite": undefined,
+      "noCache": 4,
+      "total": 4,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": 30,
+      "total": 30,
+    },
+    "raw": {
+      "input_tokens": 4,
+      "output_tokens": 30,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`doGenerate > null tool call arguments > should handle string "null" tool call arguments 1`] = `
+[
+  {
+    "input": "{}",
+    "toolCallId": "test-id-1",
+    "toolName": "currentTime",
+    "type": "tool-call",
+  },
+]
+`;
+
+exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
+{
+  "content": [
+    {
+      "text": "42",
+      "type": "text",
+    },
+    {
+      "text": "So I was thinking ...",
+      "type": "reasoning",
+    },
+  ],
+  "finishReason": {
+    "raw": "COMPLETE",
+    "unified": "stop",
+  },
+  "request": {
+    "body": {
+      "frequency_penalty": undefined,
+      "k": undefined,
+      "max_tokens": undefined,
+      "messages": [
+        {
+          "content": "you are a friendly bot!",
+          "role": "system",
+        },
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ],
+      "model": "command-r-plus",
+      "p": undefined,
+      "presence_penalty": undefined,
+      "response_format": undefined,
+      "seed": undefined,
+      "stop_sequences": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "finish_reason": "COMPLETE",
+      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "message": {
+        "content": [
+          {
+            "text": "42",
+            "type": "text",
+          },
+          {
+            "thinking": "So I was thinking ...",
+            "type": "thinking",
+          },
+        ],
+        "role": "assistant",
+      },
+      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+      "usage": {
+        "billed_units": {
+          "input_tokens": 9,
+          "output_tokens": 415,
+        },
+        "tokens": {
+          "input_tokens": 4,
+          "output_tokens": 30,
+        },
+      },
+    },
+    "headers": {
+      "content-length": "373",
+      "content-type": "application/json",
+    },
+    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": undefined,
+      "cacheWrite": undefined,
+      "noCache": 4,
+      "total": 4,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": 30,
+      "total": 30,
+    },
+    "raw": {
+      "input_tokens": 4,
+      "output_tokens": 30,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`doGenerate > text > should extract text response 1`] = `
+{
+  "content": [
+    {
+      "text": "Hello, World!",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": "COMPLETE",
+    "unified": "stop",
+  },
+  "request": {
+    "body": {
+      "frequency_penalty": undefined,
+      "k": undefined,
+      "max_tokens": undefined,
+      "messages": [
+        {
+          "content": "you are a friendly bot!",
+          "role": "system",
+        },
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ],
+      "model": "command-r-plus",
+      "p": undefined,
+      "presence_penalty": undefined,
+      "response_format": undefined,
+      "seed": undefined,
+      "stop_sequences": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "finish_reason": "COMPLETE",
+      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "message": {
+        "content": [
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+      },
+      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+      "usage": {
+        "billed_units": {
+          "input_tokens": 9,
+          "output_tokens": 415,
+        },
+        "tokens": {
+          "input_tokens": 4,
+          "output_tokens": 30,
+        },
+      },
+    },
+    "headers": {
+      "content-length": "329",
+      "content-type": "application/json",
+    },
+    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": undefined,
+      "cacheWrite": undefined,
+      "noCache": 4,
+      "total": 4,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": 30,
+      "total": 30,
+    },
+    "raw": {
+      "input_tokens": 4,
+      "output_tokens": 30,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`doGenerate > tool call > should extract tool calls 1`] = `
+{
+  "content": [
+    {
+      "text": "Hello, World!",
+      "type": "text",
+    },
+    {
+      "input": "{"value":"example value"}",
+      "toolCallId": "test-id-1",
+      "toolName": "test-tool",
+      "type": "tool-call",
+    },
+  ],
+  "finishReason": {
+    "raw": "COMPLETE",
+    "unified": "stop",
+  },
+  "request": {
+    "body": {
+      "frequency_penalty": undefined,
+      "k": undefined,
+      "max_tokens": undefined,
+      "messages": [
+        {
+          "content": "you are a friendly bot!",
+          "role": "system",
+        },
+        {
+          "content": "Hello",
+          "role": "user",
+        },
+      ],
+      "model": "command-r-plus",
+      "p": undefined,
+      "presence_penalty": undefined,
+      "response_format": undefined,
+      "seed": undefined,
+      "stop_sequences": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": [
+        {
+          "function": {
+            "description": undefined,
+            "name": "test-tool",
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+          },
+          "type": "function",
+        },
+      ],
+    },
+  },
+  "response": {
+    "body": {
+      "finish_reason": "COMPLETE",
+      "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+      "message": {
+        "content": [
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+        ],
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "function": {
+              "arguments": "{"value":"example value"}",
+              "name": "test-tool",
+            },
+            "id": "test-id-1",
+            "type": "function",
+          },
+        ],
+      },
+      "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+      "usage": {
+        "billed_units": {
+          "input_tokens": 9,
+          "output_tokens": 415,
+        },
+        "tokens": {
+          "input_tokens": 4,
+          "output_tokens": 30,
+        },
+      },
+    },
+    "headers": {
+      "content-length": "457",
+      "content-type": "application/json",
+    },
+    "id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": undefined,
+      "cacheWrite": undefined,
+      "noCache": 4,
+      "total": 4,
+    },
+    "outputTokens": {
+      "reasoning": undefined,
+      "text": 30,
+      "total": 30,
+    },
+    "raw": {
+      "input_tokens": 4,
+      "output_tokens": 30,
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`doStream > empty tool call > should handle empty tool call arguments 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "test-id",
+    "type": "response-metadata",
+  },
+  {
+    "id": "test-id-1",
+    "toolName": "test-tool",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "test-id-1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{}",
+    "toolCallId": "test-id-1",
+    "toolName": "test-tool",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "COMPLETE",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": 10,
+        "total": 10,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": 5,
+        "total": 5,
+      },
+      "raw": {
+        "input_tokens": 10,
+        "output_tokens": 5,
+      },
+    },
+  },
+]
+`;
+
+exports[`doStream > error handling > should handle unparsable stream parts 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+    "type": "error",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "error",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": undefined,
+        "total": undefined,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": undefined,
+      },
+      "raw": undefined,
+    },
+  },
+]
+`;
+
+exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "reasoning-start",
+  },
+  {
+    "delta": "So",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "I ",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "was ",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "thinking ",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "delta": "...",
+    "id": "0",
+    "type": "reasoning-delta",
+  },
+  {
+    "id": "0",
+    "type": "reasoning-end",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Hello",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "World!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "COMPLETE",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": 34,
+        "total": 34,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 34,
+        "output_tokens": 12,
+      },
+    },
+  },
+]
+`;
+
+exports[`doStream > text > should include raw chunks when includeRawChunks is enabled 1`] = `
+[
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "citations": [],
+          "content": [],
+          "role": "assistant",
+          "tool_calls": [],
+          "tool_plan": "",
+        },
+      },
+      "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+      "type": "message-start",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": "",
+            "type": "text",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-start",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": "Hello",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": ", ",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "message": {
+          "content": {
+            "text": "World!",
+          },
+        },
+      },
+      "index": 0,
+      "type": "content-delta",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "index": 0,
+      "type": "content-end",
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "delta": {
+        "finish_reason": "COMPLETE",
+        "usage": {
+          "tokens": {
+            "input_tokens": 34,
+            "output_tokens": 12,
+          },
+        },
+      },
+      "type": "message-end",
+    },
+    "type": "raw",
+  },
+]
+`;
+
+exports[`doStream > text > should stream text deltas 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Hello",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ", ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "World!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "COMPLETE",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": 34,
+        "total": 34,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": 12,
+        "total": 12,
+      },
+      "raw": {
+        "input_tokens": 34,
+        "output_tokens": 12,
+      },
+    },
+  },
+]
+`;
+
+exports[`doStream > tool call > should stream tool deltas 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "29f14a5a-11de-4cae-9800-25e4747408ea",
+    "type": "response-metadata",
+  },
+  {
+    "id": "test-id-1",
+    "toolName": "test-tool",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{
+    "",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "ticker",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "symbol",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "":",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " "",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "AAPL",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": """,
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "
+",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "test-id-1",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "test-id-1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"ticker_symbol":"AAPL"}",
+    "toolCallId": "test-id-1",
+    "toolName": "test-tool",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "COMPLETE",
+      "unified": "stop",
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": undefined,
+        "cacheWrite": undefined,
+        "noCache": 893,
+        "total": 893,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": 62,
+        "total": 62,
+      },
+      "raw": {
+        "input_tokens": 893,
+        "output_tokens": 62,
+      },
+    },
+  },
+]
+`;
