@@ -1,0 +1,43 @@
+event: message-start
+data: {"type":"message-start","id":"29f14a5a-11de-4cae-9800-25e4747408ea","delta":{"message":{"role":"assistant","content":[],"tool_plan":"","tool_calls":[],"citations":[]}}}
+
+event: tool-call-start
+data: {"type":"tool-call-start","delta":{"message":{"tool_calls":{"id":"test-id-1","type":"function","function":{"name":"test-tool","arguments":""}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"{\n    \""}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"ticker"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"_"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"symbol"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\":"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":" \""}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"AAPL"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\""}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"\n"}}}}}
+
+event: tool-call-delta
+data: {"type":"tool-call-delta","delta":{"message":{"tool_calls":{"function":{"arguments":"}"}}}}}
+
+event: tool-call-end
+data: {"type":"tool-call-end"}
+
+event: message-end
+data: {"type":"message-end","delta":{"finish_reason":"COMPLETE","usage":{"tokens":{"input_tokens":893,"output_tokens":62}}}}
+
+data: [DONE]

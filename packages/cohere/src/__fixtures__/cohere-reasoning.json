@@ -1,0 +1,28 @@
+{
+  "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+  "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  "message": {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "42"
+      },
+      {
+        "type": "thinking",
+        "thinking": "So I was thinking ..."
+      }
+    ]
+  },
+  "finish_reason": "COMPLETE",
+  "usage": {
+    "billed_units": {
+      "input_tokens": 9,
+      "output_tokens": 415
+    },
+    "tokens": {
+      "input_tokens": 4,
+      "output_tokens": 30
+    }
+  }
+}

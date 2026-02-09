@@ -1,0 +1,43 @@
+{
+  "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+  "generation_id": "dad0c7cd-7982-42a7-acfb-706ccf598291",
+  "message": {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "AI has many benefits including automation."
+      }
+    ],
+    "citations": [
+      {
+        "start": 31,
+        "end": 41,
+        "text": "automation",
+        "type": "TEXT_CONTENT",
+        "sources": [
+          {
+            "type": "document",
+            "id": "doc:0",
+            "document": {
+              "id": "doc:0",
+              "text": "AI provides automation and efficiency.",
+              "title": "ai-benefits.txt"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "finish_reason": "COMPLETE",
+  "usage": {
+    "billed_units": {
+      "input_tokens": 9,
+      "output_tokens": 415
+    },
+    "tokens": {
+      "input_tokens": 4,
+      "output_tokens": 30
+    }
+  }
+}
