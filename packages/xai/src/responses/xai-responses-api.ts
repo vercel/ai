@@ -342,6 +342,20 @@ export const xaiResponsesChunkSchema = z.union([
     text: z.string(),
   }),
   z.object({
+    type: z.literal('response.reasoning_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    text: z.string(),
+  }),
+  z.object({
     type: z.literal('response.web_search_call.in_progress'),
     item_id: z.string(),
     output_index: z.number(),

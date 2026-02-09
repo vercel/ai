@@ -263,7 +263,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
-            output: part.codeExecutionResult.output,
+            output: part.codeExecutionResult.output ?? '',
           },
         });
         // Clear the ID after use to avoid accidental reuse.
@@ -476,7 +476,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       toolName: 'code_execution',
                       result: {
                         outcome: part.codeExecutionResult.outcome,
-                        output: part.codeExecutionResult.output,
+                        output: part.codeExecutionResult.output ?? '',
                       },
                     });
                     // Clear the ID after use.
@@ -895,7 +895,7 @@ const getContentSchema = () =>
             codeExecutionResult: z
               .object({
                 outcome: z.string(),
-                output: z.string(),
+                output: z.string().nullish(),
               })
               .nullish(),
             text: z.string().nullish(),
