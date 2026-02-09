@@ -100,6 +100,16 @@ export interface AnthropicMessageMetadata {
            */
           clearedInputTokens: number;
         }
+      /**
+       * Represents a compaction edit where the conversation context was summarized.
+       */
+      | {
+          /**
+           * The type of context management edit applied.
+           * Possible value: 'compact_20260112'
+           */
+          type: 'compact_20260112';
+        }
     >;
   } | null;
 }
