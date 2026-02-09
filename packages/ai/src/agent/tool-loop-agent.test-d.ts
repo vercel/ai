@@ -11,10 +11,11 @@ import { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-on-finish-callb
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: StreamTextOnFinishCallback<{}> = async event => {
-        const context: unknown = event.experimental_context;
-        context;
-      };
+      const streamTextCallback: StreamTextOnFinishCallback<{}> =
+        async event => {
+          const context: unknown = event.experimental_context;
+          context;
+        };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
         ToolLoopAgentOnFinishCallback<{}>
