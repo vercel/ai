@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doGenerate > should extract text content 1`] = `
+[
+  {
+    "text": "Hello! I'm Qwen, an AI assistant created by Alibaba Cloud. How can I help you today?",
+    "type": "text",
+  },
+]
+`;

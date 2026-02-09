@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV3,
+  Experimental_VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   NoSuchModelError,
@@ -33,6 +34,7 @@ export function customProvider<
   TRANSCRIPTION_MODELS extends Record<string, TranscriptionModelV3>,
   SPEECH_MODELS extends Record<string, SpeechModelV3>,
   RERANKING_MODELS extends Record<string, RerankingModelV3>,
+  VIDEO_MODELS extends Record<string, Experimental_VideoModelV3>,
 >({
   languageModels,
   embeddingModels,
@@ -40,6 +42,7 @@ export function customProvider<
   transcriptionModels,
   speechModels,
   rerankingModels,
+  videoModels,
   fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
@@ -48,6 +51,7 @@ export function customProvider<
   transcriptionModels?: TRANSCRIPTION_MODELS;
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
+  videoModels?: VIDEO_MODELS;
   fallbackProvider?: ProviderV3 | ProviderV2;
 }): ProviderV3 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV3;
@@ -58,6 +62,7 @@ export function customProvider<
   ): TranscriptionModelV3;
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV3;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV3;
+  videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV3;
 } {
   const fallbackProvider = fallbackProviderArg
     ? asProviderV3(fallbackProviderArg)
@@ -140,6 +145,22 @@ export function customProvider<
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
+    },
+    videoModel(
+      modelId: ExtractModelId<VIDEO_MODELS>,
+    ): Experimental_VideoModelV3 {
+      if (videoModels != null && modelId in videoModels) {
+        return videoModels[modelId];
+      }
+
+      // TODO AI SDK v7
+      // @ts-expect-error - videoModel support is experimental
+      const videoModel = fallbackProvider?.videoModel;
+      if (videoModel) {
+        return videoModel(modelId);
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
     },
   };
 }

@@ -529,6 +529,40 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               return;
             }
 
+            if (event.type === 'response.reasoning_text.delta') {
+              const blockId = `reasoning-${event.item_id}`;
+
+              if (activeReasoning[event.item_id] == null) {
+                activeReasoning[event.item_id] = {};
+                controller.enqueue({
+                  type: 'reasoning-start',
+                  id: blockId,
+                  providerMetadata: {
+                    xai: {
+                      itemId: event.item_id,
+                    },
+                  },
+                });
+              }
+
+              controller.enqueue({
+                type: 'reasoning-delta',
+                id: blockId,
+                delta: event.delta,
+                providerMetadata: {
+                  xai: {
+                    itemId: event.item_id,
+                  },
+                },
+              });
+
+              return;
+            }
+
+            if (event.type === 'response.reasoning_text.done') {
+              return;
+            }
+
             if (event.type === 'response.output_text.delta') {
               const blockId = `text-${event.item_id}`;
 
