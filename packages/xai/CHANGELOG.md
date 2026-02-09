@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.49
+
+### Patch Changes
+
+- 8b3e72d: fix (provider/xai): handle new reasoning text chunk parts
+
 ## 3.0.48
 
 ### Patch Changes
