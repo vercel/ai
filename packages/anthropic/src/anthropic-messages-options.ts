@@ -134,6 +134,12 @@ export const anthropicProviderOptions = z.object({
    * @default 'high'
    */
   effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+
+  /**
+   * Enable fast mode for faster inference (2.5x faster output token speeds).
+   * Only supported with claude-opus-4-6.
+   */
+  speed: z.literal('fast').optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
