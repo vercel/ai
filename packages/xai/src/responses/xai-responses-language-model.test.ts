@@ -1573,6 +1573,148 @@ describe('XaiResponsesLanguageModel', () => {
         expect(reasoningStartIndex).toBeLessThan(reasoningEndIndex);
       });
 
+      it('should stream reasoning text deltas (response.reasoning_text.delta)', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: 'First',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: ', analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.done',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            text: 'First, analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                { type: 'summary_text', text: 'First, analyze the question.' },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'The answer.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 20,
+                output_tokens_details: { reasoning_tokens: 15 },
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel('grok-code-fast-1').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        expect(reasoningStart).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-start",
+          }
+        `);
+
+        const reasoningDeltas = parts.filter(
+          part => part.type === 'reasoning-delta',
+        );
+        expect(reasoningDeltas).toHaveLength(2);
+        expect(reasoningDeltas[0].delta).toBe('First');
+        expect(reasoningDeltas[1].delta).toBe(', analyze the question.');
+
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+
+        // Verify ordering: reasoning-start < reasoning-deltas < reasoning-end < text
+        const startIdx = parts.findIndex(p => p.type === 'reasoning-start');
+        const firstDeltaIdx = parts.findIndex(
+          p => p.type === 'reasoning-delta',
+        );
+        const endIdx = parts.findIndex(p => p.type === 'reasoning-end');
+        const textIdx = parts.findIndex(p => p.type === 'text-delta');
+        expect(startIdx).toBeLessThan(firstDeltaIdx);
+        expect(firstDeltaIdx).toBeLessThan(endIdx);
+        expect(endIdx).toBeLessThan(textIdx);
+      });
+
       it('should stream x_search tool call', async () => {
         prepareChunksFixtureResponse('xai-x-search-tool');
 
