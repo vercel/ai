@@ -1076,6 +1076,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "cacheCreationInputTokens": null,
             "container": null,
             "contextManagement": null,
+            "iterations": null,
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1497,6 +1498,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
+              "iterations": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1650,6 +1652,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
+              "iterations": null,
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -4390,6 +4393,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
+                  "iterations": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -4421,6 +4425,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 0,
                   "cache_read_input_tokens": 0,
                   "input_tokens": 849,
+                  "iterations": null,
                   "output_tokens": 47,
                 },
               },
@@ -4539,6 +4544,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
+                  "iterations": null,
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -4570,6 +4576,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 0,
                   "cache_read_input_tokens": 0,
                   "input_tokens": 849,
+                  "iterations": null,
                   "output_tokens": 47,
                 },
               },
@@ -4733,6 +4740,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
+                    "iterations": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -4764,6 +4772,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cache_creation_input_tokens": 0,
                     "cache_read_input_tokens": 0,
                     "input_tokens": 843,
+                    "iterations": null,
                     "output_tokens": 28,
                   },
                 },
@@ -4935,6 +4944,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -4959,6 +4969,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5076,6 +5087,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -5100,6 +5112,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5174,6 +5187,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -5198,6 +5212,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5258,6 +5273,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -5282,6 +5298,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5443,6 +5460,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -5467,6 +5485,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 0,
                 "cache_read_input_tokens": 0,
                 "input_tokens": 441,
+                "iterations": null,
                 "output_tokens": 65,
               },
             },
@@ -5700,6 +5719,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -5726,6 +5746,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 10,
                 "cache_read_input_tokens": 5,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5791,6 +5812,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -5821,6 +5843,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 10,
                 "cache_read_input_tokens": 5,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -5884,6 +5907,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
+                "iterations": null,
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -5910,6 +5934,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "cache_creation_input_tokens": 10,
                 "cache_read_input_tokens": 5,
                 "input_tokens": 17,
+                "iterations": null,
                 "output_tokens": 227,
               },
             },
@@ -6001,6 +6026,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
+                  "iterations": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -6025,6 +6051,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 0,
                   "cache_read_input_tokens": 0,
                   "input_tokens": 17,
+                  "iterations": null,
                   "output_tokens": 227,
                 },
               },
@@ -6066,6 +6093,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
+                  "iterations": null,
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -6090,6 +6118,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 0,
                   "cache_read_input_tokens": 0,
                   "input_tokens": 17,
+                  "iterations": null,
                   "output_tokens": 227,
                 },
               },
@@ -6318,6 +6347,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
+                  "iterations": null,
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -6342,6 +6372,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "cache_creation_input_tokens": 0,
                   "cache_read_input_tokens": 0,
                   "input_tokens": 17,
+                  "iterations": null,
                   "output_tokens": 227,
                 },
               },
@@ -6527,6 +6558,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cacheCreationInputTokens": null,
                     "container": null,
                     "contextManagement": null,
+                    "iterations": null,
                     "stopSequence": null,
                     "usage": {
                       "input_tokens": 441,
@@ -6551,6 +6583,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cache_creation_input_tokens": 0,
                     "cache_read_input_tokens": 0,
                     "input_tokens": 441,
+                    "iterations": null,
                     "output_tokens": 65,
                   },
                 },
@@ -6635,6 +6668,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
+                    "iterations": null,
                     "stopSequence": null,
                     "usage": {
                       "cache_creation": {
@@ -6666,6 +6700,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                     "cache_creation_input_tokens": 0,
                     "cache_read_input_tokens": 0,
                     "input_tokens": 565,
+                    "iterations": null,
                     "output_tokens": 48,
                   },
                 },
