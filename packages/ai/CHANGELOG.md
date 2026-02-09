@@ -1,5 +1,43 @@
 # ai
 
+## 6.0.78
+
+### Patch Changes
+
+- 59fcf30: fix(ai): make experimental_context required in ToolLoopAgentOnFinishCallback
+
+  This fixes a type inconsistency where `ToolLoopAgentOnFinishCallback` had `experimental_context` as optional while `StreamTextOnFinishCallback` and `GenerateTextOnFinishCallback` had it as required. Since `ToolLoopAgent` delegates to `streamText`/`generateText`, and both always pass `experimental_context` when invoking the callback, the types should match.
+
+## 6.0.77
+
+### Patch Changes
+
+- Updated dependencies [eea5d30]
+  - @ai-sdk/gateway@3.0.39
+
+## 6.0.76
+
+### Patch Changes
+
+- Updated dependencies [70028ab]
+  - @ai-sdk/gateway@3.0.38
+
+## 6.0.75
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/gateway@3.0.37
+  - @ai-sdk/provider-utils@4.0.14
+
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
 ## 6.0.73
 
 ### Patch Changes

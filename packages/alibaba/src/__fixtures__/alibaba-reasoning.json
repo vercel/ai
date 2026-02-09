@@ -1,0 +1,25 @@
+{
+  "id": "chatcmpl-test-reasoning",
+  "object": "chat.completion",
+  "created": 1234567890,
+  "model": "qwen3-max",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "The answer is 3.",
+        "reasoning_content": "Let me think about this step by step."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 18,
+    "total_tokens": 33,
+    "completion_tokens_details": {
+      "reasoning_tokens": 8
+    }
+  }
+}

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/black-forest-labs": "workspace:*",
+    "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
     "@ai-sdk/assemblyai": "workspace:*",
@@ -22,6 +23,7 @@
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
+    "@ai-sdk/klingai": "workspace:*",
     "@ai-sdk/lmnt": "workspace:*",
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
