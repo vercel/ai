@@ -1,0 +1,141 @@
+---
+title: Kling AI
+description: Learn how to use the Kling AI provider for the AI SDK.
+---
+
+# Kling AI Provider
+
+The [Kling AI](https://klingai.com/) provider contains support for Kling AI's video generation models, starting with motion control video generation.
+
+## Setup
+
+The Kling AI provider is available in the `@ai-sdk/klingai` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/klingai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/klingai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/klingai" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @ai-sdk/klingai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `klingai` from `@ai-sdk/klingai`:
+
+```ts
+import { klingai } from '@ai-sdk/klingai';
+```
+
+If you need a customized setup, you can import `createKlingAI` from `@ai-sdk/klingai` and create a provider instance with your settings:
+
+```ts
+import { createKlingAI } from '@ai-sdk/klingai';
+
+const klingai = createKlingAI({
+  accessKey: 'your-access-key',
+  secretKey: 'your-secret-key',
+});
+```
+
+You can use the following optional settings to customize the Kling AI provider instance:
+
+- **accessKey** _string_
+
+  Kling AI access key. Defaults to the `KLINGAI_ACCESS_KEY` environment variable.
+
+- **secretKey** _string_
+
+  Kling AI secret key. Defaults to the `KLINGAI_SECRET_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api-singapore.klingai.com`.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Video Models
+
+You can create Kling AI video models using the `.video()` factory method.
+For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+### Basic Usage
+
+```ts
+import { klingai, type KlingAIVideoProviderOptions } from '@ai-sdk/klingai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: klingai.video('kling-v2.6-motion-control'),
+  prompt: {
+    image: 'https://example.com/character.png',
+    text: 'The character performs a smooth dance move',
+  },
+  providerOptions: {
+    klingai: {
+      videoUrl: 'https://example.com/reference-motion.mp4',
+      characterOrientation: 'image',
+      mode: 'std',
+    } satisfies KlingAIVideoProviderOptions,
+  },
+});
+```
+
+### Provider Options
+
+The following provider options are available via `providerOptions.klingai`:
+
+- **videoUrl** _string_ (required)
+
+  URL of the reference motion video. The character actions in the generated video
+  will match this reference. Supports .mp4/.mov, max 100MB, duration 3–30 seconds.
+
+- **characterOrientation** _'image' | 'video'_ (required)
+
+  Orientation of the characters in the generated video.
+  `'image'` matches the reference image orientation (max 10s video).
+  `'video'` matches the reference video orientation (max 30s video).
+
+- **mode** _'std' | 'pro'_ (required)
+
+  Video generation mode. `'std'` is cost-effective. `'pro'` produces higher quality
+  but takes longer.
+
+- **keepOriginalSound** _'yes' | 'no'_
+
+  Whether to keep the original sound from the reference video. Defaults to `'yes'`.
+
+- **watermarkEnabled** _boolean_
+
+  Whether to generate watermarked results simultaneously.
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
+
+### Model Capabilities
+
+| Model                       | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| `kling-v2.6-motion-control` | Transfers motion from a reference video to a character image |

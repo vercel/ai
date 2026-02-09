@@ -1,5 +1,36 @@
 # @ai-sdk/google-vertex
 
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [ba98c56]
+  - @ai-sdk/google@3.0.23
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [0a0d29c]
+  - @ai-sdk/anthropic@3.0.39
+
+## 4.0.46
+
+### Patch Changes
+
+- 90a41e3: feat (provider/google-vertex): update model ids and add video generation docs
+
+## 4.0.45
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/google@3.0.22
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/anthropic@3.0.38
+  - @ai-sdk/provider-utils@4.0.14
+
 ## 4.0.44
 
 ### Patch Changes
