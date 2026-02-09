@@ -9,7 +9,7 @@
         "type": "function",
         "function": {
           "name": "currentTime",
-          "arguments": "{}"
+          "arguments": "null"
         }
       }
     ]
