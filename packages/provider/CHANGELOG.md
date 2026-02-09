@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.8
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+
 ## 3.0.7
 
 ### Patch Changes

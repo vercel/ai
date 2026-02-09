@@ -135,6 +135,29 @@ export function createFireworks(
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       errorStructure: fireworksErrorStructure,
+      transformRequestBody: args => {
+        const thinking = args.thinking as
+          | { type?: string; budgetTokens?: number }
+          | undefined;
+        const reasoningHistory = args.reasoningHistory as string | undefined;
+
+        const { thinking: _, reasoningHistory: __, ...rest } = args;
+
+        return {
+          ...rest,
+          ...(thinking && {
+            thinking: {
+              type: thinking.type,
+              ...(thinking.budgetTokens !== undefined && {
+                budget_tokens: thinking.budgetTokens,
+              }),
+            },
+          }),
+          ...(reasoningHistory && {
+            reasoning_history: reasoningHistory,
+          }),
+        };
+      },
     });
   };
 

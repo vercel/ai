@@ -1,5 +1,27 @@
 # @ai-sdk/xai
 
+## 3.0.49
+
+### Patch Changes
+
+- 8b3e72d: fix (provider/xai): handle new reasoning text chunk parts
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
 ## 3.0.46
 
 ### Patch Changes

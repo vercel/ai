@@ -1,5 +1,49 @@
 # @ai-sdk/gateway
 
+## 3.0.39
+
+### Patch Changes
+
+- eea5d30: fix: image generation via Gateway warning schema mismatch
+
+## 3.0.38
+
+### Patch Changes
+
+- 70028ab: feat: report image generation usage info in Gateway
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.36
+
+### Patch Changes
+
+- 9892c58: feat(anthropic): add support for Opus 4.6
+
+## 3.0.35
+
+### Patch Changes
+
+- 8e2eaac: chore(provider/gateway): update gateway model settings files
+
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.32
 
 ### Patch Changes
