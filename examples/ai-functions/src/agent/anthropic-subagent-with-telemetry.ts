@@ -12,8 +12,6 @@ const sdk = new NodeSDK({
 sdk.start();
 
 run(async () => {
-  // Create a single trace — all SDK calls (orchestrator + sub-agents)
-  // will appear as children of this trace's root operation.
   const trace = createTrace({
     ...otel(),
     name: 'anthropic-subagents-demo',
@@ -31,7 +29,7 @@ run(async () => {
       city: z.string().describe('The city to research weather for'),
     }),
     execute: async ({ city }, { abortSignal }) => {
-      // Sub-agent: explicitly passes the trace so it shares the same trace
+      // subagent - explicitly passes the trace so it shares the same trace
       const result = await generateText({
         model: anthropic('claude-3-7-sonnet-20250219'),
         system:
@@ -79,7 +77,7 @@ run(async () => {
       city: z.string().describe('The city to get information about'),
     }),
     execute: async ({ city }, { abortSignal }) => {
-      // Sub-agent: explicitly passes the trace so it shares the same trace
+      // subagent - explicitly passes the trace so it shares the same trace
       const result = await generateText({
         model: anthropic('claude-3-7-sonnet-20250219'),
         system:
@@ -135,7 +133,7 @@ run(async () => {
     },
   });
 
-  // --- Main agent orchestrates via sub-agents ---
+  // main agent
   const result = await generateText({
     model: anthropic('claude-3-7-sonnet-20250219'),
     prompt:
