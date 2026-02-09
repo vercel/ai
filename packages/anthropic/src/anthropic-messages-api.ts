@@ -434,7 +434,8 @@ export type AnthropicTool =
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
-  | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
+  | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean }
+  | { type: 'none' };
 
 export type AnthropicContainer = {
   id?: string | null;

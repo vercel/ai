@@ -1020,8 +1020,15 @@ describe('prepareTools', () => {
       toolChoice: { type: 'none' },
       supportsStructuredOutput: true,
     });
-    expect(result.tools).toBeUndefined();
-    expect(result.toolChoice).toBeUndefined();
+    expect(result.tools).toEqual([
+      {
+        cache_control: undefined,
+        name: 'testFunction',
+        description: 'Test',
+        input_schema: {},
+      },
+    ]);
+    expect(result.toolChoice).toEqual({ type: 'none' });
   });
 
   it('should handle tool choice "tool"', async () => {
