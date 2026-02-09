@@ -287,9 +287,12 @@ run(async () => {
       case 'finish': {
         console.log('\n=== Stream Finished ===');
         console.log('Finish reason:', part.finishReason);
-        console.log('Usage:', part.totalUsage);
         break;
       }
     }
   }
+
+  const response = await result.response;
+  console.log('\n=== Raw Response Body ===');
+  console.log(JSON.stringify(response, null, 2));
 });

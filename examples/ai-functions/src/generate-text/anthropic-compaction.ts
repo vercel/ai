@@ -261,6 +261,9 @@ run(async () => {
   console.log('=== Response ===');
   console.log(result.text);
 
+  console.log('\n=== Raw Response Body ===');
+  console.dir(result.response.body, { depth: Infinity });
+
   console.log('\n=== Provider Metadata ===');
   console.log(JSON.stringify(result.providerMetadata, null, 2));
 });
