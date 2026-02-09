@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { JSONObject, LanguageModelV3Usage } from '@ai-sdk/provider';
 
 export type AnthropicMessagesUsage = {
   input_tokens: number;
@@ -7,9 +7,13 @@ export type AnthropicMessagesUsage = {
   cache_read_input_tokens?: number | null;
 };
 
-export function convertAnthropicMessagesUsage(
-  usage: AnthropicMessagesUsage,
-): LanguageModelV3Usage {
+export function convertAnthropicMessagesUsage({
+  usage,
+  rawUsage,
+}: {
+  usage: AnthropicMessagesUsage;
+  rawUsage?: JSONObject;
+}): LanguageModelV3Usage {
   const inputTokens = usage.input_tokens;
   const outputTokens = usage.output_tokens;
   const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
@@ -27,6 +31,6 @@ export function convertAnthropicMessagesUsage(
       text: undefined,
       reasoning: undefined,
     },
-    raw: usage,
+    raw: rawUsage ?? usage,
   };
 }

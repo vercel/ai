@@ -1091,7 +1091,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         }),
         raw: response.stop_reason ?? undefined,
       },
-      usage: convertAnthropicMessagesUsage(response.usage),
+      usage: convertAnthropicMessagesUsage({ usage: response.usage }),
       request: { body: args },
       response: {
         id: response.id ?? undefined,
@@ -2026,7 +2026,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'finish',
                 finishReason,
-                usage: convertAnthropicMessagesUsage(usage),
+                usage: convertAnthropicMessagesUsage({ usage, rawUsage }),
                 providerMetadata,
               });
               return;
