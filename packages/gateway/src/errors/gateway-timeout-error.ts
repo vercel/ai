@@ -47,9 +47,7 @@ export class GatewayTimeoutError extends GatewayError {
   }): GatewayTimeoutError {
     const message = `Gateway request timed out: ${originalMessage}
 
-This is a client-side timeout. Please increase your timeout settings.
-
-Troubleshooting: <Docs Link>`;
+    This is a client-side timeout. To resolve this, increase your timeout configuration: https://vercel.com/docs/ai-gateway/capabilities/video-generation#extending-timeouts-for-node.js`;
 
     return new GatewayTimeoutError({
       message,
