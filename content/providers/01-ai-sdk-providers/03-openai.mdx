@@ -2060,6 +2060,7 @@ The following provider options are available:
   Defaults to 0.
   Optional.
 
+- **include** _string[]_
   Additional information to include in the transcription response.
 
 - **chunkingStrategy** _'auto' | { type: 'server_vad', prefixPaddingMs?: number, silenceDurationMs?: number, threshold?: number }_
@@ -2080,7 +2081,7 @@ The following provider options are available:
 | `whisper-1`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini-transcribe`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`         | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe-diarize` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `gpt-4o-transcribe-diarize` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 
 ## Speech Models
 
