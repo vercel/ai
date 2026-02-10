@@ -100,8 +100,9 @@ describe('asGatewayError', () => {
 
   describe('error properties', () => {
     it('should preserve the original error as cause', async () => {
-      const originalError = new Error('timeout error');
-      originalError.name = 'HeadersTimeoutError';
+      const originalError = Object.assign(new Error('timeout error'), {
+        code: 'UND_ERR_HEADERS_TIMEOUT',
+      });
 
       const result = await asGatewayError(originalError);
 
@@ -109,8 +110,9 @@ describe('asGatewayError', () => {
     });
 
     it('should set correct status code for timeout errors', async () => {
-      const error = new Error('timeout');
-      error.name = 'HeadersTimeoutError';
+      const error = Object.assign(new Error('timeout'), {
+        code: 'UND_ERR_HEADERS_TIMEOUT',
+      });
 
       const result = await asGatewayError(error);
 
@@ -118,8 +120,9 @@ describe('asGatewayError', () => {
     });
 
     it('should have correct error type', async () => {
-      const error = new Error('timeout');
-      error.name = 'HeadersTimeoutError';
+      const error = Object.assign(new Error('timeout'), {
+        code: 'UND_ERR_HEADERS_TIMEOUT',
+      });
 
       const result = await asGatewayError(error);
 
@@ -128,27 +131,7 @@ describe('asGatewayError', () => {
   });
 
   describe('APICallError with timeout cause', () => {
-    it('should detect timeout when APICallError has HeadersTimeoutError as cause', async () => {
-      const timeoutError = new Error('Headers Timeout Error');
-      timeoutError.name = 'HeadersTimeoutError';
-
-      const apiCallError = new APICallError({
-        message: 'Cannot connect to API: Headers Timeout Error',
-        url: 'https://example.com',
-        requestBodyValues: {},
-        cause: timeoutError,
-      });
-
-      const result = await asGatewayError(apiCallError);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain('Gateway request timed out');
-      expect(result.message).toContain('Cannot connect to API');
-      expect(result.statusCode).toBe(408);
-      expect(result.cause).toBe(apiCallError);
-    });
-
-    it('should detect timeout when APICallError has error code in cause', async () => {
+    it('should detect timeout when APICallError has UND_ERR_HEADERS_TIMEOUT in cause', async () => {
       const timeoutError = Object.assign(new Error('Request timeout'), {
         code: 'UND_ERR_HEADERS_TIMEOUT',
       });
