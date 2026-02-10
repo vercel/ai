@@ -290,6 +290,98 @@ const result = await generateText({
 });
 ```
 
+#### Compaction
+
+The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
+
+```ts highlight="7-19"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-opus-4-6'),
+  messages: conversationHistory,
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'compact_20260112',
+            trigger: {
+              type: 'input_tokens',
+              value: 50000, // trigger compaction when input exceeds 50k tokens
+            },
+            instructions:
+              'Summarize the conversation concisely, preserving key decisions and context.',
+            pauseAfterCompaction: false,
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **trigger** - Condition that triggers compaction (e.g., `{ type: 'input_tokens', value: 50000 }`)
+- **instructions** - Custom instructions for how the model should summarize the conversation. Use this to guide the compaction summary towards specific aspects of the conversation you want to preserve.
+- **pauseAfterCompaction** - When `true`, the model will pause after generating the compaction summary, allowing you to inspect or process it before continuing. Defaults to `false`.
+
+When compaction occurs, the model generates a summary of the earlier context. This summary appears as a text block with special provider metadata.
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
+
+```ts
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction =
+        part.providerMetadata?.anthropic?.type === 'compaction';
+      if (isCompaction) {
+        console.log('[COMPACTION SUMMARY START]');
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction summaries appear as regular text parts with `providerMetadata`. You can style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.anthropic as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Compaction Summary]</span>
+            <div>{part.text}</div>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
+```
+
 #### Applied Edits Metadata
 
 After generation, you can check which edits were applied in the provider metadata:
@@ -304,6 +396,9 @@ if (metadata?.appliedEdits) {
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     } else if (edit.type === 'clear_thinking_20251015') {
       console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'compact_20260112') {
+      console.log('Compaction was applied');
       console.log(`Freed ${edit.clearedInputTokens} tokens`);
     }
   });
@@ -499,7 +594,7 @@ The Text Editor Tool provides functionality for viewing and editing text files.
 const tools = {
   str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
     maxCharacters: 10000, // optional
-    async execute({ command, path, old_str, new_str }) {
+    async execute({ command, path, old_str, new_str, insert_text }) {
       // ...
     },
   }),
@@ -523,7 +618,8 @@ Parameters:
 - `path` (string): Absolute path to file or directory, e.g. `/repo/file.py` or `/repo`.
 - `file_text` (string, optional): Required for `create` command, with the content of the file to be created.
 - `insert_line` (number, optional): Required for `insert` command. The line number after which to insert the new string.
-- `new_str` (string, optional): New string for `str_replace` or `insert` commands.
+- `new_str` (string, optional): New string for `str_replace` command.
+- `insert_text` (string, optional): Required for `insert` command, containing the text to insert.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
@@ -743,6 +839,57 @@ const result = await generateText({
 ```
 
 Claude will construct regex patterns like `weather|temperature|forecast` to find matching tools.
+
+#### Custom Tool Search
+
+You can implement your own tool search logic (e.g., using embeddings or semantic search) by returning `tool-reference` content blocks via `toModelOutput`:
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    // Custom search tool
+    searchTools: tool({
+      description: 'Search for tools by keyword',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        // Your custom search logic (embeddings, fuzzy match, etc.)
+        const allTools = ['get_weather', 'get_forecast', 'get_temperature'];
+        return allTools.filter(name => name.includes(query.toLowerCase()));
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'content',
+        value: (output as string[]).map(toolName => ({
+          type: 'custom' as const,
+          providerOptions: {
+            anthropic: {
+              type: 'tool-reference',
+              toolName,
+            },
+          },
+        })),
+      }),
+    }),
+
+    // Deferred tools
+    get_weather: tool({
+      description: 'Get the current weather',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({ location, temperature: 72 }),
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+This sends `tool_reference` blocks to Anthropic, which loads the corresponding deferred tool schemas into Claude's context.
 
 ### MCP Connectors
 
@@ -1122,16 +1269,17 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

@@ -11,6 +11,14 @@ The Rev.ai provider is available in the `@ai-sdk/revai` module. You can install 
 npm i @ai-sdk/revai
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Provider Instance
 
 You can import the default provider instance `revai` from `@ai-sdk/revai`:

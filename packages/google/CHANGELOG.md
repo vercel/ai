@@ -1,5 +1,58 @@
 # @ai-sdk/google
 
+## 3.0.23
+
+### Patch Changes
+
+- ba98c56: fix(google): make `codeExecutionResult.output` optional in response schema
+
+  Gemini 3 Flash omits the `output` field in `codeExecutionResult` when code execution produces no text output (e.g., only saves files). The Zod response schema now accepts a missing `output` field and defaults it to an empty string.
+
+## 3.0.22
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.21
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
+## 3.0.20
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.18
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.17
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
 ## 3.0.16
 
 ### Patch Changes

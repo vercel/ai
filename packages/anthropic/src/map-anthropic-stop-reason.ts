@@ -22,6 +22,8 @@ export function mapAnthropicStopReason({
     case 'max_tokens':
     case 'model_context_window_exceeded':
       return 'length';
+    case 'compaction':
+      return 'other';
     default:
       return 'other';
   }
