@@ -1,9 +1,5 @@
 import type { TelemetryConfig, TelemetryEventData } from './types';
 
-// ---------------------------------------------------------------------------
-// AsyncLocalStorage — optional, gracefully degrades
-// ---------------------------------------------------------------------------
-
 type ALS<T> = {
   getStore(): T | undefined;
   run<R>(store: T, fn: () => R): R;
@@ -12,7 +8,6 @@ type ALS<T> = {
 let traceStorage: ALS<TelemetryTrace> | undefined;
 
 try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { AsyncLocalStorage } = require('node:async_hooks');
   traceStorage = new AsyncLocalStorage();
 } catch {
@@ -32,21 +27,8 @@ export function getActiveTrace(): TelemetryTrace | undefined {
   return traceStorage?.getStore();
 }
 
-// ---------------------------------------------------------------------------
-// TelemetryTrace
-// ---------------------------------------------------------------------------
-
 /**
  * A trace groups multiple SDK calls under a single parent operation.
- *
- * Created via `createTrace()`. Can be passed as `telemetry` to SDK functions
- * (explicit) or activated via `trace.run()` (implicit, uses AsyncLocalStorage).
- *
- * Extends `TelemetryConfig` so it can be used directly as a telemetry config:
- * ```ts
- * const trace = createTrace(otel());
- * await generateText({ model, prompt, telemetry: trace });
- * ```
  */
 export interface TelemetryTrace extends TelemetryConfig {
   /** Unique ID of the trace's root operation. */
@@ -131,7 +113,6 @@ export function createTrace(
   const traceName = config.name ?? config.functionId ?? 'trace';
   let ended = false;
 
-  // Build the initial data for the root operation
   const rootData: TelemetryEventData = {};
   if (config.functionId != null) {
     rootData.functionId = config.functionId;
@@ -140,7 +121,6 @@ export function createTrace(
     rootData.metadata = config.metadata;
   }
 
-  // Emit the root operation start
   config.handler.onOperationStarted?.({
     type: 'operationStarted',
     operationId: traceId,
@@ -151,14 +131,12 @@ export function createTrace(
   });
 
   const trace: TelemetryTrace = {
-    // Spread the config so handler, recordInputs, recordOutputs, etc. are inherited
     handler: config.handler,
     functionId: config.functionId,
     metadata: config.metadata,
     recordInputs: config.recordInputs,
     recordOutputs: config.recordOutputs,
 
-    // Link child SDK calls to this trace's root operation
     parentOperationId: traceId,
 
     traceId,
