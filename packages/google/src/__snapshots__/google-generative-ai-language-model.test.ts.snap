@@ -133,25 +133,20 @@ exports[`doGenerate > text > should extract text response 1`] = `
 {
   "content": [
     {
-      "providerMetadata": undefined,
-      "text": "## Lumina Day - A Celebration of Inner Light and Shared Kindness (Observed annually on the Winter Solstice)
+      "providerMetadata": {
+        "google": {
+          "thoughtSignature": "EtoFCtcFAb4+9vtfe4MXRxQjw48U1WKrR/7lYsgFkVi/bepqsSPjY0VU7HEzkeCBIfy1fu5t9aUZ4IZ65aWagqbBrV45fc97olcg",
+        },
+      },
+      "text": "There are **3** r's in strawberry.
 
-**Core Concept:** Lumina Day is a secular holiday dedicated to recognizing and nurturing the inner light within oneself and others, especially during the darkest time of the year. It's a celebration of resilience, empathy, and the shared human experience, meant to combat winter blues and promote community connection.
-
-**Date:** Winter Solstice (December 21st in the Northern Hemisphere)
-
-**Symbols:**
-
-*   **Candles & Lights:** Represent the individual "lumina" (inner light) that each person carries.
-*   **Mirrors:** Symbolize self-reflection and acknowledging one's own strengths and vulnerabilities.
-*   **Seeds:** Represent potential and the promise of growth, even in the darkest times.
-*   **The "Lumina Knot":** A simple knot tied from various colored strings, each color representing a different value: kindness",
+Here is the breakdown: st**r**awbe**rr**y.",
       "type": "text",
     },
   ],
   "finishReason": {
-    "raw": "MAX_TOKENS",
-    "unified": "length",
+    "raw": "STOP",
+    "unified": "stop",
   },
   "providerMetadata": {
     "google": {
@@ -160,9 +155,10 @@ exports[`doGenerate > text > should extract text response 1`] = `
       "safetyRatings": null,
       "urlContextMetadata": null,
       "usageMetadata": {
-        "candidatesTokenCount": 200,
+        "candidatesTokenCount": 28,
         "promptTokenCount": 9,
-        "totalTokenCount": 209,
+        "thoughtsTokenCount": 244,
+        "totalTokenCount": 281,
       },
     },
   },
@@ -204,39 +200,25 @@ exports[`doGenerate > text > should extract text response 1`] = `
     "body": {
       "candidates": [
         {
-          "avgLogprobs": -0.5192837905883789,
           "content": {
             "parts": [
               {
-                "text": "## Lumina Day - A Celebration of Inner Light and Shared Kindness (Observed annually on the Winter Solstice)
+                "text": "There are **3** r's in strawberry.
 
-**Core Concept:** Lumina Day is a secular holiday dedicated to recognizing and nurturing the inner light within oneself and others, especially during the darkest time of the year. It's a celebration of resilience, empathy, and the shared human experience, meant to combat winter blues and promote community connection.
-
-**Date:** Winter Solstice (December 21st in the Northern Hemisphere)
-
-**Symbols:**
-
-*   **Candles & Lights:** Represent the individual "lumina" (inner light) that each person carries.
-*   **Mirrors:** Symbolize self-reflection and acknowledging one's own strengths and vulnerabilities.
-*   **Seeds:** Represent potential and the promise of growth, even in the darkest times.
-*   **The "Lumina Knot":** A simple knot tied from various colored strings, each color representing a different value: kindness",
+Here is the breakdown: st**r**awbe**rr**y.",
+                "thoughtSignature": "EtoFCtcFAb4+9vtfe4MXRxQjw48U1WKrR/7lYsgFkVi/bepqsSPjY0VU7HEzkeCBIfy1fu5t9aUZ4IZ65aWagqbBrV45fc97olcg",
               },
             ],
             "role": "model",
           },
-          "finishReason": "MAX_TOKENS",
+          "finishReason": "STOP",
+          "index": 0,
         },
       ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "fGmLafr0OaSHqtsPoKHz8Ao",
+      "modelVersion": "gemini-3-pro-preview",
+      "responseId": "Un6LacrVMcjUxs0PmJfWoQc",
       "usageMetadata": {
-        "candidatesTokenCount": 200,
-        "candidatesTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 200,
-          },
-        ],
+        "candidatesTokenCount": 28,
         "promptTokenCount": 9,
         "promptTokensDetails": [
           {
@@ -244,11 +226,12 @@ exports[`doGenerate > text > should extract text response 1`] = `
             "tokenCount": 9,
           },
         ],
-        "totalTokenCount": 209,
+        "thoughtsTokenCount": 244,
+        "totalTokenCount": 281,
       },
     },
     "headers": {
-      "content-length": "1360",
+      "content-length": "549",
       "content-type": "application/json",
     },
   },
@@ -260,14 +243,15 @@ exports[`doGenerate > text > should extract text response 1`] = `
       "total": 9,
     },
     "outputTokens": {
-      "reasoning": 0,
-      "text": 200,
-      "total": 200,
+      "reasoning": 244,
+      "text": 28,
+      "total": 272,
     },
     "raw": {
-      "candidatesTokenCount": 200,
+      "candidatesTokenCount": 28,
       "promptTokenCount": 9,
-      "totalTokenCount": 209,
+      "thoughtsTokenCount": 244,
+      "totalTokenCount": 281,
     },
   },
   "warnings": [],
@@ -283,14 +267,15 @@ exports[`doGenerate > text > should extract usage 1`] = `
     "total": 9,
   },
   "outputTokens": {
-    "reasoning": 0,
-    "text": 200,
-    "total": 200,
+    "reasoning": 244,
+    "text": 28,
+    "total": 272,
   },
   "raw": {
-    "candidatesTokenCount": 200,
+    "candidatesTokenCount": 28,
     "promptTokenCount": 9,
-    "totalTokenCount": 209,
+    "thoughtsTokenCount": 244,
+    "totalTokenCount": 281,
   },
 }
 `;
@@ -300,7 +285,11 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
   "content": [
     {
       "input": "{"location":"San Francisco"}",
-      "providerMetadata": undefined,
+      "providerMetadata": {
+        "google": {
+          "thoughtSignature": "EskgCsYgAb4+9vtF7/499YQS2bjZs3xcQI+iAl+ILn29nK1j0Kg6su7QsUUUk3nrAAfnS2w5WiVvlcCqu9fAebJ2cvfaEyBahEt5",
+        },
+      },
       "toolCallId": "test-id",
       "toolName": "weather",
       "type": "tool-call",
@@ -317,9 +306,10 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       "safetyRatings": null,
       "urlContextMetadata": null,
       "usageMetadata": {
-        "candidatesTokenCount": 4,
-        "promptTokenCount": 26,
-        "totalTokenCount": 30,
+        "candidatesTokenCount": 15,
+        "promptTokenCount": 29,
+        "thoughtsTokenCount": 893,
+        "totalTokenCount": 937,
       },
     },
   },
@@ -381,7 +371,6 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
     "body": {
       "candidates": [
         {
-          "avgLogprobs": -0.0000394245216739364,
           "content": {
             "parts": [
               {
@@ -391,35 +380,33 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
                   },
                   "name": "weather",
                 },
+                "thoughtSignature": "EskgCsYgAb4+9vtF7/499YQS2bjZs3xcQI+iAl+ILn29nK1j0Kg6su7QsUUUk3nrAAfnS2w5WiVvlcCqu9fAebJ2cvfaEyBahEt5",
               },
             ],
             "role": "model",
           },
+          "finishMessage": "Model generated function call(s).",
           "finishReason": "STOP",
+          "index": 0,
         },
       ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "k2mLafruFb-bqtsPqZzu2Qo",
+      "modelVersion": "gemini-3-pro-preview",
+      "responseId": "m36LaZGyCLz1xs0PtNSB-QU",
       "usageMetadata": {
-        "candidatesTokenCount": 4,
-        "candidatesTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 4,
-          },
-        ],
-        "promptTokenCount": 26,
+        "candidatesTokenCount": 15,
+        "promptTokenCount": 29,
         "promptTokensDetails": [
           {
             "modality": "TEXT",
-            "tokenCount": 26,
+            "tokenCount": 29,
           },
         ],
-        "totalTokenCount": 30,
+        "thoughtsTokenCount": 893,
+        "totalTokenCount": 937,
       },
     },
     "headers": {
-      "content-length": "468",
+      "content-length": "583",
       "content-type": "application/json",
     },
   },
@@ -427,18 +414,19 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
     "inputTokens": {
       "cacheRead": 0,
       "cacheWrite": undefined,
-      "noCache": 26,
-      "total": 26,
+      "noCache": 29,
+      "total": 29,
     },
     "outputTokens": {
-      "reasoning": 0,
-      "text": 4,
-      "total": 4,
+      "reasoning": 893,
+      "text": 15,
+      "total": 908,
     },
     "raw": {
-      "candidatesTokenCount": 4,
-      "promptTokenCount": 26,
-      "totalTokenCount": 30,
+      "candidatesTokenCount": 15,
+      "promptTokenCount": 29,
+      "thoughtsTokenCount": 893,
+      "totalTokenCount": 937,
     },
   },
   "warnings": [],
@@ -587,47 +575,34 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
   {
     "id": "0",
     "providerMetadata": undefined,
-    "type": "reasoning-start",
-  },
-  {
-    "delta": "I need to count the letter "r" in "strawberry".
-
-",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "reasoning-delta",
-  },
-  {
-    "delta": "s-t-r-a-w-b-e-r-r-y. I count 3 r's.
-
-",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "reasoning-delta",
-  },
-  {
-    "id": "0",
-    "type": "reasoning-end",
-  },
-  {
-    "id": "1",
-    "providerMetadata": undefined,
     "type": "text-start",
   },
   {
-    "delta": "There are **3** "r"s in the word "strawberry",
-    "id": "1",
+    "delta": "There are **3** "r"s in",
+    "id": "0",
     "providerMetadata": undefined,
     "type": "text-delta",
   },
   {
-    "delta": "".",
-    "id": "1",
+    "delta": " strawberry.
+
+Here is the breakdown: st**r**awbe**rr**y.",
+    "id": "0",
     "providerMetadata": undefined,
     "type": "text-delta",
   },
   {
-    "id": "1",
+    "delta": "",
+    "id": "0",
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "Eo0HCooHAb4+9vutXdtKMt+r7Z3gLh52ZQ3RKYDzp4A6PHh0dLuvI1KwnLxDS/qm8wn4Gm9NNNQ1nBS/rrCAvr4GUTqanTkyxQb0ctdgoMiQJ/BwIXliPqJ5C+YtnXZfktX+roGCDmCE4qimrCzgW4TytiSC4glx6CPNVCUT2S/vrK3WT1Dn8DpykEIddvSH5PRxAOXQHjPfwQ9BUcBVw3/6+dTv/IgIIDbSkt0Lmy/Vww80oAWSDph0YpK2OXdpuZnUjscFeKJFqMJeuc3OAuAMIeb1GSwD2l5bcufkMqBDSZb00QxjTqrQm7DHbauxrz7oNCJRtRFQlrGrrMx2ut2eXzeEamNGXf433pMBZBi0BxhFWBCuZemJQIzY/LHiHT7jTjaiZIISyAMFC7u/WTY5ONRa9wWQ76NJVmriCm2+Mo1GXVGAkwwD54qiKgGxvFEWeJqP+13Esuw02QwHEVWnIbQUhaEYDIvR//AGPvDJVpzZmDfv9mcJSa09z4/UG2sadoftByt44eW3gBINtmeUAGjn52wETOxUsq/2qz/zkxvySOpUcXFKAktjgLdA7tHMYRgrCUgYcfznZc1XlyCivb7imNJadsVg0O5SMcnBLAme/0cnnOUrZK1CW+7S5UM8408GE9soyHAXf92y8mZ3n9YoEPKhuf0OjMSYoI9MOqhkIZxj8IaOAuaH8PrAd2nI6Y82jCFF81ZxJN+YyL/NNL3iURvtPHJ2hGjQGdzYnm62CYEAG8t5bEZwix6agxhyY1uM/Atj1nvD/bpVvvBENrMPWFhI0O8IvJ2bdJh2AcKSLQveWZpqs8HQoUMZcOQPs61wn9se+NKh760oCvLDcfNxWSInIFpLuZdL8xzluDxu1FXm75LFPoTRnbCUAG9PcJJWyoM3SLgw3SaoRIjwkAbdOK47NwYhS1WSvgxQwbnMix75XKez8Ja17/o847oplrjiezqJVpQsMqs6mxRWnFIDl1mgw+BQSEl67wKTAaPC7nX6x2Px+H2PM20RqdWTd5RiwST6Gm0eQjekJG3G+Xtnhte1ubcnCu3bMMaza0uwsy5imuHj8KJaQbAEWtIEAhFJBNvnlZGnqFZPRWwMnJ28nSBe8VAdGOLOPP96hlbCe/3D0PBYEFGz1K7G108h7jr082IZ47P9Vk4CrOI7DdfmbfcnfiQKys8pHj6H981zw5xogUmwAj/uUJKN",
+      },
+    },
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
     "type": "text-end",
   },
   {
@@ -642,10 +617,10 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
         "safetyRatings": null,
         "urlContextMetadata": null,
         "usageMetadata": {
-          "candidatesTokenCount": 13,
-          "promptTokenCount": 14,
-          "thoughtsTokenCount": 151,
-          "totalTokenCount": 178,
+          "candidatesTokenCount": 29,
+          "promptTokenCount": 9,
+          "thoughtsTokenCount": 256,
+          "totalTokenCount": 294,
         },
       },
     },
@@ -654,19 +629,19 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
       "inputTokens": {
         "cacheRead": 0,
         "cacheWrite": undefined,
-        "noCache": 14,
-        "total": 14,
+        "noCache": 9,
+        "total": 9,
       },
       "outputTokens": {
-        "reasoning": 151,
-        "text": 13,
-        "total": 164,
+        "reasoning": 256,
+        "text": 29,
+        "total": 285,
       },
       "raw": {
-        "candidatesTokenCount": 13,
-        "promptTokenCount": 14,
-        "thoughtsTokenCount": 151,
-        "totalTokenCount": 178,
+        "candidatesTokenCount": 29,
+        "promptTokenCount": 9,
+        "thoughtsTokenCount": 256,
+        "totalTokenCount": 294,
       },
     },
   },
@@ -764,235 +739,18 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
           "content": {
             "parts": [
               {
-                "text": "##",
+                "text": "There are **3**",
               },
             ],
             "role": "model",
           },
+          "index": 0,
         },
       ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
+      "modelVersion": "gemini-3-pro-preview",
+      "responseId": "bH6LaZW8Fp_3nsEPqtaSwQ4",
       "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " Seed",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " & Song Day - Celebrated on the Vernal Equinox
-
-**Purpose:** Seed",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " & Song Day is a celebration of renewal, potential, and the vibrant interconnectedness of all",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " living things. It marks the official start of spring and encourages individuals and communities to actively participate in the cycle of growth and create beauty in the world.
-
-**Traditions",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": ":**
-
-*   **The Seed Exchange:** The heart of Seed & Song Day is the Seed Exchange. Communities gather in public parks, town squares, or even",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " private gardens to share seeds, seedlings, and gardening knowledge. This exchange focuses on native plants, heirloom varieties, and seeds that are particularly well-suited to the local climate. Participants bring seeds they've saved from the previous year, labeled",
-              },
-            ],
-            "role": "model",
-          },
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "promptTokenCount": 10,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 10,
-          },
-        ],
-        "totalTokenCount": 10,
-      },
-    },
-    "type": "raw",
-  },
-  {
-    "rawValue": {
-      "candidates": [
-        {
-          "content": {
-            "parts": [
-              {
-                "text": " and packaged, and swap them with others. Newcomers are welcomed and encouraged to learn the basics of seed saving and planting. This tradition fosters a sense of community, promotes biodiversity, and connects people to the natural world.
-
-*   **The",
-              },
-            ],
-            "role": "model",
-          },
-          "finishReason": "MAX_TOKENS",
-        },
-      ],
-      "modelVersion": "gemini-2.0-flash",
-      "responseId": "ymmLabjHPMKE1PIPpJeV6Ac",
-      "usageMetadata": {
-        "candidatesTokenCount": 200,
-        "candidatesTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 200,
-          },
-        ],
+        "candidatesTokenCount": 5,
         "promptTokenCount": 9,
         "promptTokensDetails": [
           {
@@ -1000,7 +758,76 @@ exports[`doStream > text > should include raw chunks when includeRawChunks is en
             "tokenCount": 9,
           },
         ],
-        "totalTokenCount": 209,
+        "thoughtsTokenCount": 185,
+        "totalTokenCount": 199,
+      },
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " "r"s in strawberry.
+
+st**r**awbe**rr**y",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "responseId": "bH6LaZW8Fp_3nsEPqtaSwQ4",
+      "usageMetadata": {
+        "candidatesTokenCount": 23,
+        "promptTokenCount": 9,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9,
+          },
+        ],
+        "thoughtsTokenCount": 185,
+        "totalTokenCount": 217,
+      },
+    },
+    "type": "raw",
+  },
+  {
+    "rawValue": {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "",
+                "thoughtSignature": "EqsFCqgFAb4+9vvtAF5n87lB4OGDOoTRMOqp35jW65XsYXh6BySMwl9nvrbAvPcl2U0xITaYUyV4CmREEDB1z0ZPpCg7iEwiZcj40Eh1jXoL8Y/BbPqxdgZKvKxdBsJx92y2ML5ytajQHVFQb9ohEMMnjs9uNadLAhDEsOU1nC5tl3FQkx94uaGfWvg61bJT3Y9OxFdo/kbpm4RBngvYhVkBzHKkHBj72T2bUd8J4HPssi7ORC5iPosPRIOyH/CAVHEtMzFYMwb7OhRu+CW8Z9u7gDieME5iJjXtJtLrNGDxgR7XtWfRRyGjsj6uDS+KvjR3SUSWPdn5eeH6w+LXZm1X///Hvhhcx+NHxsuGjF3fGhyzTVAoIzk0lxyB4+/A9I4Xa0o/T4coVDiewMzGZDwmket//ig8x9UC8cyWr/hy1joZWUO7ooJlLncv8gy4Ng+y1JdievZokSFDNWfMMNAQr3kgUwJDucqDp44C1xMtgR3lhJ75IBBnprHCE/ThgvNXujmqNkwAjp5dS4PjVbrw8fqSylfE80tvU0g9dXqg4pEyG+hGIxbANLhsWjAKLqh69hyqvVLg2Ds3wppphf61IfC4VoeLWj85CjBZMf+k85NsUIJQ6+DQS9IPNbM29ZOzpUbHoWKJB6VzNCSJse7Pi07L+pd6skl77km00y4lJdHIGHfEgi8PaOonakBcxbRqKzGJAA/urlP0tiWya2fTWrvNZOybJHyyofNNSI4s5y76yKEjP1wnPqC7ujrQk6xb7eyCeqH9ekByy3vv0JfgERFptoSUoG2toIr9M3lS/LKpnwfCvZh+z3J0iMb83d4MaPKhGhE49J4660XUsEmjygAZNi9HnjfC3KtaU/07Sx4JCezMtpsLKUxBgy4xaNqwew3FwAG37eeWcow=",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "responseId": "bH6LaZW8Fp_3nsEPqtaSwQ4",
+      "usageMetadata": {
+        "candidatesTokenCount": 23,
+        "promptTokenCount": 9,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9,
+          },
+        ],
+        "thoughtsTokenCount": 185,
+        "totalTokenCount": 217,
       },
     },
     "type": "raw",
@@ -1020,59 +847,27 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "type": "text-start",
   },
   {
-    "delta": "##",
+    "delta": "There are **3**",
     "id": "0",
     "providerMetadata": undefined,
     "type": "text-delta",
   },
   {
-    "delta": " Seed",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "text-delta",
-  },
-  {
-    "delta": " & Song Day - Celebrated on the Vernal Equinox
+    "delta": " "r"s in strawberry.
 
-**Purpose:** Seed",
+st**r**awbe**rr**y",
     "id": "0",
     "providerMetadata": undefined,
     "type": "text-delta",
   },
   {
-    "delta": " & Song Day is a celebration of renewal, potential, and the vibrant interconnectedness of all",
+    "delta": "",
     "id": "0",
-    "providerMetadata": undefined,
-    "type": "text-delta",
-  },
-  {
-    "delta": " living things. It marks the official start of spring and encourages individuals and communities to actively participate in the cycle of growth and create beauty in the world.
-
-**Traditions",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "text-delta",
-  },
-  {
-    "delta": ":**
-
-*   **The Seed Exchange:** The heart of Seed & Song Day is the Seed Exchange. Communities gather in public parks, town squares, or even",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "text-delta",
-  },
-  {
-    "delta": " private gardens to share seeds, seedlings, and gardening knowledge. This exchange focuses on native plants, heirloom varieties, and seeds that are particularly well-suited to the local climate. Participants bring seeds they've saved from the previous year, labeled",
-    "id": "0",
-    "providerMetadata": undefined,
-    "type": "text-delta",
-  },
-  {
-    "delta": " and packaged, and swap them with others. Newcomers are welcomed and encouraged to learn the basics of seed saving and planting. This tradition fosters a sense of community, promotes biodiversity, and connects people to the natural world.
-
-*   **The",
-    "id": "0",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqsFCqgFAb4+9vvtAF5n87lB4OGDOoTRMOqp35jW65XsYXh6BySMwl9nvrbAvPcl2U0xITaYUyV4CmREEDB1z0ZPpCg7iEwiZcj40Eh1jXoL8Y/BbPqxdgZKvKxdBsJx92y2ML5ytajQHVFQb9ohEMMnjs9uNadLAhDEsOU1nC5tl3FQkx94uaGfWvg61bJT3Y9OxFdo/kbpm4RBngvYhVkBzHKkHBj72T2bUd8J4HPssi7ORC5iPosPRIOyH/CAVHEtMzFYMwb7OhRu+CW8Z9u7gDieME5iJjXtJtLrNGDxgR7XtWfRRyGjsj6uDS+KvjR3SUSWPdn5eeH6w+LXZm1X///Hvhhcx+NHxsuGjF3fGhyzTVAoIzk0lxyB4+/A9I4Xa0o/T4coVDiewMzGZDwmket//ig8x9UC8cyWr/hy1joZWUO7ooJlLncv8gy4Ng+y1JdievZokSFDNWfMMNAQr3kgUwJDucqDp44C1xMtgR3lhJ75IBBnprHCE/ThgvNXujmqNkwAjp5dS4PjVbrw8fqSylfE80tvU0g9dXqg4pEyG+hGIxbANLhsWjAKLqh69hyqvVLg2Ds3wppphf61IfC4VoeLWj85CjBZMf+k85NsUIJQ6+DQS9IPNbM29ZOzpUbHoWKJB6VzNCSJse7Pi07L+pd6skl77km00y4lJdHIGHfEgi8PaOonakBcxbRqKzGJAA/urlP0tiWya2fTWrvNZOybJHyyofNNSI4s5y76yKEjP1wnPqC7ujrQk6xb7eyCeqH9ekByy3vv0JfgERFptoSUoG2toIr9M3lS/LKpnwfCvZh+z3J0iMb83d4MaPKhGhE49J4660XUsEmjygAZNi9HnjfC3KtaU/07Sx4JCezMtpsLKUxBgy4xaNqwew3FwAG37eeWcow=",
+      },
+    },
     "type": "text-delta",
   },
   {
@@ -1081,8 +876,8 @@ exports[`doStream > text > should stream text deltas 1`] = `
   },
   {
     "finishReason": {
-      "raw": "MAX_TOKENS",
-      "unified": "length",
+      "raw": "STOP",
+      "unified": "stop",
     },
     "providerMetadata": {
       "google": {
@@ -1091,9 +886,10 @@ exports[`doStream > text > should stream text deltas 1`] = `
         "safetyRatings": null,
         "urlContextMetadata": null,
         "usageMetadata": {
-          "candidatesTokenCount": 200,
+          "candidatesTokenCount": 23,
           "promptTokenCount": 9,
-          "totalTokenCount": 209,
+          "thoughtsTokenCount": 185,
+          "totalTokenCount": 217,
         },
       },
     },
@@ -1106,14 +902,15 @@ exports[`doStream > text > should stream text deltas 1`] = `
         "total": 9,
       },
       "outputTokens": {
-        "reasoning": 0,
-        "text": 200,
-        "total": 200,
+        "reasoning": 185,
+        "text": 23,
+        "total": 208,
       },
       "raw": {
-        "candidatesTokenCount": 200,
+        "candidatesTokenCount": 23,
         "promptTokenCount": 9,
-        "totalTokenCount": 209,
+        "thoughtsTokenCount": 185,
+        "totalTokenCount": 217,
       },
     },
   },
@@ -1128,24 +925,40 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
   },
   {
     "id": "test-id",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqUCCqICAb4+9vsh8Pd5taZVoPzSvjWWwzBrvhEQWBLCGa7IdY8FBMm7Z6dCKFU3Ft0la15gF7RaHe1NlPRygQec0bFwPDfMwGcUOMNiJiNIKxusCs4ejCZRuouNYQ4etEIt7CujEUHiILLfZXSJZYhs4UCrD2bLqPq0sE0lWgYJnzHkkKUOnMsA2hKffAhtF4DWn5INYj8pPssvch/2VpDFW2F9XSE04zLDzkIWF2eztJX50Y0lTehRZC3FW7fOrXCzGx+PwdataD6eXlF5O1zn+86XtmktOs2DEp4o1PMvXFFAXe8GGvPt8Idf3UtHMq7AsapwMW9sjiKj+FJk54m+9LMTSaj7C86smfvoQryYBEHTVazr1bEnpl4bPG5JUtm2yAMkHj4=",
+      },
+    },
     "toolName": "weather",
     "type": "tool-input-start",
   },
   {
     "delta": "{"location":"San Francisco"}",
     "id": "test-id",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqUCCqICAb4+9vsh8Pd5taZVoPzSvjWWwzBrvhEQWBLCGa7IdY8FBMm7Z6dCKFU3Ft0la15gF7RaHe1NlPRygQec0bFwPDfMwGcUOMNiJiNIKxusCs4ejCZRuouNYQ4etEIt7CujEUHiILLfZXSJZYhs4UCrD2bLqPq0sE0lWgYJnzHkkKUOnMsA2hKffAhtF4DWn5INYj8pPssvch/2VpDFW2F9XSE04zLDzkIWF2eztJX50Y0lTehRZC3FW7fOrXCzGx+PwdataD6eXlF5O1zn+86XtmktOs2DEp4o1PMvXFFAXe8GGvPt8Idf3UtHMq7AsapwMW9sjiKj+FJk54m+9LMTSaj7C86smfvoQryYBEHTVazr1bEnpl4bPG5JUtm2yAMkHj4=",
+      },
+    },
     "type": "tool-input-delta",
   },
   {
     "id": "test-id",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqUCCqICAb4+9vsh8Pd5taZVoPzSvjWWwzBrvhEQWBLCGa7IdY8FBMm7Z6dCKFU3Ft0la15gF7RaHe1NlPRygQec0bFwPDfMwGcUOMNiJiNIKxusCs4ejCZRuouNYQ4etEIt7CujEUHiILLfZXSJZYhs4UCrD2bLqPq0sE0lWgYJnzHkkKUOnMsA2hKffAhtF4DWn5INYj8pPssvch/2VpDFW2F9XSE04zLDzkIWF2eztJX50Y0lTehRZC3FW7fOrXCzGx+PwdataD6eXlF5O1zn+86XtmktOs2DEp4o1PMvXFFAXe8GGvPt8Idf3UtHMq7AsapwMW9sjiKj+FJk54m+9LMTSaj7C86smfvoQryYBEHTVazr1bEnpl4bPG5JUtm2yAMkHj4=",
+      },
+    },
     "type": "tool-input-end",
   },
   {
     "input": "{"location":"San Francisco"}",
-    "providerMetadata": undefined,
+    "providerMetadata": {
+      "google": {
+        "thoughtSignature": "EqUCCqICAb4+9vsh8Pd5taZVoPzSvjWWwzBrvhEQWBLCGa7IdY8FBMm7Z6dCKFU3Ft0la15gF7RaHe1NlPRygQec0bFwPDfMwGcUOMNiJiNIKxusCs4ejCZRuouNYQ4etEIt7CujEUHiILLfZXSJZYhs4UCrD2bLqPq0sE0lWgYJnzHkkKUOnMsA2hKffAhtF4DWn5INYj8pPssvch/2VpDFW2F9XSE04zLDzkIWF2eztJX50Y0lTehRZC3FW7fOrXCzGx+PwdataD6eXlF5O1zn+86XtmktOs2DEp4o1PMvXFFAXe8GGvPt8Idf3UtHMq7AsapwMW9sjiKj+FJk54m+9LMTSaj7C86smfvoQryYBEHTVazr1bEnpl4bPG5JUtm2yAMkHj4=",
+      },
+    },
     "toolCallId": "test-id",
     "toolName": "weather",
     "type": "tool-call",
@@ -1162,9 +975,10 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
         "safetyRatings": null,
         "urlContextMetadata": null,
         "usageMetadata": {
-          "candidatesTokenCount": 4,
-          "promptTokenCount": 26,
-          "totalTokenCount": 30,
+          "candidatesTokenCount": 15,
+          "promptTokenCount": 29,
+          "thoughtsTokenCount": 45,
+          "totalTokenCount": 89,
         },
       },
     },
@@ -1173,18 +987,19 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
       "inputTokens": {
         "cacheRead": 0,
         "cacheWrite": undefined,
-        "noCache": 26,
-        "total": 26,
+        "noCache": 29,
+        "total": 29,
       },
       "outputTokens": {
-        "reasoning": 0,
-        "text": 4,
-        "total": 4,
+        "reasoning": 45,
+        "text": 15,
+        "total": 60,
       },
       "raw": {
-        "candidatesTokenCount": 4,
-        "promptTokenCount": 26,
-        "totalTokenCount": 30,
+        "candidatesTokenCount": 15,
+        "promptTokenCount": 29,
+        "thoughtsTokenCount": 45,
+        "totalTokenCount": 89,
       },
     },
   },

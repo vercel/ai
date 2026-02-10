@@ -4,32 +4,28 @@
       "content": {
         "parts": [
           {
-            "text": "## Lumina Day - A Celebration of Inner Light and Shared Kindness (Observed annually on the Winter Solstice)\n\n**Core Concept:** Lumina Day is a secular holiday dedicated to recognizing and nurturing the inner light within oneself and others, especially during the darkest time of the year. It's a celebration of resilience, empathy, and the shared human experience, meant to combat winter blues and promote community connection.\n\n**Date:** Winter Solstice (December 21st in the Northern Hemisphere)\n\n**Symbols:**\n\n*   **Candles & Lights:** Represent the individual \"lumina\" (inner light) that each person carries.\n*   **Mirrors:** Symbolize self-reflection and acknowledging one's own strengths and vulnerabilities.\n*   **Seeds:** Represent potential and the promise of growth, even in the darkest times.\n*   **The \"Lumina Knot\":** A simple knot tied from various colored strings, each color representing a different value: kindness"
+            "text": "There are **3** r's in strawberry.\n\nHere is the breakdown: st**r**awbe**rr**y.",
+            "thoughtSignature": "EtoFCtcFAb4+9vtfe4MXRxQjw48U1WKrR/7lYsgFkVi/bepqsSPjY0VU7HEzkeCBIfy1fu5t9aUZ4IZ65aWagqbBrV45fc97olcg"
           }
         ],
         "role": "model"
       },
-      "finishReason": "MAX_TOKENS",
-      "avgLogprobs": -0.5192837905883789
+      "finishReason": "STOP",
+      "index": 0
     }
   ],
   "usageMetadata": {
     "promptTokenCount": 9,
-    "candidatesTokenCount": 200,
-    "totalTokenCount": 209,
+    "candidatesTokenCount": 28,
+    "totalTokenCount": 281,
     "promptTokensDetails": [
       {
         "modality": "TEXT",
         "tokenCount": 9
       }
     ],
-    "candidatesTokensDetails": [
-      {
-        "modality": "TEXT",
-        "tokenCount": 200
-      }
-    ]
+    "thoughtsTokenCount": 244
   },
-  "modelVersion": "gemini-2.0-flash",
-  "responseId": "fGmLafr0OaSHqtsPoKHz8Ao"
+  "modelVersion": "gemini-3-pro-preview",
+  "responseId": "Un6LacrVMcjUxs0PmJfWoQc"
 }

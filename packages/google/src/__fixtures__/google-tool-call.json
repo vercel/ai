@@ -9,32 +9,29 @@
               "args": {
                 "location": "San Francisco"
               }
-            }
+            },
+            "thoughtSignature": "EskgCsYgAb4+9vtF7/499YQS2bjZs3xcQI+iAl+ILn29nK1j0Kg6su7QsUUUk3nrAAfnS2w5WiVvlcCqu9fAebJ2cvfaEyBahEt5"
           }
         ],
         "role": "model"
       },
       "finishReason": "STOP",
-      "avgLogprobs": -0.0000394245216739364
+      "index": 0,
+      "finishMessage": "Model generated function call(s)."
     }
   ],
   "usageMetadata": {
-    "promptTokenCount": 26,
-    "candidatesTokenCount": 4,
-    "totalTokenCount": 30,
+    "promptTokenCount": 29,
+    "candidatesTokenCount": 15,
+    "totalTokenCount": 937,
     "promptTokensDetails": [
       {
         "modality": "TEXT",
-        "tokenCount": 26
+        "tokenCount": 29
       }
     ],
-    "candidatesTokensDetails": [
-      {
-        "modality": "TEXT",
-        "tokenCount": 4
-      }
-    ]
+    "thoughtsTokenCount": 893
   },
-  "modelVersion": "gemini-2.0-flash",
-  "responseId": "k2mLafruFb-bqtsPqZzu2Qo"
+  "modelVersion": "gemini-3-pro-preview",
+  "responseId": "m36LaZGyCLz1xs0PtNSB-QU"
 }

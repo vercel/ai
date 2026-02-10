@@ -4,11 +4,8 @@
       "content": {
         "parts": [
           {
-            "text": "I need to count the letter \"r\" in \"strawberry\". Let me go through it letter by letter: s-t-r-a-w-b-e-r-r-y. I count 3 r's.\n",
-            "thought": true
-          },
-          {
-            "text": "There are **3** \"r\"s in the word \"strawberry\"."
+            "text": "There are **3** \"r\"s in strawberry.\n\nHere is the breakdown: st**r**awbe**rr**y.",
+            "thoughtSignature": "EvsFCvgFAb4+9vtgYAdOcxMwBr9AOT6XX6Pz5SYAd9gXb/bmH4iLHlJ/3D3xudRmJGM9BBxdQZ1WGuRdZJ2CkdRKCCVVn/cqmSjH"
           }
         ],
         "role": "model"
@@ -18,17 +15,17 @@
     }
   ],
   "usageMetadata": {
-    "promptTokenCount": 14,
-    "candidatesTokenCount": 15,
-    "totalTokenCount": 210,
+    "promptTokenCount": 9,
+    "candidatesTokenCount": 29,
+    "totalTokenCount": 320,
     "promptTokensDetails": [
       {
         "modality": "TEXT",
-        "tokenCount": 14
+        "tokenCount": 9
       }
     ],
-    "thoughtsTokenCount": 181
+    "thoughtsTokenCount": 282
   },
-  "modelVersion": "gemini-2.5-flash",
-  "responseId": "xmmLadK-FaCmmtkP-6WE6AQ"
+  "modelVersion": "gemini-3-pro-preview",
+  "responseId": "YH6LaZT7ENmPxN8P-r2J8Aw"
 }
