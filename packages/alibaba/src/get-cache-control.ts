@@ -1,5 +1,8 @@
-import { SharedV3Warning, SharedV3ProviderMetadata } from '@ai-sdk/provider';
-import { AlibabaCacheControl } from './alibaba-chat-prompt';
+import type {
+  SharedV3ProviderMetadata,
+  SharedV3Warning,
+} from '@ai-sdk/provider';
+import type { AlibabaCacheControl } from './alibaba-chat-prompt';
 
 // Alibaba allows a maximum of 4 cache breakpoints per request
 const MAX_CACHE_BREAKPOINTS = 4;

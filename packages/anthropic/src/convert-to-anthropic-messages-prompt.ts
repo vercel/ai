@@ -456,18 +456,31 @@ export async function convertToAnthropicMessagesPrompt({
 
             switch (part.type) {
               case 'text': {
-                anthropicContent.push({
-                  type: 'text',
-                  text:
-                    // trim the last text part if it's the last message in the block
-                    // because Anthropic does not allow trailing whitespace
-                    // in pre-filled assistant responses
-                    isLastBlock && isLastMessage && isLastContentPart
-                      ? part.text.trim()
-                      : part.text,
+                // Check if this is a compaction block (via providerMetadata)
+                const textMetadata = part.providerOptions?.anthropic as
+                  | { type?: string }
+                  | undefined;
 
-                  cache_control: cacheControl,
-                });
+                if (textMetadata?.type === 'compaction') {
+                  anthropicContent.push({
+                    type: 'compaction',
+                    content: part.text,
+                    cache_control: cacheControl,
+                  });
+                } else {
+                  anthropicContent.push({
+                    type: 'text',
+                    text:
+                      // trim the last text part if it's the last message in the block
+                      // because Anthropic does not allow trailing whitespace
+                      // in pre-filled assistant responses
+                      isLastBlock && isLastMessage && isLastContentPart
+                        ? part.text.trim()
+                        : part.text,
+
+                    cache_control: cacheControl,
+                  });
+                }
                 break;
               }
 

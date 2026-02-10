@@ -257,7 +257,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `app/api/chat/route.ts` file to include the new weather tool:
 
-```tsx filename="app/api/chat/route.ts" highlight="2,11-25"
+```tsx filename="app/api/chat/route.ts" highlight="1,11-25"
 import { streamText, UIMessage, convertToModelMessages, tool } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
@@ -314,7 +314,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 
 To display the tool invocation in your UI, update your `app/page.tsx` file:
 
-```tsx filename="app/page.tsx" highlight="16-21"
+```tsx filename="app/page.tsx" highlight="18-22"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -376,7 +376,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. By default
 
 Modify your `app/api/chat/route.ts` file to include the `stopWhen` condition:
 
-```tsx filename="app/api/chat/route.ts"
+```tsx filename="app/api/chat/route.ts" highlight="16"
 import {
   streamText,
   UIMessage,
@@ -431,7 +431,7 @@ By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 
 
 Update your `app/api/chat/route.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="app/api/chat/route.ts" highlight="34-47"
+```tsx filename="app/api/chat/route.ts" highlight="31-46"
 import {
   streamText,
   UIMessage,
@@ -488,7 +488,7 @@ export async function POST(req: Request) {
 
 update your `app/page.tsx` file to render the new temperature conversion tool:
 
-```tsx filename="app/page.tsx" highlight="21"
+```tsx filename="app/page.tsx" highlight="19"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
