@@ -9,40 +9,6 @@ import {
 
 describe('asGatewayError', () => {
   describe('timeout error detection', () => {
-    it('should detect undici HeadersTimeoutError', async () => {
-      const error = new Error('Headers Timeout Error');
-      error.name = 'HeadersTimeoutError';
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain('Gateway request timed out');
-      expect(result.message).toContain('Headers Timeout Error');
-      expect(result.message).toContain('client-side timeout');
-      expect(result.statusCode).toBe(408);
-      expect(result.cause).toBe(error);
-    });
-
-    it('should detect undici BodyTimeoutError', async () => {
-      const error = new Error('Body Timeout Error');
-      error.name = 'BodyTimeoutError';
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain('Body Timeout Error');
-    });
-
-    it('should detect undici ConnectTimeoutError', async () => {
-      const error = new Error('Connect Timeout Error');
-      error.name = 'ConnectTimeoutError';
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain('Connect Timeout Error');
-    });
-
     it('should detect error with UND_ERR_HEADERS_TIMEOUT code', async () => {
       const error = Object.assign(new Error('Request timeout'), {
         code: 'UND_ERR_HEADERS_TIMEOUT',
@@ -68,34 +34,6 @@ describe('asGatewayError', () => {
       const error = Object.assign(new Error('Connect timeout'), {
         code: 'UND_ERR_CONNECT_TIMEOUT',
       });
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-    });
-
-    it('should detect error with "timeout" in message (lowercase)', async () => {
-      const error = new Error('Request timeout occurred');
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain('Request timeout occurred');
-    });
-
-    it('should detect error with "timed out" in message', async () => {
-      const error = new Error('The request timed out after 30 seconds');
-
-      const result = await asGatewayError(error);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
-      expect(result.message).toContain(
-        'The request timed out after 30 seconds',
-      );
-    });
-
-    it('should detect error with "Timeout" in message (case insensitive)', async () => {
-      const error = new Error('Connection Timeout');
 
       const result = await asGatewayError(error);
 
@@ -226,21 +164,6 @@ describe('asGatewayError', () => {
 
       expect(GatewayTimeoutError.isInstance(result)).toBe(true);
       expect(result.message).toContain('Gateway request timed out');
-    });
-
-    it('should detect timeout when APICallError has "timeout" in cause message', async () => {
-      const timeoutError = new Error('Connection timed out after 30 seconds');
-
-      const apiCallError = new APICallError({
-        message: 'Cannot connect to API: Connection timed out after 30 seconds',
-        url: 'https://example.com',
-        requestBodyValues: {},
-        cause: timeoutError,
-      });
-
-      const result = await asGatewayError(apiCallError);
-
-      expect(GatewayTimeoutError.isInstance(result)).toBe(true);
     });
 
     it('should not treat APICallError as timeout if cause is not timeout-related', async () => {

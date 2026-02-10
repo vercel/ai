@@ -4,24 +4,15 @@ import { createGatewayErrorFromResponse } from './create-gateway-error';
 import { GatewayTimeoutError } from './gateway-timeout-error';
 
 /**
- * Checks if an error is a timeout error (e.g., from undici)
+ * Checks if an error is a timeout error from undici.
+ * Only checks undici-specific error codes to avoid false positives.
  */
 function isTimeoutError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
 
-  // Check for undici timeout errors by name
-  const timeoutErrorNames = [
-    'HeadersTimeoutError',
-    'BodyTimeoutError',
-    'ConnectTimeoutError',
-  ];
-  if (timeoutErrorNames.includes(error.name)) {
-    return true;
-  }
-
-  // Check for undici-specific error codes
+  // Check for undici-specific timeout error codes
   const errorCode = (error as any).code;
   if (typeof errorCode === 'string') {
     const undiciTimeoutCodes = [
@@ -29,15 +20,7 @@ function isTimeoutError(error: unknown): boolean {
       'UND_ERR_BODY_TIMEOUT',
       'UND_ERR_CONNECT_TIMEOUT',
     ];
-    if (undiciTimeoutCodes.includes(errorCode)) {
-      return true;
-    }
-  }
-
-  // Check for timeout in error message
-  const message = error.message.toLowerCase();
-  if (message.includes('timeout') || message.includes('timed out')) {
-    return true;
+    return undiciTimeoutCodes.includes(errorCode);
   }
 
   return false;
