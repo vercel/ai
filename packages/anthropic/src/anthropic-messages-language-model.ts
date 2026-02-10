@@ -305,6 +305,65 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
+<<<<<<< HEAD
+=======
+
+      ...(contextManagement && {
+        context_management: {
+          edits: contextManagement.edits
+            .map(edit => {
+              const strategy = edit.type;
+              switch (strategy) {
+                case 'clear_tool_uses_20250919':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                    ...(edit.clearAtLeast !== undefined && {
+                      clear_at_least: edit.clearAtLeast,
+                    }),
+                    ...(edit.clearToolInputs !== undefined && {
+                      clear_tool_inputs: edit.clearToolInputs,
+                    }),
+                    ...(edit.excludeTools !== undefined && {
+                      exclude_tools: edit.excludeTools,
+                    }),
+                  };
+
+                case 'clear_thinking_20251015':
+                  return {
+                    type: edit.type,
+                    ...(edit.keep !== undefined && { keep: edit.keep }),
+                  };
+
+                case 'compact_20260112':
+                  return {
+                    type: edit.type,
+                    ...(edit.trigger !== undefined && {
+                      trigger: edit.trigger,
+                    }),
+                    ...(edit.pauseAfterCompaction !== undefined && {
+                      pause_after_compaction: edit.pauseAfterCompaction,
+                    }),
+                    ...(edit.instructions !== undefined && {
+                      instructions: edit.instructions,
+                    }),
+                  };
+
+                default:
+                  warnings.push({
+                    type: 'other',
+                    message: `Unknown context management strategy: ${strategy}`,
+                  });
+                  return undefined;
+              }
+            })
+            .filter(edit => edit !== undefined),
+        },
+      }),
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     };
 
     if (isThinking) {
@@ -361,6 +420,25 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     if (
+<<<<<<< HEAD
+=======
+      anthropicOptions?.mcpServers &&
+      anthropicOptions.mcpServers.length > 0
+    ) {
+      betas.add('mcp-client-2025-04-04');
+    }
+
+    if (contextManagement) {
+      betas.add('context-management-2025-06-27');
+
+      // Add compaction beta if compact edit is present
+      if (contextManagement.edits.some(e => e.type === 'compact_20260112')) {
+        betas.add('compact-2026-01-12');
+      }
+    }
+
+    if (
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
       anthropicOptions?.container &&
       anthropicOptions.container.skills &&
       anthropicOptions.container.skills.length > 0
@@ -597,6 +675,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           });
           break;
         }
+        case 'compaction': {
+          content.push({
+            type: 'text',
+            text: part.content,
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+              },
+            },
+          });
+          break;
+        }
         case 'tool_use': {
           content.push(
             // when a json response tool is used, the tool call becomes the text:
@@ -800,6 +890,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
+
+          iterations: response.usage.iterations
+            ? response.usage.iterations.map(iter => ({
+                type: iter.type,
+                inputTokens: iter.input_tokens,
+                outputTokens: iter.output_tokens,
+              }))
+            : null,
           container: response.container
             ? {
                 expiresAt: response.container.expires_at,
@@ -843,11 +941,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+<<<<<<< HEAD
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
+=======
+    let finishReason: LanguageModelV3FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
+    const usage: AnthropicMessagesUsage = {
+      input_tokens: 0,
+      output_tokens: 0,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      iterations: null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     };
 
     const contentBlocks: Record<
@@ -879,6 +990,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       | 'code_execution_tool_result'
       | 'text_editor_code_execution_tool_result'
       | 'bash_code_execution_tool_result'
+<<<<<<< HEAD
+=======
+      | 'tool_search_tool_result'
+      | 'mcp_tool_use'
+      | 'mcp_tool_result'
+      | 'compaction'
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
       | undefined = undefined;
 
     const generateId = this.generateId;
@@ -942,6 +1060,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       anthropic: {
                         redactedData: value.content_block.data,
                       } satisfies AnthropicReasoningMetadata,
+                    },
+                  });
+                  return;
+                }
+
+                case 'compaction': {
+                  contentBlocks[value.index] = { type: 'text' };
+                  controller.enqueue({
+                    type: 'text-start',
+                    id: String(value.index),
+                    providerMetadata: {
+                      anthropic: {
+                        type: 'compaction',
+                      },
                     },
                   });
                   return;
@@ -1268,6 +1400,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   return;
                 }
 
+                case 'compaction_delta': {
+                  controller.enqueue({
+                    type: 'text-delta',
+                    id: String(value.index),
+                    delta: value.delta.content,
+                  });
+
+                  return;
+                }
+
                 case 'input_json_delta': {
                   const contentBlock = contentBlocks[value.index];
                   let delta = value.delta.partial_json;
@@ -1377,6 +1519,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 cacheCreationInputTokens =
                   value.usage.cache_creation_input_tokens;
               }
+              if (value.usage.iterations != null) {
+                usage.iterations = value.usage.iterations;
+              }
 
               usage.totalTokens =
                 (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
@@ -1410,6 +1555,35 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             }
 
             case 'message_stop': {
+<<<<<<< HEAD
+=======
+              const anthropicMetadata = {
+                usage: (rawUsage as JSONObject) ?? null,
+                cacheCreationInputTokens,
+                stopSequence,
+                iterations: usage.iterations
+                  ? usage.iterations.map(iter => ({
+                      type: iter.type,
+                      inputTokens: iter.input_tokens,
+                      outputTokens: iter.output_tokens,
+                    }))
+                  : null,
+                container,
+                contextManagement,
+              } satisfies AnthropicMessageMetadata;
+
+              const providerMetadata: SharedV3ProviderMetadata = {
+                anthropic: anthropicMetadata,
+              };
+
+              if (
+                usedCustomProviderKey &&
+                providerOptionsName !== 'anthropic'
+              ) {
+                providerMetadata[providerOptionsName] = anthropicMetadata;
+              }
+
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
               controller.enqueue({
                 type: 'finish',
                 finishReason,
@@ -1551,3 +1725,41 @@ function getModelCapabilities(modelId: string): {
     };
   }
 }
+<<<<<<< HEAD
+=======
+
+function mapAnthropicResponseContextManagement(
+  contextManagement: AnthropicResponseContextManagement | null | undefined,
+): AnthropicMessageMetadata['contextManagement'] | null {
+  return contextManagement
+    ? {
+        appliedEdits: contextManagement.applied_edits
+          .map(edit => {
+            const strategy = edit.type;
+
+            switch (strategy) {
+              case 'clear_tool_uses_20250919':
+                return {
+                  type: edit.type,
+                  clearedToolUses: edit.cleared_tool_uses,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'clear_thinking_20251015':
+                return {
+                  type: edit.type,
+                  clearedThinkingTurns: edit.cleared_thinking_turns,
+                  clearedInputTokens: edit.cleared_input_tokens,
+                };
+
+              case 'compact_20260112':
+                return {
+                  type: edit.type,
+                };
+            }
+          })
+          .filter(edit => edit !== undefined),
+      }
+    : null;
+}
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))

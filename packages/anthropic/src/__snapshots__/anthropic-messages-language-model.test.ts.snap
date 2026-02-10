@@ -15,6 +15,11 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
         },
       ],
     },
+<<<<<<< HEAD
+=======
+    "contextManagement": null,
+    "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -44,6 +49,11 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 >
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
       "skills": null,
     },
+<<<<<<< HEAD
+=======
+    "contextManagement": null,
+    "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     "stopSequence": null,
     "usage": {
       "cache_creation": {
@@ -295,6 +305,11 @@ Both files have been exported and are ready for download!",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
         "skills": null,
       },
+<<<<<<< HEAD
+=======
+      "contextManagement": null,
+      "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
       "stopSequence": null,
       "usage": {
         "cache_creation": {
@@ -5416,6 +5431,11 @@ The presentation has",
             },
           ],
         },
+<<<<<<< HEAD
+=======
+        "contextManagement": null,
+        "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -10462,6 +10482,11 @@ Both",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
           "skills": null,
         },
+<<<<<<< HEAD
+=======
+        "contextManagement": null,
+        "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11761,6 +11786,11 @@ The Fibonacci sequence starts with 0, ",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
           "skills": null,
         },
+<<<<<<< HEAD
+=======
+        "contextManagement": null,
+        "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -11790,7 +11820,3951 @@ The Fibonacci sequence starts with 0, ",
 ]
 `;
 
+<<<<<<< HEAD
 exports[`AnthropicMessagesLanguageModel > doStream > raw chunks > web fetch tool > txt response > should stream web search tool results 1`] = `
+=======
+exports[`AnthropicMessagesLanguageModel > doStream > json schema response format with output format (supported model) > should stream the text output 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01KbeodbKEyjf2fLb2Jnkr5s",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "{"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "characters"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":[{"name":"Th",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Iron",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "heart","class":"warrior","description",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "":"A battle",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-scar",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "red veteran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " steel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "gray hair and a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " prominent",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " scar across his left eye.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Wiel",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ding a massive two",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-handed sword passe",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d down through his family for",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generations,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Theron fights",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with discipl",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ined precision h",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "oned through decades",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of combat. Despite",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his gruff exterior, he harb",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ors a deep sense of honor and prot",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ects the weak",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " without",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hesitation.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ""},{"name":"Lyra",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Star",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "weaver","class":"mage","",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "description":"A young",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "digy in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " arcane arts with",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " flowing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " silver ro",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bes ador",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ned with celest",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ial patterns",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Her",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " eyes",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " g",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "low f",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "aintly blue",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " when",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " chann",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "eling powerful",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " sp",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ells.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Lyra special",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "izes in ele",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "mental magic an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d ast",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ral div",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ination, having",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " studie",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d at",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the Gran",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d Academy since",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " childhoo",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d. She is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " curious",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and ide",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "alistic, often getting",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " while",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " pursuing",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " forbidden",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " knowledge."},{"name":"R",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ook",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Shadow",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "st",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ep",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "","class":"thief","description":"",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "A nim",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ble and cun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ning r",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ogue who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " moves through",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " shadows",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " like",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a whis",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "per in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the night. With",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " jet",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-black hair,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " leather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " armor,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and an array of lock",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "picks an",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d daggers hidden on",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " his person, Rook makes his",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " living liber",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ating treas",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ures from those",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " he",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deems unworthy of",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " them",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": ". Behin",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d his coc",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ky smile",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " lies a trouble",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d past and a strict",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " personal",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " code about",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " who",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " deserves to be",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rob",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "bed."}]}",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 313,
+          "output_tokens": 305,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 313,
+        "total": 313,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 305,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 313,
+        "output_tokens": 305,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > mcp servers > should stream code execution tool results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01RNdvgjHoLmx2THF9AVj3KK",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "dynamic": true,
+    "input": "{}",
+    "providerExecuted": true,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+        "type": "mcp-tool-use",
+      },
+    },
+    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
+    "toolName": "echo",
+    "type": "tool-call",
+  },
+  {
+    "dynamic": true,
+    "isError": false,
+    "providerMetadata": {
+      "anthropic": {
+        "serverName": "echo",
+        "type": "mcp-tool-use",
+      },
+    },
+    "result": [
+      {
+        "text": "Tool echo: hello world",
+        "type": "text",
+      },
+    ],
+    "toolCallId": "mcptoolu_017CuqaJcXe5ZHJjaz3KS1AT",
+    "toolName": "echo",
+    "type": "tool-result",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "The echo tool responde",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d back with: **hello world**
+
+It simply echoed back",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the exact message that was sent to it.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1250,
+          "output_tokens": 83,
+          "server_tool_use": {
+            "web_fetch_requests": 0,
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1250,
+        "total": 1250,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 83,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1250,
+        "output_tokens": 83,
+        "server_tool_use": {
+          "web_fetch_requests": 0,
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling > with fixture (multi-turn dice game) > should stream programmatic tool calling with multiple message_start/stop sequences 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll help you simulate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " this",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game between",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " two players where",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a loaded die.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me play",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " out",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the game roun",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d by round until",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " one player wins",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 3 rounds.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "providerExecuted": true,
+    "toolName": "code_execution",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"code": "\\nimport async",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "io",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n\\nasync def main",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "():\\n    player",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = 0\\n    player2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins = 0\\n    roun",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d_num = 0",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"=",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "== DICE",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " GAME:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " First",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " to",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 3 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "Wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " ===\\\\",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n\\")\\n    \\n    #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Play",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " until",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " one player wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 3 rounds\\n    while player",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_wins < 3 an",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d player2_wins < 3:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        round_num += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"---",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Round {round_num} ---\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        \\n        # Both",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " players roll their",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " dice\\n        player1_roll =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " await rollDie(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{\\"player\\": \\"player1\\"})",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        player2_roll = await",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " rollDie({\\"player\\": \\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player2\\"})\\n        \\n        ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "#",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Extract",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the numeric",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " values from the results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        p",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "1_value",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " = int(player1_roll.",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "strip",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "())\\n        p2_value =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " int(player2_roll.strip",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "())\\n        \\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"Player 1 rolls",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": {p1_value}\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print(f\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 rolls: {p2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "value}\\")\\n        \\n        #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Determine roun",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d winner\\n        if p1_value",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " > p2_value:\\n            ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player1_wins += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            print(f\\"Player 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " wins this",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " round!\\")\\n        elif p2_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "value > p1_value:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            player2_wins += 1",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n            print(f\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 wins this round!\\")\\n        ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "else:\\n            print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"Draw",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "! No",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " one gets",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " a",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " point",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".\\")",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        \\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"Score",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ": Player 1 =",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " {player1_wins}, Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 = {player2_wins",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}\\\\",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "n\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    #",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Announce",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the game",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " winner",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "=\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " * 40",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\n    if",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player1_wins == 3:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n        print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "🏆 GAME OVER:",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Player 1 wins the game!",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " (",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "3-",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "{",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player2",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "_wins}",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ")\\")\\n    else:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(f\\"🏆 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "GAME OVER: Player 2 ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins the game! (3-{",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "player1_wins})\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "print(\\"=\\" * 40)",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    \\n    # Determine who",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " was",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " cheating base",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d on the results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n    print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"\\\\n",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "📊 Analysis",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ":\\")\\n    print(",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "f\\"Total",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " rounds playe",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d: {round_num}\\")\\n    ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "if",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player1_wins >",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player2_wins:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"Player 1 ha",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d better",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " -",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " likely",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " using",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " loaded die!",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " 🎲\\")\\n    elif",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " player2_wins > player1_",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "wins:\\n        print(\\"Player ",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "2 had better results - likely using",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " the loaded die! 🎲",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\")\\n    else:\\n        print",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "(\\"Results",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " were",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " even",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " - har",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "d to determine who",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " was cheating from",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " this",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " game alone",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ".\\")\\n\\nasync",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "io.run(main())",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "\\n",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"type":"programmatic-tool-call","code":"\\nimport asyncio\\n\\nasync def main():\\n    player1_wins = 0\\n    player2_wins = 0\\n    round_num = 0\\n    \\n    print(\\"=== DICE GAME: First to 3 Wins ===\\\\n\\")\\n    \\n    # Play until one player wins 3 rounds\\n    while player1_wins < 3 and player2_wins < 3:\\n        round_num += 1\\n        print(f\\"--- Round {round_num} ---\\")\\n        \\n        # Both players roll their dice\\n        player1_roll = await rollDie({\\"player\\": \\"player1\\"})\\n        player2_roll = await rollDie({\\"player\\": \\"player2\\"})\\n        \\n        # Extract the numeric values from the results\\n        p1_value = int(player1_roll.strip())\\n        p2_value = int(player2_roll.strip())\\n        \\n        print(f\\"Player 1 rolls: {p1_value}\\")\\n        print(f\\"Player 2 rolls: {p2_value}\\")\\n        \\n        # Determine round winner\\n        if p1_value > p2_value:\\n            player1_wins += 1\\n            print(f\\"Player 1 wins this round!\\")\\n        elif p2_value > p1_value:\\n            player2_wins += 1\\n            print(f\\"Player 2 wins this round!\\")\\n        else:\\n            print(f\\"Draw! No one gets a point.\\")\\n        \\n        print(f\\"Score: Player 1 = {player1_wins}, Player 2 = {player2_wins}\\\\n\\")\\n    \\n    # Announce the game winner\\n    print(\\"=\\" * 40)\\n    if player1_wins == 3:\\n        print(f\\"🏆 GAME OVER: Player 1 wins the game! (3-{player2_wins})\\")\\n    else:\\n        print(f\\"🏆 GAME OVER: Player 2 wins the game! (3-{player1_wins})\\")\\n    print(\\"=\\" * 40)\\n    \\n    # Determine who was cheating based on the results\\n    print(\\"\\\\n📊 Analysis:\\")\\n    print(f\\"Total rounds played: {round_num}\\")\\n    if player1_wins > player2_wins:\\n        print(\\"Player 1 had better results - likely using the loaded die! 🎲\\")\\n    elif player2_wins > player1_wins:\\n        print(\\"Player 2 had better results - likely using the loaded die! 🎲\\")\\n    else:\\n        print(\\"Results were even - hard to determine who was cheating from this game alone.\\")\\n\\nasyncio.run(main())\\n"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "toolName": "code_execution",
+    "type": "tool-call",
+  },
+  {
+    "id": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "id": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:35.789626Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 3369,
+          "output_tokens": 725,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 3369,
+        "total": 3369,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 3369,
+        "output_tokens": 725,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_01KSVw3xmXbMNJPNMt46BC5W",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:37.969567Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:39.648288Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01MQHz6AzmwmZoTry5nk5EQC",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:41.431511Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01WCXNc8kDU1jBuaza6uUZ8k",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_014ch4D3vbx928ddwxMvMvF1",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:43.145757Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01Hoo8fVNFQyUpbagnajQ4BF",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01QtZ46GWS93Z5ZaSifgGNnq",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:44.839216Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_014eWUw8H2P9bDMyXcSpe1ss",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_012Zvp8FdgvjVGkmbHSU4EZk",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:46.531362Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_015ecR3hog8LhtqDLdysH8p1",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01CMz8Jhv6EfnzHQzEMdpHut",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:48.294455Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01CHzXfYTqEJ9HV3Kic1Uz5q",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01PfH6ADzq8Yct5jeRY9QkS2",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:49.977349Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_014nyoTPq6LG3UwHW1zvMTH3",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_013DE3qaKvBMheZXUhwkvpdF",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:51.565949Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01HLQ2uhM6N45SyR39CddV55",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01MTRMy9BEvFHWR7hpCWc4nJ",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:53.308898Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01TdKL1d8pQ9hLtyzbPUNGNf",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01CXqv27ozPihE5nj6eA3Joc",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:55.035858Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01Q5bmB7EBDZYRnY5A78n34S",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player1"}",
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player1"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01K6ST6orjmPHHwM8rwLj1n9",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:56.857745Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01E9RpqZHoGBsPDB9P3r1aBA",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "toolName": "rollDie",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"player":"player2"}",
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"player":"player2"}",
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+          "type": "code_execution_20250825",
+        },
+      },
+    },
+    "toolCallId": "toolu_01QcWWQcQ1pd7nx9xohX4zAr",
+    "toolName": "rollDie",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": null,
+        "container": {
+          "expiresAt": "2025-12-20T05:33:58.450677Z",
+          "id": "container_011CWHPPTDTn1XufeRB9uHeH",
+          "skills": null,
+        },
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 0,
+        "total": 0,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 725,
+      },
+      "raw": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+      },
+    },
+  },
+  {
+    "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "result": {
+      "content": [],
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "=== DICE GAME: First to 3 Wins ===
+
+--- Round 1 ---
+Player 1 rolls: 5
+Player 2 rolls: 6
+Player 2 wins this round!
+Score: Player 1 = 0, Player 2 = 1
+
+--- Round 2 ---
+Player 1 rolls: 4
+Player 2 rolls: 6
+Player 2 wins this round!
+Score: Player 1 = 0, Player 2 = 2
+
+--- Round 3 ---
+Player 1 rolls: 5
+Player 2 rolls: 2
+Player 1 wins this round!
+Score: Player 1 = 1, Player 2 = 2
+
+--- Round 4 ---
+Player 1 rolls: 6
+Player 2 rolls: 6
+Draw! No one gets a point.
+Score: Player 1 = 1, Player 2 = 2
+
+--- Round 5 ---
+Player 1 rolls: 3
+Player 2 rolls: 2
+Player 1 wins this round!
+Score: Player 1 = 2, Player 2 = 2
+
+--- Round 6 ---
+Player 1 rolls: 6
+Player 2 rolls: 6
+Draw! No one gets a point.
+Score: Player 1 = 2, Player 2 = 2
+
+--- Round 7 ---
+Player 1 rolls: 2
+Player 2 rolls: 3
+Player 2 wins this round!
+Score: Player 1 = 2, Player 2 = 3
+
+========================================
+🏆 GAME OVER: Player 2 wins the game! (3-2)
+========================================
+
+📊 Analysis:
+Total rounds played: 7
+Player 2 had better results - likely using the loaded die! 🎲
+",
+      "type": "code_execution_result",
+    },
+    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
+    "toolName": "code_execution",
+    "type": "tool-result",
+  },
+  {
+    "id": "1",
+    "type": "text-start",
+  },
+  {
+    "delta": "##",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Game",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Results",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+
+**Player 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " wins the game ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "3-2!**",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 🏆
+
+The",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game laste",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d 7 rounds with",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " following breakdown",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ":
+- **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Player",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 1**:",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " roun",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d wins",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Player 2**: 3",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " round wins  ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Draws",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "**: 2 rounds",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (both",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rolling",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 6",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")
+
+Base",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d on the results",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Player 2 ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "appears",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to be the one",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " using the loaded die**,",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as they",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " manage",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d to win the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d had slightly",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " better overall",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " results.",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rolle",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d high",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " consistently",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " including",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " multiple",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 6s",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " which helped them secure",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the victory.
+
+The",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " game was",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " actually",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " quite competitive",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " despite",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the cheating,",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with Player 1",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " managing",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to win 2 rounds an",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "d the",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " score",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " being tied ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "2-2 before",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player 2 won",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the decisive",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "7",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "th round with",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a roll",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of 3",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "against",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Player 1's 2",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "1",
+    "type": "text-delta",
+  },
+  {
+    "id": "1",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 4551,
+          "output_tokens": 197,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 4551,
+        "total": 4551,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 197,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4551,
+        "output_tokens": 197,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 variant > should stream tool search bm25 results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_011bqgzot9grwdetCByUmXRP",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "I'll search for a",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "related tool",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to help",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you get the weather",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " information for San Francisco.",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"query": "weather forecast current",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " conditions",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"query": "weather forecast current conditions"}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_weather",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01Gj33J3YUAAxF9TWRAThxtu",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "3",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I found a weather tool.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let me get the current weather for",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "delta": " San Francisco.",
+    "id": "3",
+    "type": "text-delta",
+  },
+  {
+    "id": "3",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": " Francisco, CA",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_019nRrfqqXcU5NPTUSYfEMAY",
+    "toolName": "get_weather",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1630,
+          "output_tokens": 158,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1630,
+        "total": 1630,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 158,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1630,
+        "output_tokens": 158,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_0132hQ7tpsGJhdPtEBhmKA2R",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather in San Francisco,",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " CA is:
+- **Temperature:**",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1040,
+          "output_tokens": 41,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1040,
+        "total": 1040,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 41,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1040,
+        "output_tokens": 41,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex variant > should stream tool search regex results 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_01A4vjL51mNRof8JMvA9CFph",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "providerExecuted": true,
+    "toolName": "tool_search",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"pattern": "weather|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "SF",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "San Francisco|",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "forecast",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|temperature",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "|climate",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "", "limit": 10",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": "}",
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"pattern": "weather|SF|San Francisco|forecast|temperature|climate", "limit": 10}",
+    "providerExecuted": true,
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-call",
+  },
+  {
+    "result": [
+      {
+        "toolName": "get_temp_data",
+        "type": "tool_reference",
+      },
+    ],
+    "toolCallId": "srvtoolu_01TFsKhwiJYqVMitK2XGtH87",
+    "toolName": "tool_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "2",
+    "type": "text-start",
+  },
+  {
+    "delta": "Great",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": "! I",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " found a",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather tool",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Let",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me get the current weather",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data for San Francisco.",
+    "id": "2",
+    "type": "text-delta",
+  },
+  {
+    "id": "2",
+    "type": "text-end",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-input-start",
+  },
+  {
+    "delta": "{"location": "San Francisco, CA",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "delta": ""}",
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-delta",
+  },
+  {
+    "id": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "type": "tool-input-end",
+  },
+  {
+    "input": "{"location": "San Francisco, CA"}",
+    "providerExecuted": undefined,
+    "providerMetadata": {
+      "anthropic": {
+        "caller": {
+          "toolId": undefined,
+          "type": "direct",
+        },
+      },
+    },
+    "toolCallId": "toolu_01UmPwkecewaEpMupy2ywk8b",
+    "toolName": "get_temp_data",
+    "type": "tool-call",
+  },
+  {
+    "finishReason": {
+      "raw": "tool_use",
+      "unified": "tool-calls",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1681,
+          "output_tokens": 163,
+          "server_tool_use": {
+            "web_search_requests": 0,
+          },
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1681,
+        "total": 1681,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 163,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1681,
+        "output_tokens": 163,
+        "server_tool_use": {
+          "web_search_requests": 0,
+        },
+        "service_tier": "standard",
+      },
+    },
+  },
+  {
+    "id": "msg_01L42mFXxzijtGwwfiLdKoUn",
+    "modelId": "claude-sonnet-4-5-20250929",
+    "type": "response-metadata",
+  },
+  {
+    "id": "0",
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "'s the current",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " weather data for San Francisco:
+
+-",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " **",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "Location:** San Francisco, CA",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Temperature:** 64°F",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "
+- **Condition:** Partly clou",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "dy
+- **Humidity:** ",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": "65%
+
+The weather in",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " SF",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is pleasant",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " with partly cloudy skies and moderate",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "delta": " humidity!",
+    "id": "0",
+    "type": "text-delta",
+  },
+  {
+    "id": "0",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": "end_turn",
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "anthropic": {
+        "cacheCreationInputTokens": 0,
+        "container": null,
+        "contextManagement": null,
+        "iterations": null,
+        "stopSequence": null,
+        "usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0,
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 1071,
+          "output_tokens": 67,
+          "service_tier": "standard",
+        },
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "noCache": 1071,
+        "total": 1071,
+      },
+      "outputTokens": {
+        "reasoning": undefined,
+        "text": undefined,
+        "total": 67,
+      },
+      "raw": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0,
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 1071,
+        "output_tokens": 67,
+        "service_tier": "standard",
+      },
+    },
+  },
+]
+`;
+
+exports[`AnthropicMessagesLanguageModel > doStream > web fetch tool > txt response > should stream web search tool results 1`] = `
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
 [
   {
     "type": "stream-start",
@@ -12161,6 +16135,11 @@ The page also discusses",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+<<<<<<< HEAD
+=======
+        "contextManagement": null,
+        "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
         "stopSequence": null,
         "usage": {
           "cache_creation": {
@@ -12896,6 +16875,11 @@ The main tech story today appears to be Apple's significant",
       "anthropic": {
         "cacheCreationInputTokens": 0,
         "container": null,
+<<<<<<< HEAD
+=======
+        "contextManagement": null,
+        "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
         "stopSequence": null,
         "usage": {
           "cache_creation": {

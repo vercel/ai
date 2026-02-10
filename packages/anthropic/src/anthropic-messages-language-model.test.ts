@@ -848,6 +848,11 @@ describe('AnthropicMessagesLanguageModel', () => {
           "anthropic": {
             "cacheCreationInputTokens": null,
             "container": null,
+<<<<<<< HEAD
+=======
+            "contextManagement": null,
+            "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
             "stopSequence": "STOP",
             "usage": {
               "input_tokens": 4,
@@ -1162,6 +1167,11 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+<<<<<<< HEAD
+=======
+              "contextManagement": null,
+              "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
               "stopSequence": null,
               "usage": {
                 "cache_creation_input_tokens": 10,
@@ -1297,6 +1307,11 @@ describe('AnthropicMessagesLanguageModel', () => {
             "anthropic": {
               "cacheCreationInputTokens": 10,
               "container": null,
+<<<<<<< HEAD
+=======
+              "contextManagement": null,
+              "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
               "stopSequence": null,
               "usage": {
                 "cache_creation": {
@@ -2957,6 +2972,383 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(result.warnings).toStrictEqual([]);
     });
+<<<<<<< HEAD
+=======
+
+    describe('context management', () => {
+      it('should send context_management in request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [{ type: 'clear_tool_uses_20250919' }],
+          },
+        });
+      });
+
+      it('should add context-management beta header', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'clear_tool_uses_20250919' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse context_management from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'clear_tool_uses_20250919',
+                  cleared_tool_uses: 5,
+                  cleared_input_tokens: 10000,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'clear_tool_uses_20250919',
+              clearedToolUses: 5,
+              clearedInputTokens: 10000,
+            },
+          ],
+        });
+      });
+
+      it('should map clear_tool_uses_20250919 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_tool_uses_20250919',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    keep: { type: 'tool_uses', value: 5 },
+                    clearAtLeast: { type: 'input_tokens', value: 10000 },
+                    clearToolInputs: true,
+                    excludeTools: ['important_tool'],
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 50000 },
+                keep: { type: 'tool_uses', value: 5 },
+                clear_at_least: { type: 'input_tokens', value: 10000 },
+                clear_tool_inputs: true,
+                exclude_tools: ['important_tool'],
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map clear_thinking_20251015 with keep option to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'clear_thinking_20251015',
+                    keep: { type: 'thinking_turns', value: 3 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'clear_thinking_20251015',
+                keep: { type: 'thinking_turns', value: 3 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map multiple context management edits to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  { type: 'clear_tool_uses_20250919' },
+                  { type: 'clear_thinking_20251015' },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              { type: 'clear_tool_uses_20250919' },
+              { type: 'clear_thinking_20251015' },
+            ],
+          },
+        });
+      });
+
+      it('should map compact_20260112 to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+              },
+            ],
+          },
+        });
+      });
+
+      it('should map compact_20260112 with all options to request body', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [
+                  {
+                    type: 'compact_20260112',
+                    trigger: { type: 'input_tokens', value: 50000 },
+                    pauseAfterCompaction: true,
+                    instructions: 'Summarize the conversation concisely.',
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          context_management: {
+            edits: [
+              {
+                type: 'compact_20260112',
+                trigger: { type: 'input_tokens', value: 50000 },
+                pause_after_compaction: true,
+                instructions: 'Summarize the conversation concisely.',
+              },
+            ],
+          },
+        });
+      });
+
+      it('should add compact beta header when using compact edit', async () => {
+        prepareJsonResponse({});
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              contextManagement: {
+                edits: [{ type: 'compact_20260112' }],
+              },
+            },
+          },
+        });
+
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-01-12',
+        );
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'context-management-2025-06-27',
+        );
+      });
+
+      it('should parse compaction response with iterations and compaction content', async () => {
+        prepareJsonFixtureResponse('anthropic-compaction.1');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: expect.stringContaining('## Summary of Conversation'),
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+              },
+            },
+          },
+          {
+            type: 'text',
+            text: expect.stringContaining(
+              'Based on our conversation history, you had asked me',
+            ),
+          },
+        ]);
+
+        expect(result.providerMetadata?.anthropic?.iterations).toEqual([
+          {
+            type: 'compaction',
+            inputTokens: 60385,
+            outputTokens: 592,
+          },
+          {
+            type: 'message',
+            inputTokens: 682,
+            outputTokens: 1320,
+          },
+        ]);
+
+        expect(result.usage).toMatchObject({
+          inputTokens: {
+            total: 60385 + 682,
+          },
+          outputTokens: {
+            total: 592 + 1320,
+          },
+        });
+      });
+
+      it('should parse context_management with compact_20260112 from response', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            context_management: {
+              applied_edits: [
+                {
+                  type: 'compact_20260112',
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata?.anthropic?.contextManagement).toEqual({
+          appliedEdits: [
+            {
+              type: 'compact_20260112',
+            },
+          ],
+        });
+      });
+
+      it('should return compaction stop reason as other', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'compaction', content: 'Compaction summary...' }],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'compaction',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.finishReason).toEqual({
+          unified: 'other',
+          raw: 'compaction',
+        });
+      });
+    });
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
   });
 
   describe('doStream', () => {
@@ -3066,6 +3458,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+<<<<<<< HEAD
+=======
+                  "contextManagement": null,
+                  "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3207,6 +3604,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": 0,
                   "container": null,
+<<<<<<< HEAD
+=======
+                  "contextManagement": null,
+                  "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                   "stopSequence": null,
                   "usage": {
                     "cache_creation": {
@@ -3234,6 +3636,209 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
     });
 
+<<<<<<< HEAD
+=======
+    describe('json schema response format with other tool response (unsupported model)', () => {
+      let result: Awaited<ReturnType<typeof model.doStream>>;
+
+      beforeEach(async () => {
+        prepareChunksFixtureResponse('anthropic-json-other-tool.1');
+
+        result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'Get the weather in a location',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                weather: { type: 'string' },
+                temperature: { type: 'number' },
+              },
+              required: ['weather', 'temperature'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        });
+      });
+
+      it('should pass json schema response format as a tool', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stream": true,
+            "tool_choice": {
+              "disable_parallel_tool_use": true,
+              "type": "any",
+            },
+            "tools": [
+              {
+                "description": "Get the weather in a location",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                  ],
+                  "type": "object",
+                },
+                "name": "weather",
+              },
+              {
+                "description": "Respond with a JSON object.",
+                "input_schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "temperature": {
+                      "type": "number",
+                    },
+                    "weather": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "weather",
+                    "temperature",
+                  ],
+                  "type": "object",
+                },
+                "name": "json",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should stream the tool call', async () => {
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01CD3XaZfhNabxRt1SG5ybtK",
+                "modelId": "claude-haiku-4-5-20251001",
+                "type": "response-metadata",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"location": "San Francisco",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""}",
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"location": "San Francisco"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_019Zvehfe1XQWweT1pm7okyt",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "contextManagement": null,
+                    "iterations": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 843,
+                      "output_tokens": 28,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 843,
+                    "total": 843,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 28,
+                  },
+                  "raw": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 843,
+                    "output_tokens": 28,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+            ]
+          `);
+      });
+    });
+
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     describe('json schema response format with output format (supported model)', () => {
       let result: Awaited<ReturnType<typeof model.doStream>>;
 
@@ -3397,6 +4002,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3517,6 +4127,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3598,6 +4213,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3665,6 +4285,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 17,
@@ -3684,6 +4309,121 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
+<<<<<<< HEAD
+=======
+    it('should parse context_management from streaming response', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":50},"context_management":{"applied_edits":[{"type":"clear_tool_uses_20250919","cleared_tool_uses":5,"cleared_input_tokens":10000}]}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(
+        finishPart?.providerMetadata?.anthropic?.contextManagement,
+      ).toEqual({
+        appliedEdits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            clearedToolUses: 5,
+            clearedInputTokens: 10000,
+          },
+        ],
+      });
+    });
+
+    it('should stream compaction content blocks with provider metadata', async () => {
+      prepareChunksFixtureResponse('anthropic-compaction.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+
+      const compactionTextStart = result.find(
+        part =>
+          part.type === 'text-start' &&
+          part.id === '0' &&
+          (part as { providerMetadata?: { anthropic?: { type?: string } } })
+            .providerMetadata?.anthropic?.type === 'compaction',
+      );
+      expect(compactionTextStart).toBeDefined();
+      expect(
+        (compactionTextStart as { providerMetadata?: unknown })
+          .providerMetadata,
+      ).toEqual({
+        anthropic: {
+          type: 'compaction',
+        },
+      });
+
+      const compactionDeltas = result.filter(
+        part => part.type === 'text-delta' && part.id === '0',
+      );
+      expect(compactionDeltas.length).toBeGreaterThan(0);
+
+      const allCompactionText = compactionDeltas
+        .map(d => (d as { delta: string }).delta)
+        .join('');
+      expect(allCompactionText).toContain('## Summary of Conversation');
+      expect(allCompactionText).toContain('React vs Vue.js');
+
+      const regularTextStart = result.find(
+        part =>
+          part.type === 'text-start' &&
+          part.id === '1' &&
+          !(part as { providerMetadata?: unknown }).providerMetadata,
+      );
+      expect(regularTextStart).toBeDefined();
+    });
+
+    it('should parse iterations from streaming compaction response', async () => {
+      prepareChunksFixtureResponse('anthropic-compaction.1');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata?.anthropic?.iterations).toEqual([
+        {
+          type: 'compaction',
+          inputTokens: 60385,
+          outputTokens: 522,
+        },
+        {
+          type: 'message',
+          inputTokens: 612,
+          outputTokens: 2819,
+        },
+      ]);
+
+      expect(finishPart?.usage).toMatchObject({
+        inputTokens: {
+          total: 60385 + 612,
+        },
+        outputTokens: {
+          total: 522 + 2819,
+        },
+      });
+    });
+
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
     it('should stream tool deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -3800,6 +4540,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": null,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "input_tokens": 441,
@@ -4044,6 +4789,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4118,6 +4868,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "cache_creation": {
@@ -4194,6 +4949,11 @@ describe('AnthropicMessagesLanguageModel', () => {
               "anthropic": {
                 "cacheCreationInputTokens": 10,
                 "container": null,
+<<<<<<< HEAD
+=======
+                "contextManagement": null,
+                "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                 "stopSequence": null,
                 "usage": {
                   "cache_creation_input_tokens": 10,
@@ -4294,6 +5054,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+<<<<<<< HEAD
+=======
+                  "contextManagement": null,
+                  "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4342,6 +5107,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+<<<<<<< HEAD
+=======
+                  "contextManagement": null,
+                  "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                   "stopSequence": "STOP",
                   "usage": {
                     "input_tokens": 17,
@@ -4577,6 +5347,11 @@ describe('AnthropicMessagesLanguageModel', () => {
                 "anthropic": {
                   "cacheCreationInputTokens": null,
                   "container": null,
+<<<<<<< HEAD
+=======
+                  "contextManagement": null,
+                  "iterations": null,
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
                   "stopSequence": null,
                   "usage": {
                     "input_tokens": 17,
@@ -4685,6 +5460,569 @@ describe('AnthropicMessagesLanguageModel', () => {
                   args: { maxUses: 1 },
                 },
               ],
+<<<<<<< HEAD
+=======
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('agent skills', () => {
+      it('should stream code execution tool results', async () => {
+        prepareChunksFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        const result = await model.doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [{ type: 'anthropic', skillId: 'pptx' }],
+              },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('function tool', () => {
+      it('should stream tool deltas', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01GouTqNCGXzrj5LQ5jEkw67","type":"message","role":"assistant","model":"claude-3-haiku-20240307","stop_sequence":null,"usage":{"input_tokens":441,"output_tokens":2},"content":[],"stop_reason":null}            }\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}      }\n\n`,
+            `data: {"type": "ping"}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Okay"}    }\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"!"}   }\n\n`,
+            `data: {"type":"content_block_stop","index":0    }\n\n`,
+            `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_01DBsB4vvYLnBDzZ5rBSxSLs","name":"test-tool","input":{}}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}           }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"value"}              }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\":"}      }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"\\"Spark"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"le"}          }\n\n`,
+            `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":" Day\\"}"}               }\n\n`,
+            `data: {"type":"content_block_stop","index":1              }\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":65}           }\n\n`,
+            `data: {"type":"message_stop"           }\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+                "modelId": "claude-3-haiku-20240307",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "Okay",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": "!",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-input-start",
+              },
+              {
+                "delta": "{"value",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "":",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": ""Spark",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": "le",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "delta": " Day"}",
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-delta",
+              },
+              {
+                "id": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{"value":"Sparkle Day"}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+                "toolName": "test-tool",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": null,
+                    "container": null,
+                    "contextManagement": null,
+                    "iterations": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "input_tokens": 441,
+                      "output_tokens": 65,
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 441,
+                    "total": 441,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 65,
+                  },
+                  "raw": {
+                    "input_tokens": 441,
+                    "output_tokens": 65,
+                  },
+                },
+              },
+            ]
+          `);
+      });
+
+      it('should support tools with empty parameters in streaming', async () => {
+        prepareChunksFixtureResponse('anthropic-tool-no-args');
+
+        const result = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'test-tool',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                required: [],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await convertReadableStreamToArray(result.stream))
+          .toMatchInlineSnapshot(`
+            [
+              {
+                "type": "stream-start",
+                "warnings": [],
+              },
+              {
+                "id": "msg_01GE2RKp1VYsPzdFs3sS9z5S",
+                "modelId": "claude-sonnet-4-5-20250929",
+                "type": "response-metadata",
+              },
+              {
+                "id": "0",
+                "type": "text-start",
+              },
+              {
+                "delta": "I'll update the issue list for",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "delta": " you.",
+                "id": "0",
+                "type": "text-delta",
+              },
+              {
+                "id": "0",
+                "type": "text-end",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-input-start",
+              },
+              {
+                "id": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "type": "tool-input-end",
+              },
+              {
+                "input": "{}",
+                "providerExecuted": undefined,
+                "toolCallId": "toolu_01QE1WLsSVp5hy5Q3GmGTmjP",
+                "toolName": "updateIssueList",
+                "type": "tool-call",
+              },
+              {
+                "finishReason": {
+                  "raw": "tool_use",
+                  "unified": "tool-calls",
+                },
+                "providerMetadata": {
+                  "anthropic": {
+                    "cacheCreationInputTokens": 0,
+                    "container": null,
+                    "contextManagement": null,
+                    "iterations": null,
+                    "stopSequence": null,
+                    "usage": {
+                      "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                      },
+                      "cache_creation_input_tokens": 0,
+                      "cache_read_input_tokens": 0,
+                      "input_tokens": 565,
+                      "output_tokens": 48,
+                      "service_tier": "standard",
+                    },
+                  },
+                },
+                "type": "finish",
+                "usage": {
+                  "inputTokens": {
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "noCache": 565,
+                    "total": 565,
+                  },
+                  "outputTokens": {
+                    "reasoning": undefined,
+                    "text": undefined,
+                    "total": 48,
+                  },
+                  "raw": {
+                    "cache_creation": {
+                      "ephemeral_1h_input_tokens": 0,
+                      "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 565,
+                    "output_tokens": 48,
+                    "service_tier": "standard",
+                  },
+                },
+              },
+            ]
+          `);
+      });
+    });
+
+    describe('programmatic tool calling', () => {
+      it('should include caller info when tool_use has caller field from code_execution', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"query_database","input":{},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"sql\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"SELECT * FROM users\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.input).toBe('{"sql": "SELECT * FROM users"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should include caller info when tool_use has direct caller type', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{},"caller":{"type":"direct"}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"Tokyo\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":50}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'direct',
+              toolId: undefined,
+            },
+          },
+        });
+      });
+
+      it('should use non-empty input from content_block_start for deferred tool calls', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Deferred","name":"query_database","input":{"sql":"SELECT COUNT(*) FROM orders"},"caller":{"type":"code_execution_20250825","tool_id":"srvtoolu_01CodeExec"}}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'query_database',
+              inputSchema: {
+                type: 'object',
+                properties: { sql: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.toolCallId).toBe('toolu_01Deferred');
+        expect(toolCall?.input).toBe('{"sql":"SELECT COUNT(*) FROM orders"}');
+        expect(toolCall?.providerMetadata).toEqual({
+          anthropic: {
+            caller: {
+              type: 'code_execution_20250825',
+              toolId: 'srvtoolu_01CodeExec',
+            },
+          },
+        });
+      });
+
+      it('should NOT prepend empty {} input when deltas follow content_block_start', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            // Note: input is {} (empty object) - this should NOT be used as initial input
+            `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01Test","name":"get_weather","input":{}}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"city\\""}}\n\n`,
+            `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":": \\"London\\"}"}}\n\n`,
+            `data: {"type":"content_block_stop","index":0}\n\n`,
+            `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":30}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              inputSchema: {
+                type: 'object',
+                properties: { city: { type: 'string' } },
+              },
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const toolCall = parts.find(
+          (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+            p.type === 'tool-call',
+        );
+
+        expect(toolCall).toBeDefined();
+        expect(toolCall?.input).toBe('{"city": "London"}');
+      });
+
+      describe('with fixture (multi-turn dice game)', () => {
+        it('should stream programmatic tool calling with multiple message_start/stop sequences', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          expect(parts).toMatchSnapshot();
+        });
+
+        it('should extract caller metadata from streamed tool calls', async () => {
+          prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');
+
+          const result = await model.doStream({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'rollDie',
+                inputSchema: {
+                  type: 'object',
+                  properties: { player: { type: 'string' } },
+                },
+              },
+            ],
+          });
+
+          const parts = await convertReadableStreamToArray(result.stream);
+          const toolCalls = parts.filter(
+            (p): p is LanguageModelV3StreamPart & { type: 'tool-call' } =>
+              p.type === 'tool-call',
+          );
+
+          // Filter rollDie calls (not code_execution)
+          const rollDieCalls = toolCalls.filter(
+            tc => tc.toolName === 'rollDie',
+          );
+          expect(rollDieCalls.length).toBeGreaterThan(0);
+
+          // Each rollDie call should have caller metadata
+          for (const call of rollDieCalls) {
+            expect(call.providerMetadata?.anthropic?.caller).toEqual({
+              type: 'code_execution_20250825',
+              toolId: expect.stringMatching(/^srvtoolu_/),
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
             });
           });
 

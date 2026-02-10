@@ -243,6 +243,195 @@ console.log(text); // text response
 See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
 on how to integrate reasoning into your chatbot.
 
+<<<<<<< HEAD
+=======
+### Context Management
+
+Anthropic's Context Management feature allows you to automatically manage conversation context by clearing tool uses or thinking content when certain conditions are met. This helps optimize token usage and manage long conversations more efficiently.
+
+You can configure context management using the `contextManagement` provider option:
+
+```ts highlight="7-20"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt: 'Continue our conversation...',
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_tool_uses_20250919',
+            trigger: { type: 'input_tokens', value: 10000 },
+            keep: { type: 'tool_uses', value: 5 },
+            clearAtLeast: { type: 'input_tokens', value: 1000 },
+            clearToolInputs: true,
+            excludeTools: ['important_tool'],
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+
+// Check what was cleared
+console.log(result.providerMetadata?.anthropic?.contextManagement);
+```
+
+#### Clear Tool Uses
+
+The `clear_tool_uses_20250919` edit type removes old tool calls from the conversation history:
+
+- **trigger** - Condition that triggers the clearing (e.g., `{ type: 'input_tokens', value: 10000 }`)
+- **keep** - How many recent tool uses to preserve (e.g., `{ type: 'tool_uses', value: 5 }`)
+- **clearAtLeast** - Minimum amount to clear (e.g., `{ type: 'input_tokens', value: 1000 }`)
+- **clearToolInputs** - Whether to clear tool input parameters (boolean)
+- **excludeTools** - Array of tool names to never clear
+
+#### Clear Thinking
+
+The `clear_thinking_20251015` edit type removes thinking/reasoning content:
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-opus-4-20250514'),
+  prompt: 'Continue reasoning...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+      contextManagement: {
+        edits: [
+          {
+            type: 'clear_thinking_20251015',
+            keep: { type: 'thinking_turns', value: 2 },
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+#### Compaction
+
+The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
+
+```ts highlight="7-19"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-opus-4-6'),
+  messages: conversationHistory,
+  providerOptions: {
+    anthropic: {
+      contextManagement: {
+        edits: [
+          {
+            type: 'compact_20260112',
+            trigger: {
+              type: 'input_tokens',
+              value: 50000, // trigger compaction when input exceeds 50k tokens
+            },
+            instructions:
+              'Summarize the conversation concisely, preserving key decisions and context.',
+            pauseAfterCompaction: false,
+          },
+        ],
+      },
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **trigger** - Condition that triggers compaction (e.g., `{ type: 'input_tokens', value: 50000 }`)
+- **instructions** - Custom instructions for how the model should summarize the conversation. Use this to guide the compaction summary towards specific aspects of the conversation you want to preserve.
+- **pauseAfterCompaction** - When `true`, the model will pause after generating the compaction summary, allowing you to inspect or process it before continuing. Defaults to `false`.
+
+When compaction occurs, the model generates a summary of the earlier context. This summary appears as a text block with special provider metadata.
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction summaries by checking the `providerMetadata` on `text-start` events:
+
+```ts
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction =
+        part.providerMetadata?.anthropic?.type === 'compaction';
+      if (isCompaction) {
+        console.log('[COMPACTION SUMMARY START]');
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction summaries appear as regular text parts with `providerMetadata`. You can style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.anthropic as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Compaction Summary]</span>
+            <div>{part.text}</div>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
+```
+
+#### Applied Edits Metadata
+
+After generation, you can check which edits were applied in the provider metadata:
+
+```ts
+const metadata = result.providerMetadata?.anthropic?.contextManagement;
+
+if (metadata?.appliedEdits) {
+  metadata.appliedEdits.forEach(edit => {
+    if (edit.type === 'clear_tool_uses_20250919') {
+      console.log(`Cleared ${edit.clearedToolUses} tool uses`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'clear_thinking_20251015') {
+      console.log(`Cleared ${edit.clearedThinkingTurns} thinking turns`);
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    } else if (edit.type === 'compact_20260112') {
+      console.log('Compaction was applied');
+      console.log(`Freed ${edit.clearedInputTokens} tokens`);
+    }
+  });
+}
+```
+
+For more details, see [Anthropic's Context Management documentation](https://docs.anthropic.com/en/docs/build-with-claude/context-management).
+
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
 ### Cache Control
 
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
@@ -872,6 +1061,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
+<<<<<<< HEAD
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -883,6 +1073,19 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+=======
+| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+>>>>>>> c60b39367 (feat(anthropic): add the new compaction feature (#12384))
 
 <Note>
   The table above lists popular models. Please see the [Anthropic
