@@ -492,6 +492,20 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('tool-call-gemini3', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-tool-call-gemini3');
+    });
+
+    it('should extract tool call with thoughtSignature', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+  });
+
   it('should expose the raw response headers', async () => {
     prepareJsonFixtureResponse('google-text', {
       headers: { 'test-header': 'test-value' },
@@ -907,36 +921,36 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with RAG",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": "Web Source",
-              "type": "source",
-              "url": "https://web.example.com",
-            },
-            {
-              "filename": "document.pdf",
-              "id": "test-id",
-              "mediaType": "application/pdf",
-              "sourceType": "document",
-              "title": "RAG Document",
-              "type": "source",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": "External RAG Source",
-              "type": "source",
-              "url": "https://external-rag-source.com/page",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with RAG",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Web Source",
+          "type": "source",
+          "url": "https://web.example.com",
+        },
+        {
+          "filename": "document.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "RAG Document",
+          "type": "source",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "External RAG Source",
+          "type": "source",
+          "url": "https://external-rag-source.com/page",
+        },
+      ]
+    `);
   });
 
   it('should extract sources from File Search retrievedContext (new format)', async () => {
@@ -967,30 +981,30 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with File Search",
-              "type": "text",
-            },
-            {
-              "filename": "test-store-xyz",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Test Document",
-              "type": "source",
-            },
-            {
-              "filename": "another-store-abc",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with File Search",
+          "type": "text",
+        },
+        {
+          "filename": "test-store-xyz",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Test Document",
+          "type": "source",
+        },
+        {
+          "filename": "another-store-abc",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+      ]
+    `);
   });
 
   it('should handle URL sources with undefined title correctly', async () => {
@@ -1019,28 +1033,28 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with URLs",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://example.com/page1",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://example.com/page2",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with URLs",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://example.com/page1",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://example.com/page2",
+        },
+      ]
+    `);
   });
 
   it('should extract sources from maps grounding metadata', async () => {
@@ -1125,44 +1139,44 @@ describe('doGenerate', () => {
     });
 
     expect(content).toMatchInlineSnapshot(`
-          [
-            {
-              "providerMetadata": undefined,
-              "text": "test response with mixed sources",
-              "type": "text",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://web.example.com",
-            },
-            {
-              "id": "test-id",
-              "sourceType": "url",
-              "title": undefined,
-              "type": "source",
-              "url": "https://external.example.com",
-            },
-            {
-              "filename": "document.pdf",
-              "id": "test-id",
-              "mediaType": "application/pdf",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-            {
-              "filename": "store-123",
-              "id": "test-id",
-              "mediaType": "application/octet-stream",
-              "sourceType": "document",
-              "title": "Unknown Document",
-              "type": "source",
-            },
-          ]
-        `);
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with mixed sources",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://web.example.com",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://external.example.com",
+        },
+        {
+          "filename": "document.pdf",
+          "id": "test-id",
+          "mediaType": "application/pdf",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+        {
+          "filename": "store-123",
+          "id": "test-id",
+          "mediaType": "application/octet-stream",
+          "sourceType": "document",
+          "title": "Unknown Document",
+          "type": "source",
+        },
+      ]
+    `);
   });
 
   describe('async headers handling', () => {
@@ -2949,6 +2963,21 @@ describe('doStream', () => {
     });
 
     it('should stream reasoning with thoughtSignature', async () => {
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
+  describe('tool-call-gemini3', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-tool-call-gemini3');
+    });
+
+    it('should stream tool call with thoughtSignature', async () => {
       const { stream } = await model.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,

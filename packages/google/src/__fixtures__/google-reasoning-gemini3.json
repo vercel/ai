@@ -4,12 +4,8 @@
       "content": {
         "parts": [
           {
-            "text": "I need to count the letter \"r\" in \"strawberry\". Let me spell it out: s-t-r-a-w-b-e-r-r-y. That gives us 3 \"r\"s.\n\n",
-            "thought": true
-          },
-          {
-            "text": "There are **3** \"r\"s in the word \"strawberry\".\n\nHere is the breakdown: st**r**awbe**rr**y.",
-            "thoughtSignature": "Er8ICrwIAb4+9vvLcB/BVG275p0VJoifW0goXgxLuI2DzElGAKOVOdOdZ7QthhadADy6IGXVWLIqoF9GU1laBWe/7kyOKXpWOLm/lz0lOpmcCOegHiIfs70qs5A6DRTMWsF3pATArurU1ysMF/EQ4hCGRtOmXpZRxei5yKxMlJ0eQKfZtekmf9igQ2zyw+737vT1TC6vWZa981Ere7Z9KubTSbDG0M2j8Ll6OV4BQsXY5viAZP91WeGypFaOt0Rs/X9i9vVLpDj5gndgsxD0jPTN5+XMDQ5V1D4E5fGUaw/6rIoGvlZZBtgK3SHpM6YaQCtA11NyOqG94nrhKcPjr/ElSd4R50V4bTm9EAYYk1nmzoHWYzBlhv8KJHl6A4AayKOFvb0crgATUbq8l9o3jAmq/6wxLJefEYyejWCovlJGezIZ2gchvAlya+IXdSW7OJMeSeQ+NNireODtQqpFoG59B0RJUN0rB88eX2KM1FXgQFDLVg8YYBWIwYdqR8MERZdQLfREHp0bRraO6rYot8jrgbQ9a9ulwtAJtvecqZ7vhoFACfbKTnbNlWRSjy8dW5FYY+fDbUpNUOurjFl/yXBZokuSQtXLCdQ8jFsu8cZfoyJswB6s3IySxiCsUtotp5GpIxoKspPC9ZcAtI4FDSbu2j8KwvNXPUQgnC5PZJKEDUtQnvHDkCkv0eFVDczr0rSUA+pzfd3c2Qe/7tHhM6h/cd0Lqq7Lfwg4MAgxnNtRpNq8cHD+4hP8f94J4Z6smiXHKipuO3eZknnUdI01EVPP29Z9tOniW9MSCp0BSApMpUkruYoMZE46t1prkBRusFERkKqLFSPSjbiLVCJ9srcJYVAD2SPMRhYgUTQxvY5AOG9mDxao836HEdR6ZPPxDkRd/DK4kKctyZvqLKIf2mcmhSG0/0hp52av8ESAFoz0fKuJ5HPAeb2xm6oHLckX7vT+Zh3Zu20QRV0q+U2q3hopihrJugXBhk8nxJX0mcKUJ0cDYIhcIgurCld3CvwE749Jv4Yzs6O86AXBEIOY9M+r6L4j7MzNGlejzYl/l02u1nIfOGtQK79U43dJj9T7Lx+9YeFUL4JIT1t3KOh8oZp9KGiAuIO1wyCArsTUuHjW7TyD9o4YK4G6AxwGYGY7Z1cQ8hT/tSYTDYE6TuJXiXKzqHNZW4wt5NdQEDI8rn8b+DAxh+V9ADzeL6JZs3qSBTFLqAJwZVLd5st6PbSQu+beh4/psmOCGXnXqf0lzuPWrMHV/BgXPxkpt5eRf0eisMNFMMFKhyYrIYi+msOk/lx6Lnb1WAEv/PfLiJUI6HwVtEwkufh4HAzif0vg0vXNnUSFVM54j0V7RadU1qmoskOSUpC5WxsWe0KjZ+weQM4Hy/881CWq4mveYpZ3UBP5V5Ma09ytzEAj0UZZifGiKGDOKEOAAPazau7p1U8KVNoarw=="
+            "text": "There are **3** \"r\"s in strawberry.\n\nHere is the breakdown: st**r**awbe**rr**y.",
+            "thoughtSignature": "EswFCskFAb4+9vu5+eCedpmcjHHK+yjyrSAIGVBHj03GrObE+hduQ213f7FDz0UD+aLw3SDPDBkaK69ObgjN0U84Q1yKpmpLk6GnphX0+DrmRFYKnw2TJ8c7/DKa3z5x"
           }
         ],
         "role": "model"
@@ -19,17 +15,17 @@
     }
   ],
   "usageMetadata": {
-    "promptTokenCount": 14,
-    "candidatesTokenCount": 32,
-    "totalTokenCount": 397,
+    "promptTokenCount": 9,
+    "candidatesTokenCount": 29,
+    "totalTokenCount": 296,
     "promptTokensDetails": [
       {
         "modality": "TEXT",
-        "tokenCount": 14
+        "tokenCount": 9
       }
     ],
-    "thoughtsTokenCount": 351
+    "thoughtsTokenCount": 258
   },
   "modelVersion": "gemini-3-pro-preview",
-  "responseId": "UGyLaZiZCcq2mtkPv8bB8AQ"
+  "responseId": "DniLab2dFPeSxN8PpqXY4Ag"
 }

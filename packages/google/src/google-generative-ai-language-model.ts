@@ -278,8 +278,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           : undefined;
 
         if (part.text.length === 0) {
-          // Empty text parts may carry a thoughtSignature that should be
-          // attached to the most recent content item.
           if (thoughtSignatureMetadata != null && content.length > 0) {
             const lastContent = content[content.length - 1];
             lastContent.providerMetadata = thoughtSignatureMetadata;
@@ -502,7 +500,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       }
                     : undefined;
 
-                  // Handle empty text parts that only carry a thoughtSignature
                   if (part.text.length === 0) {
                     if (
                       thoughtSignatureMetadata != null &&
@@ -542,7 +539,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       providerMetadata: thoughtSignatureMetadata,
                     });
                   } else {
-                    // End any active reasoning block before starting text
                     if (currentReasoningBlockId !== null) {
                       controller.enqueue({
                         type: 'reasoning-end',
@@ -551,7 +547,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       currentReasoningBlockId = null;
                     }
 
-                    // Start new text block if not already active
                     if (currentTextBlockId === null) {
                       currentTextBlockId = String(blockCounter++);
                       controller.enqueue({
@@ -648,7 +643,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           },
 
           flush(controller) {
-            // Close any open blocks before finishing
             if (currentTextBlockId !== null) {
               controller.enqueue({
                 type: 'text-end',
